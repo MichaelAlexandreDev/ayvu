@@ -504,6 +504,7 @@ its dependencies, and the compatibility baseline before changing code.
 
 ## Public evidence
 
+- [Proposed product threat model and privacy data flows](product-threat-model.md)
 - [Product scope and capability taxonomy](../product-scope.md)
 - [Translation workflow migration baseline](../translation-workflow-migration-baseline.md)
 - [Shared application use-case matrix](shared-use-case-matrix.md)
