@@ -115,7 +115,7 @@ flowchart LR
 | B04 / Knowledge | [cache.py](../../src/ayvu/cache.py) stores and imports/exports text; [translation_memory.py](../../src/ayvu/translation_memory.py) retrieves fuzzy candidates; [glossary.py](../../src/ayvu/glossary.py) loads/edits terms | SQL values are parameterized and import hashes validated; JSON import materializes the full payload without size or entry limits; hashes do not authenticate translations; cache has no provider identity or approved-TM lifecycle |
 | B05 / Review + Formats | [review_export.py](../../src/ayvu/review_export.py): `write_review_csv`; [review_import.py](../../src/ayvu/review_import.py): `read_review_csv`; `apply_reviewed_epub` reconstructs a derived EPUB | Required columns, duplicate IDs and source-text consistency have checks; row materialization is not bounded by an Ayvu budget; CSV spreadsheet formulas and full source-bound identity are not controlled |
 | B06 / Jobs + Infrastructure | [resume.py](../../src/ayvu/resume.py): `ResumeStateStore.save/load`; [cli.py](../../src/ayvu/cli.py): `_resume_translation` restores paths, URL and execution parameters | Version/field validation exists; write is direct and resume uses `overwrite=True`; no durable job identity, lease or source fingerprint authenticates that state |
-| B07 / Formats + Infrastructure + Policies | `epub_io._copy_epub_with_replacements`, Markdown extraction and CLI review/report/missing-text writers publish files | Normal output conflicts are checked; ZIP output opens in `w` mode; canonical aliases, race-safe handles and validate-before-publication staging are not enforced |
+| B07 / current writers: Formats + Infrastructure + Policies; future artifact state: Artifacts + Provenance (lineage) | `epub_io._copy_epub_with_replacements`, Markdown extraction and CLI review/report/missing-text writers publish files | Normal output conflicts are checked; ZIP output opens in `w` mode; canonical aliases, race-safe handles and validate-before-publication staging are not enforced |
 | B08 / Library + Infrastructure | [library.py](../../src/ayvu/library.py): `scan_library`, `open_library_epub`, `_reader_command` | Selected path must be a file; launch uses argument vector, not a shell string; configured executable, inherited environment and reader behavior remain outside containment |
 | B09 / Interfaces + Policies | CLI terminal/progress/errors and `_render_markdown_report` consume names, warnings and provider/parser error text | Common mode hides some expected-error detail; there is no universal sanitization envelope; provider error bodies can reach reports |
 | B10 / Maintainer + Infrastructure | [pyproject.toml](../../pyproject.toml), [uv.lock](../../uv.lock) and [CI](../../.github/workflows/tests.yml) install/build dependencies | Lock checks, pinned Actions and package smoke are delivered; these do not certify package safety or implement a model/plugin/update installer |
@@ -190,10 +190,12 @@ Issue links assign proposed implementation/test ownership, not completion.
 
 ### T01 — Source overwrite, aliases and partial publication (High)
 
-**B01/B06/B07; Policies + Formats + Infrastructure.** A destination equal to the
-source, or its symlink/hardlink, can pass existing-output confirmation and be
-opened destructively by `_copy_epub_with_replacements`. Concurrent replacement
-and interrupted direct writes can also corrupt output/state. This is a
+**B01/B06/B07; Policies + Formats + Infrastructure for current adapters; Artifacts
+for future artifact identity, publication and reconciliation, with Provenance
+owning lineage records.** A destination equal to the source, or its
+symlink/hardlink, can pass existing-output confirmation and be opened
+destructively by `_copy_epub_with_replacements`. Concurrent replacement and
+interrupted direct writes can also corrupt output/state. This is a
 source-inspection finding; normal source-preservation tests do not refute it.
 
 P: reject canonical/identity aliases before mutation, use contained no-follow
@@ -388,7 +390,7 @@ Timeout alone is not an end-to-end deadline or response-size bound.
 | F04 / AI + Translation + Policies | Optional assistance consumes approved context and returns suggestions/findings without approving edits or execution | #166/#165: role/permission matrix and hostile-response walkthrough; G02 for runtime adapter tests and human approval/publication boundary |
 | F05 / Infrastructure + Policies | Workers, model loaders and third-party plugins receive minimal handles/argv and bounded protocol data | #167 proposes IPC, crash containment, CPU/RAM/time/output budgets and OS-specific limits; G02: no dynamic plugin loading until decision and implementation evidence; no pickle/eval/unchecked path or secret inheritance as IPC |
 | F06 / Knowledge + Policies + Provenance | Approved memory and corpus are separate stores; authorized contribution exports only selected rights/purpose-compatible data and lineage | #161/#165/#138 provide upstream ownership; G04 gates dataset registry, license/recipient/retention evidence, export, withdrawal and revocation before any contribution/training |
-| F07 / Projects + Infrastructure + Policies | Backup/export/diagnostics/deletion cross project and recipient boundaries | G03: scoped paths, preview/redaction, deletion conflicts, backups/exports inventory and recovery tests; removal of managed state never authorizes source/output removal |
+| F07 / Projects + Artifacts + Provenance + Infrastructure + Policies | Backup/export/diagnostics/deletion cross project and recipient boundaries | G03: scoped paths, artifact lineage and copy inventory, preview/redaction, deletion conflicts and recovery tests; removal of managed state never authorizes source/output removal |
 | F08 / Providers + Policies | Additional remote translation provider consumes selected content and opaque secret reference | #141/#103 contracts/capabilities and #159/#160 policy/store decisions precede runtime; [#100](https://github.com/MichaelAlexandreDev/ayvu/issues/100) remains separately gated; no silent vendor/model fallback |
 
 The following gaps are tracked by this published model's issue **#129**, with
@@ -402,7 +404,7 @@ these runtime gates remain closed.
 | --- | --- | --- |
 | G01: API/MCP | Interfaces + Integration + Policies; #129 inventory, #159 network, #165 authority | Concrete inbound/outbound runtime, auth/project scopes, capability allowlists, schema/budget tests and hostile tool/client cases |
 | G02: AI/plugins/models | AI + Infrastructure + Policies; #129 inventory, #166 roles, #167 isolation | Loader/runtime decision and implementation, origin/integrity/license validation, disabled-by-default discovery, process limits, hostile-output/crash tests and rollback |
-| G03: diagnostic/backup/deletion lifecycle | Projects + Infrastructure + Policies; #129 inventory, #134 project boundary, #138 provenance | Scoped backup/export/delete/bundle use cases, copy inventory, secret/content redaction, interrupted deletion and recovery tests |
+| G03: diagnostic/backup/deletion lifecycle | Projects + Artifacts + Provenance + Infrastructure + Policies; #129 inventory, #134 project boundary, #138 provenance | Scoped backup/export/delete/bundle use cases, artifact lineage and copy inventory, secret/content redaction, interrupted deletion and recovery tests |
 | G04: corpus lifecycle | Knowledge + Policies + Provenance; #129 inventory, #165 rights, #161 memory | Dataset contribution/registry/export/training scope, license/purpose validation, lineage and revocation propagation, recipient deletion limits and tests |
 | G05: legacy exposure during migration | Formats + Application + maintainer; #129 residual risk, #144 plus #145/#147/#149 | Explicit prioritization of an earlier legacy safety patch if waiting for migration is unacceptable; ownership in the adapter backlog does not mean today's entrypoints are fixed |
 
