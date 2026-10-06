@@ -1,0 +1,469 @@
+{
+  "date": "2026-10-06",
+  "runtime_scope": "Observed Arch Linux x86_64 only; Linux-first product target is Proposed",
+  "startup_protocol": "7 fresh processes per candidate, readiness callback; OS page cache uncontrolled; runs were sequential after package builds",
+  "startup": {
+    "qt": {
+      "candidate": "qt",
+      "python": "3.14.7",
+      "platform": "Linux-6.18.54-1-lts-x86_64-with-glibc2.44",
+      "samples_seconds": [
+        0.137311676,
+        0.123385287,
+        0.133408011,
+        0.124141972,
+        0.125469615,
+        0.13102097,
+        0.143618832
+      ],
+      "first_gui_ready_seconds": 0.137311676,
+      "gui_ready_median_seconds": 0.13102097,
+      "runs": 7,
+      "measurement": "new process per sample; readiness is the first app callback after showing the window; OS page-cache state is uncontrolled"
+    },
+    "tk": {
+      "candidate": "tk",
+      "python": "3.14.7",
+      "platform": "Linux-6.18.54-1-lts-x86_64-with-glibc2.44",
+      "samples_seconds": [
+        0.078403361,
+        0.084651706,
+        0.079088362,
+        0.077442527,
+        0.085232443,
+        0.078701373,
+        0.085207337
+      ],
+      "first_gui_ready_seconds": 0.078403361,
+      "gui_ready_median_seconds": 0.079088362,
+      "runs": 7,
+      "measurement": "new process per sample; readiness is the first app callback after showing the window; OS page-cache state is uncontrolled"
+    }
+  },
+  "bundles": {
+    "qt": {
+      "candidate": "qt",
+      "artifact": "qt/dist/ayvu-qt-spike",
+      "format": "PyInstaller onedir logical payload bytes",
+      "regular_file_count": 300,
+      "unique_regular_file_bytes": 200019647,
+      "symlink_count": 17,
+      "relative_symlink_target_bytes": 577,
+      "total_bundle_payload_bytes": 200020224,
+      "mebibytes": 190.75,
+      "excludes": "installer, signing, notarization, download compression, and runtime libraries provided by the target OS outside the artifact"
+    },
+    "tk": {
+      "candidate": "tk",
+      "artifact": "tk/dist/ayvu-tk-spike",
+      "format": "PyInstaller onedir logical payload bytes",
+      "regular_file_count": 385,
+      "unique_regular_file_bytes": 47381927,
+      "symlink_count": 0,
+      "relative_symlink_target_bytes": 0,
+      "total_bundle_payload_bytes": 47381927,
+      "mebibytes": 45.19,
+      "excludes": "installer, signing, notarization, download compression, and runtime libraries provided by the target OS outside the artifact"
+    }
+  },
+  "bundle_smoke": [
+    {
+      "candidate": "qt",
+      "exit_status": 0,
+      "readiness_marker": true,
+      "outside_source_checkout": true,
+      "external_loader_and_python_paths_removed": true,
+      "stderr": ""
+    },
+    {
+      "candidate": "tk",
+      "exit_status": 0,
+      "readiness_marker": true,
+      "outside_source_checkout": true,
+      "external_loader_and_python_paths_removed": true,
+      "stderr": ""
+    }
+  ],
+  "tk_atspi": {
+    "candidate": "tk",
+    "window_alive_during_poll": true,
+    "registry_samples": 10,
+    "sampling_seconds": 0.4,
+    "application_observed_in_atspi": false
+  },
+  "widgets": [
+    {
+      "candidate": "qt",
+      "qt": "6.11.2",
+      "python": "3.14.7",
+      "requested_scale_factor": "1",
+      "device_pixel_ratio": 1.0,
+      "native_device_pixel_ratio": 2.0,
+      "keyboard_delivery": "QTest events to live widgets; not physical keyboard input",
+      "checks": {
+        "initial_focus": true,
+        "disabled_cancel_skipped": true,
+        "tab_skips_disabled_cancel": true,
+        "shift_tab_skips_disabled_cancel": true,
+        "keyboard_starts": true,
+        "cancel_receives_focus": true,
+        "space_cancels": true,
+        "focus_returns_to_start": true,
+        "space_restarts_and_completes": true,
+        "completed_state": true,
+        "return_starts": true
+      },
+      "layout": [
+        {
+          "text": "Tarefa sintética de progresso",
+          "width": 402,
+          "text_width": 207,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Demonstração cancelada.",
+          "width": 402,
+          "text_width": 185,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 198,
+          "text_width": 149,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Cancelar",
+          "width": 198,
+          "text_width": 64,
+          "text_fits": true,
+          "geometry_fits": true
+        }
+      ],
+      "snapshot": "qt-scale-1.png"
+    },
+    {
+      "candidate": "qt",
+      "qt": "6.11.2",
+      "python": "3.14.7",
+      "requested_scale_factor": "1.25",
+      "device_pixel_ratio": 1.25,
+      "native_device_pixel_ratio": 2.0,
+      "keyboard_delivery": "QTest events to live widgets; not physical keyboard input",
+      "checks": {
+        "initial_focus": true,
+        "disabled_cancel_skipped": true,
+        "tab_skips_disabled_cancel": true,
+        "shift_tab_skips_disabled_cancel": true,
+        "keyboard_starts": true,
+        "cancel_receives_focus": true,
+        "space_cancels": true,
+        "focus_returns_to_start": true,
+        "space_restarts_and_completes": true,
+        "completed_state": true,
+        "return_starts": true
+      },
+      "layout": [
+        {
+          "text": "Tarefa sintética de progresso",
+          "width": 403,
+          "text_width": 207,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Demonstração cancelada.",
+          "width": 403,
+          "text_width": 185,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 199,
+          "text_width": 149,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Cancelar",
+          "width": 198,
+          "text_width": 64,
+          "text_fits": true,
+          "geometry_fits": true
+        }
+      ],
+      "snapshot": "qt-scale-1.25.png"
+    },
+    {
+      "candidate": "qt",
+      "qt": "6.11.2",
+      "python": "3.14.7",
+      "requested_scale_factor": "1.5",
+      "device_pixel_ratio": 1.5,
+      "native_device_pixel_ratio": 2.0,
+      "keyboard_delivery": "QTest events to live widgets; not physical keyboard input",
+      "checks": {
+        "initial_focus": true,
+        "disabled_cancel_skipped": true,
+        "tab_skips_disabled_cancel": true,
+        "shift_tab_skips_disabled_cancel": true,
+        "keyboard_starts": true,
+        "cancel_receives_focus": true,
+        "space_cancels": true,
+        "focus_returns_to_start": true,
+        "space_restarts_and_completes": true,
+        "completed_state": true,
+        "return_starts": true
+      },
+      "layout": [
+        {
+          "text": "Tarefa sintética de progresso",
+          "width": 402,
+          "text_width": 207,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Demonstração cancelada.",
+          "width": 402,
+          "text_width": 185,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 198,
+          "text_width": 149,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Cancelar",
+          "width": 198,
+          "text_width": 64,
+          "text_fits": true,
+          "geometry_fits": true
+        }
+      ],
+      "snapshot": "qt-scale-1.5.png"
+    },
+    {
+      "candidate": "qt",
+      "qt": "6.11.2",
+      "python": "3.14.7",
+      "requested_scale_factor": "2",
+      "device_pixel_ratio": 2.0,
+      "native_device_pixel_ratio": 2.0,
+      "keyboard_delivery": "QTest events to live widgets; not physical keyboard input",
+      "checks": {
+        "initial_focus": true,
+        "disabled_cancel_skipped": true,
+        "tab_skips_disabled_cancel": true,
+        "shift_tab_skips_disabled_cancel": true,
+        "keyboard_starts": true,
+        "cancel_receives_focus": true,
+        "space_cancels": true,
+        "focus_returns_to_start": true,
+        "space_restarts_and_completes": true,
+        "completed_state": true,
+        "return_starts": true
+      },
+      "layout": [
+        {
+          "text": "Tarefa sintética de progresso",
+          "width": 402,
+          "text_width": 207,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Demonstração cancelada.",
+          "width": 402,
+          "text_width": 185,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 198,
+          "text_width": 149,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Cancelar",
+          "width": 198,
+          "text_width": 64,
+          "text_fits": true,
+          "geometry_fits": true
+        }
+      ],
+      "snapshot": "qt-scale-2.png"
+    },
+    {
+      "candidate": "tk",
+      "tcl": "8.6.16",
+      "tk": "8.6.16",
+      "python": "3.14.7",
+      "requested_scale_factor": "1",
+      "actual_tk_scaling": 1.3330053300533002,
+      "keyboard_delivery": "Tk generated events to live widgets; cancel focus explicitly set",
+      "checks": {
+        "initial_focus": true,
+        "tab_skips_disabled_cancel": true,
+        "return_starts": false,
+        "keyboard_starts": true,
+        "space_cancels": true,
+        "space_restarts_and_completes": true
+      },
+      "layout": [
+        {
+          "text": "Demonstração concluída.",
+          "width": 396,
+          "text_width": 321,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 242,
+          "text_width": 269,
+          "text_fits": false,
+          "geometry_fits": false
+        },
+        {
+          "text": "Cancelar",
+          "width": 146,
+          "text_width": 110,
+          "text_fits": true,
+          "geometry_fits": false
+        }
+      ]
+    },
+    {
+      "candidate": "tk",
+      "tcl": "8.6.16",
+      "tk": "8.6.16",
+      "python": "3.14.7",
+      "requested_scale_factor": "1.25",
+      "actual_tk_scaling": 1.667282051282051,
+      "keyboard_delivery": "Tk generated events to live widgets; cancel focus explicitly set",
+      "checks": {
+        "initial_focus": true,
+        "tab_skips_disabled_cancel": true,
+        "return_starts": false,
+        "keyboard_starts": true,
+        "space_cancels": true,
+        "space_restarts_and_completes": true
+      },
+      "layout": [
+        {
+          "text": "Demonstração concluída.",
+          "width": 396,
+          "text_width": 321,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 242,
+          "text_width": 269,
+          "text_fits": false,
+          "geometry_fits": false
+        },
+        {
+          "text": "Cancelar",
+          "width": 146,
+          "text_width": 110,
+          "text_fits": true,
+          "geometry_fits": false
+        }
+      ]
+    },
+    {
+      "candidate": "tk",
+      "tcl": "8.6.16",
+      "tk": "8.6.16",
+      "python": "3.14.7",
+      "requested_scale_factor": "1.5",
+      "actual_tk_scaling": 1.9995079950799504,
+      "keyboard_delivery": "Tk generated events to live widgets; cancel focus explicitly set",
+      "checks": {
+        "initial_focus": true,
+        "tab_skips_disabled_cancel": true,
+        "return_starts": false,
+        "keyboard_starts": true,
+        "space_cancels": true,
+        "space_restarts_and_completes": true
+      },
+      "layout": [
+        {
+          "text": "Demonstração concluída.",
+          "width": 396,
+          "text_width": 321,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 242,
+          "text_width": 269,
+          "text_fits": false,
+          "geometry_fits": false
+        },
+        {
+          "text": "Cancelar",
+          "width": 146,
+          "text_width": 110,
+          "text_fits": true,
+          "geometry_fits": false
+        }
+      ]
+    },
+    {
+      "candidate": "tk",
+      "tcl": "8.6.16",
+      "tk": "8.6.16",
+      "python": "3.14.7",
+      "requested_scale_factor": "2",
+      "actual_tk_scaling": 2.669293924466338,
+      "keyboard_delivery": "Tk generated events to live widgets; cancel focus explicitly set",
+      "checks": {
+        "initial_focus": true,
+        "tab_skips_disabled_cancel": true,
+        "return_starts": false,
+        "keyboard_starts": true,
+        "space_cancels": true,
+        "space_restarts_and_completes": true
+      },
+      "layout": [
+        {
+          "text": "Demonstração concluída.",
+          "width": 396,
+          "text_width": 321,
+          "text_fits": true,
+          "geometry_fits": true
+        },
+        {
+          "text": "Iniciar demonstração",
+          "width": 242,
+          "text_width": 269,
+          "text_fits": false,
+          "geometry_fits": false
+        },
+        {
+          "text": "Cancelar",
+          "width": 146,
+          "text_width": 110,
+          "text_fits": true,
+          "geometry_fits": false
+        }
+      ]
+    }
+  ],
+  "manual_assessment": "Physical keyboard, spoken announcements, visible-focus usability and monitor-scale changes not assessed by a person"
+}
