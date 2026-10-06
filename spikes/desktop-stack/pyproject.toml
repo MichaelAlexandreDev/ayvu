@@ -1,0 +1,14 @@
+[project]
+name = "ayvu-desktop-stack-spike"
+version = "0.0.0"
+description = "Disposable, synthetic desktop toolkit feasibility spike for Ayvu"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+qt = ["PySide6-Essentials==6.11.2"]
+wx = ["wxPython==4.3.1"]
+packager = ["pyinstaller==6.22.3"]
+
+[tool.uv]
+package = false
