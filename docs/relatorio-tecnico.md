@@ -430,6 +430,27 @@ no relatório.
 
 Antes de enviar texto ao tradutor, `src/ayvu/html_translate.py` protege termos especiais com placeholders internos e os restaura depois da chamada HTTP. O escopo protegido inclui URLs, caminhos de arquivo, comandos de terminal, versões como `v1.2.0`, placeholders, código inline e identificadores técnicos simples. A tradução restaurada é gravada no cache antes da aplicação do glossário.
 
+O Ayvu verifica a sequência e a quantidade dos marcadores antes de restaurá-los.
+O reconhecimento de termos técnicos também considera as fronteiras junto a tags
+inline, para preservar siglas e identificadores dentro de itálico ou links.
+Se o serviço alterar, perder, duplicar ou reordenar um marcador, a resposta é
+descartada e os trechos ao redor dos termos protegidos são traduzidos separadamente.
+Nessa recuperação, os termos e a marcação HTML são recolocados localmente, sem
+ser enviados ao tradutor. Limites de chunk que cortariam marcadores também usam
+essa recuperação. O fallback faz no máximo 64 chamadas ao tradutor por bloco; se
+esse limite for excedido, a recuperação falha. Isso pode aumentar as chamadas e
+reduzir o contexto disponível ao traduzir cada trecho.
+
+Traduções do cache e da memória são verificadas antes de serem reutilizadas:
+resíduos reconhecíveis de marcadores, perda de termos protegidos ou alteração da
+sequência das tags impedem o reaproveitamento. Na tradução normal, uma entrada
+inválida do cache é substituída apenas depois de uma nova tradução válida. Em
+`cache_only`, o trecho é tratado como ausente; em `dry_run`, não há reparo do cache.
+Se a recuperação também falhar, o bloco original é preservado e o erro é
+registrado (ou propagado com `fail_fast`), sem salvar a resposta inválida.
+EPUBs já gerados precisam ser gerados novamente a partir do original para
+receber essa correção.
+
 Textos longos são divididos antes de serem enviados ao tradutor. A regra atual tenta dividir por:
 
 ```text
