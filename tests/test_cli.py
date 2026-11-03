@@ -39,6 +39,68 @@ from ayvu.validation import ValidationResult
 runner = CliRunner()
 
 
+def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_path, tmp_path, monkeypatch):
+    processing = tmp_path / 'project-processing'
+    monkeypatch.setattr('ayvu.cli._processing_dir', lambda _config: processing)
+    calls = []
+    def stop(**kwargs):
+        calls.append(kwargs)
+        raise PreflightError('synthetic-stop', 'test complete')
+    monkeypatch.setattr('ayvu.cli.run_translation_preflight', stop)
+    original = minimal_epub_path.read_bytes()
+    args = ['translate', str(minimal_epub_path), '--source', 'en', '--target', 'pt',
+            '--output', str(tmp_path / 'translated.epub')]
+    for _ in range(2):
+        result = runner.invoke(app, args)
+        assert result.exit_code == 1 and 'synthetic-stop' in result.output
+    manifests = list(processing.glob('projects/*/project.json'))
+    assert len(manifests) == 1
+    assert json.loads(manifests[0].read_text())['revision'] == 1
+    assert len(calls) == 2
+    assert minimal_epub_path.read_bytes() == original
+
+
+def test_project_storage_failure_prevents_preflight(minimal_epub_path, tmp_path, monkeypatch):
+    processing = tmp_path / 'blocked-processing'
+    processing.write_bytes(b'blocked')
+    monkeypatch.setattr('ayvu.cli._processing_dir', lambda _config: processing)
+    calls = []
+    monkeypatch.setattr('ayvu.cli.run_translation_preflight', lambda **kw: calls.append(kw))
+    result = runner.invoke(app, ['translate', str(minimal_epub_path), '--source', 'en',
+                                 '--output', str(tmp_path / 'translated.epub')])
+    assert result.exit_code == 1
+    assert calls == []
+    assert 'projeto local' in result.output
+    assert not (tmp_path / 'translated.epub').exists()
+
+
+def test_project_rejects_secret_endpoint_without_reflecting_it(minimal_epub_path, tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr('ayvu.cli.run_translation_preflight', lambda **kw: calls.append(kw))
+    result = runner.invoke(app, ['translate', str(minimal_epub_path), '--source', 'en',
+                                 '--url', 'http://user:secret-canary@localhost',
+                                 '--output', str(tmp_path / 'translated.epub')])
+    assert result.exit_code == 1
+    assert calls == []
+    assert 'secret-canary' not in result.output
+    assert 'sem usuário' in result.output
+
+
+def test_dry_run_does_not_require_project_storage(minimal_epub_path, tmp_path, monkeypatch):
+    processing = tmp_path / 'blocked'
+    processing.write_bytes(b'blocked')
+    monkeypatch.setattr('ayvu.cli._processing_dir', lambda _config: processing)
+    calls = []
+    def stop(**kwargs):
+        calls.append(kwargs)
+        raise PreflightError('synthetic-dry-run-stop', 'test complete')
+    monkeypatch.setattr('ayvu.cli.run_translation_preflight', stop)
+    result = runner.invoke(app, ['translate', str(minimal_epub_path), '--source', 'en', '--dry-run'])
+    assert len(calls) == 1
+    assert 'synthetic-dry-run-stop' in result.output
+    assert processing.read_bytes() == b'blocked'
+
+
 def _seed_cache_entry(
     cache_path: Path,
     text: str,
@@ -985,6 +1047,8 @@ def test_root_command_selects_profile_for_guided_translation(isolated_config, tm
     processing_dir = tmp_path / "Processando"
     epub_path.write_bytes(b"fake epub")
     profile_glossary_path = isolated_config.parent / "glossaries" / "technical.json"
+    profile_glossary_path.parent.mkdir(parents=True)
+    profile_glossary_path.write_text('{}')
     isolated_config.write_text(
         json.dumps(
             {
@@ -2860,6 +2924,9 @@ def test_translate_command_uses_profile_target_and_glossary(
     tmp_path,
     monkeypatch,
 ):
+    profile_glossary_path = isolated_config.parent / "glossaries" / "technical.json"
+    profile_glossary_path.parent.mkdir(parents=True)
+    profile_glossary_path.write_text('{}')
     isolated_config.write_text(
         json.dumps(
             {
@@ -2903,6 +2970,7 @@ def test_translate_command_explicit_target_and_glossary_override_profile(
 ):
     profile_glossary_path = isolated_config.parent / "glossaries" / "technical.json"
     explicit_glossary_path = tmp_path / "custom.json"
+    explicit_glossary_path.write_text('{}')
     isolated_config.write_text(
         json.dumps(
             {

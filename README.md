@@ -545,6 +545,27 @@ ser substituídas com `--replace`.
 O arquivo exportado inclui texto original e texto traduzido. Trate esse JSON
 como conteúdo privado do livro, da mesma forma que o EPUB e o cache SQLite.
 
+Traduções diretas, guiadas e em lote criam ou reutilizam automaticamente um
+projeto local em `<pasta de processamento>/projects/<UUID>/project.json`.
+O manifesto guarda identidade, referência e hash do original, idiomas e
+referências de configuração. Ele contém metadados privados, não o texto do livro
+nem credenciais. Mudar idioma ou configuração cria outro projeto, preservando
+o anterior. Prompts, nomes de saída e o EPUB original permanecem preservados.
+`--cache-only` também resolve um projeto; `--dry-run`, previews e a retomada de
+checkpoints antigos continuam sem exigir manifesto. A pasta de processamento
+padrão é `~/Documentos/Livros/Processando`.
+
+Falhas de persistência ou ambiguidades interrompem a tradução antes do
+preflight do tradutor. Não há limpeza automática: remover estado de projeto
+nunca apaga automaticamente originais, saídas, cache ou glossários, mas perde
+a identidade e as referências necessárias ao futuro histórico/retomada por
+projeto. Links simbólicos e fontes com hardlinks são recusados nesse fluxo.
+Para schema, limites e recuperação de escrita interrompida, consulte o
+[contrato do manifesto local](docs/architecture/project-manifest.md).
+Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
+consulta e fragmentos. Autenticação por referências de credenciais é trabalho
+futuro; fingerprints do manifesto continuam sendo metadados privados.
+
 Durante traduções reais, o Ayvu também grava um checkpoint local da execução em
 `~/Documentos/Livros/Processando`, ou na pasta de processamento configurada
 (arquivo `*.ayvu-state.json`). Além dos caminhos e opções da execução, esse

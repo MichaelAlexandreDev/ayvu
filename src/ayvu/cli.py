@@ -60,6 +60,9 @@ from .glossary import (
 from .html_translate import HtmlTranslationStats
 from .library import LibraryBook, LibraryOpenError, open_library_epub, scan_library
 from .preflight import PreflightError, run_translation_preflight
+from .project import ProjectError
+from .project_service import resolve_project
+from .project_store import ProjectJsonRepository, build_project_request
 from .resume import (
     InvalidResumeState,
     ResumeStateError,
@@ -117,6 +120,7 @@ class TranslationRunResult:
     report: TranslationReport
     validation_warnings: list[str]
     markdown_report_path: Path | None = None
+    project_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1311,6 +1315,7 @@ def _run_translation(
     auto_save_markdown_report: bool = False,
     report_dir: Path | None = None,
     confirm_output_location: bool = True,
+    resolve_managed_project: bool = True,
 ) -> TranslationRunResult:
     config = config or _load_existing_config_or_default()
     resolved_profile_name, profile = _resolve_requested_profile(config, profile_name, mode=mode)
@@ -1369,6 +1374,50 @@ def _run_translation(
         overwrite=overwrite,
         mode=mode,
     )
+
+    project_id = None
+    if resolve_managed_project and not dry_run:
+        try:
+            project_request = build_project_request(
+                epub_path,
+                source=language_pair.source,
+                target=language_pair.target,
+                glossary_path=resolved_glossary_path,
+                profile_name=resolved_profile_name,
+                selections={
+                    "translator": translator_name,
+                    "url": url,
+                    "chunk_limit": chunk_limit,
+                    "translate_metadata": translate_metadata,
+                    "translate_alt_text": translate_alt_text,
+                    "chapters": chapter_selection.source if chapter_selection else None,
+                    "translation_memory": (
+                        [translation_memory.apply_threshold, translation_memory.suggest_threshold,
+                         translation_memory.max_candidates]
+                        if translation_memory is not None else None
+                    ),
+                },
+            )
+            resolution = resolve_project(ProjectJsonRepository(_processing_dir(config)), project_request)
+            project_id = resolution.project.project_id
+        except ProjectError as exc:
+            next_step = {
+                "source_missing": "Informe uma fonte existente; o projeto anterior foi preservado.",
+                "source_changed": "A fonte foi alterada. Restaure a revisão original ou escolha explicitamente outra fonte para um novo projeto.",
+                "ambiguous_project": "Há projetos compatíveis duplicados. Preserve os manifests e resolva a duplicação antes de repetir.",
+                "incomplete_project_creation": "Com todas as execuções encerradas, preserve a pasta .staging-* movendo-a para fora de projects e repita o comando.",
+                "project_commit_uncertain": "O manifesto pode já estar publicado. Recarregue o estado ou repita a tradução para reutilizar o projeto.",
+                "credential_bearing_endpoint": "Use uma URL do tradutor sem usuário, senha, parâmetros de consulta ou fragmento.",
+            }.get(str(exc),
+                "Verifique a fonte, as permissões da pasta de processamento e o estado do projeto; "
+                "preserve os arquivos existentes antes de corrigir conflitos.")
+            _print_expected_error(
+                "Não foi possível resolver o projeto local.",
+                next_step,
+                mode,
+                detail=str(exc),
+            )
+            raise typer.Exit(code=1) from None
 
     try:
         preflight = run_translation_preflight(
@@ -1524,6 +1573,7 @@ def _run_translation(
         report=report,
         validation_warnings=validation_warnings,
         markdown_report_path=markdown_report_path,
+        project_id=project_id,
     )
 
 
@@ -3003,6 +3053,7 @@ def _resume_translation(state: TranslationResumeState, mode: UserMode) -> None:
             translate_metadata=state.translate_metadata,
             translate_alt_text=state.translate_alt_text,
             translation_memory=state.translation_memory_options(),
+            resolve_managed_project=False,
         )
     except typer.Exit:
         console.print(

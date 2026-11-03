@@ -229,7 +229,7 @@ def test_translate_cli_preserves_source_archive_and_visible_text(tmp_path, monke
     source_bytes = source_path.read_bytes()
     source_hash = hashlib.sha256(source_bytes).hexdigest()
     session = FakeLibreTranslateSession(_direct_languages())
-    _install_cli_environment(monkeypatch, tmp_path, session)
+    processing_dir = _install_cli_environment(monkeypatch, tmp_path, session)
 
     output_dir = tmp_path / "translated"
     result = runner.invoke(
@@ -243,6 +243,13 @@ def test_translate_cli_preserves_source_archive_and_visible_text(tmp_path, monke
     assert "Validação OK" in result.output
     assert source_path.read_bytes() == source_bytes
     assert hashlib.sha256(source_path.read_bytes()).hexdigest() == source_hash
+    manifests = list(processing_dir.glob('projects/*/project.json'))
+    assert len(manifests) == 1
+    project = json.loads(manifests[0].read_text())
+    assert project['source_sha256'] == source_hash
+    assert project['source_path'] == str(source_path)
+    assert project['target'] == 'pt'
+    assert project['project_id'] == manifests[0].parent.name
 
     chapter = _read_member(output_path, "OEBPS/text/chapter1.xhtml")
     assert "PT:Hello title" in chapter
@@ -276,7 +283,7 @@ def test_translate_cli_reuses_exact_cache_and_applies_glossary_after_cache(tmp_p
     source_path = _write_epub(tmp_path / "book.epub")
     cache_path = tmp_path / "cache.sqlite"
     session = FakeLibreTranslateSession(_direct_languages())
-    _install_cli_environment(monkeypatch, tmp_path, session)
+    processing_dir = _install_cli_environment(monkeypatch, tmp_path, session)
 
     first_output = tmp_path / "first.epub"
     first = runner.invoke(app, _translate_args(source_path, cache_path, output_path=first_output))
@@ -301,6 +308,16 @@ def test_translate_cli_reuses_exact_cache_and_applies_glossary_after_cache(tmp_p
     assert "Texts from cache" in second.output
     assert "PT:Game Loop uses Observer." in _read_member(first_output, "OEBPS/text/chapter1.xhtml")
     assert "PT:loop de jogo uses Observer." in _read_member(second_output, "OEBPS/text/chapter1.xhtml")
+    # New glossary intent gets a distinct project, preserving the first one.
+    manifests = list(processing_dir.glob('projects/*/project.json'))
+    assert len(manifests) == 2
+    assert len({json.loads(path.read_text())['project_id'] for path in manifests}) == 2
+    third_output = tmp_path / 'third.epub'
+    third = runner.invoke(app, _translate_args(source_path, cache_path, output_path=third_output,
+                                               glossary_path=glossary_path))
+    assert third.exit_code == 0, third.output
+    assert len(list(processing_dir.glob('projects/*/project.json'))) == 2
+    assert len(session.posts) == post_count_after_first_run
 
 
 def test_translate_cli_interrupts_then_resume_reuses_checkpoint_and_cache(tmp_path, monkeypatch):

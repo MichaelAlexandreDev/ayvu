@@ -27,6 +27,9 @@ entries fail, so a rename cannot silently discard protection.
 | --- | --- | --- |
 | `ayvu` | Independent package surface | Package metadata |
 | `domain`, `chunking` | Domain | Shared values, Translation |
+| `project` | Domain | Project identity and immutable manifest values |
+| `project_service` | Application | Project repository port and resolution policy |
+| `project_store` | Infrastructure | Atomic local manifest storage and source fingerprinting |
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `preflight`, `library` | Transitional application | Translation, Library |
 | `cli`, `cli_progress` | Interface | CLI |
@@ -69,6 +72,8 @@ imports, syntax/read errors, cycles or missing ownership.
 
 The existing CLI edges expire as application use cases are extracted in #128,
 #145, #146, #149, #150, #152, #157 and composition is consolidated in #158.
+The exact CLI-to-project-store construction edge also expires in #158; domain
+and application project modules never import the concrete store.
 Preflight exceptions expire in #145. EPUB/HTML pipeline coupling expires in
 #143/#144, after #141 separates the provider contract from its HTTP adapter.
 Review coupling expires in #149. Fuzzy memory's exact-cache and vendor coupling
