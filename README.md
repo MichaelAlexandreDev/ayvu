@@ -569,6 +569,9 @@ a tradução atual continua sem criar automaticamente esse banco. O manifesto v1
 e o cache independente permanecem preservados. Consulte o
 [protocolo de migração e recuperação](docs/architecture/project-migrations.md)
 para backup verificado, conflitos, queda de processo e recuperação manual.
+Esse banco também tem o [registro durável de jobs](docs/architecture/job-lifecycle.md),
+que ainda não é usado pela tradução nem pela retomada: elas continuam funcionando
+como descrito abaixo.
 Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
 consulta e fragmentos. Autenticação por referências de credenciais é trabalho
 futuro; fingerprints do manifesto continuam sendo metadados privados.
