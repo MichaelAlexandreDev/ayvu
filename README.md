@@ -570,9 +570,9 @@ e o cache independente permanecem preservados. Consulte o
 [protocolo de migração e recuperação](docs/architecture/project-migrations.md)
 para backup verificado, conflitos, queda de processo e recuperação manual.
 Esse banco também tem o [registro durável de jobs](docs/architecture/job-lifecycle.md),
-e o [registro de artefatos e checkpoints](docs/architecture/job-artifacts.md), que
-ainda não são usados pela tradução nem pela retomada: elas continuam funcionando
-como descrito abaixo.
+o [registro de artefatos e checkpoints](docs/architecture/job-artifacts.md) e o
+[registro de proveniência](docs/architecture/provenance.md), que ainda não são usados
+pela tradução nem pela retomada: elas continuam funcionando como descrito abaixo.
 Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
 consulta e fragmentos. Autenticação por referências de credenciais é trabalho
 futuro; fingerprints do manifesto continuam sendo metadados privados.

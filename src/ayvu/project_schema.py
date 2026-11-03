@@ -12,12 +12,15 @@ from .artifact_service import ArtifactService
 from .artifact_store import ARTIFACT_SCHEMA_STATEMENTS, ArtifactFileOps, LocalArtifactPayloads, SqliteArtifactRepository
 from .job import JobStoreError
 from .job_store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
+from .provenance import ProvenanceStoreError
+from .provenance_store import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
 from .sqlite_migrations import SqliteMigration, SqliteMigrationRunner
 
 PROJECT_MIGRATIONS = (
     SqliteMigration(1),
     SqliteMigration(2, JOB_SCHEMA_STATEMENTS),
     SqliteMigration(3, ARTIFACT_SCHEMA_STATEMENTS),
+    SqliteMigration(4, PROVENANCE_SCHEMA_STATEMENTS),
 )
 
 
@@ -49,3 +52,15 @@ def open_artifact_service(database: Path, backups: Path, artifact_root: Path, pr
         raise ArtifactStoreError(result.error or "io")
     repository = SqliteArtifactRepository(runner, database, project_id, **factories)
     return ArtifactService(repository, LocalArtifactPayloads(artifact_root, ops=ops))
+
+
+def open_provenance_repository(database: Path, backups: Path, project_id: str, **factories) -> SqliteProvenanceRepository:
+    """Bootstrap or upgrade the database explicitly, then expose the project's lineage.
+
+    ``factories`` are the optional clock/new_id of the repository.
+    """
+    runner = project_migration_runner()
+    result = runner.migrate(database, backups)
+    if not result.ok:
+        raise ProvenanceStoreError(result.error or "io")
+    return SqliteProvenanceRepository(runner, database, project_id, **factories)

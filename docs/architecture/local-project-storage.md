@@ -63,7 +63,8 @@ change the existing translation CLI. Backup retention is manual until separately
 reviewed lifecycle work exists. Jobs were later accepted separately, in the scoped
 [job lifecycle ADR](job-lifecycle.md), and are schema version 2. Artifact metadata and
 the `artifacts/` directories were accepted in the scoped
-[job artifacts ADR](job-artifacts.md), and are schema version 3.
+[job artifacts ADR](job-artifacts.md), and are schema version 3. Provenance was accepted
+in the scoped [provenance ADR](provenance.md), and is schema version 4.
 
 This ADR records the accepted direction. Concrete migration behavior, validation
 evidence and platform limitations belong to the implementation contract.
