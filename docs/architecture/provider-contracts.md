@@ -19,8 +19,8 @@ exposed through a compatibility adapter that wraps it and changes nothing in it.
 **Nothing uses this yet.** `Translator`, `RoutedTranslator`, `create_translator()`,
 preflight, the HTML and EPUB code and the CLI stay as they are. The only change to
 existing code adds classification attributes to `TranslatorError`, with messages byte
-for byte the same. Capability descriptors, availability and negotiation belong to
-[#103](https://github.com/MichaelAlexandreDev/ayvu/issues/103), a second provider to
+for byte the same. Capability descriptors, availability and negotiation are in
+[provider capabilities](provider-capabilities.md), a second provider belongs to
 [#100](https://github.com/MichaelAlexandreDev/ayvu/issues/100), and consumer migration
 to later issues.
 
@@ -143,5 +143,5 @@ JSON form of a request yet, because nothing crosses a process boundary.
   [#142](https://github.com/MichaelAlexandreDev/ayvu/issues/142) and
   [#128](https://github.com/MichaelAlexandreDev/ayvu/issues/128) are their first real test.
 - Translation contracts now depend on the job failure and warning values.
-- Operational thread safety and concurrency limits are not defined here; they belong to
-  #103. The registry is meant to be filled before concurrent use and has no lock.
+- [Provider capabilities](provider-capabilities.md) state thread safety and concurrency
+  limits. The registry is meant to be filled before concurrent use and has no lock.

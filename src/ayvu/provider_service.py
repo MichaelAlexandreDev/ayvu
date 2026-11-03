@@ -11,6 +11,7 @@ from typing import Iterator, Protocol
 
 from .job import is_slug
 from .job_events import JobFailure, JobFailureFamily, JobWarning, normalize_failure
+from .provider_capabilities import AvailabilityState, ProviderAvailability
 from .provenance import UNKNOWN, ProducerIdentity
 from .provider import (
     DeliveryState, ProviderError, ProviderStatus, Requirement, TranslationProviderRequest, TranslationProviderResult,
@@ -27,6 +28,10 @@ class ProviderRegistryError(ProviderError):
 class TranslationProvider(Protocol):
     def execute(self, request: TranslationProviderRequest) -> TranslationProviderResult: ...
     def close(self) -> None: ...
+
+
+class ProviderAvailabilityProbe(Protocol):
+    def probe(self) -> ProviderAvailability: ...
 
 
 class TranslationProviderFactory(Protocol):
@@ -127,6 +132,17 @@ def decide_features(request: TranslationProviderRequest, supported: frozenset[st
         else:
             ignored.append(JobWarning(f"ignored_{item.name}"))
     return FeatureDecision(tuple(required), tuple(ignored))
+
+
+def observe_availability(probe: ProviderAvailabilityProbe) -> ProviderAvailability:
+    """A broken probe proves nothing about the provider, so the answer is unknown."""
+    try:
+        availability = probe.probe()
+    except Exception:
+        return ProviderAvailability(AvailabilityState.UNKNOWN, "probe_failed")
+    if type(availability) is not ProviderAvailability:
+        return ProviderAvailability(AvailabilityState.UNKNOWN, "probe_failed")
+    return availability
 
 
 def failed_result(request: TranslationProviderRequest, failure: JobFailure, *,

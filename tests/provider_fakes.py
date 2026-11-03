@@ -67,9 +67,11 @@ def fake_instance(**changes) -> ProviderInstance:
 
 
 class FakeSession:
-    def __init__(self, responses=()) -> None:
+    def __init__(self, responses=(), get_responses=()) -> None:
         self.responses = list(responses)
+        self.get_responses = list(get_responses)
         self.posts = []
+        self.gets = []
         self.closed = 0
 
     def post(self, url, *, json, timeout):
@@ -80,7 +82,11 @@ class FakeSession:
         return response
 
     def get(self, url, *, timeout):
-        raise AssertionError('the provider contract does not list languages')
+        self.gets.append((url, timeout))
+        response = self.get_responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
     def close(self) -> None:
         self.closed += 1
