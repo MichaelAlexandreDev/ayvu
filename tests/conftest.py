@@ -12,6 +12,12 @@ MINIMAL_PNG = base64.b64decode(
 )
 
 
+@pytest.fixture(autouse=True)
+def wide_console(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rich wraps at the terminal width, so a long temporary path would split across lines."""
+    monkeypatch.setenv("COLUMNS", "500")
+
+
 @pytest.fixture
 def minimal_epub_path(tmp_path: Path) -> Path:
     path = tmp_path / "minimal.epub"

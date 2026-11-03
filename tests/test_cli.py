@@ -3392,3 +3392,9 @@ def test_apply_review_command_reports_unreadable_review_file(tmp_path, monkeypat
     assert result.exit_code == 1
     assert "Não foi possível ler o arquivo de revisão." in result.output
     assert "Traceback" not in result.output
+
+
+def test_cli_console_width_does_not_depend_on_the_environment():
+    from ayvu.cli import console
+
+    assert console.width == 500
