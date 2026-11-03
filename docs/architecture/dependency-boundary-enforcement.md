@@ -54,6 +54,8 @@ entries fail, so a rename cannot silently discard protection.
 | `cli`, `cli_progress` | Interface | CLI |
 | `epub_io`, `html_translate`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translator` | Provider adapter with transitional embedded port | Providers |
+| `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
+| `translation_pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
 | `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
