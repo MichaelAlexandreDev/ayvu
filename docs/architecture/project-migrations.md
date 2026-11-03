@@ -1,8 +1,10 @@
 # Project SQLite bootstrap, upgrades and recovery
 
 This contract implements [#135](https://github.com/MichaelAlexandreDev/ayvu/issues/135)
-under the [accepted, scoped DEC-012](local-project-storage.md). It introduces no
-jobs, artifacts, provenance, cache or review domain tables.
+under the [accepted, scoped DEC-012](local-project-storage.md). The runner itself
+owns no domain tables. Schema version 2 adds the job tables of the
+[job lifecycle](job-lifecycle.md); it adds no artifact, provenance, cache or review
+tables.
 
 ## Composition boundary and current schema
 
@@ -14,12 +16,12 @@ filesystem paths are deliberately a privileged composition concern, not an
 application DTO. The manifest JSON v1 remains byte-for-byte unchanged by resolution.
 
 ```python
+from ayvu.project_schema import project_migration_runner
 from ayvu.project_store import ProjectJsonRepository
-from ayvu.sqlite_migrations import SqliteMigrationRunner
 
 repository = ProjectJsonRepository(configured_processing_root)
 paths = repository.resolve_database_paths(project_id)
-result = SqliteMigrationRunner().migrate(paths.database, paths.backups)
+result = project_migration_runner().migrate(paths.database, paths.backups)
 ```
 
 These calls belong at an infrastructure/composition boundary. Ordinary translation
@@ -27,17 +29,23 @@ still creates/reuses its existing JSON project; it does not automatically create
 the SQLite database. Future job services can explicitly request bootstrap through
 their own reviewed composition. The runner never chooses layout or reads an EPUB.
 
-The only production schema is version 1, with application ID `0x41595655`,
-`PRAGMA user_version=1`, and table `ayvu_schema_migrations(version INTEGER PRIMARY
-KEY, checksum TEXT NOT NULL)`. Ledger rows are contiguous from 1 and contain
-SHA-256 of each allowlisted step's ordered SQL text. Version 1 has no domain SQL.
+The production history is `PROJECT_MIGRATIONS` in `ayvu.project_schema`, whose
+current schema is version 2. A bare `SqliteMigrationRunner()` only knows version 1
+and refuses a newer database with `newer_schema`, so production code must use
+`project_migration_runner()`. Application ID is `0x41595655`, and
+`PRAGMA user_version` holds the schema version. Table
+`ayvu_schema_migrations(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL)` is the
+ledger. Ledger rows are contiguous from 1 and contain SHA-256 of each allowlisted
+step's ordered SQL text. Version 1 has no domain SQL. Version 2 adds
+`translation_jobs`, its index and its immutability trigger. A released step is
+never edited; a schema change is always a new version.
 Changed historical checksums, gaps and newer versions are rejected. No downgrade
 or implicit adoption of another application's database is allowed.
 
-The committed predecessor fixtures are an empty version-0 SQLite database and the
-version-1 ledger, represented by SQL under `tests/fixtures/migrations/`.
-Higher-version tables in tests are explicitly synthetic harness migrations,
-not invented product history. Registries are ordered in-tree `SqliteMigration`
+The committed fixtures are an empty version-0 SQLite database, the version-1 ledger
+and the released version-2 schema, represented by SQL under
+`tests/fixtures/migrations/`. Tests of the runner itself use explicitly synthetic
+harness migrations, not product history. Registries are ordered in-tree `SqliteMigration`
 values, not filesystem/plugin discovery or document-supplied SQL.
 
 ## Transaction and verified-backup protocol
@@ -97,6 +105,9 @@ characters per statement and a 64 MiB database/snapshot. SQLite value size and t
 logical post-migration page count are checked before commit so an upgrade cannot
 publish a database the next invocation would reject. Resource failures roll back.
 
+Job operations reuse these checks through `SqliteMigrationRunner.connect`, which
+repeats identity, version and ledger checks but not the integrity scan.
+
 Default contention bound is 0.5 seconds (configurable up to 2 seconds); default
 operation budget is 5 seconds (up to 30). Progress handlers bound SQLite VM work
 and backup iterations. These are cooperative limits, not guarantees against a
@@ -134,11 +145,12 @@ from pathlib import Path
 import sqlite3
 import sys
 
-from ayvu.sqlite_migrations import APPLICATION_ID, SqliteMigrationRunner
+from ayvu.project_schema import PROJECT_MIGRATIONS
+from ayvu.sqlite_migrations import APPLICATION_ID
 
 try:
     path = Path(sys.argv[1]).resolve(strict=True)
-    registry = SqliteMigrationRunner().registry
+    registry = PROJECT_MIGRATIONS
     with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as db:
         db.execute('PRAGMA trusted_schema=OFF')
         db.execute('BEGIN')

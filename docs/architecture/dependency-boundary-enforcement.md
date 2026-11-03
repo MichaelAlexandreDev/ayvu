@@ -35,6 +35,10 @@ entries fail, so a rename cannot silently discard protection.
 | `preferences_store` | Infrastructure | Bounded JSON, expected revisions and atomic publication |
 | `migration_contracts` | Domain | Content-free schema version plans, errors and outcomes |
 | `sqlite_migrations` | Infrastructure | SQLite bootstrap, verified backups and transactional migration runner |
+| `project_schema` | Infrastructure | Production migration registry and explicit job repository bootstrap |
+| `job` | Domain | Job values, transition table, lease rules and typed errors |
+| `job_service` | Application | `JobRepository` port and job snapshot |
+| `job_store` | Infrastructure | SQLite job adapter and job schema SQL |
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `preflight`, `library` | Transitional application | Translation, Library |
 | `cli`, `cli_progress` | Interface | CLI |

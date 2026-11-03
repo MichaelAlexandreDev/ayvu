@@ -156,7 +156,7 @@ def _migration_lock(path: Path, timeout: float):
             os.close(fd)
 
 
-def _sqlite_failure(error: sqlite3.Error) -> str:
+def sqlite_failure_code(error: sqlite3.Error) -> str:
     code = getattr(error, 'sqlite_errorcode', 0)
     if code in {getattr(sqlite3, 'SQLITE_READONLY_ROLLBACK', 776),
                 getattr(sqlite3, 'SQLITE_READONLY_RECOVERY', 264)}:
@@ -209,6 +209,23 @@ class SqliteMigrationRunner:
             connection.close()
             raise
 
+    def connect(self, database: Path, *, readonly: bool) -> sqlite3.Connection:
+        """Open a database already at this registry's target for one short transaction.
+
+        Repeats identity, version and ledger checks but not the full integrity scan,
+        which belongs to `migrate`. Raises `MigrationError` or `sqlite3.Error`.
+        """
+        plan = MigrationPlan(tuple(step.version for step in self.registry), len(self.registry))
+        connection = self._connect(_safe(database), time.monotonic() + self.budget_seconds, readonly=readonly)
+        try:
+            if self._schema_version(connection, plan) != plan.target:
+                raise MigrationError('version_gap')
+            connection.execute('PRAGMA foreign_keys=ON')
+            return connection
+        except BaseException:
+            connection.close()
+            raise
+
     @staticmethod
     def _integrity(connection: sqlite3.Connection) -> None:
         if connection.execute('PRAGMA integrity_check(1)').fetchmany(2) != [('ok',)]:
@@ -216,6 +233,9 @@ class SqliteMigrationRunner:
 
     def _state(self, connection: sqlite3.Connection, plan: MigrationPlan) -> int:
         self._integrity(connection)
+        return self._schema_version(connection, plan)
+
+    def _schema_version(self, connection: sqlite3.Connection, plan: MigrationPlan) -> int:
         current = connection.execute('PRAGMA user_version').fetchone()[0]
         plan.pending(current)
         if connection.execute('PRAGMA journal_mode').fetchone()[0] != 'delete':
@@ -410,7 +430,7 @@ class SqliteMigrationRunner:
         except MigrationError as error:
             code = error.code
         except sqlite3.Error as error:
-            code = _sqlite_failure(error)
+            code = sqlite_failure_code(error)
         except PermissionError:
             code = 'permission'
         except OSError:

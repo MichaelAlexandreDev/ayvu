@@ -66,7 +66,10 @@ This decision is driven by the following constraints:
 
 This acceptance records the modular-monolith, inward-dependency, and shared
 application-contract decisions represented by `DEC-001`, `DEC-002`, and
-`DEC-017`. It does not accept any other proposed architecture decision.
+`DEC-017`. It does not accept any other proposed architecture decision. Later
+scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle.md)
+(`DEC-003`), [local storage](local-project-storage.md) (`DEC-012`) and
+[job lifecycle](job-lifecycle.md) (`DEC-004`).
 
 ## Architecture dimensions
 
