@@ -13,7 +13,13 @@ SUPPORTED_TRANSLATORS = ("libretranslate",)
 
 
 class TranslatorError(RuntimeError):
-    pass
+    """``reason`` and ``status_code`` classify a failure without reading its message,
+    which can quote the response body or a URL holding credentials."""
+
+    def __init__(self, *args: object, reason: str | None = None, status_code: int | None = None) -> None:
+        super().__init__(*args)
+        self.reason = reason
+        self.status_code = status_code
 
 
 class UnsupportedTranslatorError(TranslatorError):
@@ -198,11 +204,11 @@ class LibreTranslateResponseParser:
         try:
             data = response.json()
         except ValueError as exc:
-            raise TranslatorError("LibreTranslate response was not valid JSON") from exc
+            raise TranslatorError("LibreTranslate response was not valid JSON", reason="malformed") from exc
 
         translated = data.get("translatedText") if isinstance(data, dict) else None
         if not isinstance(translated, str):
-            raise TranslatorError("LibreTranslate response did not include translatedText")
+            raise TranslatorError("LibreTranslate response did not include translatedText", reason="malformed")
         return translated
 
 
@@ -277,22 +283,25 @@ class LibreTranslateTranslator(Translator):
                     continue
                 raise TranslatorError(
                     f"Could not connect to LibreTranslate at {self.endpoint}. "
-                    "Is the local translation server running?"
+                    "Is the local translation server running?",
+                    reason="connection",
                 ) from exc
             except requests.exceptions.Timeout as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
-                raise TranslatorError(f"LibreTranslate request timed out after {self.timeout} seconds") from exc
+                raise TranslatorError(
+                    f"LibreTranslate request timed out after {self.timeout} seconds", reason="timeout"
+                ) from exc
             except requests.exceptions.HTTPError as exc:
                 raise self._http_error(exc) from exc
             except requests.exceptions.RequestException as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
-                raise TranslatorError(f"LibreTranslate request failed: {exc}") from exc
+                raise TranslatorError(f"LibreTranslate request failed: {exc}", reason="request") from exc
 
-        raise TranslatorError(f"LibreTranslate request failed: {last_error}")
+        raise TranslatorError(f"LibreTranslate request failed: {last_error}", reason="request")
 
     def list_languages(self) -> tuple[TranslatorLanguage, ...]:
         endpoint = self._normalize_languages_endpoint(self.url)
@@ -354,8 +363,12 @@ class LibreTranslateTranslator(Translator):
     def _http_error(exc: requests.exceptions.HTTPError) -> TranslatorError:
         response = exc.response
         if response is None:
-            return TranslatorError(f"LibreTranslate HTTP error: {exc}")
-        return TranslatorError(f"LibreTranslate HTTP error {response.status_code}: {response.text[:300]}")
+            return TranslatorError(f"LibreTranslate HTTP error: {exc}", reason="http")
+        return TranslatorError(
+            f"LibreTranslate HTTP error {response.status_code}: {response.text[:300]}",
+            reason="http",
+            status_code=response.status_code,
+        )
 
     @staticmethod
     def _normalize_endpoint(url: str) -> str:

@@ -266,6 +266,8 @@ claiming control of third-party copies. V/owners: #159 for HTTP sanitization,
 [#138](https://github.com/MichaelAlexandreDev/ayvu/issues/138) for provenance
 redaction and #145/#149 for migrated outcomes. A complete diagnostic-bundle
 lifecycle remains gated under G03 below; hiding a terminal detail is insufficient.
+The [provider contracts](provider-contracts.md) classify failures without reading those
+messages, but current consumers still use them until they migrate.
 
 ### T05 — Cache poisoning, cross-configuration reuse and covert corpus (High)
 

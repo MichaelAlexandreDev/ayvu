@@ -288,7 +288,7 @@ def _validate_order_key(value: object) -> None:
         raise ContentValidationError("invalid_order_key")
 
 
-def _validate_protected_parts(parts: object, text_length: int) -> None:
+def validate_protected_parts(parts: object, text_length: int) -> None:
     if type(parts) is not tuple or any(type(part) is not ProtectedPart for part in parts):
         raise ContentValidationError("invalid_protected_part")
     previous_end = 0
@@ -325,7 +325,7 @@ class UnitContent:
         _validate_order_key(self.order_key)
         if type(self.source_locale) is not SourceLocale:
             raise ContentValidationError("invalid_locale")
-        _validate_protected_parts(self.protected_parts, len(self.source_text))
+        validate_protected_parts(self.protected_parts, len(self.source_text))
         object.__setattr__(self, "constraints", _sorted_unique(
             self.constraints, Constraint, lambda item: (item.name, item.version), "invalid_constraint"))
         object.__setattr__(self, "context", _sorted_unique(
