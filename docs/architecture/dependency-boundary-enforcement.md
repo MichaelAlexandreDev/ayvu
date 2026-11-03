@@ -55,8 +55,9 @@ entries fail, so a rename cannot silently discard protection.
 | `epub_io`, `html_translate`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translator` | Provider adapter with transitional embedded port | Providers |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
+| `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
-| `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter and factory |
+| `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |
 

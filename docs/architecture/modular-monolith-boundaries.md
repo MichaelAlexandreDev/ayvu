@@ -72,7 +72,8 @@ scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle
 [job lifecycle](job-lifecycle.md) (`DEC-004`) and [job artifacts](job-artifacts.md)
 (extending `DEC-004` and `DEC-012`), [provenance](provenance.md) (`DEC-014`) and
 [content model](content-model.md) (`DEC-005`) and
-[provider contracts](provider-contracts.md) (`DEC-008`).
+[provider contracts](provider-contracts.md) and
+[provider capabilities](provider-capabilities.md) (`DEC-008`).
 
 ## Architecture dimensions
 

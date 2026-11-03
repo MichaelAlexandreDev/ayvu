@@ -217,22 +217,22 @@ class LibreTranslateLanguagesParser:
         try:
             data = response.json()
         except ValueError as exc:
-            raise TranslatorError("LibreTranslate languages response was not valid JSON") from exc
+            raise TranslatorError("LibreTranslate languages response was not valid JSON", reason="malformed") from exc
 
         if not isinstance(data, list):
-            raise TranslatorError("LibreTranslate languages response did not include a language list")
+            raise TranslatorError("LibreTranslate languages response did not include a language list", reason="malformed")
 
         return tuple(self._parse_language_entry(entry) for entry in data)
 
     @staticmethod
     def _parse_language_entry(entry: object) -> TranslatorLanguage:
         if not isinstance(entry, dict):
-            raise TranslatorError("LibreTranslate language entry was not an object")
+            raise TranslatorError("LibreTranslate language entry was not an object", reason="malformed")
 
         code = entry.get("code")
         name = entry.get("name")
         if not isinstance(code, str) or not isinstance(name, str):
-            raise TranslatorError("LibreTranslate language entry did not include code and name")
+            raise TranslatorError("LibreTranslate language entry did not include code and name", reason="malformed")
 
         targets = entry.get("targets", ())
         if not isinstance(targets, list):
@@ -321,22 +321,25 @@ class LibreTranslateTranslator(Translator):
                     continue
                 raise TranslatorError(
                     f"Could not connect to LibreTranslate at {endpoint}. "
-                    "Is the local translation server running?"
+                    "Is the local translation server running?",
+                    reason="connection",
                 ) from exc
             except requests.exceptions.Timeout as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
-                raise TranslatorError(f"LibreTranslate languages request timed out after {self.timeout} seconds") from exc
+                raise TranslatorError(
+                    f"LibreTranslate languages request timed out after {self.timeout} seconds", reason="timeout"
+                ) from exc
             except requests.exceptions.HTTPError as exc:
                 raise self._http_error(exc) from exc
             except requests.exceptions.RequestException as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
-                raise TranslatorError(f"LibreTranslate languages request failed: {exc}") from exc
+                raise TranslatorError(f"LibreTranslate languages request failed: {exc}", reason="request") from exc
 
-        raise TranslatorError(f"LibreTranslate languages request failed: {last_error}")
+        raise TranslatorError(f"LibreTranslate languages request failed: {last_error}", reason="request")
 
     def _post(self, payload: LibreTranslatePayload) -> requests.Response:
         self.rate_limiter.wait()

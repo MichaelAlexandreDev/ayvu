@@ -20,6 +20,7 @@ JOB_ARTIFACTS = PROJECT_ROOT / "docs" / "architecture" / "job-artifacts.md"
 PROVENANCE = PROJECT_ROOT / "docs" / "architecture" / "provenance.md"
 CONTENT_MODEL = PROJECT_ROOT / "docs" / "architecture" / "content-model.md"
 PROVIDER_CONTRACTS = PROJECT_ROOT / "docs" / "architecture" / "provider-contracts.md"
+PROVIDER_CAPABILITIES = PROJECT_ROOT / "docs" / "architecture" / "provider-capabilities.md"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
@@ -37,8 +38,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS],
-    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts"],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities"],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""
