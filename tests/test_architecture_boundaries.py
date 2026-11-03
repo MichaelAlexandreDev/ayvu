@@ -65,6 +65,7 @@ OWNERS = {
     "ayvu.artifact": Owner("domain", "Artifacts"),
     "ayvu.artifact_service": Owner("application", "Artifacts"),
     "ayvu.artifact_store": Owner("infrastructure", "Artifacts"),
+    "ayvu.content": Owner("domain", "Content"),
     "ayvu.provenance": Owner("domain", "Provenance"),
     "ayvu.provenance_service": Owner("application", "Provenance"),
     "ayvu.provenance_store": Owner("infrastructure", "Provenance"),

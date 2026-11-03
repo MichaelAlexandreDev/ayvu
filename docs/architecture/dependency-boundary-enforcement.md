@@ -45,6 +45,7 @@ entries fail, so a rename cannot silently discard protection.
 | `artifact` | Domain | Artifact identity, lifecycle, derived locations and reuse predicate |
 | `artifact_service` | Application | Artifact ports, publication order, reuse and reconciliation |
 | `artifact_store` | Infrastructure | SQLite artifact records and contained local payload files |
+| `content` | Domain | Content documents, translation units, deterministic identity and canonical serialization |
 | `provenance` | Domain | Lineage record values, explicit unknowns and canonical serialization |
 | `provenance_service` | Application | Provenance repository port and query results |
 | `provenance_store` | Infrastructure | Append-only SQLite lineage and bounded traversal |
