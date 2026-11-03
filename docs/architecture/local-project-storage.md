@@ -61,7 +61,9 @@ and migrations. It does not accept jobs (`DEC-004`), cache/TM/corpus design
 standalone translation cache, create domain tables, replace the manifest, or
 change the existing translation CLI. Backup retention is manual until separately
 reviewed lifecycle work exists. Jobs were later accepted separately, in the scoped
-[job lifecycle ADR](job-lifecycle.md), and are schema version 2.
+[job lifecycle ADR](job-lifecycle.md), and are schema version 2. Artifact metadata and
+the `artifacts/` directories were accepted in the scoped
+[job artifacts ADR](job-artifacts.md), and are schema version 3.
 
 This ADR records the accepted direction. Concrete migration behavior, validation
 evidence and platform limitations belong to the implementation contract.

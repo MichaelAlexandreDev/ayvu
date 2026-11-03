@@ -143,6 +143,14 @@ def _decode(row: tuple) -> TranslationJob:
         raise JobStoreError("invalid_job_record") from None
 
 
+def load_job(connection: sqlite3.Connection, job_id: str) -> TranslationJob:
+    """Read one job inside a caller's transaction on the project database."""
+    row = connection.execute(f"SELECT {_COLUMNS} FROM translation_jobs WHERE job_id = ?", (job_id,)).fetchone()
+    if row is None:
+        raise JobNotFoundError("job_not_found")
+    return _decode(row)
+
+
 @contextmanager
 def _translated_errors() -> Iterator[None]:
     try:
@@ -194,10 +202,7 @@ class SqliteJobRepository:
 
     @staticmethod
     def _load(connection: sqlite3.Connection, job_id: str) -> TranslationJob:
-        row = connection.execute(f"SELECT {_COLUMNS} FROM translation_jobs WHERE job_id = ?", (job_id,)).fetchone()
-        if row is None:
-            raise JobNotFoundError("job_not_found")
-        return _decode(row)
+        return load_job(connection, job_id)
 
     @staticmethod
     def _insert(connection: sqlite3.Connection, job: TranslationJob) -> None:

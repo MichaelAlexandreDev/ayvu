@@ -3,8 +3,8 @@
 This contract implements [#135](https://github.com/MichaelAlexandreDev/ayvu/issues/135)
 under the [accepted, scoped DEC-012](local-project-storage.md). The runner itself
 owns no domain tables. Schema version 2 adds the job tables of the
-[job lifecycle](job-lifecycle.md); it adds no artifact, provenance, cache or review
-tables.
+[job lifecycle](job-lifecycle.md) and version 3 the [job artifact](job-artifacts.md)
+metadata. No provenance, cache or review tables exist.
 
 ## Composition boundary and current schema
 
@@ -30,20 +30,21 @@ the SQLite database. Future job services can explicitly request bootstrap throug
 their own reviewed composition. The runner never chooses layout or reads an EPUB.
 
 The production history is `PROJECT_MIGRATIONS` in `ayvu.project_schema`, whose
-current schema is version 2. A bare `SqliteMigrationRunner()` only knows version 1
+current schema is version 3. A bare `SqliteMigrationRunner()` only knows version 1
 and refuses a newer database with `newer_schema`, so production code must use
 `project_migration_runner()`. Application ID is `0x41595655`, and
 `PRAGMA user_version` holds the schema version. Table
 `ayvu_schema_migrations(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL)` is the
 ledger. Ledger rows are contiguous from 1 and contain SHA-256 of each allowlisted
 step's ordered SQL text. Version 1 has no domain SQL. Version 2 adds
-`translation_jobs`, its index and its immutability trigger. A released step is
+`translation_jobs`, its index and its immutability trigger. Version 3 adds
+`job_artifacts`, its indexes and its immutability trigger. A released step is
 never edited; a schema change is always a new version.
 Changed historical checksums, gaps and newer versions are rejected. No downgrade
 or implicit adoption of another application's database is allowed.
 
 The committed fixtures are an empty version-0 SQLite database, the version-1 ledger
-and the released version-2 schema, represented by SQL under
+and the released version-2 and version-3 schemas, represented by SQL under
 `tests/fixtures/migrations/`. Tests of the runner itself use explicitly synthetic
 harness migrations, not product history. Registries are ordered in-tree `SqliteMigration`
 values, not filesystem/plugin discovery or document-supplied SQL.

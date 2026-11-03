@@ -23,7 +23,8 @@ concurrency, ownership lease, sanitized terminal summary and continuation link.
 contracts, checkpoints, artifacts, retry policy, scheduling and workers are not
 accepted here. Progress, outcome and cancellation contracts were defined separately,
 under `DEC-017`, in [job events and cancellation](job-events-cancellation.md); they
-persist nothing. No interface uses jobs yet: translation, resume and the CLI keep
+persist nothing. Checkpoints and artifacts were accepted separately in
+[job artifacts](job-artifacts.md). No interface uses jobs yet: translation, resume and the CLI keep
 their current behavior, and translating a book still creates no project database.
 
 | Module | Layer | Responsibility |

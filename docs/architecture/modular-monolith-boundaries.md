@@ -69,7 +69,8 @@ application-contract decisions represented by `DEC-001`, `DEC-002`, and
 `DEC-017`. It does not accept any other proposed architecture decision. Later
 scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle.md)
 (`DEC-003`), [local storage](local-project-storage.md) (`DEC-012`) and
-[job lifecycle](job-lifecycle.md) (`DEC-004`).
+[job lifecycle](job-lifecycle.md) (`DEC-004`) and [job artifacts](job-artifacts.md)
+(extending `DEC-004` and `DEC-012`).
 
 ## Architecture dimensions
 
