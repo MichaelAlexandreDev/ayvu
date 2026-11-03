@@ -50,6 +50,9 @@ OWNERS = {
     "ayvu.glossary": Owner("knowledge", "Glossary"),
     "ayvu.translation_memory": Owner("domain", "Knowledge/TM"),
     "ayvu.config": Owner("infrastructure", "Preferences"),
+    "ayvu.preferences": Owner("domain", "Preferences"),
+    "ayvu.preferences_service": Owner("application", "Preferences"),
+    "ayvu.preferences_store": Owner("infrastructure", "Preferences"),
     "ayvu.resume": Owner("infrastructure", "Jobs"),
     "ayvu.review_export": Owner("infrastructure", "Review"),
     "ayvu.review_import": Owner("infrastructure", "Review"),
@@ -239,6 +242,12 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.config", "ayvu.preferences"),
+    ("ayvu.config", "ayvu.preferences_service"),
+    ("ayvu.config", "ayvu.preferences_store"),
+    ("ayvu.preferences_service", "ayvu.preferences"),
+    ("ayvu.preferences_store", "ayvu.preferences"),
+    ("ayvu.preferences_store", "ayvu.preferences_service"),
     ("ayvu.cli", "ayvu.project"),
     ("ayvu.cli", "ayvu.project_service"),
     ("ayvu.project_service", "ayvu.project"),
@@ -267,7 +276,7 @@ EXCEPTIONS = {
         "Projects", 158, "project repository constructed in the shared composition root"),
     ("ayvu.cli", "sqlite3"): Exemption("CLI", 158, "CLI uses application outcomes"),
     ("ayvu.cli", "ayvu.cache"): Exemption("Knowledge", 150, "cache administration extracted"),
-    ("ayvu.cli", "ayvu.config"): Exemption("Preferences", 152, "preferences use cases extracted"),
+    ("ayvu.cli", "ayvu.config"): Exemption("Preferences", 158, "compatibility config converted at shared composition root"),
     ("ayvu.cli", "ayvu.epub_io"): Exemption("Translation", 145, "translation use case extracted"),
     ("ayvu.cli", "ayvu.glossary"): Exemption("Knowledge", 157, "glossary use cases extracted"),
     ("ayvu.cli", "ayvu.html_translate"): Exemption("CLI", 158, "neutral statistics outcome"),

@@ -30,6 +30,9 @@ entries fail, so a rename cannot silently discard protection.
 | `project` | Domain | Project identity and immutable manifest values |
 | `project_service` | Application | Project repository port and resolution policy |
 | `project_store` | Infrastructure | Atomic local manifest storage and source fingerprinting |
+| `preferences` | Domain | Immutable v1 preference/profile values and validation |
+| `preferences_service` | Application | Shared get/update requests, outcomes and repository port |
+| `preferences_store` | Infrastructure | Bounded JSON, expected revisions and atomic publication |
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `preflight`, `library` | Transitional application | Translation, Library |
 | `cli`, `cli_progress` | Interface | CLI |
@@ -72,6 +75,9 @@ imports, syntax/read errors, cycles or missing ownership.
 
 The existing CLI edges expire as application use cases are extracted in #128,
 #145, #146, #149, #150, #152, #157 and composition is consolidated in #158.
+The compatibility CLI-to-config edge now expires in #158: first-use/Settings
+already call shared preference use cases, while legacy config conversion and
+construction stay at this transitional composition boundary.
 The exact CLI-to-project-store construction edge also expires in #158; domain
 and application project modules never import the concrete store.
 Preflight exceptions expire in #145. EPUB/HTML pipeline coupling expires in

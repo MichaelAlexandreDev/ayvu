@@ -1227,6 +1227,62 @@ def test_root_command_settings_changes_and_persists_language(isolated_config, tm
     assert saved["default_target_language"] == "es"
 
 
+def test_settings_unknown_fields_warn_and_refuse_lossy_update(isolated_config, monkeypatch):
+    payload = b'{"version":1,"private_extension":{"value":"secret-canary"}}'
+    isolated_config.write_bytes(payload)
+    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    result = runner.invoke(app, [], input='4\n1\nes\n0\n')
+    assert result.exit_code == 0
+    assert 'somente leitura' in result.output
+    assert 'Settings saved.' not in result.output
+    assert 'não foi persistida' in result.output
+    assert 'secret-canary' not in result.output
+    assert isolated_config.read_bytes() == payload
+
+
+def test_settings_save_failure_keeps_effective_session_values(isolated_config, monkeypatch):
+    original = isolated_config.read_bytes()
+    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    def fail(*args):
+        raise OSError('private-canary-path')
+    monkeypatch.setattr('ayvu.preferences_store.os.replace', fail)
+    result = runner.invoke(app, [], input='4\n1\nes\n0\n')
+    assert result.exit_code == 0
+    assert 'Settings saved.' not in result.output
+    assert 'não foi persistida' in result.output
+    assert 'es' in result.output.split('não foi persistida.')[-1]
+    assert 'private-canary' not in result.output
+    assert isolated_config.read_bytes() == original
+
+
+def test_settings_multiple_saves_advance_the_expected_revision(isolated_config, monkeypatch):
+    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    result = runner.invoke(app, [], input='4\n1\nes\n4\nfoliate\n0\n')
+    assert result.exit_code == 0
+    assert result.output.count('Settings saved.') == 2
+    saved = json.loads(isolated_config.read_text())
+    assert saved['default_target_language'] == 'es'
+    assert saved['reader_app'] == 'foliate'
+
+
+def test_first_use_failed_save_retains_session_without_claiming_success(isolated_config, tmp_path, monkeypatch, minimal_epub_path):
+    isolated_config.unlink()
+    original_dir = tmp_path / 'Books' / 'Original'
+    original_dir.mkdir(parents=True)
+    (original_dir / 'first-use.epub').write_bytes(minimal_epub_path.read_bytes())
+    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    def fail(*args):
+        raise PermissionError('private-canary')
+    monkeypatch.setattr('ayvu.preferences_store.os.replace', fail)
+    result = runner.invoke(app, [], input=f'es\n{tmp_path / "Books"}\ny\n3\n0\n')
+    assert result.exit_code == 0
+    assert 'não foi persistida' in result.output
+    assert 'Idioma padrão salvo:' not in result.output
+    assert 'first-use' in result.output
+    assert not isolated_config.exists()
+    assert 'private-canary' not in result.output
+
+
 def test_root_command_settings_changes_books_dir(isolated_config, tmp_path, monkeypatch):
     books_dir = tmp_path / "Minha Biblioteca"
     monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "missing")
