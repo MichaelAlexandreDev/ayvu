@@ -39,6 +39,8 @@ entries fail, so a rename cannot silently discard protection.
 | `job` | Domain | Job values, transition table, lease rules and typed errors |
 | `job_service` | Application | `JobRepository` port and job snapshot |
 | `job_store` | Infrastructure | SQLite job adapter and job schema SQL |
+| `job_events` | Domain | Job events, outcomes, ordering rules and canonical serialization |
+| `job_execution` | Application | Event ports, bounded in-memory log and cooperative cancellation |
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `preflight`, `library` | Transitional application | Translation, Library |
 | `cli`, `cli_progress` | Interface | CLI |

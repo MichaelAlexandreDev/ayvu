@@ -15,6 +15,7 @@ GLOBAL_PREFERENCES = PROJECT_ROOT / "docs" / "architecture" / "global-preference
 LOCAL_STORAGE = PROJECT_ROOT / "docs" / "architecture" / "local-project-storage.md"
 PROJECT_MIGRATIONS = PROJECT_ROOT / "docs" / "architecture" / "project-migrations.md"
 JOB_LIFECYCLE = PROJECT_ROOT / "docs" / "architecture" / "job-lifecycle.md"
+JOB_EVENTS = PROJECT_ROOT / "docs" / "architecture" / "job-events-cancellation.md"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
@@ -32,8 +33,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE],
-    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle"],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events"],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""
