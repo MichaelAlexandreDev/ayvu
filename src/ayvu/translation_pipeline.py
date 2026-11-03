@@ -13,6 +13,7 @@ from typing import Callable, Protocol
 from .chunking import split_text
 from .domain import LanguagePair
 from .translation_memory import TranslationMemoryMatch
+from .translation_plan import LINGUISTIC_STAGES
 from .translation_protection import (
     INTERNAL_MARKER_PATTERN, PROTECTED_TOKEN_PATTERN, TAG_TOKEN_PATTERN, ProtectedSpan, TextParts,
     protect_special_terms, protected_content_is_intact, special_term_spans,
@@ -21,24 +22,12 @@ from .translation_protection import (
 DEFAULT_MAX_RECOVERY_CALLS = 64
 
 
-@dataclass(frozen=True)
-class TextStage:
-    stage_id: str
-    version: int = 1
+class ProtectedContentError(ValueError):
+    """Protected content did not survive. The messages are the ones the current CLI shows."""
 
 
-# The order is the contract: a text that leaves early never reaches the stages after it.
-LEGACY_TEXT_STAGES = (
-    TextStage("unit_whitespace"),
-    TextStage("exact_reuse"),
-    TextStage("legacy_fuzzy_reuse"),
-    TextStage("execution_gates"),
-    TextStage("protection"),
-    TextStage("provider_chunks"),
-    TextStage("placeholder_restoration"),
-    TextStage("raw_cache_write"),
-    TextStage("post_processing"),
-)
+# Named for the facade that first used them; the stages themselves are shared.
+LEGACY_TEXT_STAGES = LINGUISTIC_STAGES
 
 
 class LinguisticSource(StrEnum):
@@ -76,6 +65,7 @@ class LinguisticOutcome:
     source: LinguisticSource
     glossary_usage: object | None = None
     memory_suggestion: TranslationMemoryMatch | None = None
+    raw_text: str | None = None
 
 
 def _lookup_memory_suggestion(memory: LegacyMemory | None, core: str,
@@ -123,19 +113,19 @@ def _translate_around_protected_terms(text: str, provider: TextProvider, source:
                     offset = start + len(chunk)
                     continue
                 if recovery_calls >= max_recovery_calls:
-                    raise ValueError(
+                    raise ProtectedContentError(
                         "A recuperação excedeu o limite de chamadas ao tradutor."
                     )
                 recovery_calls += 1
                 result = provider.translate(chunk_parts.core, source, target)
                 if not result.strip():
-                    raise ValueError("O tradutor devolveu texto vazio durante a recuperação.")
+                    raise ProtectedContentError("O tradutor devolveu texto vazio durante a recuperação.")
                 fragments.append(chunk_parts.restore(result.strip()))
                 offset = start + len(chunk)
             fragments.append(parts.core[offset:])
             translated = "".join(fragments)
             if INTERNAL_MARKER_PATTERN.search(translated):
-                raise ValueError("O tradutor devolveu marcadores internos durante a recuperação.")
+                raise ProtectedContentError("O tradutor devolveu marcadores internos durante a recuperação.")
             output.append(parts.restore(translated))
         else:
             output.append(text[cursor:span.start])
@@ -144,7 +134,7 @@ def _translate_around_protected_terms(text: str, provider: TextProvider, source:
     return "".join(output)
 
 
-class LegacyTextPipelineFacade:
+class LinguisticStages:
     """Runs the fixed stages for one call. It holds no document, project or job identity."""
 
     def __init__(self, provider: TextProvider, cache: LegacyExactCache, apply_glossary: Callable[[str], GlossaryOutcome],
@@ -158,7 +148,7 @@ class LegacyTextPipelineFacade:
         self._on_stage = on_stage
 
     def __repr__(self) -> str:
-        return "LegacyTextPipelineFacade()"
+        return f"{type(self).__name__}()"
 
     def _enter(self, stage_id: str) -> None:
         if self._on_stage is not None:
@@ -218,7 +208,7 @@ class LegacyTextPipelineFacade:
             )
         self._enter("placeholder_restoration")
         if not protected_content_is_intact(core, translated):
-            raise ValueError("O tradutor devolveu marcadores internos ou perdeu termos protegidos.")
+            raise ProtectedContentError("O tradutor devolveu marcadores internos ou perdeu termos protegidos.")
         return translated
 
     def _finish(self, parts: TextParts, translated: str, source: LinguisticSource,
@@ -226,4 +216,8 @@ class LegacyTextPipelineFacade:
         """Glossary runs on every reused or new text, and the outer whitespace comes back last."""
         self._enter("post_processing")
         application = self._apply_glossary(translated)
-        return LinguisticOutcome(parts.restore(application.text), source, application.usage, suggestion)
+        return LinguisticOutcome(parts.restore(application.text), source, application.usage, suggestion, translated)
+
+
+class LegacyTextPipelineFacade(LinguisticStages):
+    """The stages under ``translate_text``. It stays unable to reach anything durable."""

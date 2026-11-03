@@ -166,7 +166,9 @@ def execute(provider: TranslationProvider, request: TranslationProviderRequest) 
     if result.request_id != request.request_id:
         return failed_result(request, JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "result_identity_conflict"),
                              producer=result.producer)
-    if request.route is not None and result.route is not None and result.route != request.route:
+    # Only a success claims to have used a route. A refusal keeps its own code and delivery state.
+    if (result.status is ProviderStatus.SUCCEEDED and request.route is not None and result.route is not None
+            and result.route != request.route):
         return failed_result(request, JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "result_route_conflict"),
                              producer=result.producer)
     return result

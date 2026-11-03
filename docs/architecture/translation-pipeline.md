@@ -15,20 +15,23 @@ Related issue: [#142 — Extract a versioned TranslationUnit pipeline](https://g
 The linguistic work on one text is a fixed sequence that knows nothing about documents.
 HTML traversal and markup reconstruction stay in `ayvu.html_translate`.
 
-This document describes the first of two steps, and #142 stays open until the second:
+There are two paths through the same stages:
 
-| Step | Content | State |
-| --- | --- | --- |
-| Extraction | The stages and `LegacyTextPipelineFacade`, used by `translate_text` | This change |
-| Rich path | Resolved plan, typed per-unit result, artifacts, replay and provenance | Pending |
+| Path | Entry | Identity | Durable state |
+| --- | --- | --- | --- |
+| Legacy | `translate_text`, through `LegacyTextPipelineFacade` | None | None beyond the v1 cache |
+| Rich | `DocumentTranslator` | Real project, job, document and unit | Artifact, provenance and events |
 
-**This step adds no behavior.** It moves code, and `translate_text` keeps its signature,
-results, messages and v1 cache key.
+**The current translation uses only the legacy path**, so `translate_text` keeps its signature,
+results, messages and v1 cache key. Nothing in production calls the rich path until
+[#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145).
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
 | `ayvu.translation_protection` | Domain | Protected terms and placeholders, and checking that they survived |
+| `ayvu.translation_plan` | Domain | The resolved plan, stage identities and fingerprints |
 | `ayvu.translation_pipeline` | Application | The stages, their ports and the legacy facade |
+| `ayvu.translation_document` | Application | The rich path: per-unit results, document artifact, replay, events and provenance |
 | `ayvu.html_translate` | Format | The DOM, and `translate_text` adapting the current types to the facade |
 
 ## Stages
@@ -67,10 +70,90 @@ remain until [#143](https://github.com/MichaelAlexandreDev/ayvu/issues/143).
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.html_translate`, passed on each call.
 
+## The resolved plan
+
+`resolve_plan` is pure, and it yields no plan unless the required capabilities are plainly accepted.
+Its fingerprints split at the glossary:
+
+| Change | Raw fingerprint | Post-processing fingerprint |
+| --- | --- | --- |
+| Producer, route, capabilities, chunk limit, policy, context | Changes | |
+| Any stage version up to `raw_cache_write` | Changes | |
+| Glossary | Changes only if the provider received it natively | Changes |
+| `post_processing` version | | Changes |
+
+If what really ran differs from the plan, the document fails with `plan_invalidated` or
+`result_route_conflict`, because a new plan is needed.
+
+## The rich path
+
+`DocumentTranslator.translate` refuses to start unless the job is `running`, belongs to the document's
+project and holds a live lease owned by the caller. There is no way to run it without identity.
+
+**Results are per unit, and persistence is per document.** This departs from the issue's original
+per-unit wording, by the maintainer's decision. A single edit gives a document new unit IDs, so
+replay is document-wide in practice, and per-unit storage does not fit:
+
+| 30,000 units, measured on btrfs | Per unit | Per document, as built |
+| --- | --- | --- |
+| Added time | 46.8 minutes | 17.7 seconds, for 60 documents |
+| Project database | 68 MiB, past the 64 MiB limit | 0.3 MiB |
+| Files | 30,000 | 60, totalling 8.3 MiB |
+
+A document that did not finish publishes nothing, so resuming inside a document repeats it. Which unit
+came from where is in the artifact, which is private because it holds the book's text.
+
+| Result source | Provider called | Published |
+| --- | --- | --- |
+| `exact_cache`, `applied_memory`, `provider` | Only for `provider` | Yes, when the whole document completes |
+| `cache_only_missing`, `dry_run` | No | No, and the document is not complete |
+| `artifact_replay` | No | Reuses the existing artifact |
+| `blank` | No | Recorded with the document |
+
+A suggestion from memory is `memory_suggested` on a `provider` result.
+
+**Protected parts** become tag tokens, so the stages keep them out of the provider and check them the
+same way as inline markup. A provider failure stops the document with a sanitized failure, unlike the
+legacy path, which records text errors and continues. A provider's empty answer is a failure here too.
+
+**Ports.** `ExactCachePort` and `MemoryPort` key on the plan's raw fingerprint, which the v1 cache and
+the cache-backed memory do not satisfy, so a plan cannot reach them. **There is no production cache
+for this path** until [#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153).
+
+## Replay
+
+If the raw fingerprint, document revision and job all match, only post-processing runs. The artifact's
+digest and size are checked, then its content is compared with the document unit by unit.
+
+| Found | Result |
+| --- | --- |
+| Valid artifact | Replay, with no cache lookup and no provider call |
+| Other plan, revision or job | Normal execution |
+| Missing, partial or corrupt file | The record is withdrawn, its file stays, and the work is redone |
+| Valid digest but content that does not match | Fails closed with `invalid_raw_results` |
+
+**Limit:** only the owning job can replay, so a continuation job redoes the work. A job's lease must
+also be live, so resuming after a crash needs [#146](https://github.com/MichaelAlexandreDev/ayvu/issues/146).
+Because a phase cannot return in one event stream, a second run in the same stream needs its own
+`progress_phase`.
+
+## Cancellation
+
+It is observed before each unit, between stages, between chunks and at the artifact's safe points, and a
+`CancellationSource` must declare `SAFE_POINTS`. It emits the request and its acknowledgement and publishes
+nothing. A call already running finishes first, and emitting the job's outcome stays with the job's owner.
+
+## Provenance
+
+Each document records one entry per kind of origin it used, plus `store_raw_results` holding the artifact,
+or `replay_raw_results` when replaying. Memory records state an unknown producer. Publication and the records
+do not commit together, so a crash between them leaves an artifact without records, and a later replay
+records only itself.
+
 ## Consequences and limits
 
-- User-facing messages raised by the pipeline stay in Portuguese, as they were, because this step
-  changes no behavior. Application code holding interface text is debt to settle when
+- User-facing messages raised by the legacy path stay in Portuguese, as they were. Application code
+  holding interface text is debt to settle when
   [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) moves translation to typed results.
 - `LinguisticOutcome.glossary_usage` is opaque to the pipeline, since the application layer cannot
   import the glossary module.
