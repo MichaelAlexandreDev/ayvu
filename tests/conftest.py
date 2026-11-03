@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import base64
+import os
 from pathlib import Path
 
 import pytest
 from ebooklib import epub
 
 
+# Rich wraps at the terminal width, so a long temporary path would split across lines. This
+# runs before any test imports the CLI, because a Console reads COLUMNS when it is created.
+os.environ["COLUMNS"] = "500"
+
 MINIMAL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
 )
-
-
-@pytest.fixture(autouse=True)
-def wide_console(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Rich wraps at the terminal width, so a long temporary path would split across lines."""
-    monkeypatch.setenv("COLUMNS", "500")
 
 
 @pytest.fixture
