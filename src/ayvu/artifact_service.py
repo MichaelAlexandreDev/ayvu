@@ -150,6 +150,11 @@ class ArtifactService:
             return artifact
         return self._repository.retire(artifact_id, artifact.revision, 'integrity_failed')
 
+    def withdraw_corrupt(self, request: ArtifactRequest) -> Artifact | None:
+        """The same check for a caller that holds a request and not an artifact ID."""
+        artifact = self._repository.find_ready(request)
+        return None if artifact is None else self.retire_if_corrupt(artifact.artifact_id)
+
     def _safe_evidence(self, artifact: Artifact) -> str:
         try:
             return self._payloads.evidence(artifact.artifact_id, artifact.size, artifact.digest).final

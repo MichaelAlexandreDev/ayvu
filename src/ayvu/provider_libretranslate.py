@@ -31,7 +31,7 @@ ADAPTER_ID = "libretranslate"
 ADAPTER_VERSION = 1
 SUPPORTED_CONFIG_VERSIONS = frozenset({1})
 LIBRETRANSLATE_SAFE_POINTS = ("provider_before_request",)
-_PRODUCER = ProducerIdentity("libretranslate", UNKNOWN, f"libretranslate_compat@{ADAPTER_VERSION}", NOT_APPLICABLE)
+LIBRETRANSLATE_PRODUCER = ProducerIdentity("libretranslate", UNKNOWN, f"libretranslate_compat@{ADAPTER_VERSION}", NOT_APPLICABLE)
 DEFAULT_AVAILABILITY_TTL = timedelta(seconds=60)
 
 LIBRETRANSLATE_DESCRIPTOR = ProviderDescriptor(
@@ -129,7 +129,7 @@ class LibreTranslateProvider:
                  decision: FeatureDecision) -> TranslationProviderResult | None:
         """Everything decided before any HTTP request is made."""
         def refuse(failure: JobFailure) -> TranslationProviderResult:
-            return failed_result(request, failure, producer=_PRODUCER, delivery=DeliveryState.NOT_SENT,
+            return failed_result(request, failure, producer=LIBRETRANSLATE_PRODUCER, delivery=DeliveryState.NOT_SENT,
                                  warnings=decision.ignored_advisory, route=route)
 
         if decision.unsupported_required:
@@ -152,7 +152,7 @@ class LibreTranslateProvider:
             return refusal
 
         def failed(failure: JobFailure, delivery: DeliveryState) -> TranslationProviderResult:
-            return failed_result(request, failure, producer=_PRODUCER, delivery=delivery, warnings=warnings, route=route)
+            return failed_result(request, failure, producer=LIBRETRANSLATE_PRODUCER, delivery=delivery, warnings=warnings, route=route)
 
         try:
             text = self._translator.translate(request.text, request.source_locale, request.target_locale)
@@ -164,7 +164,7 @@ class LibreTranslateProvider:
         if not isinstance(text, str) or (not text.strip() and request.text.strip()):
             return failed(JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "empty_result"), DeliveryState.COMPLETED)
         return TranslationProviderResult(
-            request.request_id, ProviderStatus.SUCCEEDED, _PRODUCER, DeliveryState.COMPLETED, text=text, route=route,
+            request.request_id, ProviderStatus.SUCCEEDED, LIBRETRANSLATE_PRODUCER, DeliveryState.COMPLETED, text=text, route=route,
             warnings=warnings, usage=ProviderUsage(characters_submitted=len(request.text)))
 
 

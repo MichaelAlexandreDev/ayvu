@@ -253,3 +253,12 @@ def test_contract_modules_have_no_provider_name_or_framework():
                 roots.add(node.module.split('.')[0])
         assert not roots & forbidden, name
     assert ProviderInstance.__doc__ and DeadlineFeature.name == 'deadline'
+
+
+def test_a_refusal_keeps_its_own_code_and_delivery_state_when_routes_differ():
+    from ayvu.provider_service import failed_result
+    item = request(route=ProviderRoute('en', 'pt'))
+    refusal = lambda subject: failed_result(subject, JobFailure(JobFailureFamily.CAPABILITY, 'route_conflict'),
+                                            delivery=DeliveryState.NOT_SENT, route=ProviderRoute('en', 'pt', 'es'))
+    result = execute(FakeProvider(refusal), item)
+    assert result.failure.code == 'route_conflict' and result.delivery is DeliveryState.NOT_SENT

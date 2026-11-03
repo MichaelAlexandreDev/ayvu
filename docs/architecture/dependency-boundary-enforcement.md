@@ -55,7 +55,9 @@ entries fail, so a rename cannot silently discard protection.
 | `epub_io`, `html_translate`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translator` | Provider adapter with transitional embedded port | Providers |
 | `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
+| `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |
 | `translation_pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
+| `translation_document` | Application | Rich document path: results, artifact, replay, events and provenance |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
 | `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
