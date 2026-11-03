@@ -94,6 +94,13 @@ and selection identity and creation time, validates owned locations, increments
 the revision and updates the timestamp. Two writers with one expected revision
 cannot both succeed. The CLI run result carries the resolved `project_id`.
 
+The additive [DEC-012 storage contract](local-project-storage.md) is exposed at
+the privileged composition boundary by the concrete adapter's
+`resolve_database_paths(project_id)`. It returns validated database/backup Paths
+with a redacted repr and creates neither file. Those Paths are not added to the
+framework-neutral application port or serialized into the v1 manifest. The
+[migration protocol](project-migrations.md) consumes them explicitly.
+
 ## Atomicity, recovery and platform limits
 
 The repository bounds the workspace to 1024 projects. A private workspace lock

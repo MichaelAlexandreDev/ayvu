@@ -74,6 +74,8 @@ I/O. Managed state must have a documented location and recovery behavior.
 The exact manifest schema, filenames, locking mechanism, size limits, and Python
 module layout are implementation details to review in #134. This decision does
 not select SQLite for project storage or approve a general storage layout.
+The later, separately accepted [DEC-012](local-project-storage.md) adds the
+database/backup locations for #135 without expanding this DEC-003 acceptance.
 
 Durable jobs, event storage, artifact payloads, provenance records, migrations,
 legacy-checkpoint conversion, cleanup, Desktop, network-policy enforcement, and

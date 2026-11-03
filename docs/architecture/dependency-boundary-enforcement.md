@@ -33,6 +33,8 @@ entries fail, so a rename cannot silently discard protection.
 | `preferences` | Domain | Immutable v1 preference/profile values and validation |
 | `preferences_service` | Application | Shared get/update requests, outcomes and repository port |
 | `preferences_store` | Infrastructure | Bounded JSON, expected revisions and atomic publication |
+| `migration_contracts` | Domain | Content-free schema version plans, errors and outcomes |
+| `sqlite_migrations` | Infrastructure | SQLite bootstrap, verified backups and transactional migration runner |
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `preflight`, `library` | Transitional application | Translation, Library |
 | `cli`, `cli_progress` | Interface | CLI |
