@@ -207,7 +207,9 @@ crash-before/after-rename tests. Owners:
 [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134) for source/project
 identity, [#137](https://github.com/MichaelAlexandreDev/ayvu/issues/137) for artifact
 reconciliation and [#144](https://github.com/MichaelAlexandreDev/ayvu/issues/144)
-for adapter safety. Legacy exposure remains until caller migrations
+for adapter safety. [Job artifacts](job-artifacts.md) now cover contained no-clobber
+publication and reconciliation, but no current writer uses them yet.
+Legacy exposure remains until caller migrations
 [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145),
 [#147](https://github.com/MichaelAlexandreDev/ayvu/issues/147) and
 [#149](https://github.com/MichaelAlexandreDev/ayvu/issues/149).

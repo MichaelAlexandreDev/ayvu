@@ -316,6 +316,18 @@ class ProjectJsonRepository:
                     raise ProjectStoreError('invalid_project_backup_directory')
             return ProjectDatabasePaths(project.project_id, database, backups)
 
+    def resolve_artifact_root(self, project_id: str) -> Path:
+        """The project's artifact directory. It is validated here and created on first use."""
+        with self._transaction():
+            project = self._load(project_id)
+            directory = self._manifest_path(project.project_id).parent
+            root = _safe_components(directory / 'artifacts')
+            if not root.is_relative_to(directory):
+                raise ProjectStoreError('invalid_project_storage_path')
+            if root.exists() and not root.is_dir():
+                raise ProjectStoreError('invalid_project_artifact_directory')
+            return root
+
     def _check_source(self, request: ProjectRequest) -> None:
         canonical, size, digest = _fingerprint(Path(request.source_path))
         if Path(canonical).is_relative_to(self.root):

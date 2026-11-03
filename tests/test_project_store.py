@@ -360,3 +360,32 @@ def test_database_resolver_requires_recovery_for_interrupted_publication(project
     assert database.read_bytes() == b'preserve-complete-database'
     staged.unlink()
     assert repository.resolve_database_paths(project.project_id).database == database
+
+
+def test_artifact_root_is_validated_without_creating_anything(project_input):
+    _, repository, request = project_input
+    project = repository.create(request)
+    manifest = repository._manifest_path(project.project_id)
+    before = manifest.read_bytes()
+    root = repository.resolve_artifact_root(project.project_id)
+    assert root == manifest.parent / 'artifacts'
+    assert not root.exists() and manifest.read_bytes() == before
+    root.mkdir()
+    assert repository.resolve_artifact_root(project.project_id) == root
+
+
+def test_artifact_root_rejects_a_file_a_symlink_and_an_unknown_project(project_input, tmp_path):
+    _, repository, request = project_input
+    project = repository.create(request)
+    root = repository._manifest_path(project.project_id).parent / 'artifacts'
+    root.write_bytes(b'not a directory')
+    with pytest.raises(ProjectError, match='^invalid_project_artifact_directory$'):
+        repository.resolve_artifact_root(project.project_id)
+    root.unlink()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    root.symlink_to(outside)
+    with pytest.raises(ProjectError, match='^symlink_path$'):
+        repository.resolve_artifact_root(project.project_id)
+    with pytest.raises(ProjectError):
+        repository.resolve_artifact_root(str(uuid4()))
