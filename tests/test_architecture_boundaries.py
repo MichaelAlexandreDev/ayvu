@@ -53,6 +53,8 @@ OWNERS = {
     "ayvu.preferences": Owner("domain", "Preferences"),
     "ayvu.preferences_service": Owner("application", "Preferences"),
     "ayvu.preferences_store": Owner("infrastructure", "Preferences"),
+    "ayvu.migration_contracts": Owner("domain", "Storage migrations"),
+    "ayvu.sqlite_migrations": Owner("infrastructure", "Storage migrations"),
     "ayvu.resume": Owner("infrastructure", "Jobs"),
     "ayvu.review_export": Owner("infrastructure", "Review"),
     "ayvu.review_import": Owner("infrastructure", "Review"),
@@ -242,6 +244,7 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.sqlite_migrations", "ayvu.migration_contracts"),
     ("ayvu.config", "ayvu.preferences"),
     ("ayvu.config", "ayvu.preferences_service"),
     ("ayvu.config", "ayvu.preferences_store"),

@@ -12,7 +12,7 @@ import stat
 import tempfile
 import time
 from contextlib import contextmanager
-from dataclasses import asdict, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -32,6 +32,13 @@ LOCK_TIMEOUT_SECONDS = 5.0
 
 class ProjectStoreError(ProjectError):
     pass
+
+
+@dataclass(frozen=True, repr=False)
+class ProjectDatabasePaths:
+    project_id: str
+    database: Path
+    backups: Path
 
 
 def _no_duplicates(pairs):
@@ -289,6 +296,25 @@ class ProjectJsonRepository:
     def load(self, project_id: str) -> ProjectManifest:
         with self._transaction():
             return self._load(project_id)
+
+    def resolve_database_paths(self, project_id: str) -> ProjectDatabasePaths:
+        with self._transaction():
+            project = self._load(project_id)
+            directory = self._manifest_path(project.project_id).parent
+            database = _safe_components(directory / 'project.sqlite')
+            backups = _safe_components(directory / 'backups' / 'schema')
+            for target in (database, backups):
+                if not target.is_relative_to(directory):
+                    raise ProjectStoreError('invalid_project_storage_path')
+            if database.exists():
+                if not database.is_file():
+                    raise ProjectStoreError('invalid_project_database')
+                if database.stat().st_nlink != 1:
+                    raise ProjectStoreError('project_database_recovery_required')
+            for directory_path in (backups.parent, backups):
+                if directory_path.exists() and not directory_path.is_dir():
+                    raise ProjectStoreError('invalid_project_backup_directory')
+            return ProjectDatabasePaths(project.project_id, database, backups)
 
     def _check_source(self, request: ProjectRequest) -> None:
         canonical, size, digest = _fingerprint(Path(request.source_path))

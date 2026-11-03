@@ -12,6 +12,8 @@ PRODUCT_SCOPE = PROJECT_ROOT / "docs" / "product-scope.md"
 PRODUCT_THREAT_MODEL = PROJECT_ROOT / "docs" / "architecture" / "product-threat-model.md"
 MODULE_BOUNDARIES = PROJECT_ROOT / "docs" / "architecture" / "modular-monolith-boundaries.md"
 GLOBAL_PREFERENCES = PROJECT_ROOT / "docs" / "architecture" / "global-preferences.md"
+LOCAL_STORAGE = PROJECT_ROOT / "docs" / "architecture" / "local-project-storage.md"
+PROJECT_MIGRATIONS = PROJECT_ROOT / "docs" / "architecture" / "project-migrations.md"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
@@ -29,8 +31,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES],
-    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences"],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations"],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""

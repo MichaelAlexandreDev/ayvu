@@ -562,6 +562,13 @@ a identidade e as referências necessárias ao futuro histórico/retomada por
 projeto. Links simbólicos e fontes com hardlinks são recusados nesse fluxo.
 Para schema, limites e recuperação de escrita interrompida, consulte o
 [contrato do manifesto local](docs/architecture/project-manifest.md).
+O repositório também oferece uma API explícita para resolver o banco local
+`projects/<UUID>/project.sqlite` e seus backups em `backups/schema/`.
+O bootstrap SQLite e as migrações são chamados pela composição quando necessários;
+a tradução atual continua sem criar automaticamente esse banco. O manifesto v1
+e o cache independente permanecem preservados. Consulte o
+[protocolo de migração e recuperação](docs/architecture/project-migrations.md)
+para backup verificado, conflitos, queda de processo e recuperação manual.
 Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
 consulta e fragmentos. Autenticação por referências de credenciais é trabalho
 futuro; fingerprints do manifesto continuam sendo metadados privados.
