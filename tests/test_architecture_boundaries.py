@@ -35,6 +35,9 @@ class Exemption:
 OWNERS = {
     "ayvu": Owner("surface", "Package"),
     "ayvu.domain": Owner("domain", "Domain"),
+    "ayvu.project": Owner("domain", "Projects"),
+    "ayvu.project_service": Owner("application", "Projects"),
+    "ayvu.project_store": Owner("infrastructure", "Projects"),
     "ayvu.chunking": Owner("domain", "Translation"),
     "ayvu.cli": Owner("interface", "CLI"),
     "ayvu.cli_progress": Owner("interface", "CLI"),
@@ -236,6 +239,11 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.cli", "ayvu.project"),
+    ("ayvu.cli", "ayvu.project_service"),
+    ("ayvu.project_service", "ayvu.project"),
+    ("ayvu.project_store", "ayvu.project"),
+    ("ayvu.project_store", "ayvu.project_service"),
     ("ayvu.cache", "ayvu.domain"),
     ("ayvu.cli", "ayvu.cli_progress"),
     ("ayvu.cli", "ayvu.domain"),
@@ -255,6 +263,8 @@ ALLOWED_INTERNAL_EDGES = {
 
 
 EXCEPTIONS = {
+    ("ayvu.cli", "ayvu.project_store"): Exemption(
+        "Projects", 158, "project repository constructed in the shared composition root"),
     ("ayvu.cli", "sqlite3"): Exemption("CLI", 158, "CLI uses application outcomes"),
     ("ayvu.cli", "ayvu.cache"): Exemption("Knowledge", 150, "cache administration extracted"),
     ("ayvu.cli", "ayvu.config"): Exemption("Preferences", 152, "preferences use cases extracted"),
