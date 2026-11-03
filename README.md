@@ -773,6 +773,20 @@ leitor padrão do sistema não for suficiente.
 Glossários criados pelo modo comum ficam ao lado da configuração, em `glossaries/`, e podem ser
 selecionados antes de iniciar uma tradução guiada.
 
+A configuração continua no formato v1. Leituras não regravam o arquivo; alterações
+usam gravação atômica e uma revisão para impedir que duas sessões sobrescrevam
+mudanças uma da outra. Campos desconhecidos permitem leitura com aviso, mas
+bloqueiam gravações até revisão explícita do arquivo, evitando perda de dados.
+Se uma gravação falhar, o menu informa que os valores valem apenas para a sessão
+atual. Em conflito de revisão, recarregue a configuração antes de tentar salvar
+novamente. Comandos do leitor com opções de credenciais, como `--token` ou
+`--password`, são recusados; a configuração não é um armazenamento de segredos.
+Consulte o [contrato de preferências](docs/architecture/global-preferences.md)
+para limites, resultados de erro, compatibilidade e permissões.
+Arquivos inválidos, futuros ou acima dos limites são preservados: guardar uma
+cópia privada e corrigir explicitamente o arquivo é necessário antes de salvar
+novamente. O menu não substitui esses arquivos pela configuração padrão.
+
 ## Testes
 
 ```bash

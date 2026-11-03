@@ -20,6 +20,7 @@ from .config import (
     ConfigStore,
     FolderNames,
     TranslationProfile,
+    config_from_preferences,
     default_glossaries_dir,
 )
 from .domain import (
@@ -2217,25 +2218,28 @@ def _run_guided_main_flow(ctx: typer.Context, mode: UserMode) -> bool:
 
 def _load_or_init_config(store: ConfigStore | None = None) -> AyvuConfig:
     store = store or ConfigStore.default()
-    if not store.path.exists():
-        return _init_default_language_config(store)
-
-    try:
-        return store.load()
-    except ConfigError as exc:
-        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {exc}")
+    snapshot = store.get_preferences()
+    if snapshot.error:
+        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {snapshot.error}")
         console.print("Usando configuração padrão. Ajuste o arquivo de configuração se quiser alterar o idioma.")
         return AyvuConfig.default()
+    if not snapshot.exists:
+        return _init_default_language_config(store)
+    if snapshot.read_only:
+        console.print("[yellow]Configuração em somente leitura: campos desconhecidos impedem a gravação.[/yellow]")
+    return config_from_preferences(snapshot.preferences, snapshot.revision)
 
 
 def _load_existing_config_or_default(store: ConfigStore | None = None) -> AyvuConfig:
     store = store or ConfigStore.default()
-    try:
-        return store.load()
-    except ConfigError as exc:
-        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {exc}")
+    snapshot = store.get_preferences()
+    if snapshot.error:
+        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {snapshot.error}")
         console.print("Usando configuração padrão. Ajuste o arquivo de configuração quando possível.")
         return AyvuConfig.default()
+    if snapshot.read_only:
+        console.print("[yellow]Configuração em somente leitura: campos desconhecidos impedem a gravação.[/yellow]")
+    return config_from_preferences(snapshot.preferences, snapshot.revision)
 
 
 def _init_default_language_config(store: ConfigStore) -> AyvuConfig:
@@ -2252,8 +2256,10 @@ def _init_default_language_config(store: ConfigStore) -> AyvuConfig:
         default_target_language=language,
         books_dir=books_dir,
         folders=folders,
+        _preferences_revision='missing',
     )
-    if _save_config(store, config):
+    config, persisted = _save_config(store, config)
+    if persisted:
         console.print(f"[green]Idioma padrão salvo:[/green] {language}")
         console.print(f"[green]Pasta base salva:[/green] {books_dir}")
     return config
@@ -2283,14 +2289,20 @@ def _print_feature_folder_paths(config: AyvuConfig) -> None:
     console.print(table)
 
 
-def _save_config(store: ConfigStore, config: AyvuConfig) -> bool:
+def _save_config(
+    store: ConfigStore, config: AyvuConfig, fallback: AyvuConfig | None = None,
+) -> tuple[AyvuConfig, bool]:
     try:
-        store.save(config)
-        return True
+        result = store.update_preferences(config, config._preferences_revision or 'missing')
     except ConfigError as exc:
         console.print(f"[yellow]Não foi possível salvar a configuração:[/yellow] {exc}")
+        console.print("A configuração informada é inválida; os valores anteriores foram mantidos.")
+        return fallback or AyvuConfig.default(), False
+    if not result.persisted:
+        console.print(f"[yellow]Não foi possível salvar a configuração:[/yellow] {result.error}")
         console.print("A mudança será usada nesta execução, mas não foi persistida.")
-        return False
+    revision = result.snapshot.revision if result.snapshot else config._preferences_revision
+    return config_from_preferences(result.effective, revision), result.persisted
 
 
 def _print_guided_main_menu() -> None:
@@ -2847,9 +2859,10 @@ def _update_guided_settings(store: ConfigStore, current: AyvuConfig, updated: Ay
     if updated == current:
         console.print("Settings unchanged.")
         return current
-    if _save_config(store, updated):
+    effective, persisted = _save_config(store, updated, fallback=current)
+    if persisted:
         console.print("[green]Settings saved.[/green]")
-    return updated
+    return effective
 
 
 def _settings_with_default_language(config: AyvuConfig) -> AyvuConfig:

@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
+
+from .preferences import GlobalPreferences, NamedPreferenceProfile, PreferenceFolders, PreferencesError, preferences_from_mapping
+from .preferences_service import (
+    PreferencesSnapshot, UpdatePreferences, UpdatePreferencesResult,
+    get_preferences, update_preferences,
+)
+from .preferences_store import JsonPreferencesRepository
 
 
 CONFIG_VERSION = 1
@@ -29,7 +35,7 @@ class ConfigError(ValueError):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class FolderNames:
     original: str = "Original"
     translated: str = "Traduzidos"
@@ -39,24 +45,17 @@ class FolderNames:
 
     @classmethod
     def from_dict(cls, data: object) -> "FolderNames":
-        if data is None:
-            return cls()
-        if not isinstance(data, dict):
-            raise ConfigError("Config field folders must be an object.")
-
-        return cls(
-            original=_folder_name(data, "original", cls.original),
-            translated=_folder_name(data, "translated", cls.translated),
-            preview=_folder_name(data, "preview", cls.preview),
-            reports=_folder_name(data, "reports", cls.reports),
-            processing=_folder_name(data, "processing", cls.processing),
-        )
+        try:
+            value, _ = preferences_from_mapping({'folders': data})
+            return cls(**{key: getattr(value.folders, key) for key in cls.__dataclass_fields__})
+        except PreferencesError as exc:
+            raise ConfigError(_compatibility_error(exc)) from None
 
     def to_dict(self) -> dict[str, str]:
         return asdict(self)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class TranslationProfile:
     target_language: str | None = None
     glossary: Path | None = None
@@ -64,22 +63,13 @@ class TranslationProfile:
 
     @classmethod
     def from_dict(cls, data: object, profile_name: str) -> "TranslationProfile":
-        if not isinstance(data, dict):
-            raise ConfigError(f"Config profile {profile_name} must be an object.")
-
-        style = _optional_nullable_text(data, "style")
-        if style is not None and style not in PROFILE_STYLES:
-            allowed = ", ".join(sorted(PROFILE_STYLES))
-            raise ConfigError(
-                f"Config profile {profile_name} field style must be one of: {allowed}."
-            )
-
-        glossary = _optional_nullable_text(data, "glossary")
-        return cls(
-            target_language=_optional_nullable_text(data, "target_language"),
-            glossary=Path(glossary) if glossary is not None else None,
-            style=style,
-        )
+        try:
+            value, _ = preferences_from_mapping({'profiles': {'profile': data}})
+            profile = value.profiles[0][1]
+            return cls(profile.target_language, Path(profile.glossary) if profile.glossary is not None else None,
+                       profile.style)
+        except PreferencesError as exc:
+            raise ConfigError(_compatibility_error(exc)) from None
 
     def to_dict(self) -> dict[str, str]:
         data: dict[str, str] = {}
@@ -92,7 +82,7 @@ class TranslationProfile:
         return data
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class AyvuConfig:
     version: int = CONFIG_VERSION
     default_target_language: str = DEFAULT_TARGET_LANGUAGE
@@ -100,6 +90,7 @@ class AyvuConfig:
     folders: FolderNames = field(default_factory=FolderNames)
     reader_app: str | None = None
     profiles: dict[str, TranslationProfile] = field(default_factory=dict)
+    _preferences_revision: str | None = field(default=None, repr=False, compare=False)
 
     @classmethod
     def default(cls) -> "AyvuConfig":
@@ -107,25 +98,11 @@ class AyvuConfig:
 
     @classmethod
     def from_dict(cls, data: object) -> "AyvuConfig":
-        if not isinstance(data, dict):
-            raise ConfigError("Config JSON must be an object.")
-
-        version = _optional_int(data, "version", CONFIG_VERSION)
-        if version != CONFIG_VERSION:
-            raise ConfigError(f"Unsupported config version: {version}.")
-
-        return cls(
-            version=version,
-            default_target_language=_optional_text(
-                data,
-                "default_target_language",
-                DEFAULT_TARGET_LANGUAGE,
-            ),
-            books_dir=Path(_optional_text(data, "books_dir", DEFAULT_BOOKS_DIR)),
-            folders=FolderNames.from_dict(data.get("folders")),
-            reader_app=_optional_nullable_text(data, "reader_app"),
-            profiles=_profiles_from_dict(data.get("profiles")),
-        )
+        try:
+            value, _ = preferences_from_mapping(data)
+            return config_from_preferences(value)
+        except PreferencesError as exc:
+            raise ConfigError(_compatibility_error(exc)) from None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -165,40 +142,81 @@ class AyvuConfig:
         return self.resolved_books_dir / self.folders.processing
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConfigStore:
-    path: Path
+    path: Path = field(repr=False)
+    _snapshot: PreferencesSnapshot | None = field(default=None, init=False, repr=False)
 
     @classmethod
     def default(cls) -> "ConfigStore":
         return cls(default_config_path())
 
+    def get_preferences(self) -> PreferencesSnapshot:
+        self._snapshot = get_preferences(JsonPreferencesRepository(self.path))
+        return self._snapshot
+
     def load(self) -> AyvuConfig:
-        if not self.path.exists():
-            return AyvuConfig.default()
+        snapshot = self.get_preferences()
+        if snapshot.error:
+            raise ConfigError(_compatibility_error(snapshot.error)) from None
+        return config_from_preferences(snapshot.preferences, snapshot.revision)
 
+    def update_preferences(self, config: AyvuConfig, expected_revision: str) -> UpdatePreferencesResult:
         try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            raise ConfigError(f"Config file is not valid JSON: {self.path}") from exc
-        except OSError as exc:
-            raise ConfigError(f"Could not read config file: {self.path}") from exc
-
-        try:
-            return AyvuConfig.from_dict(data)
-        except ConfigError as exc:
-            raise ConfigError(f"Invalid config file {self.path}: {exc}") from exc
+            preferences = config_to_preferences(config)
+        except PreferencesError as exc:
+            raise ConfigError(_compatibility_error(exc)) from None
+        result = update_preferences(JsonPreferencesRepository(self.path),
+                                    UpdatePreferences(preferences, expected_revision))
+        if result.persisted:
+            self._snapshot = result.snapshot
+        return result
 
     def save(self, config: AyvuConfig) -> Path:
-        try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.path.write_text(
-                json.dumps(config.to_dict(), indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-        except OSError as exc:
-            raise ConfigError(f"Could not write config file: {self.path}") from exc
+        revision = config._preferences_revision
+        if revision is None:
+            revision = self._snapshot.revision if self._snapshot is not None else 'missing'
+        result = self.update_preferences(config, revision)
+        if not result.persisted:
+            raise ConfigError(_compatibility_error(result.error)) from None
         return self.path
+
+
+def config_to_preferences(config: AyvuConfig) -> GlobalPreferences:
+    return GlobalPreferences(
+        version=config.version, default_target_language=config.default_target_language,
+        books_dir=str(config.books_dir),
+        folders=PreferenceFolders(**config.folders.to_dict()), reader_app=config.reader_app,
+        profiles=tuple((name, NamedPreferenceProfile(
+            profile.target_language, str(profile.glossary) if profile.glossary is not None else None,
+            profile.style)) for name, profile in sorted(config.profiles.items())),
+    )
+
+
+def config_from_preferences(value: GlobalPreferences, revision: str | None = None) -> AyvuConfig:
+    return AyvuConfig(
+        version=value.version, default_target_language=value.default_target_language,
+        books_dir=Path(value.books_dir), folders=FolderNames(**{
+            key: getattr(value.folders, key) for key in FolderNames.__dataclass_fields__}),
+        reader_app=value.reader_app,
+        profiles={name: TranslationProfile(profile.target_language,
+                  Path(profile.glossary) if profile.glossary is not None else None, profile.style)
+                  for name, profile in value.profiles}, _preferences_revision=revision,
+    )
+
+
+def _compatibility_error(error: PreferencesError) -> str:
+    if error.code == 'malformed':
+        return 'Config file is not valid JSON.'
+    if error.code == 'unsupported_version':
+        return 'Unsupported config version.'
+    if error.code == 'invalid' and error.field == 'profiles':
+        return 'Config field profiles must be an object with valid profile fields.'
+    if error.code == 'invalid' and error.field == 'profiles.*.style':
+        return 'Config profile field style must be one of: academic, literary, neutral, technical.'
+    if error.code == 'invalid' and error.field.startswith('folders.'):
+        return 'Config folder name must be a folder name, not a path.'
+    return f'Config operation failed ({error.code}, {error.field}).'
 
 
 def default_config_path(env: Mapping[str, str] | None = None, home: Path | None = None) -> Path:
@@ -213,51 +231,3 @@ def default_config_path(env: Mapping[str, str] | None = None, home: Path | None 
 
 def default_glossaries_dir(env: Mapping[str, str] | None = None, home: Path | None = None) -> Path:
     return default_config_path(env=env, home=home).parent / DEFAULT_GLOSSARIES_DIR
-
-
-def _optional_text(data: dict[str, object], key: str, default: str) -> str:
-    value = data.get(key, default)
-    if not isinstance(value, str) or not value.strip():
-        raise ConfigError(f"Config field {key} must be a non-empty string.")
-    return value
-
-
-def _optional_nullable_text(data: dict[str, object], key: str) -> str | None:
-    value = data.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value.strip():
-        raise ConfigError(f"Config field {key} must be a non-empty string or null.")
-    return value
-
-
-def _optional_int(data: dict[str, object], key: str, default: int) -> int:
-    value = data.get(key, default)
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise ConfigError(f"Config field {key} must be an integer.")
-    return value
-
-
-def _folder_name(data: dict[str, object], key: str, default: str) -> str:
-    value = _optional_text(data, key, default)
-    path = Path(value)
-    if path.is_absolute() or path.name != value or "/" in value or "\\" in value:
-        raise ConfigError(f"Config folder name {key} must be a folder name, not a path.")
-    return value
-
-
-def _profiles_from_dict(data: object) -> dict[str, TranslationProfile]:
-    if data is None:
-        return {}
-    if not isinstance(data, dict):
-        raise ConfigError("Config field profiles must be an object.")
-
-    profiles: dict[str, TranslationProfile] = {}
-    for raw_name, raw_profile in data.items():
-        if not isinstance(raw_name, str) or not raw_name.strip():
-            raise ConfigError("Config profile names must be non-empty strings.")
-        name = raw_name.strip()
-        if name in profiles:
-            raise ConfigError(f"Config profile {name} is defined more than once.")
-        profiles[name] = TranslationProfile.from_dict(raw_profile, profile_name=name)
-    return profiles
