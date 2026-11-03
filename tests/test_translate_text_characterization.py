@@ -275,3 +275,12 @@ def test_real_translation_memory_is_still_consulted_after_a_cache_miss(tmp_path)
         events = Events()
         result = translate_text('The quick brown fox jumped', RecordingTranslator(events), cache, 'en', 'pt', memory=memory)
     assert result.from_memory and events == [] and result.text == 'A raposa pula'
+
+
+def test_recovery_that_adds_a_protected_term_raises_and_writes_nothing():
+    events = Events()
+    cache = RecordingCache(events)
+    respond = lambda text: 'x __AYVU' if '__AYVU' in text else 'foo_bar'
+    with pytest.raises(ValueError, match='^O tradutor devolveu marcadores internos ou perdeu termos protegidos.$'):
+        translate_text('Use foo_bar now', RecordingTranslator(events, respond), cache, 'en', 'pt')
+    assert cache.stored == {}
