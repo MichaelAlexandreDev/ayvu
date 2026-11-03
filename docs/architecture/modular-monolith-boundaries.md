@@ -303,9 +303,9 @@ private paths, and secrets in URLs must not leak through results or observabilit
 
 Semantic progress and cooperative cancellation belong to application/job
 contracts. Rich progress rendering belongs to the CLI, and future Qt signals
-belong to the Desktop adapter. Current `KeyboardInterrupt` handling remains the
-compatibility baseline until a later issue introduces a reusable cancellation
-contract.
+belong to the Desktop adapter. The reusable contract is defined in
+[job events and cancellation](job-events-cancellation.md). No use case has adopted
+it yet, so current `KeyboardInterrupt` handling remains the compatibility baseline.
 
 ## Current module ownership and disposition
 

@@ -21,7 +21,9 @@ This acceptance is limited to job identity, lifecycle state, optimistic
 concurrency, ownership lease, sanitized terminal summary and continuation link.
 `DEC-004` also proposes persisted steps. `StepRun`, progress events, cancellation
 contracts, checkpoints, artifacts, retry policy, scheduling and workers are not
-accepted here. No interface uses jobs yet: translation, resume and the CLI keep
+accepted here. Progress, outcome and cancellation contracts were defined separately,
+under `DEC-017`, in [job events and cancellation](job-events-cancellation.md); they
+persist nothing. No interface uses jobs yet: translation, resume and the CLI keep
 their current behavior, and translating a book still creates no project database.
 
 | Module | Layer | Responsibility |

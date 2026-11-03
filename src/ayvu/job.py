@@ -98,7 +98,7 @@ def validate_job_identity(value: str) -> None:
         raise JobValidationError("invalid_job_identity") from None
 
 
-def _validate_utc(value: datetime) -> None:
+def validate_utc(value: datetime) -> None:
     if not isinstance(value, datetime) or value.utcoffset() != timedelta(0):
         raise JobValidationError("invalid_timestamp")
 
@@ -108,7 +108,7 @@ def _validate_revision(value: int) -> None:
         raise JobValidationError("invalid_revision")
 
 
-def _is_slug(value: object) -> bool:
+def is_slug(value: object) -> bool:
     return isinstance(value, str) and _SLUG.fullmatch(value) is not None
 
 
@@ -124,7 +124,7 @@ class JobRequest:
 
     def __post_init__(self) -> None:
         validate_job_identity(self.project_id)
-        if not _is_slug(self.command_type):
+        if not is_slug(self.command_type):
             raise JobValidationError("invalid_command_type")
         if type(self.command_version) is not int or not 1 <= self.command_version < 2**31:
             raise JobValidationError("invalid_command_version")
@@ -132,7 +132,7 @@ class JobRequest:
                 or not _FINGERPRINT.fullmatch(self.input_fingerprint)):
             raise JobValidationError("invalid_fingerprint")
         if (type(self.output_roles) is not tuple or len(self.output_roles) > MAX_OUTPUT_ROLES
-                or not all(_is_slug(role) for role in self.output_roles)
+                or not all(is_slug(role) for role in self.output_roles)
                 or len(set(self.output_roles)) != len(self.output_roles)):
             raise JobValidationError("invalid_output_roles")
 
@@ -149,8 +149,8 @@ class JobLease:
     def __post_init__(self) -> None:
         if not isinstance(self.owner_token, str) or not _OWNER_TOKEN.fullmatch(self.owner_token):
             raise JobValidationError("invalid_owner_token")
-        _validate_utc(self.acquired_at)
-        _validate_utc(self.expires_at)
+        validate_utc(self.acquired_at)
+        validate_utc(self.expires_at)
         if self.expires_at <= self.acquired_at:
             raise JobValidationError("invalid_lease")
 
@@ -169,13 +169,13 @@ class JobTerminalSummary:
     counters: tuple[tuple[str, int], ...] = ()
 
     def __post_init__(self) -> None:
-        if not _is_slug(self.reason_code):
+        if not is_slug(self.reason_code):
             raise JobValidationError("invalid_terminal_summary")
         if type(self.counters) is not tuple or len(self.counters) > MAX_SUMMARY_COUNTERS:
             raise JobValidationError("invalid_terminal_summary")
         seen: set[str] = set()
         for entry in self.counters:
-            if (type(entry) is not tuple or len(entry) != 2 or not _is_slug(entry[0])
+            if (type(entry) is not tuple or len(entry) != 2 or not is_slug(entry[0])
                     or entry[0] in seen or type(entry[1]) is not int
                     or not 0 <= entry[1] < 2**63):
                 raise JobValidationError("invalid_terminal_summary")
@@ -204,8 +204,8 @@ class TranslationJob:
         if type(self.state) is not JobState:
             raise JobValidationError("unknown_state")
         _validate_revision(self.revision)
-        _validate_utc(self.created_at)
-        _validate_utc(self.updated_at)
+        validate_utc(self.created_at)
+        validate_utc(self.updated_at)
         if self.updated_at < self.created_at:
             raise JobValidationError("invalid_timestamp_order")
         if self.lease is not None and type(self.lease) is not JobLease:
@@ -241,7 +241,7 @@ def transition_job(job: TranslationJob, target: JobState, *, expected_revision: 
     if type(target) is not JobState:
         raise JobValidationError("unknown_state")
     _validate_revision(expected_revision)
-    _validate_utc(now)
+    validate_utc(now)
     # Revision is checked first: a stale caller conflicts on every edge, valid or not.
     if expected_revision != job.revision:
         raise JobRevisionConflictError("stale_revision")
@@ -265,13 +265,13 @@ def _validate_duration(duration: timedelta) -> None:
 
 def requires_reconciliation(job: TranslationJob, now: datetime) -> bool:
     """Report an abandoned owner; only an explicit later decision may act on it."""
-    _validate_utc(now)
+    validate_utc(now)
     return not job.terminal and job.lease is not None and job.lease.expired(now)
 
 
 def acquire_lease(job: TranslationJob, owner_token: str, now: datetime, duration: timedelta) -> TranslationJob:
     """Lease changes leave revision and updated_at alone: they are not lifecycle history."""
-    _validate_utc(now)
+    validate_utc(now)
     _validate_duration(duration)
     if job.terminal:
         raise JobLeaseError("job_terminal")
@@ -281,7 +281,7 @@ def acquire_lease(job: TranslationJob, owner_token: str, now: datetime, duration
 
 
 def _held_lease(job: TranslationJob, owner_token: str, now: datetime) -> JobLease:
-    _validate_utc(now)
+    validate_utc(now)
     if job.lease is None or job.lease.owner_token != owner_token:
         raise JobLeaseError("lease_not_held")
     if job.lease.expired(now):
