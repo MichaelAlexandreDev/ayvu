@@ -60,6 +60,9 @@ entries fail, so a rename cannot silently discard protection.
 | `translation_document` | Application | Rich document path: results, artifact, replay, events and provenance |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
 | `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
+| `format_adapter` | Domain | What a format claims, negotiation, and the values its operations exchange |
+| `format_service` | Application | Format ports, registry and the checks before any format does work |
+| `format_local` | Infrastructure | Local files as format sources, and the check that a destination is not the source |
 | `provider_network` | Domain | The network decision an operation must present, and its enforcement |
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
 | `provider_discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |

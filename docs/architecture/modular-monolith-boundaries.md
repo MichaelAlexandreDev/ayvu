@@ -71,7 +71,7 @@ scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle
 (`DEC-003`), [local storage](local-project-storage.md) (`DEC-012`) and
 [job lifecycle](job-lifecycle.md) (`DEC-004`) and [job artifacts](job-artifacts.md)
 (extending `DEC-004` and `DEC-012`), [provenance](provenance.md) (`DEC-014`) and
-[content model](content-model.md) (`DEC-005`) and
+[content model](content-model.md) and [format adapter](format-adapter.md) (`DEC-005`) and
 [provider contracts](provider-contracts.md) and
 [provider capabilities](provider-capabilities.md) (`DEC-008`) and
 [translation pipeline](translation-pipeline.md) (`DEC-007`).
