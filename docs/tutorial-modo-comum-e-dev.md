@@ -368,6 +368,10 @@ EPUB3 marcado como `properties="nav"`, mantendo identificadores, autores,
 editora e metadados técnicos. Use com cuidado: alguns leitores e bibliotecas
 usam o título e o sumário para organizar o livro.
 
+No OPF, só o texto do título muda. Se o título não mudar, o OPF fica idêntico ao
+original. Um título com comentário, elemento ou entidade dentro não é traduzido, e
+isso aparece como erro no relatório.
+
 ### Traduzir texto alternativo de imagens opcionalmente
 
 ```bash

@@ -113,6 +113,13 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Corrigido
 
+- `--translate-metadata` e a aplicacao de uma revisao mudam so o texto do titulo no OPF.
+  Atributos como `opf:role`, declaracoes de namespace, comentarios e CDATA nao se perdem
+  mais, e o OPF fica identico byte a byte quando o titulo nao muda.
+- Um titulo com comentario, elemento ou entidade dentro fica sem traducao e aparece como erro
+  no relatorio, em vez de ser traduzido em parte.
+- Uma traducao de titulo com caractere invalido em XML nao gera mais um OPF invalido: na
+  traducao ela vira erro no relatorio, e ao aplicar uma revisao o comando falha sem gerar saida.
 - Atributos com prefixo em tags inline, como `epub:type` e `xlink:href`, nao perdem mais
   o prefixo no EPUB traduzido.
 - Comentarios e instrucoes de processamento dentro de tags inline nao viram mais texto

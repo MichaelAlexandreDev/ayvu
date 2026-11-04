@@ -13,10 +13,12 @@ from contextlib import contextmanager
 from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
-from lxml import etree
 
 from .content import AdapterIdentity, ContentDocument, Locator, SemanticKind, TranslationUnit, build_document
-from .epub_archive import DEFAULT_LIMITS, RESOURCE_CODES, EpubArchive, EpubArchiveError, ManifestItem, resolve_internal_path
+from .epub_archive import (
+    DEFAULT_LIMITS, RESOURCE_CODES, EpubArchive, EpubArchiveError, ManifestItem, package_title, parse_package_for_edit, resolve_internal_path,
+    serialize_package,
+)
 from .format_adapter import (
     ContentScope, ExtractionRequest, FidelityAspect, FidelityClaim, FidelityLevel, FindingSeverity, FormatDescriptor, FormatInventory,
     FormatLimits, FormatMaturity, FormatOperation, FormatOperationError, FormatSignature, InventoryDocument, OperationClaim, OperationSupport,
@@ -92,6 +94,10 @@ def _title_document(archive: EpubArchive, request: ExtractionRequest, fingerprin
     title = archive.package.title
     if title is None or not title.strip():
         return None
+    element = package_title(parse_package_for_edit(archive.read(archive.package.archive_path)))
+    # A comment or element inside the title would leave part of it in the source language.
+    if element is None or len(element):
+        return None
     content = plain_text_content(title, PACKAGE_TITLE_LOCATOR, SemanticKind("title"), (0,))
     return build_document(request.project_id, archive.package.archive_path, EPUB_ADAPTER, request.source_locale, [content],
                           source_fingerprint=fingerprint)
@@ -104,15 +110,12 @@ def _wanted(item: ManifestItem, request: ExtractionRequest) -> bool:
 
 def _replace_title(package: bytes, unit: TranslationUnit, text: str) -> bytes:
     """Only the title's text changes. Prefixes, attributes and comments stay, as a parser reads them."""
-    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False, huge_tree=False)
-    root = etree.fromstring(package, parser)
-    metadata = next(child for child in root if etree.QName(child).localname == "metadata")
-    title = next(child for child in metadata if isinstance(child.tag, str) and etree.QName(child).localname == "title")
-    if title.text != unit.source_text:
+    root = parse_package_for_edit(package)
+    title = package_title(root)
+    if title is None or title.text != unit.source_text:
         raise _integrity("stale_revision")
     title.text = restore_plain_text(unit, text)
-    has_declaration = package.lstrip().startswith(b"<?xml")
-    return etree.tostring(root.getroottree(), encoding="utf-8", xml_declaration=has_declaration)
+    return serialize_package(root, package)
 
 
 def _replacements(context: FormatContext, archive: EpubArchive, request: PreviewRequest | ReconstructionRequest, *,

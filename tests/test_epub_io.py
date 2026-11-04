@@ -29,6 +29,7 @@ from ayvu.epub_io import (
 from ayvu.glossary import GLOSSARY_RULE_FORBIDDEN, GLOSSARY_RULE_PRESERVE, Glossary, GlossaryEntry
 from ayvu.review_export import REVIEW_CSV_COLUMNS, write_review_csv
 from ayvu.review_import import ReviewImportData, ReviewRow, read_review_csv
+from epub_fakes import OPF, epub_bytes
 
 
 class FakeBook:
@@ -782,3 +783,254 @@ def test_apply_reviewed_epub_reports_missing_segment_index(minimal_epub_path: Pa
     report = apply_reviewed_epub(minimal_epub_path, output_path, review)
 
     assert "c0001-s9999" in report.missing_in_epub
+
+
+# The OPF title: only its text changes
+
+OPF_MEMBER = "OEBPS/content.opf"
+# ebooklib, which the current flow opens every book with, rejects a remote manifest item
+# and a processing instruction directly inside the metadata.
+OPENABLE_OPF = OPF.replace(b'    <item id="remote" href="https://example.test/a.mp3" media-type="audio/mpeg"/>\n', b"")
+RICH_OPF = (
+    OPENABLE_OPF.replace(b'xmlns:dc=', b'xmlns:rendition="http://www.idpf.org/vocab/rendition/#" xmlns:dc=', 1)
+    .replace(b'opf:role="aut"', b'opf:role="aut" opf:file-as="Author, An"', 1)
+    .replace(b"<!-- keep -->", b"<!-- keep --><dc:description><![CDATA[<p>x & y</p>]]></dc:description>", 1)
+    .replace(b"<metadata>", b"<?keep this?><metadata>", 1)
+)
+TITLE_BYTES = b'<dc:title id="t">The Title</dc:title>'
+
+
+class FixedTranslator:
+    def __init__(self, change) -> None:
+        self.change = change
+        self.calls: list[str] = []
+
+    def translate(self, text: str, source: str, target: str) -> str:
+        self.calls.append(text)
+        return self.change(text)
+
+
+def _book_with_opf(tmp_path: Path, opf: bytes) -> Path:
+    path = tmp_path / "book.epub"
+    path.write_bytes(epub_bytes(replace={OPF_MEMBER: opf}))
+    return path
+
+
+def _opf_of(path: Path) -> bytes:
+    with ZipFile(path) as book:
+        return book.read(OPF_MEMBER)
+
+
+def _translate_title(tmp_path: Path, opf: bytes, *, change=lambda text: f"PT:{text}", **options):
+    source = _book_with_opf(tmp_path, opf)
+    output = tmp_path / "out.epub"
+    translator = FixedTranslator(change)
+    settings = TranslationOptions(language_pair=LanguagePair(source="en", target="pt"), translate_metadata=True, **options)
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        report = translate_epub(source, output, translator=translator, cache=cache, options=settings)
+    return output, report, translator
+
+
+def _reviewed_title(translated: str, original: str = "The Title") -> ReviewImportData:
+    row = ReviewRow("metadata-title", OPF_MEMBER, original, translated, "metadata_title", "en", "pt")
+    return ReviewImportData((row,), ())
+
+
+def _without_declaration(data: bytes) -> bytes:
+    return data.split(b"?>", 1)[1].lstrip()
+
+
+def test_translating_the_title_changes_only_its_text(tmp_path: Path):
+    output, report, _ = _translate_title(tmp_path, RICH_OPF)
+
+    assert report.errors == []
+    expected = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">PT:The Title</dc:title>')
+    assert _without_declaration(_opf_of(output)) == _without_declaration(expected)
+
+
+def test_translating_the_title_normalizes_only_what_the_parser_normalizes(tmp_path: Path):
+    source = (
+        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n\n'
+        b'<!-- top -->\n'
+        b'<package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" version="3.0" unique-identifier="id">'
+        b"<metadata><dc:title>The Title</dc:title><dc:identifier id='id'>Caf&#233;</dc:identifier><dc:language>en</dc:language><dc:rights></dc:rights></metadata>"
+        b'<manifest><item id="c1" href="text/one.xhtml" media-type="application/xhtml+xml"/></manifest>'
+        b'<spine><itemref idref="c1"/></spine></package>\n'
+    )
+    output, report, _ = _translate_title(tmp_path, source)
+
+    assert report.errors == []
+    assert _opf_of(output) == (
+        b"<?xml version='1.0' encoding='utf-8'?>\n"
+        b'<!-- top --><package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" version="3.0" unique-identifier="id">'
+        b'<metadata><dc:title>PT:The Title</dc:title><dc:identifier id="id">Caf\xc3\xa9</dc:identifier><dc:language>en</dc:language><dc:rights/></metadata>'
+        b'<manifest><item id="c1" href="text/one.xhtml" media-type="application/xhtml+xml"/></manifest>'
+        b'<spine><itemref idref="c1"/></spine></package>'
+    )
+
+
+def test_translating_the_title_writes_an_opf_in_another_encoding_as_utf8(tmp_path: Path):
+    source = OPENABLE_OPF.replace(b'encoding="utf-8"', b'encoding="iso-8859-1"').replace(b"An Author", b"Caf\xe9")
+    output, report, _ = _translate_title(tmp_path, source)
+
+    written = _opf_of(output)
+    assert report.errors == []
+    assert written.startswith(b"<?xml version='1.0' encoding='utf-8'?>") and "Café".encode() in written
+
+
+def test_translating_the_title_adds_no_declaration_the_source_did_not_have(tmp_path: Path):
+    source = _without_declaration(RICH_OPF)
+    output, report, _ = _translate_title(tmp_path, source)
+
+    assert report.errors == []
+    assert _opf_of(output) == source.replace(TITLE_BYTES, b'<dc:title id="t">PT:The Title</dc:title>')
+
+
+def test_translating_the_title_escapes_the_translation(tmp_path: Path):
+    output, _, _ = _translate_title(tmp_path, RICH_OPF, change=lambda text: "O <Titulo> & cia")
+
+    assert b"O &lt;Titulo&gt; &amp; cia</dc:title>" in _opf_of(output)
+    assert inspect_epub(output).title == "O <Titulo> & cia"
+
+
+def test_translating_the_title_accepts_a_comment_before_the_metadata(tmp_path: Path):
+    source = RICH_OPF.replace(b"<metadata>", b"<!-- before --><metadata>", 1)
+    output, report, _ = _translate_title(tmp_path, source)
+
+    assert report.errors == []
+    assert b"<!-- before --><metadata>" in _opf_of(output) and b"PT:The Title" in _opf_of(output)
+
+
+@pytest.mark.parametrize(
+    ("opf", "change", "options"),
+    [
+        pytest.param(RICH_OPF.replace(TITLE_BYTES, b""), lambda text: f"PT:{text}", {}, id="no-title"),
+        pytest.param(RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t"/>'), lambda text: f"PT:{text}", {}, id="empty-title"),
+        pytest.param(RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">  </dc:title>'), lambda text: f"PT:{text}", {}, id="blank-title"),
+        pytest.param(RICH_OPF, lambda text: f"PT:{text}", {"cache_only": True}, id="missing-translation"),
+        pytest.param(RICH_OPF, lambda text: text, {}, id="same-translation"),
+    ],
+)
+def test_the_opf_keeps_its_bytes_when_the_title_does_not_change(tmp_path: Path, opf, change, options):
+    output, report, _ = _translate_title(tmp_path, opf, change=change, **options)
+
+    assert report.errors == []
+    assert _opf_of(output) == opf
+
+
+def test_the_opf_keeps_its_bytes_without_translate_metadata(tmp_path: Path):
+    source = _book_with_opf(tmp_path, RICH_OPF)
+    output = tmp_path / "out.epub"
+    options = TranslationOptions(language_pair=LanguagePair(source="en", target="pt"))
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        translate_epub(source, output, translator=PrefixTranslator(), cache=cache, options=options)
+
+    assert _opf_of(output) == RICH_OPF
+
+
+@pytest.mark.parametrize(
+    ("title", "prolog"),
+    [
+        pytest.param(b"A<!-- c -->B", b"", id="comment"),
+        pytest.param(b"<!-- c -->B", b"", id="leading-comment"),
+        pytest.param(b"A<span>B</span>C", b"", id="element"),
+        pytest.param(b"A<?keep this?>B", b"", id="processing-instruction"),
+        pytest.param(b"A &e; B", b'<!DOCTYPE package [<!ENTITY e "E">]>\n', id="entity"),
+    ],
+)
+def test_a_title_holding_other_nodes_stays_untouched_and_is_reported(tmp_path: Path, title, prolog):
+    source = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">' + title + b"</dc:title>").replace(b"<package ", prolog + b"<package ", 1)
+    output, report, translator = _translate_title(tmp_path, source)
+
+    assert _opf_of(output) == source
+    assert [error for error in report.errors if error.startswith("metadata title: ")]
+    assert not [call for call in translator.calls if call.startswith(("A", "B"))]
+
+
+def test_a_title_holding_other_nodes_stops_a_fail_fast_run(tmp_path: Path):
+    source = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">A<!-- c -->B</dc:title>')
+    with pytest.raises(ValueError, match="stays untranslated"):
+        _translate_title(tmp_path, source, fail_fast=True)
+
+
+def test_an_external_entity_in_the_title_is_never_read(tmp_path: Path):
+    secret = tmp_path / "secret.txt"
+    secret.write_text("canary-value", encoding="utf-8")
+    prolog = b'<!DOCTYPE package [<!ENTITY e SYSTEM "' + secret.as_uri().encode() + b'">]>\n'
+    source = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">A &e; B</dc:title>').replace(b"<package ", prolog + b"<package ", 1)
+    output, report, translator = _translate_title(tmp_path, source)
+
+    assert _opf_of(output) == source
+    assert report.errors
+    assert not [call for call in translator.calls if "canary-value" in call]
+
+
+def test_a_translation_that_xml_cannot_hold_leaves_the_opf_valid_and_counts_once(tmp_path: Path):
+    source = _book_with_opf(tmp_path, RICH_OPF)
+    output = tmp_path / "out.epub"
+    settings = TranslationOptions(language_pair=LanguagePair(source="en", target="pt"), translate_metadata=True)
+    statuses: list[str] = []
+    translator = FixedTranslator(lambda text: "a\x0bb" if text == "The Title" else text)
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        report = translate_epub(source, output, translator=translator, cache=cache, options=settings, on_text_processed=statuses.append)
+
+    assert _opf_of(output) == RICH_OPF
+    assert [error for error in report.errors if error.startswith("metadata title: ")]
+    assert statuses.count("error") == 1
+    assert statuses.count("translated") == len(translator.calls) - 1
+
+
+def test_applying_a_reviewed_title_changes_only_its_text(tmp_path: Path):
+    source = _book_with_opf(tmp_path, RICH_OPF)
+    output = tmp_path / "out.epub"
+    report = apply_reviewed_epub(source, output, _reviewed_title("Titulo <Revisado>"))
+
+    assert report.applied == 1
+    expected = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">Titulo &lt;Revisado&gt;</dc:title>')
+    assert _without_declaration(_opf_of(output)) == _without_declaration(expected)
+
+
+def test_applying_a_reviewed_title_finds_metadata_nested_in_the_package(tmp_path: Path):
+    opf = RICH_OPF.replace(b"<metadata>", b"<wrapper><metadata>", 1).replace(b"</metadata>", b"</metadata></wrapper>", 1)
+    source = _book_with_opf(tmp_path, opf)
+    output = tmp_path / "out.epub"
+    report = apply_reviewed_epub(source, output, _reviewed_title("Revisado"))
+
+    assert report.applied == 1 and b">Revisado</dc:title>" in _opf_of(output)
+
+
+def test_applying_an_unchanged_reviewed_title_keeps_the_opf_bytes(tmp_path: Path):
+    source = _book_with_opf(tmp_path, RICH_OPF)
+    output = tmp_path / "out.epub"
+    report = apply_reviewed_epub(source, output, _reviewed_title("The Title"))
+
+    assert report.applied == 1
+    assert _opf_of(output) == RICH_OPF
+
+
+def test_applying_a_review_to_a_title_holding_other_nodes_reports_it(tmp_path: Path):
+    opf = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">The Title<!-- c --></dc:title>')
+    source = _book_with_opf(tmp_path, opf)
+    output = tmp_path / "out.epub"
+    report = apply_reviewed_epub(source, output, _reviewed_title("Revisado"))
+
+    assert report.applied == 0 and report.missing_in_epub == ["metadata-title"]
+    assert _opf_of(output) == opf
+
+
+def test_applying_a_review_that_differs_from_the_title_keeps_the_opf_bytes(tmp_path: Path):
+    source = _book_with_opf(tmp_path, RICH_OPF)
+    output = tmp_path / "out.epub"
+    report = apply_reviewed_epub(source, output, _reviewed_title("Revisado", original="Another Title"))
+
+    assert report.applied == 0 and report.inconsistent == ["metadata-title"]
+    assert _opf_of(output) == RICH_OPF
+
+
+def test_a_review_that_xml_cannot_hold_writes_no_output(tmp_path: Path):
+    source = _book_with_opf(tmp_path, RICH_OPF)
+    output = tmp_path / "out.epub"
+    with pytest.raises(ValueError):
+        apply_reviewed_epub(source, output, _reviewed_title("a\x0bb"))
+
+    assert not output.exists()

@@ -152,6 +152,22 @@ def _child(parent: etree._Element, name: str) -> etree._Element | None:
     return next((child for child in parent if _local(child) == name), None)
 
 
+def parse_package_for_edit(data: bytes) -> etree._Element:
+    """Entities stay references and CDATA stays CDATA, so writing it back changes as little as a parser can."""
+    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False, huge_tree=False, strip_cdata=False)
+    return etree.fromstring(data, parser)
+
+
+def package_title(root: etree._Element) -> etree._Element | None:
+    metadata = next((element for element in root.iter() if _local(element) == "metadata"), None)
+    return None if metadata is None else _child(metadata, "title")
+
+
+def serialize_package(root: etree._Element, source: bytes) -> bytes:
+    """Declares what the source declared. Outside the edited text, only what a parser normalizes differs."""
+    return etree.tostring(root.getroottree(), encoding="utf-8", xml_declaration=source.lstrip().startswith(b"<?xml"))
+
+
 def _manifest_path(base: str, href: str) -> str | None:
     """The member a manifest href names. None means it is outside the book, such as a remote resource."""
     clean = href.split("#", 1)[0].split("?", 1)[0]

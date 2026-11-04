@@ -8,6 +8,8 @@ from lxml import etree
 
 from ayvu import epub_format, epub_io
 from ayvu.artifact import ArtifactStoreError
+from ayvu.cache import TranslationCache
+from ayvu.domain import LanguagePair, TranslationOptions
 from ayvu.epub_archive import EpubArchiveError
 from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter
 from ayvu.format_adapter import (
@@ -651,6 +653,52 @@ def test_a_comment_outside_the_package_element_survives_a_title_change(service, 
     env = FormatEnv(tmp_path / "env")
     result, publication = rebuild(service, env, source, documents, (UnitTranslation(documents[0].units[0].unit_id, "Titulo"),))
     assert result.failure is None and b"<!-- before the package -->" in members_of(env.read(publication))["OEBPS/content.opf"]
+
+
+def test_a_comment_before_the_metadata_does_not_stop_a_title_change(service, tmp_path):
+    changed = OPF.replace(b"<metadata>", b"<!-- inside the package --><metadata>", 1)
+    _, source = source_of(tmp_path, epub_bytes(replace={"OEBPS/content.opf": changed}))
+    documents = extract(service, source, frozenset({ContentScope.METADATA})).documents
+    env = FormatEnv(tmp_path / "env")
+    result, publication = rebuild(service, env, source, documents, (UnitTranslation(documents[0].units[0].unit_id, "Titulo"),))
+    written = members_of(env.read(publication))["OEBPS/content.opf"]
+    assert result.failure is None and b"<!-- inside the package -->" in written and b">Titulo</dc:title>" in written
+
+
+def test_a_title_change_keeps_cdata_elsewhere_in_the_package(service, tmp_path):
+    changed = OPF.replace(b"<!-- keep -->", b"<dc:description><![CDATA[<p>x & y</p>]]></dc:description>", 1)
+    _, source = source_of(tmp_path, epub_bytes(replace={"OEBPS/content.opf": changed}))
+    documents = extract(service, source, frozenset({ContentScope.METADATA})).documents
+    env = FormatEnv(tmp_path / "env")
+    result, publication = rebuild(service, env, source, documents, (UnitTranslation(documents[0].units[0].unit_id, "Titulo"),))
+    assert result.failure is None and b"<![CDATA[<p>x & y</p>]]>" in members_of(env.read(publication))["OEBPS/content.opf"]
+
+
+@pytest.mark.parametrize("title", [b"The<!-- c --> Title", b"The <span>Title</span>", b"The<?keep this?> Title"])
+def test_a_title_holding_other_nodes_is_not_offered_for_translation(service, tmp_path, title):
+    changed = OPF.replace(b"The Title", title, 1)
+    _, source = source_of(tmp_path, epub_bytes(replace={"OEBPS/content.opf": changed}))
+    assert extract(service, source, frozenset({ContentScope.METADATA})).documents == ()
+
+
+def test_the_adapter_and_the_current_flow_write_the_same_package(service, tmp_path):
+    # ebooklib, which the current flow opens every book with, rejects a remote manifest item.
+    openable = OPF.replace(b'    <item id="remote" href="https://example.test/a.mp3" media-type="audio/mpeg"/>\n', b"")
+    path, source = source_of(tmp_path, epub_bytes(replace={"OEBPS/content.opf": openable}))
+    documents = extract(service, source, frozenset({ContentScope.METADATA})).documents
+    env = FormatEnv(tmp_path / "env")
+    result, publication = rebuild(service, env, source, documents, (UnitTranslation(documents[0].units[0].unit_id, "PT:The Title"),))
+    assert result.failure is None
+
+    class Prefix:
+        def translate(self, text, source, target):
+            return f"PT:{text}"
+
+    output = tmp_path / "current.epub"
+    options = TranslationOptions(language_pair=LanguagePair(source="en", target="pt"), translate_metadata=True)
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        epub_io.translate_epub(path, output, translator=Prefix(), cache=cache, options=options)
+    assert members_of(output.read_bytes())["OEBPS/content.opf"] == members_of(env.read(publication))["OEBPS/content.opf"]
 
 
 def test_cancelling_between_documents_stops_before_any_document_is_rebuilt(service, tmp_path, monkeypatch):

@@ -19,7 +19,7 @@ migrates callers one at a time.
 
 | Module | Responsibility |
 | --- | --- |
-| `ayvu.epub_archive` | Reads the container against limits, and copies an EPUB changing only what it is told to |
+| `ayvu.epub_archive` | Reads the container against limits, copies an EPUB changing only what it is told to, and holds the OPF title edit the current flow also uses |
 | `ayvu.epub_format` | The descriptor and ports of the format contract |
 | `ayvu.html_structure` | Every XHTML document, so there is [no second segmenter](html-structure.md) |
 
@@ -75,7 +75,7 @@ operation**, whose failure has a family and a code: `resource`, `integrity`, `po
 | --- | --- |
 | `body` | Units from each XHTML document in the manifest that is not the navigation |
 | `navigation` | Units from the navigation document |
-| `metadata` | One unit for the OPF title, with an `epub_package` locator |
+| `metadata` | One unit for the OPF title, with an `epub_package` locator. A title holding a comment or element gives no unit, because translating its first text alone would leave the rest in the source language |
 | `image_alt_text` | Alt text units, in the documents above. Asked for alone it is refused, since nothing would be read |
 
 The current flow joins title and navigation under one flag, and the application can still ask for both.
@@ -86,7 +86,7 @@ The inventory lists every key a selection can name, with the OPF first, so it co
 ## Reconstruction
 
 1. Results and revisions are checked, and each XHTML document is rebuilt by `reconstruct_html`.
-2. The title is changed, leaving prefixes, attributes and comments. With no title result, the OPF keeps its bytes.
+2. The title is changed, leaving prefixes, attributes, comments and CDATA. With no title result, the OPF keeps its bytes. Serializing still normalizes the XML declaration, whitespace outside the root, empty element pairs, character references and the encoding, which becomes UTF-8.
 3. Members are copied in source order to a temporary file, changing only the ones above.
 4. The result is opened again with the same checks, and a book with no document is `invalid_output`.
 5. The bytes go to the artifact store, the source is fingerprinted again, and only then is the artifact published.
