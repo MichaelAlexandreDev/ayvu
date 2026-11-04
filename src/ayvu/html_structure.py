@@ -39,6 +39,7 @@ TAG_PLACEHOLDER_PREFIX = "__AYVU_TAG_"
 TAG_PLACEHOLDER_SUFFIX = "__"
 TAG_MARKUP_SENTINEL = "AYVU_TAG_MARKUP_SENTINEL"
 FRAGMENT_ROOT_TAG = "__ayvu_fragment_root__"
+_SLOT_TAG = "__ayvu_slot__"
 
 # Bump when the segmentation or the meaning of a token changes: old documents are then refused, not remapped.
 HTML_SEGMENTER_VERSION = 1
@@ -116,38 +117,6 @@ def contains_block_descendant(node) -> bool:
         and tag_name(descendant) not in IGNORED_INLINE_TAGS
         for descendant in node.find_all(True)
     )
-
-
-def build_block_template(run: list) -> tuple[str, list[str]]:
-    parts: list[str] = []
-    tag_markup: list[str] = []
-    for node in run:
-        emit_template_node(node, parts, tag_markup)
-    return "".join(parts), tag_markup
-
-
-def emit_template_node(node, parts: list[str], tag_markup: list[str]) -> None:
-    if is_special_string(node):
-        parts.append(register_tag_markup(tag_markup, str(node)))
-        return
-    if isinstance(node, NavigableString):
-        parts.append(str(node))
-        return
-    if tag_name(node) in IGNORED_INLINE_TAGS or is_void_element(node):
-        parts.append(register_tag_markup(tag_markup, str(node)))
-        return
-
-    open_markup, close_markup = split_tag_markup(node)
-    parts.append(register_tag_markup(tag_markup, open_markup))
-    for child in list(node.children):
-        emit_template_node(child, parts, tag_markup)
-    parts.append(register_tag_markup(tag_markup, close_markup))
-
-
-def register_tag_markup(tag_markup: list[str], markup: str) -> str:
-    placeholder = f"{TAG_PLACEHOLDER_PREFIX}{len(tag_markup)}{TAG_PLACEHOLDER_SUFFIX}"
-    tag_markup.append(markup)
-    return placeholder
 
 
 def split_tag_markup(node) -> tuple[str, str]:
@@ -386,6 +355,99 @@ def extract_html_document(html: str | bytes, project_id: str, logical_key: str, 
     """Reader-visible text as durable units. The input is only read, and parsing changes nothing in it."""
     segments = _segments(_parse(html), include_alt_text=include_alt_text)
     return _document(segments, project_id, logical_key, adapter, source_locale, source_fingerprint)
+
+
+class TransientHtmlRun:
+    """One run of the current translation flow. It has no identity, and nothing durable can refer to it."""
+
+    __slots__ = ("nodes", "template", "markup", "_parts")
+
+    def __init__(self, nodes: list, template: str, parts: tuple[_Part, ...]) -> None:
+        self.nodes = nodes
+        self.template = template
+        self.markup = [part.source for part in parts]
+        self._parts = parts
+
+    def __repr__(self) -> str:
+        return "TransientHtmlRun()"
+
+    def __reduce_ex__(self, protocol: object) -> None:
+        raise TypeError("a transient HTML run cannot be serialized")
+
+
+class TransientHtmlDocument:
+    """The current flow's view of a document, for a signature that has no project or revision.
+
+    It shares the traversal and the restoration of markup with durable reconstruction, but it
+    holds no locator or unit ID, and it cannot be serialized, so it can never pass for either.
+    """
+
+    def __init__(self, html: str | bytes) -> None:
+        self._soup = BeautifulSoup(html, _PARSER)
+        self.runs: list[TransientHtmlRun] = []
+        for run in collect_translation_runs(self._soup):
+            builder = _TemplateBuilder()
+            for node in run:
+                builder.node(node)
+            self.runs.append(TransientHtmlRun(run, "".join(builder.pieces), tuple(builder.parts)))
+
+    def __repr__(self) -> str:
+        return "TransientHtmlDocument()"
+
+    def __reduce_ex__(self, protocol: object) -> None:
+        raise TypeError("a transient HTML document cannot be serialized")
+
+    def images(self) -> list:
+        return image_elements(self._soup)
+
+    def replace_with_plain_text(self, run: TransientHtmlRun, text: str) -> None:
+        replace_run(run.nodes, parse_fragment_nodes(escape(text)))
+
+    def restore(self, run: TransientHtmlRun, text: str) -> None:
+        """Parses the escaped text with an empty marker per token, then swaps each marker for original nodes.
+
+        This keeps the parser's reading of the text as it has always been, and markup never goes
+        through a string, which is what used to lose namespace prefixes and comments.
+        """
+        def slot(match: re.Match[str]) -> str:
+            index = int(match.group(1))
+            if not 0 <= index < len(run._parts):
+                return match.group(0)
+            # Text that only looks like a token goes back as text, so its node is read as one piece.
+            part = run._parts[index]
+            return part.source if part.kind is _PartKind.LITERAL else f'<{_SLOT_TAG} n="{index}"/>'
+
+        fragment = TAG_TOKEN_PATTERN.sub(slot, escape(text))
+        top: list = []
+        stack: list = []
+
+        def add(node) -> None:
+            if stack:
+                stack[-1].append(node)
+            else:
+                top.append(node)
+
+        for node in parse_fragment_nodes(fragment):
+            if tag_name(node) != _SLOT_TAG:
+                if isinstance(node, NavigableString) and _SLOT_TAG in node:
+                    # The parser could not read the fragment at all, and handed back the raw string.
+                    node = NavigableString(expand_tag_tokens(escape(text), run.markup))
+                add(node)
+                continue
+            part = run._parts[int(node["n"])]
+            if part.kind is _PartKind.OPEN:
+                clone = _clone_open(part.node)
+                add(clone)
+                stack.append(clone)
+            elif part.kind is _PartKind.CLOSE:
+                if stack:
+                    stack.pop()
+            else:
+                add(copy.copy(part.node))
+        replace_run(run.nodes, top)
+
+    def encode(self) -> bytes:
+        return self._soup.encode(formatter="minimal")
 
 
 def html_unit_template(unit: TranslationUnit) -> str:
