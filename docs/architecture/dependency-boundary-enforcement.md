@@ -60,7 +60,9 @@ entries fail, so a rename cannot silently discard protection.
 | `translation_document` | Application | Rich document path: results, artifact, replay, events and provenance |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
 | `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
+| `provider_network` | Domain | The network decision an operation must present, and its enforcement |
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
+| `provider_discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
 | `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |

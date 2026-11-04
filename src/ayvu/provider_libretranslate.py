@@ -21,6 +21,7 @@ from .provider_capabilities import (
     LimitScope, LimitSemantics, LimitUnit, MAX_LANGUAGE_TARGETS, MAX_LANGUAGES, ProviderAvailability,
     ProviderCapabilityError, ProviderCapabilitySnapshot, ProviderDescriptor, ProviderLimit, SupportState, observation,
 )
+from .provider_discovery import DiscoveredLanguage, DiscoveryObservation, ProviderDiscoveryError
 from .provider_service import FeatureDecision, ProviderInstance, decide_features, failed_result
 from .translator import (
     LibreTranslateTranslator, RouteResolutionError, RoutedTranslator, TranslationRoute, Translator, TranslatorError,
@@ -252,9 +253,14 @@ class LibreTranslateAvailabilityProbe:
         return "LibreTranslateAvailabilityProbe()"
 
     def probe(self) -> ProviderAvailability:
+        return self.observe().availability
+
+    def observe(self) -> DiscoveryObservation:
+        """The evidence keeps sorted codes only. The display list keeps the server's order and names."""
         def observed(state: AvailabilityState, reason: str | None,
-                     languages: tuple[LanguageEvidence, ...] = ()) -> ProviderAvailability:
-            return observation(state, reason, self._clock(), self._ttl, languages)
+                     languages: tuple[LanguageEvidence, ...] = (),
+                     display: tuple[DiscoveredLanguage, ...] = ()) -> DiscoveryObservation:
+            return DiscoveryObservation(observation(state, reason, self._clock(), self._ttl, languages), display)
 
         try:
             languages = self._translator.list_languages()
@@ -267,8 +273,9 @@ class LibreTranslateAvailabilityProbe:
         try:
             evidence = tuple(sorted((LanguageEvidence(item.code, tuple(sorted(item.targets))) for item in languages),
                                     key=lambda item: item.code))
-            return observed(AvailabilityState.AVAILABLE, None, evidence)
-        except ProviderCapabilityError:
+            display = tuple(DiscoveredLanguage(item.code, item.name, item.targets, item.state) for item in languages)
+            return observed(AvailabilityState.AVAILABLE, None, evidence, display)
+        except (ProviderCapabilityError, ProviderDiscoveryError):
             return observed(AvailabilityState.DEGRADED, "malformed_languages")
 
 
@@ -284,3 +291,32 @@ def discover_route(availability: ProviderAvailability, source: str, target: str,
     except RouteResolutionError:
         return None
     return ProviderRoute(route.source, route.target, route.intermediate)
+
+
+class LibreTranslateDiscoveryAdapter:
+    """What the shared discovery use cases need from this provider, and no more."""
+
+    descriptor = LIBRETRANSLATE_DESCRIPTOR
+
+    def __init__(self, translator: LibreTranslateTranslator, *, clock: Callable[[], datetime] = _utc_now,
+                 ttl: timedelta = DEFAULT_AVAILABILITY_TTL, configuration_ref: str | None = None) -> None:
+        self._translator = translator
+        self._clock = clock
+        self._probe = LibreTranslateAvailabilityProbe(translator, clock=clock, ttl=ttl)
+        self._configuration_ref = configuration_ref
+
+    def __repr__(self) -> str:
+        return "LibreTranslateDiscoveryAdapter()"
+
+    def snapshot(self) -> ProviderCapabilitySnapshot:
+        return libretranslate_snapshot(self._translator, self._clock(), configuration_ref=self._configuration_ref)
+
+    def observe(self) -> DiscoveryObservation:
+        return self._probe.observe()
+
+    def route(self, availability: ProviderAvailability, source: str, target: str, now: datetime,
+              candidates: tuple[str, ...]) -> ProviderRoute | None:
+        return discover_route(availability, source, target, now, candidates)
+
+    def provider(self) -> LibreTranslateProvider:
+        return LibreTranslateProvider(self._translator, clock=self._clock)
