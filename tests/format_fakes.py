@@ -9,7 +9,7 @@ from __future__ import annotations
 from ayvu.content import AdapterIdentity, Locator, SemanticKind, UnitContent, build_document
 from ayvu.format_adapter import (
     ContentScope, FidelityAspect, FidelityClaim, FidelityLevel, FindingSeverity, FormatDescriptor, FormatInventory, FormatLimits,
-    FormatMaturity, FormatOperation, FormatSignature, OperationClaim, OperationSupport, ValidationFinding,
+    FormatMaturity, FormatOperation, FormatSignature, InventoryDocument, OperationClaim, OperationSupport, ValidationFinding,
 )
 from ayvu.format_service import FormatAdapter, FormatRegistration
 
@@ -28,7 +28,7 @@ def all_fidelity(level, evidence=()):
 
 def notes_descriptor(**changes):
     values = dict(
-        adapter=AdapterIdentity("fake_notes", 1, 1), locator_schema="fake_line", locator_version=1,
+        adapter=AdapterIdentity("fake_notes", 1, 1), locators=(("fake_line", 1),),
         operations=(OperationClaim(FormatOperation.INSPECT, OperationSupport.SUPPORTED, EVIDENCE),
                     OperationClaim(FormatOperation.EXTRACT, OperationSupport.SUPPORTED, EVIDENCE, ("notes_between_lines",)),
                     *unsupported(FormatOperation.PREVIEW, FormatOperation.RECONSTRUCT, FormatOperation.VALIDATE)),
@@ -46,7 +46,8 @@ def _lines(context):
 class NotesPorts:
     def inspect(self, context):
         lines = [line for line in _lines(context) if line]
-        return FormatInventory(document_count=1, resource_count=0, format_version="1", title=lines[0] if lines else None)
+        return FormatInventory(document_count=1, resource_count=0, format_version="1", title=lines[0] if lines else None,
+                               documents=(InventoryDocument("notes"),))
 
     def extract(self, context, request):
         units = []
@@ -65,7 +66,7 @@ def notes_adapter():
     return FormatAdapter(notes_descriptor(), inspector=ports, extractor=ports)
 
 
-NOTES_REGISTRATION = FormatRegistration("fake_notes", 1, "fake_line", 1)
+NOTES_REGISTRATION = FormatRegistration("fake_notes", 1, (("fake_line", 1),))
 
 
 def cards_descriptor(**changes):
@@ -75,7 +76,7 @@ def cards_descriptor(**changes):
     fidelity[FidelityAspect.STYLES] = FidelityClaim(FidelityAspect.STYLES, FidelityLevel.LOST, EVIDENCE)
     fidelity[FidelityAspect.LINKS] = FidelityClaim(FidelityAspect.LINKS, FidelityLevel.UNKNOWN)
     values = dict(
-        adapter=AdapterIdentity("fake_cards", 2, 1), locator_schema="fake_card", locator_version=3,
+        adapter=AdapterIdentity("fake_cards", 2, 1), locators=(("fake_card", 3),),
         operations=(OperationClaim(FormatOperation.INSPECT, OperationSupport.SUPPORTED, EVIDENCE),
                     OperationClaim(FormatOperation.EXTRACT, OperationSupport.SUPPORTED, EVIDENCE, ("cards_between_documents",)),
                     OperationClaim(FormatOperation.PREVIEW, OperationSupport.EXPERIMENTAL, (), ("cards_before_render",)),
@@ -103,7 +104,9 @@ def _sections(context):
 class CardsPorts:
     def inspect(self, context):
         lines, placed = _sections(context)
-        return FormatInventory(document_count=len(set(placed.values())), resource_count=0, format_version="2", title="A card title")
+        names = tuple(dict.fromkeys(placed.values()))
+        return FormatInventory(document_count=len(names), resource_count=0, format_version="2", title="A card title",
+                               documents=tuple(InventoryDocument(name, name.title()) for name in names))
 
     def extract(self, context, request):
         lines, placed = _sections(context)
@@ -151,4 +154,4 @@ def cards_adapter():
     return FormatAdapter(cards_descriptor(), inspector=ports, extractor=ports, previewer=ports, reconstructor=ports, validator=ports)
 
 
-CARDS_REGISTRATION = FormatRegistration("fake_cards", 2, "fake_card", 3)
+CARDS_REGISTRATION = FormatRegistration("fake_cards", 2, (("fake_card", 3),))
