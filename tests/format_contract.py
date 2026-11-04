@@ -6,6 +6,7 @@ alone, so an adapter cannot pass by claiming less than it does without being ref
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -29,6 +30,14 @@ PROJECT = "00000000-0000-4000-8000-000000000127"
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
 
 
+def _plain_translation(unit, index):
+    return f"translated {index}"
+
+
+def _as_published(data):
+    return data
+
+
 @dataclass(frozen=True)
 class FormatHarness:
     adapter: FormatAdapter
@@ -36,6 +45,9 @@ class FormatHarness:
     sample: bytes
     changed: bytes
     extension: str
+    # A format may need tokens kept in the text, and may compress what it writes.
+    translation_of: Callable = _plain_translation
+    readable_output: Callable = _as_published
 
 
 class FixedGuard:
@@ -127,6 +139,7 @@ class FormatEnv:
         job = jobs.create(JobRequest(PROJECT, "translate_epub", 1, "sha256:" + "e" * 64))
         for state in (JobState.PREFLIGHT, JobState.RUNNING):
             job = jobs.transition(job.job_id, state, expected_revision=job.revision)
+        self.jobs = jobs
         self.job = jobs.acquire_lease(job.job_id, timedelta(minutes=30))
         self.publisher = SpyPublisher(self.artifacts)
         self.requests = 0
@@ -194,8 +207,8 @@ class FormatAdapterContract:
         return result.documents
 
     @staticmethod
-    def _translate(documents):
-        return tuple(UnitTranslation(unit.unit_id, f"translated {index}")
+    def _translate(harness, documents):
+        return tuple(UnitTranslation(unit.unit_id, harness.translation_of(unit, index))
                      for index, unit in enumerate(unit for document in documents for unit in document.units))
 
     def _call(self, harness, service, env, operation, source, documents=None, translations=(), cancellation=None, publication=None):
@@ -216,7 +229,7 @@ class FormatAdapterContract:
         if operation not in MATERIALIZING_OPERATIONS or not harness.adapter.descriptor.runs(FormatOperation.EXTRACT):
             return {}
         documents = self._documents(harness, service, path)
-        return {"documents": documents, "translations": self._translate(documents)}
+        return {"documents": documents, "translations": self._translate(harness, documents)}
 
     def _running(self, harness):
         return [item for item in FormatOperation if harness.adapter.descriptor.runs(item)]
@@ -322,16 +335,17 @@ class FormatAdapterContract:
     def test_materializing_publishes_a_new_artifact_with_the_results(self, harness, service, env, path, operation):
         self._require(harness, operation)
         documents = self._documents(harness, service, path)
-        translations = self._translate(documents)
+        translations = self._translate(harness, documents)
         publication = env.publication()
         result = self._call(harness, service, env, operation, LocalFormatSource(path), documents, translations, publication=publication)
         assert result.artifact is not None and env.is_ready(publication)
-        assert all(item.text.encode() in env.read(publication) for item in translations)
+        readable = harness.readable_output(env.read(publication))
+        assert all(f"translated {index}".encode() in readable for index in range(len(translations)))
         assert path.read_bytes() == harness.sample
 
     def _refused(self, harness, service, env, path, request_changes=None, guard=None, source=None, documents=None, translations=None):
         documents = documents if documents is not None else self._documents(harness, service, path)
-        translations = translations if translations is not None else self._translate(documents)
+        translations = translations if translations is not None else self._translate(harness, documents)
         publication = env.publication(guard)
         result = self._call(harness, service, env, FormatOperation.RECONSTRUCT, source or LocalFormatSource(path), documents, translations, publication=publication)
         assert result.artifact is None and not env.is_ready(publication) and env.publisher.calls == 0
@@ -341,14 +355,14 @@ class FormatAdapterContract:
     def test_reconstruction_needs_a_result_for_every_unit(self, harness, service, env, path):
         self._require(harness, FormatOperation.RECONSTRUCT)
         documents = self._documents(harness, service, path)
-        failure = self._refused(harness, service, env, path, documents=documents, translations=self._translate(documents)[1:])
+        failure = self._refused(harness, service, env, path, documents=documents, translations=self._translate(harness, documents)[1:])
         assert (failure.family, failure.code) == (JobFailureFamily.INTEGRITY, "incomplete_translations")
 
     def test_reconstruction_refuses_a_result_from_another_revision(self, harness, service, env, path):
         self._require(harness, FormatOperation.RECONSTRUCT)
         documents = self._documents(harness, service, path)
         stranger = UnitTranslation("not-a-unit-of-this-revision", "text")
-        failure = self._refused(harness, service, env, path, documents=documents, translations=(*self._translate(documents), stranger))
+        failure = self._refused(harness, service, env, path, documents=documents, translations=(*self._translate(harness, documents), stranger))
         assert failure.code == "unknown_unit"
 
     def test_reconstruction_refuses_a_source_changed_since_extraction(self, harness, service, env, path):
@@ -363,7 +377,7 @@ class FormatAdapterContract:
         self._require(harness, FormatOperation.RECONSTRUCT)
         documents = self._documents(harness, service, path)
         stripped = tuple(replace(document, source_fingerprint=None) for document in documents)
-        assert self._refused(harness, service, env, path, documents=stripped, translations=self._translate(documents)).code == "source_changed"
+        assert self._refused(harness, service, env, path, documents=stripped, translations=self._translate(harness, documents)).code == "source_changed"
 
     @pytest.mark.parametrize("verdict,code", [(AliasVerdict.SAME, "output_is_source"), (AliasVerdict.UNKNOWN, "output_alias_unknown")])
     def test_reconstruction_refuses_a_destination_that_is_or_may_be_the_source(self, harness, service, env, path, verdict, code):

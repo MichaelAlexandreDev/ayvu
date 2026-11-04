@@ -239,7 +239,7 @@ class _Segment:
     parts: tuple[_Part, ...]
     location: str
 
-    def content(self, order: tuple[int, ...]) -> UnitContent:
+    def content(self, order: tuple[int, ...], *, locator: Locator | None = None, kind: SemanticKind | None = None) -> UnitContent:
         pieces: list[str] = []
         spans: list[ProtectedPart] = []
         offset = 0
@@ -253,9 +253,9 @@ class _Segment:
             spans.append(ProtectedPart(start, offset, "placeholder" if part.kind is _PartKind.LITERAL else "markup"))
             cursor = match.end()
         pieces.append(self.template[cursor:])
-        kind = SemanticKind("alt_text" if self.is_alt else "paragraph")
-        return UnitContent(Locator(HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, self.location), "".join(pieces), kind, order,
-                           protected_parts=tuple(spans))
+        kind = kind or SemanticKind("alt_text" if self.is_alt else "paragraph")
+        locator = locator or Locator(HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, self.location)
+        return UnitContent(locator, "".join(pieces), kind, order, protected_parts=tuple(spans))
 
 
 def _parse(html: str | bytes) -> BeautifulSoup:
@@ -448,6 +448,22 @@ class TransientHtmlDocument:
 
     def encode(self) -> bytes:
         return self._soup.encode(formatter="minimal")
+
+
+def plain_text_content(text: str, locator: Locator, kind: SemanticKind, order: tuple[int, ...]) -> UnitContent:
+    """A unit for text outside a document body. It follows the same token rules, so it fails the same way."""
+    builder = _TemplateBuilder()
+    builder.text(text)
+    segment = _Segment(True, (), "".join(builder.pieces), tuple(builder.parts), locator.value)
+    return segment.content(order, locator=locator, kind=kind)
+
+
+def restore_plain_text(unit: TranslationUnit, text: str) -> str:
+    """Checks tokens, and puts back text that only looked like one. The result is still only text."""
+    builder = _TemplateBuilder()
+    builder.text(unit.source_text)
+    segment = _Segment(True, (), "".join(builder.pieces), tuple(builder.parts), unit.content.locator.value)
+    return _alt_text(segment, _plan(segment, text))
 
 
 def html_unit_template(unit: TranslationUnit) -> str:
