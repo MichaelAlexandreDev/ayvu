@@ -88,11 +88,11 @@ def test_generated_documents_round_trip(seed):
     assert reconstruct_html(html, document, tokens_of(document)) == serialized(html)
 
 
-def test_cdata_inside_a_unit_keeps_its_meaning():
+def test_the_parser_reads_cdata_as_text_and_reconstruction_follows_it():
     html = "<html><body><p><![CDATA[a <b> c]]></p></body></html>"
     document = extract(html)
-    output = reconstruct_html(html, document, tokens_of(document))
-    assert BeautifulSoup(output, "lxml-xml").find("p").get_text() == "a <b> c"
+    assert reconstruct_html(html, document, tokens_of(document)) == serialized(html)
+    assert b"a &lt;b&gt; c" in serialized(html)
 
 
 @pytest.mark.parametrize("html,sources", [
@@ -431,6 +431,70 @@ def test_nothing_is_applied_before_every_unit_is_built(monkeypatch):
         reconstruct_html(NESTED, document, [UnitTranslation(document.units[0].unit_id, html_unit_template(document.units[0])),
                                             UnitTranslation(document.units[1].unit_id, "bad")])
     assert applied == []
+
+
+def test_a_transient_document_has_no_identity_and_cannot_be_serialized():
+    import copyreg
+    import pickle
+
+    from ayvu.html_structure import TransientHtmlDocument, TransientHtmlRun
+
+    document = TransientHtmlDocument(FIXTURES["nested"])
+    run = document.runs[0]
+    for value in (document, run):
+        with pytest.raises(TypeError):
+            pickle.dumps(value)
+        with pytest.raises(TypeError):
+            copyreg.dispatch_table.get(type(value), type(value).__reduce_ex__)(value, 2)
+        assert not any(name in dir(value) for name in ("unit_id", "locator", "revision_id", "document_id"))
+    assert "Hello" not in repr(TransientHtmlDocument("<p>Hello</p>")) and repr(run) == "TransientHtmlRun()" and isinstance(run, TransientHtmlRun)
+
+
+@pytest.mark.parametrize("name", FIXTURES)
+def test_a_transient_document_restores_unchanged_text_exactly_as_parsed(name):
+    from ayvu.html_structure import TransientHtmlDocument, has_translatable_text
+
+    document = TransientHtmlDocument(FIXTURES[name])
+    for run in document.runs:
+        if has_translatable_text(run.template):
+            document.restore(run, run.template)
+    assert document.encode() == serialized(FIXTURES[name])
+
+
+def test_a_fragment_the_parser_cannot_read_shows_no_internal_marker(monkeypatch):
+    from ayvu import html_structure
+    from ayvu.html_structure import NavigableString, TransientHtmlDocument
+
+    document = TransientHtmlDocument("<html><body><p>a <b>b</b></p></body></html>")
+    # This is what the parser helper returns when no root element comes back.
+    monkeypatch.setattr(html_structure, "parse_fragment_nodes", lambda fragment: [NavigableString(fragment)])
+    document.restore(document.runs[0], "x __AYVU_TAG_0__y__AYVU_TAG_1__")
+    output = document.encode().decode()
+    assert "__ayvu_slot__" not in output and "x &lt;b&gt;y&lt;/b&gt;" in output
+
+
+def test_a_token_a_transient_run_does_not_have_stays_as_text():
+    from ayvu.html_structure import TransientHtmlDocument
+
+    document = TransientHtmlDocument("<html><body><p>x</p></body></html>")
+    document.restore(document.runs[0], "x __AYVU_TAG_7__")
+    assert b"<p>x __AYVU_TAG_7__</p>" in document.encode()
+
+
+def test_a_transient_run_tolerates_a_closing_part_with_nothing_open():
+    from ayvu.html_structure import TransientHtmlDocument
+
+    document = TransientHtmlDocument("<html><body><p>a <b>b</b></p></body></html>")
+    document.restore(document.runs[0], "a __AYVU_TAG_1__b")
+    assert b"<p>a b</p>" in document.encode()
+
+
+def test_a_transient_run_closes_what_was_left_open():
+    from ayvu.html_structure import TransientHtmlDocument
+
+    document = TransientHtmlDocument("<html><body><p>a <b>b</b> c</p></body></html>")
+    document.restore(document.runs[0], "a __AYVU_TAG_0__b c")
+    assert b"<p>a <b>b c</b></p>" in document.encode()
 
 
 def test_errors_and_representations_hold_no_text():

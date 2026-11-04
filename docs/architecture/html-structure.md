@@ -23,6 +23,37 @@ imports no provider, cache, memory, glossary, chunker or interface.
 **Nothing in production calls the durable entry yet.** `ayvu.html_translate` remains as a compatibility facade
 with the same names and signatures, until [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145).
 
+## The current translation
+
+The current signature has no project or revision, so the facade uses `TransientHtmlDocument`. It shares the
+traversal and the copying of original nodes, holds no locator or unit ID, and refuses to be serialized, so it
+cannot pass for durable identity.
+
+Its text still goes through the parser, as it always has, so that whitespace and repairs stay as they were. Each
+token becomes an empty marker in that fragment and is then swapped for original nodes.
+
+**This fixed three defects in translated books.** Markup used to be turned into a string and parsed outside the
+document, where namespace prefixes are not declared.
+
+| Source | Before | Now |
+| --- | --- | --- |
+| `<span epub:type="pagebreak">` inside a paragraph | `<span type="pagebreak">`, and `xlink:href` became `href` | Unchanged |
+| A comment or processing instruction inside an inline tag | Its content became text visible to the reader | Unchanged |
+| Book text that reads `__AYVU_TAG_0__` | Replaced by that run's markup | Unchanged |
+
+Books translated earlier keep these defects until translated again, which can reuse the cache.
+
+**Other effects:**
+
+- A comment's content no longer appears in review text.
+- A provider answer holding a character XML cannot represent no longer damages the original markup of its run.
+  Such a character still damages the translated text itself: the parser may drop what follows, as before. Durable
+  reconstruction refuses it with `invalid_text`.
+- Text holding a token-like literal gets a different cache key, so it is translated once more. All other text keeps
+  its key.
+- A review file exported earlier from text with a comment inside an inline tag holds the old text, so its row may
+  no longer match.
+
 ## What becomes a unit
 
 The rules are those of the current translation. Consecutive inline siblings form one unit, and block elements
@@ -88,9 +119,9 @@ an attribute or a URL.
 `partial` is for previews, and units with no result keep their source text.
 
 **What is preserved is the parser's reading of the document, not its bytes.** The parser is `lxml-xml` through
-Beautiful Soup. It repairs malformed markup, reduces whitespace-only text to one character and normalizes syntax,
-and this happens to any document it reads. Unchanged text reconstructs to exactly what parsing and serializing
-give, with one exception: CDATA inside a unit becomes escaped text with the same meaning.
+Beautiful Soup. It repairs malformed markup, reduces whitespace-only text to one character, reads CDATA as escaped
+text and normalizes syntax, and this happens to any document it reads. Unchanged text reconstructs to exactly what
+parsing and serializing give.
 
 ## Privacy
 

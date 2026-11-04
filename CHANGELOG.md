@@ -113,6 +113,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Corrigido
 
+- Atributos com prefixo em tags inline, como `epub:type` e `xlink:href`, nao perdem mais
+  o prefixo no EPUB traduzido.
+- Comentarios e instrucoes de processamento dentro de tags inline nao viram mais texto
+  visivel ao leitor.
+- Texto do livro parecido com um marcador interno (`__AYVU_TAG_0__`) nao e mais trocado por
+  marcacao.
 - Interrupcao com `Ctrl+C` mostra progresso parcial e orienta reutilizar o
   cache.
 - EPUB invalido em `inspect` e `extract` falha sem traceback.

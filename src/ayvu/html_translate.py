@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from xml.sax.saxutils import escape
-
-from bs4 import BeautifulSoup
 
 from .cache import CacheKey, TranslationCache
 from .domain import LanguagePair
@@ -13,14 +10,9 @@ from .html_structure import (
     IGNORED_INLINE_TAGS,
     IGNORED_TAGS,
     INLINE_TAGS,
-    build_block_template,
-    collect_translation_runs,
-    expand_tag_tokens,
+    TransientHtmlDocument,
     extract_visible_text,
     has_translatable_text,
-    image_elements,
-    parse_fragment_nodes,
-    replace_run,
     review_text_from_template,
 )
 from .translation_memory import TranslationMemory, TranslationMemoryMatch
@@ -98,11 +90,11 @@ def translate_html(
     on_segment_translated: SegmentReviewCallback | None = None,
     translate_alt_text: bool = False,
 ) -> tuple[bytes, HtmlTranslationStats]:
-    soup = BeautifulSoup(html, "lxml-xml")
+    document = TransientHtmlDocument(html)
     stats = HtmlTranslationStats()
 
-    for run in collect_translation_runs(soup):
-        template, tag_markup = build_block_template(run)
+    for run in document.runs:
+        template, tag_markup = run.template, run.markup
         if not has_translatable_text(template):
             stats.skipped += 1
             continue
@@ -121,8 +113,7 @@ def translate_html(
                 memory=memory,
             )
             if not dry_run and not result.missing:
-                fragment = expand_tag_tokens(escape(result.text), tag_markup)
-                replace_run(run, parse_fragment_nodes(fragment))
+                document.restore(run, result.text)
             if result.missing:
                 stats.missing_texts.append(review_text_from_template(template, tag_markup))
             _notify_segment_translated(
@@ -145,7 +136,7 @@ def translate_html(
 
     if translate_alt_text:
         _translate_image_alt_text(
-            soup,
+            document,
             translator=translator,
             cache=cache,
             source=source,
@@ -162,7 +153,7 @@ def translate_html(
             on_segment_translated=on_segment_translated,
         )
 
-    return soup.encode(formatter="minimal"), stats
+    return document.encode(), stats
 
 
 class _LegacyV1Cache:
@@ -226,12 +217,12 @@ def apply_reviewed_html(
     that plain text. Inline tags inside a replaced run are not restored because
     the review file stores plain visible text only.
     """
-    soup = BeautifulSoup(html, "lxml-xml")
+    document = TransientHtmlDocument(html)
     stats = ApplyHtmlStats()
     index = 0
 
-    for run in collect_translation_runs(soup):
-        template, tag_markup = build_block_template(run)
+    for run in document.runs:
+        template, tag_markup = run.template, run.markup
         if not has_translatable_text(template):
             stats.skipped += 1
             continue
@@ -239,10 +230,10 @@ def apply_reviewed_html(
         original = review_text_from_template(template, tag_markup)
         replacement = resolve(index, "text", original)
         if replacement is not None:
-            replace_run(run, parse_fragment_nodes(escape(replacement)))
+            document.replace_with_plain_text(run, replacement)
             stats.applied += 1
 
-    for image in image_elements(soup):
+    for image in document.images():
         alt = image.get("alt")
         if not isinstance(alt, str) or not alt.strip():
             continue
@@ -253,11 +244,11 @@ def apply_reviewed_html(
             image["alt"] = replacement
             stats.applied += 1
 
-    return soup.encode(formatter="minimal"), stats
+    return document.encode(), stats
 
 
 def _translate_image_alt_text(
-    soup: BeautifulSoup,
+    document: TransientHtmlDocument,
     translator: Translator,
     cache: TranslationCache,
     source: str,
@@ -279,7 +270,7 @@ def _translate_image_alt_text(
     every other attribute are preserved. Reading text rendered inside the image
     (OCR) is intentionally out of scope.
     """
-    for image in image_elements(soup):
+    for image in document.images():
         alt = image.get("alt")
         if not isinstance(alt, str) or not alt.strip():
             continue
