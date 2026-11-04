@@ -353,6 +353,11 @@ uv run ayvu translate livro.epub \
   --retry-backoff-max 10
 ```
 
+O `test-translator` envia o texto `Hello world` ao servidor, e só esse texto; nenhum outro comando
+envia conteúdo para testar o tradutor. No modo desenvolvedor, os erros de `test-translator`,
+`languages` e da verificação inicial mostram um código, como `provider_timeout`, em vez da
+mensagem do servidor, que pode conter a URL ou parte da resposta.
+
 As mesmas opções também existem em `test-translator` e `languages`, para testar o servidor com
 os controles que serão usados na tradução.
 

@@ -16,7 +16,7 @@ from .job import JobError, validate_utc
 from .job_events import JobFailure, JobFailureFamily
 from .job_execution import CancellationToken
 from .provenance import ProducerIdentity
-from .provider import ProviderRoute, ProviderStatus, TranslationProviderRequest, TranslationProviderResult
+from .provider import ProviderError, ProviderRoute, ProviderStatus, TranslationProviderRequest, TranslationProviderResult
 from .provider_capabilities import (
     NOT_PROBED, AvailabilityState, NegotiationDecision, ProviderAvailability, ProviderCapabilitySnapshot,
     ProviderDescriptor, ProviderRequirements, negotiate,
@@ -298,7 +298,10 @@ class ProviderDiscoveryService:
         blocked = self._blocked(instance_id, ProviderOperation.TEST, decision, cancellation, deadline)
         if blocked is not None:
             return ProviderTestResult(blocked[0], None, UNKNOWN_PRODUCER, None, None, blocked[1])
-        request = TranslationProviderRequest(self._new_id(), SYNTHETIC_TEST_TEXT, source, target)
+        try:
+            request = TranslationProviderRequest(self._new_id(), SYNTHETIC_TEST_TEXT, source, target)
+        except ProviderError as error:
+            return ProviderTestResult(DiscoveryOutcome.FAILED, None, UNKNOWN_PRODUCER, None, None, str(error))
         try:
             provider = self._entries[instance_id][1].provider()
         except Exception:

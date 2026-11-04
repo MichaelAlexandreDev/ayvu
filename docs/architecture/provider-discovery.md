@@ -6,7 +6,14 @@ contracts of `DEC-017` and the [provider contracts](provider-contracts.md) of `D
 not accept `DEC-015`: nothing here evaluates network policy.
 
 `ProviderDiscoveryService` is what interfaces call to learn about providers, instead of reaching
-one directly. **No command uses it yet.** Migrating the CLI and preflight is the second step.
+one directly. `languages`, `test-translator`, guided language selection and the provider part of
+translation preflight all use it. Errors during translation itself do not yet: they keep their
+current messages until [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) and #159.
+
+`ayvu.provider_composition` assembles LibreTranslate for the CLI until
+[#158](https://github.com/MichaelAlexandreDev/ayvu/issues/158) consolidates composition. Its decision
+is `unclassified`, with reason `legacy_cli_unrestricted`, because the CLI has no network policy yet.
+It reads no URL to claim otherwise, so this is a record and not a protection.
 
 No code here names a provider or reads a URL. Adapters are registered explicitly at a composition
 root and implement `ProviderDiscoveryAdapter`.
@@ -79,3 +86,23 @@ read, because their messages can quote a URL or a response body.
 with `no_languages`, and a malformed or oversized list is `degraded` as well.
 
 Retries stay inside the translator, as they do today.
+
+## What the CLI shows
+
+Exit codes, flags, summaries, the language table and the success line are unchanged. What changed:
+
+| Where | Before | Now |
+| --- | --- | --- |
+| Technical detail, developer mode only | The message, with URL and up to 300 characters of the server's response | A code such as `provider_timeout` |
+| Warning in guided selection | The same message | The code |
+| Next step in preflight | Included the URL, which can hold credentials | No URL |
+| `test-translator` receiving an empty translation | `Translator OK` with exit 0, a false positive | Failure with exit 1 |
+| `test-translator` with an invalid language code | Sent to the server | Refused before sending |
+| `test-translator --help` | No mention | States that it sends `Hello world` |
+
+**What this gives up:** the server's own explanation, such as `bad language pair`, is no longer shown in
+developer mode. The code still separates rejected, unauthorized, rate-limited and server errors.
+
+**The hidden probe is gone.** Preflight had a fallback that translated `Hello world` when a translator
+could not list languages. The real translator always can, so this reached only test doubles. A translator
+without discovery now gets an unknown route and no request.

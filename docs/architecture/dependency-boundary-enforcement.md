@@ -64,6 +64,7 @@ entries fail, so a rename cannot silently discard protection.
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
 | `provider_discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
 | `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
+| `provider_composition` | Composition | Assembles LibreTranslate and its network decision for the CLI, until #158 |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |
 
