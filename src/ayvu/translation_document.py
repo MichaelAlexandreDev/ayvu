@@ -113,6 +113,9 @@ class UnitTranslationResult:
     text: str
     memory_suggested: bool = False
     glossary_usage: object | None = None
+    # ``text`` with tokens instead of the markup they stand for. Only this form tells original
+    # markup from whatever a provider wrote, so reconstruction must use this one.
+    tokenized_text: str | None = None
 
     def __repr__(self) -> str:
         return f"UnitTranslationResult(unit_id={self.unit_id!r}, source={self.source.value!r})"
@@ -162,17 +165,21 @@ def _raw_payload(document: ContentDocument, plan: ResolvedTranslationPlan, raw: 
 def _template(unit: TranslationUnit) -> tuple[str, list[str]]:
     """Protected spans become tag tokens, which the stages keep in order or refuse."""
     text = unit.source_text
-    if TAG_TOKEN_PATTERN.search(text):
-        raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "reserved_placeholder_in_source"))
     pieces: list[str] = []
     originals: list[str] = []
     cursor = 0
+    plain: list[str] = []
     for part in unit.content.protected_parts:
-        pieces.append(text[cursor:part.start])
+        plain.append(text[cursor:part.start])
+        pieces.append(plain[-1])
         pieces.append(f"__AYVU_TAG_{len(originals)}__")
         originals.append(text[part.start:part.end])
         cursor = part.end
-    pieces.append(text[cursor:])
+    plain.append(text[cursor:])
+    pieces.append(plain[-1])
+    # Inside a protected part such text is safe: it is never read as a token.
+    if any(TAG_TOKEN_PATTERN.search(piece) for piece in plain):
+        raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "reserved_placeholder_in_source"))
     return "".join(pieces), originals
 
 
@@ -455,18 +462,19 @@ class _DocumentRun:
         source = _FROM_LINGUISTIC[outcome.source]
         # An untranslated unit expands back to its exact source text.
         return UnitTranslationResult(unit.unit_id, source, _expand(outcome.text, originals), outcome.memory_suggestion is not None,
-                                     outcome.glossary_usage), outcome
+                                     outcome.glossary_usage, outcome.text), outcome
 
     def apply_raw(self, unit: TranslationUnit, entry: tuple[UnitSource, str | None]) -> UnitTranslationResult:
         """Only post-processing runs again: no cache lookup and no provider."""
         source, raw = entry
         if source is UnitSource.BLANK:
-            return UnitTranslationResult(unit.unit_id, UnitSource.BLANK, unit.source_text)
+            return UnitTranslationResult(unit.unit_id, UnitSource.BLANK, unit.source_text, tokenized_text=_template(unit)[0])
         template, originals = _template(unit)
         parts = TextParts.from_text(template)
         application = self.translator._apply_glossary(raw)
-        return UnitTranslationResult(unit.unit_id, UnitSource.ARTIFACT_REPLAY, _expand(parts.restore(application.text), originals),
-                                     False, application.usage)
+        tokenized = parts.restore(application.text)
+        return UnitTranslationResult(unit.unit_id, UnitSource.ARTIFACT_REPLAY, _expand(tokenized, originals),
+                                     False, application.usage, tokenized)
 
     def publish(self, raw: list[tuple[str, UnitSource, str | None]]) -> Artifact:
         translator = self.translator
