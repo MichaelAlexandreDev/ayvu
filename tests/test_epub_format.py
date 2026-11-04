@@ -118,7 +118,6 @@ def test_the_extension_alone_is_not_believed(service, tmp_path, data):
 @pytest.mark.parametrize("data,family,code", [
     (b"PK\x03\x04broken", JobFailureFamily.INTEGRITY, "corrupt_archive"),
     (epub_bytes(drop=("OEBPS/content.opf",)), JobFailureFamily.INPUT, "missing_package"),
-    (epub_bytes(replace={"mimetype": b"text/plain"}), JobFailureFamily.INPUT, "invalid_mimetype"),
     (epub_bytes(add=[("../evil", b"x", ZIP_STORED)]), JobFailureFamily.INPUT, "unsafe_member_name"),
     (epub_bytes(add=[("OEBPS/bomb", b"\0" * (3 * 1024 * 1024), ZIP_DEFLATED)]), JobFailureFamily.RESOURCE, "suspicious_compression"),
     (epub_bytes(replace={"OEBPS/content.opf": b'<!DOCTYPE x [<!ENTITY e "v">]>' + OPF.split(b"?>", 1)[1]}), JobFailureFamily.POLICY, "entity_declaration"),
@@ -173,7 +172,7 @@ def test_inspection_reports_the_book_and_what_a_selection_can_name(service, tmp_
     assert (inventory.title, inventory.authors, inventory.language, inventory.format_version) == ("The Title", ("An Author", "Another"), "en", "3.0")
     assert inventory.resource_count == 6
     assert [(item.logical_key, item.title) for item in inventory.documents] == [
-        ("OEBPS/content.opf", "The Title"), ("OEBPS/nav.xhtml", "Doc"), ("OEBPS/text/one.xhtml", "Doc"), ("OEBPS/text/two words.xhtml", "Doc")]
+        ("OEBPS/content.opf", "The Title"), ("OEBPS/nav.xhtml", "First"), ("OEBPS/text/one.xhtml", "Hello"), ("OEBPS/text/two words.xhtml", "Second")]
     assert inventory.document_count == 4
 
 

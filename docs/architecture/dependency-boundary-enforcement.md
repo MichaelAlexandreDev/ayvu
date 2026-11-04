@@ -52,7 +52,8 @@ entries fail, so a rename cannot silently discard protection.
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `preflight`, `library` | Transitional application | Translation, Library |
 | `cli`, `cli_progress` | Interface | CLI |
-| `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `translation_engine` | Application | One book through a format adapter and a unit executor |
 | `translator` | Provider adapter with transitional embedded port | Providers |
 | `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
 | `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |

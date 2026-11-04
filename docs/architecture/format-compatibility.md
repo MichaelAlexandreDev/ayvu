@@ -30,21 +30,31 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 | jobs | `ayvu.job_service.JobRepository` | `ayvu.job_service.JobRepository` | Not a format concern |
 | resume | `ayvu.resume.ResumeStateStore` | #146 | Not a format concern |
 | output path | `ayvu.domain.OutputPlan` | #145 | Naming and overwrite rules stay with the application. `ayvu.format_service.OutputGuard` only refuses the source |
-| translation | `ayvu.epub_io.translate_epub` | `ayvu.translation_document.DocumentTranslator` | Orchestration leaves the format layer in #145. An adapter never calls a provider |
+| translation | `ayvu.epub_io.translate_epub` | `ayvu.translation_engine.TranslationEngine` | Orchestration leaves the format layer in #145. An adapter never calls a provider. `ayvu.translation_document.DocumentTranslator` takes over after #153 |
 
-## Differences #145 has to settle
+## Differences settled by #145
 
-The adapter is stricter than the current flow, and these books open today but would be refused:
+These books open today and stay refused, because each is a risk to the reader or the machine, or is protected
+content. #145 has to give each a clear message:
 
-- `mimetype` that is not first, is compressed, is missing or holds other content.
 - Duplicate members, including names that differ only by case or Unicode form.
 - Member names with `..`, an absolute path, a drive letter or a backslash.
 - A document declaring XML entities, and protected content in `encryption.xml`.
 
-#145 has to choose, for each, between refusing with a clear message and keeping a path for such books.
+**A defective `mimetype` is accepted and corrected.** It may be missing, not first, compressed or hold other
+content. It carries no risk, so a copy writes it correct and first. Detection still does not believe such a file
+from its extension alone, so a caller names the adapter.
 
-**The adapter accepts one thing the current flow does not:** a remote manifest item, which EPUB 3 allows and
-which makes `ebooklib` raise `KeyError` today.
+**The adapter accepts two things the current flow does not:** a remote manifest item, which EPUB 3 allows, and a
+processing instruction directly inside `metadata`. Both make `ebooklib` raise today.
+
+**Three differences in the output are deliberate:**
+
+- A document with nothing to translate keeps its bytes. The current flow writes it again through a parser, which can
+  add a declaration to an empty file.
+- A translation holding characters XML cannot store loses only those characters. In the current flow the same text
+  also loses its `&` and anything that looks like a tag.
+- `alt` text holding such characters stays valid, where the current flow writes an invalid document.
 
 **Text warnings become codes.** `validate_output_epub` writes warnings that name files, and findings count them
 by code. Moving to codes loses which file, unless #145 adds a location to a finding.

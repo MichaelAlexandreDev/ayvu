@@ -25,6 +25,7 @@ CONTAINER_MEMBER = "META-INF/container.xml"
 ENCRYPTION_MEMBER = "META-INF/encryption.xml"
 XHTML_MEDIA_TYPE = "application/xhtml+xml"
 _COPY_BYTES = 1024 * 1024
+_MIMETYPE_DATE = (1980, 1, 1, 0, 0, 0)
 _FONT_OBFUSCATION = frozenset({"http://www.idpf.org/2008/embedding", "http://ns.adobe.com/pdf/enc#RC"})
 _ENTITY_DECLARATIONS = (b"<!ENTITY", "<!ENTITY".encode("utf-16-le"), "<!ENTITY".encode("utf-16-be"))
 _DRIVE = re.compile(r"[A-Za-z]:")
@@ -198,7 +199,7 @@ class EpubArchive:
             raise EpubArchiveError("corrupt_archive") from None
         try:
             self._members = {info.filename: info for info in self._check_members()}
-            self._check_mimetype()
+            self.mimetype_is_valid = self._mimetype_is_valid()
             self.package = self._read_package(self._read_rootfile())
             self._check_encryption()
         except BaseException:
@@ -282,16 +283,12 @@ class EpubArchive:
             raise EpubArchiveError("entity_declaration")
         return data
 
-    def _check_mimetype(self) -> None:
+    def _mimetype_is_valid(self) -> bool:
+        """A defect here carries no risk and books do have it, so a copy corrects it instead of refusing the book."""
         infos = self._zip.infolist()
-        if MIMETYPE_MEMBER not in self._members:
-            raise EpubArchiveError("missing_mimetype")
-        if infos[0].filename != MIMETYPE_MEMBER:
-            raise EpubArchiveError("mimetype_not_first")
-        if infos[0].compress_type != ZIP_STORED:
-            raise EpubArchiveError("mimetype_compressed")
-        if infos[0].file_size != len(MIMETYPE_CONTENT) or self.read(MIMETYPE_MEMBER, len(MIMETYPE_CONTENT)) != MIMETYPE_CONTENT:
-            raise EpubArchiveError("invalid_mimetype")
+        return (MIMETYPE_MEMBER in self._members and infos[0].filename == MIMETYPE_MEMBER and infos[0].compress_type == ZIP_STORED
+                and infos[0].file_size == len(MIMETYPE_CONTENT)
+                and self.read(MIMETYPE_MEMBER, len(MIMETYPE_CONTENT)) == MIMETYPE_CONTENT)
 
     def _read_rootfile(self) -> str:
         if CONTAINER_MEMBER not in self._members:
@@ -356,8 +353,9 @@ class EpubArchive:
                 checkpoint: Callable[[], None] | None = None) -> None:
         """Every member in source order, changing only the content of the ones named.
 
-        Name, order, timestamp, attributes and compression stay as they are. The stream must be
-        seekable: writing a ZIP to one that is not sets flags on ``mimetype`` that readers refuse.
+        Name, order, timestamp, attributes and compression stay as they are, except that a defective
+        ``mimetype`` comes out correct and first. The stream must be seekable: writing a ZIP to one
+        that is not sets flags on ``mimetype`` that readers refuse.
         """
         between = checkpoint or (lambda: None)
         if replacements.keys() - self._members.keys():
@@ -366,8 +364,12 @@ class EpubArchive:
             raise EpubArchiveError("protected_member")
         with ZipFile(output, "w", allowZip64=True) as archive:
             archive.comment = self._zip.comment
+            if not self.mimetype_is_valid:
+                archive.writestr(ZipInfo(MIMETYPE_MEMBER, date_time=_MIMETYPE_DATE), MIMETYPE_CONTENT, ZIP_STORED)
             for info in self.infos():
                 between()
+                if not self.mimetype_is_valid and info.filename == MIMETYPE_MEMBER:
+                    continue
                 if info.filename in replacements:
                     archive.writestr(info, replacements[info.filename])
                     continue

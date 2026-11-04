@@ -83,7 +83,11 @@ def _opened(context: FormatContext) -> Iterator[EpubArchive]:
 
 
 def _document_title(data: bytes) -> str | None:
-    for text in extract_visible_text(data):
+    """The first text a reader sees. The ``title`` in the head is not on the page, and most books repeat it."""
+    soup = BeautifulSoup(data, "lxml-xml")
+    if soup.head is not None:
+        soup.head.decompose()
+    for text in extract_visible_text(soup.encode(formatter="minimal")):
         clean = " ".join(text.split())
         if clean:
             return clean
