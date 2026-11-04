@@ -247,8 +247,8 @@ class SqliteJobRepository:
             return self._snapshot(self._load(connection, job_id))
 
     def list_jobs(self, project_id: str, *, states: tuple[JobState, ...] | None = None,
-                  limit: int = 256) -> tuple[JobSnapshot, ...]:
-        """At most ``limit`` jobs, oldest first."""
+                  limit: int = 256, newest_first: bool = False) -> tuple[JobSnapshot, ...]:
+        """At most ``limit`` jobs, oldest first unless told otherwise."""
         self._check_project(project_id)
         if type(limit) is not int or not 1 <= limit <= MAX_LIST_LIMIT:
             raise JobValidationError("invalid_limit")
@@ -259,7 +259,7 @@ class SqliteJobRepository:
         if states is not None:
             query += f" AND state IN ({', '.join('?' for _ in states)})"
             parameters.extend(state.value for state in states)
-        query += " ORDER BY created_at, job_id LIMIT ?"
+        query += " ORDER BY created_at DESC, job_id DESC LIMIT ?" if newest_first else " ORDER BY created_at, job_id LIMIT ?"
         parameters.append(limit)
         with self._read() as connection:
             rows = connection.execute(query, parameters).fetchall()

@@ -9,7 +9,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -29,6 +29,8 @@ from .format_local import LocalFormatSource
 from .format_service import FormatRegistry, FormatService
 from .job import JobError
 from .job_events import JobFailure, JobFailureFamily
+from .job_recovery import InspectJobRecoverability, ListInterruptedJobs, RequestJobResume
+from .job_recovery_store import LocalRecoveryEvidence
 from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report, to_review_segment
 from .project import ProjectError
 from .project_schema import open_artifact_service, open_job_repository, open_provenance_repository
@@ -36,6 +38,7 @@ from .project_store import ProjectJsonRepository
 from .provenance import ProvenanceError
 from .review_export import ReviewSegment
 from .translate_project import (
+    ContinuationTicket,
     OutputValidation,
     TranslateObserver,
     TranslateProject,
@@ -168,6 +171,38 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+def book_refusal(source_path: Path) -> str | None:
+    """``check_book`` as an answer. It is the same check on every path, so recovery cannot go around it."""
+    try:
+        check_book(source_path)
+    except BookRefused as error:
+        return error.code
+    except OSError:
+        # A book that cannot be read is not refused by policy. The caller already reports that it is gone.
+        return None
+    return None
+
+
+@dataclass(frozen=True, repr=False)
+class JobRecovery:
+    """The three recovery use cases over one project folder, and the files behind their references."""
+
+    evidence: LocalRecoveryEvidence
+    list_interrupted: ListInterruptedJobs
+    inspect: InspectJobRecoverability
+    request_resume: RequestJobResume
+
+    def __repr__(self) -> str:
+        return "JobRecovery()"
+
+
+def open_job_recovery(processing_dir: Path, *, clock: Callable[[], datetime] = _utc_now,
+                      policy_refusal: Callable[[Path], str | None] = book_refusal) -> JobRecovery:
+    """Opens nothing and creates nothing. Every read happens when a use case asks for it."""
+    evidence = LocalRecoveryEvidence(processing_dir, policy_refusal=policy_refusal, clock=clock)
+    return JobRecovery(evidence, ListInterruptedJobs(evidence), InspectJobRecoverability(evidence), RequestJobResume(evidence))
+
+
 def open_translate_project(processing_dir: Path, project_id: str, source_path: Path, destination: Path, *, overwrite: bool,
                            runtime: LegacyTranslationRuntime, clock: Callable[[], datetime] = _utc_now,
                            ops: DestinationFileOps | None = None, **tuning: object) -> TranslateProject:
@@ -215,6 +250,8 @@ class ProjectTranslation:
     replace_existing: bool
     prepare: Callable[[], LegacyResources]
     cache_factory: Callable[[], object]
+    continuation: ContinuationTicket | None = None
+    operation_id: str | None = None
 
     def __repr__(self) -> str:
         return f"ProjectTranslation(project_id={self.project_id!r})"
@@ -242,8 +279,12 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
     except (ProjectError, JobError, ArtifactError, ProvenanceError, OSError, sqlite3.Error) as error:
         code = str(error) if isinstance(error, (ProjectError, JobError, ArtifactError, ProvenanceError)) else "project_storage_unavailable"
         raise ProjectTranslationUnavailable(code) from None
-    result = use_case.execute(TranslateProjectCommand(translation.project_id, translation.source_sha256, translation.options, translation.output,
-                                                      overwrite=translation.replace_existing), observer=observer)
+    # The plan holds the canonical path, the form a resume file records. The destination stays as given, so a link stays a link.
+    planned = replace(translation.output, path=destination.expanduser().resolve())
+    result = use_case.execute(TranslateProjectCommand(translation.project_id, translation.source_sha256, translation.options, planned,
+                                                      overwrite=translation.replace_existing, operation_id=translation.operation_id),
+                              observer=observer,
+                              continuation=translation.continuation)
     engine = result.engine
     ended_with_a_report = engine.failure is None and result.raised is None and result.job_id is not None and runtime.preflight_error is None
     report = runtime.report(result, destination) if ended_with_a_report else None

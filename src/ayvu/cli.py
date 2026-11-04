@@ -59,7 +59,7 @@ from .library import LibraryBook, LibraryOpenError, open_library_epub, scan_libr
 from .preflight import PreflightError, run_translation_preflight
 from .project import ProjectError
 from .project_service import resolve_project
-from .project_store import ProjectJsonRepository, build_project_request
+from .project_store import ProjectJsonRepository, build_project_request, translation_selections
 from .resume import (
     InvalidResumeState,
     ResumeStateError,
@@ -1562,19 +1562,15 @@ def _run_translation(
                 target=language_pair.target,
                 glossary_path=resolved_glossary_path,
                 profile_name=resolved_profile_name,
-                selections={
-                    "translator": translator_name,
-                    "url": url,
-                    "chunk_limit": chunk_limit,
-                    "translate_metadata": translate_metadata,
-                    "translate_alt_text": translate_alt_text,
-                    "chapters": chapter_selection.source if chapter_selection else None,
-                    "translation_memory": (
-                        [translation_memory.apply_threshold, translation_memory.suggest_threshold,
-                         translation_memory.max_candidates]
-                        if translation_memory is not None else None
-                    ),
-                },
+                selections=translation_selections(
+                    translator=translator_name,
+                    url=url,
+                    chunk_limit=chunk_limit,
+                    translate_metadata=translate_metadata,
+                    translate_alt_text=translate_alt_text,
+                    chapters=chapter_selection.source if chapter_selection else None,
+                    translation_memory=translation_memory,
+                ),
             )
             resolution = resolve_project(ProjectJsonRepository(_processing_dir(config)), project_request)
             project_id = resolution.project.project_id
@@ -1638,6 +1634,7 @@ def _run_translation(
                 retry_backoff=retry_backoff,
                 retry_backoff_max=retry_backoff_max,
                 processing_dir=_processing_dir(config),
+                profile_name=resolved_profile_name,
             )
         progress.start()
         return preflight
@@ -3492,6 +3489,7 @@ def _save_running_resume_state(
     retry_backoff: float,
     retry_backoff_max: float,
     processing_dir: Path,
+    profile_name: str | None = None,
 ) -> tuple[ResumeStateStore, TranslationResumeState]:
     store = ResumeStateStore(processing_dir)
     state = TranslationResumeState.create(
@@ -3508,6 +3506,7 @@ def _save_running_resume_state(
         requests_per_second=requests_per_second,
         retry_backoff=retry_backoff,
         retry_backoff_max=retry_backoff_max,
+        profile_name=profile_name,
     )
     _save_resume_state(store, state)
     return store, state

@@ -127,11 +127,9 @@ status, languages and chapter counts. Paths, chapter names and the translator UR
 omitted, because they can identify a book or carry credentials. Errors are bounded
 codes that quote nothing from the file.
 
-Nothing is imported. A future migration in
-[#146](https://github.com/MichaelAlexandreDev/ayvu/issues/146) can use this view to
-decide what to offer, then create a new job from the resumed work, keeping the legacy
-file until the user decides otherwise. Because a checkpoint is not a verified artifact,
-it would not be reusable as one.
+Nothing is imported. [Job recovery](job-recovery.md) reads the same files through
+`scan_legacy_states` to decide what to offer. A checkpoint is not a verified artifact, so
+it is never reusable as one.
 
 ## Consequences and limits
 

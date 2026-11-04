@@ -12,8 +12,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Callable
-from contextlib import AbstractContextManager
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from threading import Event, Thread
@@ -58,6 +58,7 @@ _SHA256 = re.compile(r"[0-9a-f]{64}")
 _UNKNOWN_PRODUCER = ProducerIdentity(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN)
 # The states this use case leaves a job in. Any other nonterminal state belongs to someone else.
 _OWN_STATES = (JobState.QUEUED, JobState.PREFLIGHT, JobState.RUNNING, JobState.CANCELLING, JobState.COMPLETED, JobState.VALIDATING)
+OWN_JOB_STATES = _OWN_STATES
 # Room kept in the event log, so that progress can never crowd out the terminal outcome.
 _RESERVED_EVENTS = 8
 
@@ -100,6 +101,25 @@ class TranslateProjectCommand:
 
     def __repr__(self) -> str:
         return f"TranslateProjectCommand(project_id={self.project_id!r}, schema_version={self.schema_version})"
+
+
+@dataclass(frozen=True, repr=False)
+class ContinuationTicket:
+    """Continue this job, if it is still as the caller saw it. A job that ended is never reopened."""
+
+    job_id: str
+    expected_revision: int
+
+    def __post_init__(self) -> None:
+        try:
+            validate_job_identity(self.job_id)
+        except JobError:
+            raise TranslateCommandError("invalid_identity") from None
+        if type(self.expected_revision) is not int or self.expected_revision < 1:
+            raise TranslateCommandError("invalid_command")
+
+    def __repr__(self) -> str:
+        return f"ContinuationTicket(job_id={self.job_id!r})"
 
 
 @dataclass(frozen=True, repr=False)
@@ -340,8 +360,11 @@ class TranslateProject:
         return True
 
     def execute(self, command: TranslateProjectCommand, *, cancellation: CancellationSource | None = None,
-                observer: TranslateObserver | None = None) -> TranslateProjectResult:
-        """Everything that can be refused is refused before a job exists or a provider is touched."""
+                observer: TranslateObserver | None = None, continuation: ContinuationTicket | None = None) -> TranslateProjectResult:
+        """Everything that can be refused is refused before a job exists or a provider is touched.
+
+        With ``continuation`` the new job links to that one, which first gets its one terminal outcome if it has none.
+        """
         if type(command) is not TranslateProjectCommand:
             raise TranslateCommandError("invalid_command")
 
@@ -369,14 +392,27 @@ class TranslateProject:
         except FormatError:
             return refused(JobFailureFamily.CAPABILITY, "unknown_adapter")
         plan = resolve_plan(command, project)
+        request = JobRequest(command.project_id, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, plan.input_fingerprint, (OUTPUT_ROLE,))
+        fingerprints = (plan.input_fingerprint,)
+        if continuation is not None:
+            try:
+                parent = ports.jobs.get(continuation.job_id).job
+            except JobError as error:
+                return refused(JobFailureFamily.RESOURCE, _safe_code(error, "job_store_unavailable"))
+            # The parent's plan comes first: a resume differs from its parent in the overwrite flag, so its own guard says nothing.
+            fingerprints = tuple(dict.fromkeys((parent.request.input_fingerprint, plan.input_fingerprint)))
         try:
-            with ports.runs.exclusive(plan.input_fingerprint) as alone:
+            with self._guards(fingerprints) as alone:
                 if not alone:
                     return refused(JobFailureFamily.POLICY, "job_in_progress")
                 try:
-                    self._take_over(command.project_id, plan.input_fingerprint)
-                    job = ports.jobs.create(JobRequest(command.project_id, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION,
-                                                       plan.input_fingerprint, (OUTPUT_ROLE,)))
+                    if continuation is None:
+                        self._take_over(command.project_id, plan.input_fingerprint)
+                        job = ports.jobs.create(request)
+                    else:
+                        job = self._continue(continuation, request)
+                        if isinstance(job, str):
+                            return refused(JobFailureFamily.POLICY, job)
                     job = ports.jobs.acquire_lease(job.job_id, self._lease_duration)
                 except (JobError, ArtifactError) as error:
                     return refused(JobFailureFamily.RESOURCE, _safe_code(error, "job_store_unavailable"))
@@ -392,10 +428,42 @@ class TranslateProject:
         ports = self._ports
         for snapshot in ports.jobs.list_jobs(project_id, states=_OWN_STATES):
             job = snapshot.job
-            if (job.request.input_fingerprint == input_fingerprint and job.lease is not None
-                    and not snapshot.requires_reconciliation and job.state is not JobState.QUEUED):
+            if job.request.input_fingerprint != input_fingerprint:
+                continue
+            if job.lease is not None and not snapshot.requires_reconciliation and job.state is not JobState.QUEUED:
                 ports.jobs.release_lease(job.job_id, job.lease.owner_token)
+            elif job.lease is None and job.state is JobState.QUEUED:
+                # Its creator takes the lease under this same guard, so it died in between. No lease will ever expire here.
+                self._settle_interrupted(job)
         self.reconcile(project_id)
+
+    @contextmanager
+    def _guards(self, fingerprints: tuple[str, ...]) -> Iterator[bool]:
+        """Takes each once, because a second take of one guard by the same run would refuse itself."""
+        if not fingerprints:
+            yield True
+            return
+        with self._ports.runs.exclusive(fingerprints[0]) as alone:
+            if not alone:
+                yield False
+                return
+            with self._guards(fingerprints[1:]) as rest:
+                yield rest
+
+    def _continue(self, ticket: ContinuationTicket, request: JobRequest) -> TranslationJob | str:
+        """The new job, or the code that says why not. Runs holding the guards of both plans."""
+        jobs = self._ports.jobs
+        parent = jobs.get(ticket.job_id).job
+        if parent.revision != ticket.expected_revision:
+            return "stale_revision"
+        if jobs.get_continuation(parent.job_id) is not None:
+            return "continuation_exists"
+        for fingerprint in dict.fromkeys((parent.request.input_fingerprint, request.input_fingerprint)):
+            self._take_over(request.project_id, fingerprint)
+        parent = jobs.get(parent.job_id).job
+        if not parent.terminal:
+            return "job_not_resumable"
+        return jobs.create_continuation(parent.job_id, request)
 
 
 def _safe_code(error: Exception, fallback: str) -> str:

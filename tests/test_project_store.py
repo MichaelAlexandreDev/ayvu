@@ -16,7 +16,8 @@ from ayvu.project import ProjectConflictError, ProjectError, ProjectSourceError
 from ayvu.project_service import resolve_project
 from ayvu.project_store import (
     ProjectStoreError,
-    ProjectJsonRepository, build_project_request, decode_manifest, encode_manifest,
+    ProjectJsonRepository, build_project_request, canonical_source_path, configuration_references, decode_manifest, encode_manifest,
+    file_digest, source_digest, translation_selections,
 )
 
 
@@ -460,3 +461,105 @@ def test_run_guard_refuses_a_link_or_a_blocked_folder_with_a_bounded_code(projec
         with guard.exclusive('sha256:one'):
             pass
     assert str(linked.value) == 'symlink_path'
+
+
+def test_read_catalog_creates_nothing_and_takes_no_lock(tmp_path):
+    repository = ProjectJsonRepository(tmp_path / 'absent')
+    assert repository.read_catalog().projects == () and not (tmp_path / 'absent').exists()
+
+
+def test_read_catalog_reads_while_a_writer_holds_the_lock(project_input):
+    _, repository, request = project_input
+    project = repository.resolve(request).project
+    with repository._transaction():
+        assert repository.read_catalog().projects == (project,)
+
+
+def test_read_catalog_reports_a_bad_entry_and_keeps_the_rest(project_input):
+    _, repository, request = project_input
+    project = repository.resolve(request).project
+    (repository.root / '.staging-x').mkdir()
+    (repository.root / 'stray').write_text('x')
+    bad = repository.root / str(uuid4())
+    bad.mkdir()
+    (bad / 'project.json').write_text('{')
+    catalog = repository.read_catalog()
+    assert catalog.projects == (project,)
+    assert sorted(catalog.failures) == sorted(['incomplete_project_creation', 'invalid_workspace_entry', 'invalid_manifest'])
+    assert 'stray' not in repr(catalog)
+
+
+def test_read_paths_and_guard_match_the_writing_ones_and_create_nothing(project_input):
+    _, repository, request = project_input
+    project = repository.resolve(request).project
+    assert repository.read_database_paths(project.project_id) == repository.resolve_database_paths(project.project_id)
+    guard = repository.read_run_guard(project.project_id)
+    assert not guard.held('sha256:' + 'a' * 64)
+    assert not (repository.root / project.project_id / 'runs').exists()
+
+
+def test_reading_paths_and_the_guard_does_not_wait_for_a_writer(project_input):
+    _, repository, request = project_input
+    project = repository.resolve(request).project
+    with repository._transaction():
+        started = time.monotonic()
+        repository.read_database_paths(project.project_id)
+        repository.read_run_guard(project.project_id)
+        assert time.monotonic() - started < 1
+
+
+def test_held_sees_a_live_holder_and_writes_nothing(project_input):
+    repository, project, guard = _guard(project_input)
+    fingerprint = 'sha256:' + 'a' * 64
+    with guard.exclusive(fingerprint) as alone:
+        assert alone
+        lock = next((repository.root / project.project_id / 'runs').iterdir())
+        before = lock.stat().st_mtime_ns, lock.read_bytes()
+        assert guard.held(fingerprint)
+        assert not guard.held('sha256:' + 'b' * 64)
+    assert not guard.held(fingerprint)
+    assert (lock.stat().st_mtime_ns, lock.read_bytes()) == before
+
+
+def test_held_refuses_a_link_with_a_bounded_code(project_input, tmp_path):
+    repository, project, guard = _guard(project_input)
+    fingerprint = 'sha256:' + 'a' * 64
+    runs = repository.root / project.project_id / 'runs'
+    runs.mkdir()
+    (tmp_path / 'elsewhere').write_text('x')
+    guard._path(fingerprint).symlink_to(tmp_path / 'elsewhere')
+    with pytest.raises(ProjectStoreError) as refused:
+        guard.held(fingerprint)
+    assert str(refused.value) in ('symlink_path', 'run_guard_unavailable')
+
+
+def test_selections_hold_exactly_what_identity_is_made_of():
+    selections = translation_selections(translator='t', url='u', chunk_limit=9, translate_metadata=True, translate_alt_text=False, chapters='1', translation_memory=None)
+    assert selections == {'translator': 't', 'url': 'u', 'chunk_limit': 9, 'translate_metadata': True, 'translate_alt_text': False, 'chapters': '1', 'translation_memory': None}
+
+
+def test_configuration_references_are_what_a_request_holds_and_touch_no_book(project_input):
+    source, _, _ = project_input
+    selections = {'translator': 't', 'url': 'http://h'}
+    request = build_project_request(source, source='en', target='pt', selections=selections, profile_name='p')
+    references = configuration_references(selections=selections, profile_name='p')
+    assert (references.provider_ref, references.configuration_ref, references.profile_ref, references.glossary_ref) == (
+        request.provider_ref, request.configuration_ref, request.profile_ref, request.glossary_ref)
+    assert request.source_path == canonical_source_path(source)
+
+
+def test_digests_can_be_stopped_between_chunks_and_a_missing_file_says_so(project_input, tmp_path):
+    source, _, request = project_input
+    assert source_digest(source) == (request.source_size, request.source_sha256) == file_digest(source)
+
+    class Stop(Exception):
+        pass
+
+    def stop():
+        raise Stop
+
+    with pytest.raises(Stop):
+        source_digest(source, between_chunks=stop)
+    with pytest.raises(ProjectSourceError) as missing:
+        file_digest(tmp_path / 'gone')
+    assert str(missing.value) == 'source_missing'

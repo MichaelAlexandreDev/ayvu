@@ -103,6 +103,10 @@ lock between two processes.
 
 Two runs of one book on different plans, such as different outputs, can still run together.
 
+A run waits 50 ms for its guard, so that a reader [probing it](job-recovery.md#when-a-run-is-alive) cannot make it refuse.
+A job left `queued` with no lease on this plan is settled here, because its creator died between creating it and taking
+the lease, under this same guard.
+
 ## Leases
 
 A separate thread renews the lease every 5 minutes, up to the 1-hour maximum, because one chapter or one blocked call
@@ -125,8 +129,9 @@ as it would have. A worker that commits to cancelling wins over a failure in ano
   made up to fit them, so they stay on the current flow behind `translate_without_project`.
 - **It claims nothing about the producer.** The lineage record says `unknown` for provider, model, adapter and pipeline,
   because the v1 cache cannot say which produced a text. #153 and #146 replace this.
-- **It does not resume.** A job that ended stays ended, and `resume` keeps working from its own file until #146. That
-  file is still kept by the CLI, chapter by chapter, around the use case.
+- **It does not decide what to resume.** A job that ended stays ended, and `execute` only links a new job to it when
+  given a ticket. [Job recovery](job-recovery.md) decides, and `resume` keeps working from its own file until it migrates.
+  That file is still kept by the CLI, chapter by chapter, around the use case.
 - **It does not write the review CSV.** The CLI writes it from the result until #149.
 
 ## What the CLI adds

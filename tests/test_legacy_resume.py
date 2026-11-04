@@ -4,7 +4,7 @@ import os
 import pytest
 
 from ayvu.domain import LanguagePair, TranslationOptions
-from ayvu.legacy_resume import MAX_LEGACY_STATE_BYTES, LegacyResumeError, inspect_legacy_resume
+from ayvu.legacy_resume import MAX_LEGACY_STATE_BYTES, LegacyResumeError, inspect_legacy_resume, scan_legacy_states
 from ayvu.resume import ResumeStateStore, TranslationResumeState
 
 CANARIES = ('/home/reader/private/moby-dick.epub', 'user:hunter2@example.test', 'The Whale Chapter')
@@ -122,3 +122,28 @@ def test_oversized_file_is_refused_before_parsing(tmp_path):
     path.write_bytes(b' ' * (MAX_LEGACY_STATE_BYTES + 1))
     with pytest.raises(LegacyResumeError, match='^legacy_state_too_large$'):
         inspect_legacy_resume(path)
+
+
+def test_scan_gives_one_entry_per_file_and_a_message_only_for_whoever_asks(tmp_path):
+    (tmp_path / 'bad.ayvu-state.json').write_bytes(b'\xff')
+    (tmp_path / 'newer.ayvu-state.json').write_text('{"version": 2}')
+    (tmp_path / 'other.json').write_text('{}')
+
+    entries = scan_legacy_states(tmp_path)
+
+    assert [entry.path.name for entry in entries] == ['bad.ayvu-state.json', 'newer.ayvu-state.json']
+    assert [entry.failure for entry in entries] == ['legacy_state_invalid', 'legacy_state_unsupported_version']
+    assert entries[0].message == f'Resume state file is not valid JSON: {tmp_path / "bad.ayvu-state.json"}'
+    assert entries[1].message == f'Invalid resume state file {tmp_path / "newer.ayvu-state.json"}: Unsupported resume state version: 2.'
+    assert all(str(tmp_path) not in repr(entry) and entry.state is None for entry in entries)
+
+
+def test_scan_of_an_absent_folder_is_empty_and_creates_nothing(tmp_path):
+    assert scan_legacy_states(tmp_path / 'absent') == ()
+    assert not (tmp_path / 'absent').exists()
+
+
+def test_a_reference_is_stable_and_says_nothing_readable(tmp_path):
+    (tmp_path / 'My Book-pt.ayvu-state.json').write_bytes(b'{')
+    first, again = scan_legacy_states(tmp_path)[0], scan_legacy_states(tmp_path)[0]
+    assert first.reference == again.reference and first.reference.startswith('legacy:') and 'Book' not in first.reference
