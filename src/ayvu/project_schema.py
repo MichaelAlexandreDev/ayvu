@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .artifact import ArtifactStoreError
-from .artifact_service import ArtifactService
+from .artifact_service import ArtifactPayloadStore, ArtifactService
 from .artifact_store import ARTIFACT_SCHEMA_STATEMENTS, ArtifactFileOps, LocalArtifactPayloads, SqliteArtifactRepository
 from .job import JobStoreError
 from .job_store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
@@ -41,17 +41,19 @@ def open_job_repository(database: Path, backups: Path, project_id: str, **factor
 
 
 def open_artifact_service(database: Path, backups: Path, artifact_root: Path, project_id: str, *,
-                          ops: ArtifactFileOps | None = None, **factories) -> ArtifactService:
+                          ops: ArtifactFileOps | None = None, payloads: ArtifactPayloadStore | None = None,
+                          **factories) -> ArtifactService:
     """Bootstrap or upgrade the database explicitly, then expose the project's artifacts.
 
-    ``factories`` are the optional clock/new_id of the repository.
+    ``factories`` are the optional clock/new_id of the repository. ``payloads`` replaces the project's
+    own files, for an output the user chose. ``ops`` then belongs to that store, not to this call.
     """
     runner = project_migration_runner()
     result = runner.migrate(database, backups)
     if not result.ok:
         raise ArtifactStoreError(result.error or "io")
     repository = SqliteArtifactRepository(runner, database, project_id, **factories)
-    return ArtifactService(repository, LocalArtifactPayloads(artifact_root, ops=ops))
+    return ArtifactService(repository, payloads or LocalArtifactPayloads(artifact_root, ops=ops))
 
 
 def open_provenance_repository(database: Path, backups: Path, project_id: str, **factories) -> SqliteProvenanceRepository:

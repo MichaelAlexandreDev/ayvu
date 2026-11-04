@@ -104,13 +104,13 @@ class LegacyExecutorPool:
 
 
 @dataclass(frozen=True, repr=False)
-class _Package:
+class BookPackage:
     facts: BookFacts
     archive_path: str | None = None
     language: str | None = None
 
 
-def _read_package(path: Path) -> _Package:
+def read_package(path: Path) -> BookPackage:
     """A book the adapter refuses has no facts here, and the engine reports the refusal itself."""
     try:
         with path.open("rb") as stream, EpubArchive(stream) as archive:
@@ -118,9 +118,9 @@ def _read_package(path: Path) -> _Package:
             title = package_title(parse_package_for_edit(archive.read(package.archive_path)))
             names = tuple((item.archive_path, posixpath.relpath(item.archive_path, package.base or "."))
                           for item in package.documents)
-            return _Package(BookFacts(names, title is not None and len(title) > 0), package.archive_path, package.language)
+            return BookPackage(BookFacts(names, title is not None and len(title) > 0), package.archive_path, package.language)
     except (EpubArchiveError, OSError, ValueError):
-        return _Package(BookFacts())
+        return BookPackage(BookFacts())
 
 
 def to_html_stats(stats: TextStats) -> HtmlTranslationStats:
@@ -134,7 +134,7 @@ def to_html_stats(stats: TextStats) -> HtmlTranslationStats:
     return converted
 
 
-def _to_report(result: EngineResult, source_path: Path, destination_path: Path, package: _Package,
+def to_report(result: EngineResult, source_path: Path, destination_path: Path, package: BookPackage,
                options: TranslationOptions, glossary: object | None) -> TranslationReport:
     report = TranslationReport(
         output_path=destination_path, input_path=source_path, detected_language=package.language, target_language=options.target,
@@ -152,7 +152,7 @@ def _to_report(result: EngineResult, source_path: Path, destination_path: Path, 
     return report
 
 
-def _to_review_segment(entry: ReviewEntry, source_path: Path, destination_path: Path, options: TranslationOptions) -> ReviewSegment:
+def to_review_segment(entry: ReviewEntry, source_path: Path, destination_path: Path, options: TranslationOptions) -> ReviewSegment:
     metadata = entry.kind == METADATA_KIND
     return ReviewSegment(
         segment_id=METADATA_SEGMENT_ID if metadata else format_segment_id(entry.chapter_index, entry.segment_index),
@@ -175,7 +175,7 @@ def translate_book(source_path: Path, destination_path: Path, translator: object
                    cache_factory: Callable[[], object] | None = None) -> tuple[TranslationReport, EngineResult]:
     """The engine in the current report's terms. A failure is in the result, and nothing was published."""
     _validate_worker_options(options, translator_factory=translator_factory, cache_factory=cache_factory)
-    package = _read_package(source_path)
+    package = read_package(source_path)
     memory = TranslationMemory(cache, options.translation_memory) if options.translation_memory is not None else None
     pool: ExecutorPool | None = None
     if options.workers > 1:
@@ -190,5 +190,5 @@ def translate_book(source_path: Path, destination_path: Path, translator: object
         options.translate_alt_text, options.chapter_selection, options.fail_fast,
         options.cache_only and options.require_full_cache, options.workers))
     if review_segments is not None:
-        review_segments.extend(_to_review_segment(entry, source_path, destination_path, options) for entry in result.review)
-    return _to_report(result, source_path, destination_path, package, options, glossary), result
+        review_segments.extend(to_review_segment(entry, source_path, destination_path, options) for entry in result.review)
+    return to_report(result, source_path, destination_path, package, options, glossary), result

@@ -118,6 +118,13 @@ class ArtifactService:
             # never ready, and reconciliation resolves it later.
             pass
 
+    def get(self, artifact_id: str) -> Artifact:
+        return self._repository.get(artifact_id)
+
+    def find_ready(self, request: ArtifactRequest) -> Artifact | None:
+        """The record alone, unverified. Use ``find_reusable`` to rely on the bytes."""
+        return self._repository.find_ready(request)
+
     def find_reusable(self, request: ArtifactRequest) -> ReuseResult:
         """Read-only. A record that fails verification is reported, not changed."""
         artifact = self._repository.find_ready(request)
