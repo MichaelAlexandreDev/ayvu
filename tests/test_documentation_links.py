@@ -23,6 +23,8 @@ PROVIDER_CONTRACTS = PROJECT_ROOT / "docs" / "architecture" / "provider-contract
 PROVIDER_CAPABILITIES = PROJECT_ROOT / "docs" / "architecture" / "provider-capabilities.md"
 TRANSLATION_PIPELINE = PROJECT_ROOT / "docs" / "architecture" / "translation-pipeline.md"
 PROVIDER_DISCOVERY = PROJECT_ROOT / "docs" / "architecture" / "provider-discovery.md"
+FORMAT_ADAPTER = PROJECT_ROOT / "docs" / "architecture" / "format-adapter.md"
+FORMAT_COMPATIBILITY = PROJECT_ROOT / "docs" / "architecture" / "format-compatibility.md"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
@@ -40,8 +42,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY],
-    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery"],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility"],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""
