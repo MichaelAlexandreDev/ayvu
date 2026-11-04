@@ -8,7 +8,7 @@ not accept `DEC-015`: nothing here evaluates network policy.
 `ProviderDiscoveryService` is what interfaces call to learn about providers, instead of reaching
 one directly. `languages`, `test-translator`, guided language selection and the provider part of
 translation preflight all use it. Errors during translation itself do not yet: they keep their
-current messages until [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) and #159.
+current messages until #153 and #159. Only `--fail-fast` gained a message of its own, in #145.
 
 `ayvu.provider_composition` assembles LibreTranslate for the CLI until
 [#158](https://github.com/MichaelAlexandreDev/ayvu/issues/158) consolidates composition. Its decision

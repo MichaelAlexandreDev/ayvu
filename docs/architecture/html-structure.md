@@ -21,7 +21,7 @@ imports no provider, cache, memory, glossary, chunker or interface.
 | `extract_visible_text`, `translate_html`, `apply_reviewed_html` | The current translation, through `ayvu.html_translate` | None |
 
 **Nothing in production calls the durable entry yet.** `ayvu.html_translate` remains as a compatibility facade
-with the same names and signatures, until [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145).
+with the same names and signatures, until [#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153).
 
 ## The current translation
 

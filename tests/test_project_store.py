@@ -8,11 +8,14 @@ from pathlib import Path
 from threading import Barrier
 from uuid import uuid4
 
+import time
+
 import pytest
 
 from ayvu.project import ProjectConflictError, ProjectError, ProjectSourceError
 from ayvu.project_service import resolve_project
 from ayvu.project_store import (
+    ProjectStoreError,
     ProjectJsonRepository, build_project_request, decode_manifest, encode_manifest,
 )
 
@@ -389,3 +392,71 @@ def test_artifact_root_rejects_a_file_a_symlink_and_an_unknown_project(project_i
         repository.resolve_artifact_root(project.project_id)
     with pytest.raises(ProjectError):
         repository.resolve_artifact_root(str(uuid4()))
+
+
+def _guard(project_input):
+    _, repository, request = project_input
+    project = repository.resolve(request).project
+    return repository, project, repository.run_guard(project.project_id)
+
+
+def test_run_guard_is_held_per_plan_and_released_at_the_end(project_input):
+    _, _, guard = _guard(project_input)
+    with guard.exclusive('sha256:one') as first:
+        assert first is True
+        started = time.monotonic()
+        with guard.exclusive('sha256:one') as again, guard.exclusive('sha256:two') as other:
+            assert again is False and other is True
+        assert time.monotonic() - started < 2  # A refusal does not wait for the other run.
+    with guard.exclusive('sha256:one') as later:
+        assert later is True
+
+
+def test_run_guard_releases_when_the_holder_raises(project_input):
+    _, _, guard = _guard(project_input)
+    with pytest.raises(KeyboardInterrupt):
+        with guard.exclusive('sha256:one'):
+            raise KeyboardInterrupt
+    with guard.exclusive('sha256:one') as later:
+        assert later is True
+
+
+def test_run_guard_does_not_swallow_a_busy_error_from_inside(project_input):
+    _, _, guard = _guard(project_input)
+    with pytest.raises(ProjectStoreError, match='workspace_busy'):
+        with guard.exclusive('sha256:one'):
+            raise ProjectStoreError('workspace_busy')
+    with pytest.raises(OSError):
+        with guard.exclusive('sha256:one'):
+            raise OSError('inside')
+
+
+def test_run_guard_names_its_file_with_no_trace_of_the_plan(project_input):
+    repository, project, guard = _guard(project_input)
+    with guard.exclusive('sha256:one'):
+        pass
+    root = repository.resolve_artifact_root(project.project_id).parent / 'runs'
+    assert [len(path.stem) for path in root.iterdir()] == [64]
+    assert 'one' not in next(root.iterdir()).name
+
+
+def test_run_guard_refuses_a_link_or_a_blocked_folder_with_a_bounded_code(project_input, tmp_path):
+    repository, project, guard = _guard(project_input)
+    root = repository.resolve_artifact_root(project.project_id).parent / 'runs'
+    root.write_bytes(b'blocked')
+    with pytest.raises(ProjectStoreError) as blocked:
+        with guard.exclusive('sha256:one'):
+            pass
+    assert str(blocked.value) == 'run_guard_unavailable'
+    root.unlink()
+    root.mkdir()
+    (tmp_path / 'target').write_bytes(b'')
+    with guard.exclusive('sha256:one'):
+        pass
+    lock = next(root.iterdir())
+    lock.unlink()
+    lock.symlink_to(tmp_path / 'target')
+    with pytest.raises(ProjectStoreError) as linked:
+        with guard.exclusive('sha256:one'):
+            pass
+    assert str(linked.value) == 'symlink_path'

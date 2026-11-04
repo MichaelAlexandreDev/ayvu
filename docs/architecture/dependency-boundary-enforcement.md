@@ -50,7 +50,8 @@ entries fail, so a rename cannot silently discard protection.
 | `provenance_service` | Application | Provenance repository port and query results |
 | `provenance_store` | Infrastructure | Append-only SQLite lineage and bounded traversal |
 | `translation_memory` | Transitional domain | Knowledge/TM |
-| `preflight`, `library` | Transitional application | Translation, Library |
+| `library` | Transitional application | Library |
+| `preflight` | Composition | Translation |
 | `cli`, `cli_progress` | Interface | CLI |
 | `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation_engine` | Application | One book through a format adapter and a unit executor |
@@ -108,14 +109,18 @@ that no longer waive a forbidden edge fail. Exceptions cannot waive unknown
 imports, syntax/read errors, cycles or missing ownership.
 
 The existing CLI edges expire as application use cases are extracted in #128,
-#145, #146, #149, #150, #152, #157 and composition is consolidated in #158.
+#146, #147, #149, #150, #152, #157 and composition is consolidated in #158.
+#145 removed the CLI's edge to the validator and its use of `translate_epub`. What the
+CLI still imports from `epub_io` is inspect, export and apply-review, for #147 and #149.
 The compatibility CLI-to-config edge now expires in #158: first-use/Settings
 already call shared preference use cases, while legacy config conversion and
 construction stay at this transitional composition boundary.
 The exact CLI-to-project-store construction edge also expires in #158; domain
 and application project modules never import the concrete store.
-Preflight exceptions and the coupling of the `html_translate` compatibility facade
-expire in #145. EPUB pipeline coupling expires in #144, after #141 separates the
+`preflight` builds a translator, a cache and a glossary, so it is composition, and its
+edges to the CLI and to the provider composition expire in #158. The coupling of the
+`html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
+EPUB pipeline coupling expires in #144, after #141 separates the
 provider contract from its HTTP adapter. `html_structure` has no such coupling.
 Review coupling expires in #149. Fuzzy memory's exact-cache and vendor coupling
 expires in #161. Library configuration/process coupling expires in #151.

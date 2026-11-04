@@ -34,19 +34,21 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 
 ## Differences settled by #145
 
-These books open today and stay refused, because each is a risk to the reader or the machine, or is protected
-content. #145 has to give each a clear message:
+These books used to open and are now refused on every path, with a clear message, because each is a risk to the reader
+or the machine, or is protected content:
 
 - Duplicate members, including names that differ only by case or Unicode form.
 - Member names with `..`, an absolute path, a drive letter or a backslash.
 - A document declaring XML entities, and protected content in `encryption.xml`.
+- A book past the adapter's size limits, or whose compression ratio looks like a decompression bomb.
 
 **A defective `mimetype` is accepted and corrected.** It may be missing, not first, compressed or hold other
 content. It carries no risk, so a copy writes it correct and first. Detection still does not believe such a file
 from its extension alone, so a caller names the adapter.
 
 **The adapter accepts two things the current flow does not:** a remote manifest item, which EPUB 3 allows, and a
-processing instruction directly inside `metadata`. Both make `ebooklib` raise today.
+processing instruction directly inside `metadata`. Both make `ebooklib` raise, and the preflight and the validator still
+use `ebooklib`, so these books stay refused until those two move.
 
 **Three differences in the output are deliberate:**
 
@@ -56,5 +58,5 @@ processing instruction directly inside `metadata`. Both make `ebooklib` raise to
   also loses its `&` and anything that looks like a tag.
 - `alt` text holding such characters stays valid, where the current flow writes an invalid document.
 
-**Text warnings become codes.** `validate_output_epub` writes warnings that name files, and findings count them
-by code. Moving to codes loses which file, unless #145 adds a location to a finding.
+**Text warnings stay text.** The report keeps naming the file, because the use case still runs `validate_output_epub`
+behind its port. Moving to the adapter's findings loses which file, unless a finding gains a location first.

@@ -93,6 +93,22 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Atualizado
 
+- `translate`, a tradução guiada e cada livro de um lote agora rodam pelo caso de
+  uso `TranslateProject`, como um job durável com um único resultado final. Prompts,
+  relatórios, nomes de saída e códigos de saída não mudam, salvo o que está abaixo.
+  Dry-run, preview e `resume` continuam sem projeto. Veja
+  `docs/architecture/translate-project.md`.
+- Passam a ser recusados, com mensagem clara e em todos os modos, EPUBs com conteúdo
+  protegido, nomes internos inseguros, arquivos internos repetidos, entidades XML ou
+  além dos limites de tamanho e compressão. Antes eles eram traduzidos.
+- `mimetype` defeituoso agora é corrigido na saída.
+- `--fail-fast` agora termina com uma mensagem, e não com um traceback.
+- A saída não aparece mais durante a escrita: ela é publicada de uma vez no fim, e a
+  validação roda antes disso. Um `--overwrite` só troca o arquivo antigo no fim.
+- Um computador suspenso por mais de uma hora faz a tradução terminar com falha, sem
+  publicar nada. O que foi traduzido fica no cache.
+- A mesma tradução em dois processos ao mesmo tempo é recusada.
+
 - Traducao de HTML agora ocorre por bloco (paragrafos, titulos e itens de
   lista), substituindo tags internas como `em`, `strong` e links por
   placeholders e restaurando-as depois. O cache passa a usar o bloco como
@@ -112,6 +128,9 @@ lancadas e secoes versionadas quando uma release for publicada.
   com regra padrao de arquivo.
 
 ### Corrigido
+
+- `--overwrite` com a saída igual ao original agora é recusado antes de qualquer
+  escrita. Antes o comando terminava com `BadZipFile`.
 
 - `--translate-metadata` e a aplicacao de uma revisao mudam so o texto do titulo no OPF.
   Atributos como `opf:role`, declaracoes de namespace, comentarios e CDATA nao se perdem

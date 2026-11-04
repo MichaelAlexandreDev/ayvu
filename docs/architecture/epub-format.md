@@ -12,10 +12,9 @@ Related issue: [#144 — Implement the production EPUB FormatAdapter](https://gi
 
 ## Decision and scope
 
-EPUB is the first real format behind the [format contract](format-adapter.md). **Nothing in the current translation
-uses it.** `translate_epub`, `apply_reviewed_epub`, `inspect_epub`, the CLI and their reports keep their own code,
-and their output stays outside the artifact store. [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145)
-migrates callers one at a time.
+EPUB is the first real format behind the [format contract](format-adapter.md). **`translate` and the guided
+translation use it**, through [the use case](translate-project.md). Dry run, preview and `resume` keep `translate_epub`,
+and `apply_reviewed_epub` and `inspect_epub` keep their own code until #147 and #149.
 
 | Module | Responsibility |
 | --- | --- |

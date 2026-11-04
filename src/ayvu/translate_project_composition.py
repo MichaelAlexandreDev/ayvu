@@ -6,34 +6,76 @@ raises here, so a caller learns of it before any translator is asked anything.
 """
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .artifact import ArtifactError
 from .artifact_destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
-from .domain import TranslationOptions
+from .domain import OutputPlan, TranslationOptions
 from .epub_format import EPUB_REGISTRATION, epub_format_adapter
-from .epub_io import TranslationReport, _validate_worker_options
+from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB path
+    SelectedChapter,
+    TranslationReport,
+    _validate_worker_options,
+    detect_epub_language,
+    resolve_chapter_selection,
+    translate_epub,
+)
 from .format_local import LocalFormatSource
 from .format_service import FormatRegistry, FormatService
+from .job import JobError
 from .job_events import JobFailure, JobFailureFamily
 from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report, to_review_segment
+from .project import ProjectError
 from .project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from .project_store import ProjectJsonRepository
+from .provenance import ProvenanceError
 from .review_export import ReviewSegment
-from .translate_project import OutputValidation, TranslateProject, TranslateProjectPorts, TranslateProjectResult
+from .translate_project import (
+    OutputValidation,
+    TranslateObserver,
+    TranslateProject,
+    TranslateProjectCommand,
+    TranslateProjectPorts,
+    TranslateProjectResult,
+)
 from .translation_engine import BookFacts, TranslationResources
 from .translation_memory import TranslationMemory
 from .translator import TranslatorError
-from .validation import validate_output_epub
+from .validation import ValidationResult, validate_output_epub
+
+
+# What the adapter refuses by policy, on any path. A book it merely cannot read is left to the current checks.
+BOOK_REFUSALS = frozenset({
+    "archive_too_large", "document_too_large", "duplicate_member", "encrypted_content", "encrypted_member", "entity_declaration",
+    "malformed_encryption", "member_name_too_long", "member_too_large", "protected_member", "source_too_large", "suspicious_compression", "too_many_members",
+    "unsafe_manifest_href", "unsafe_member_name",
+})
+
+
+class BookRefused(RuntimeError):
+    """The book is refused before anything starts. The message is the code, never a name from the book."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
 
 
 def epub_format_service() -> FormatService:
     registry = FormatRegistry()
     registry.register(EPUB_REGISTRATION, epub_format_adapter())
     return FormatService(registry)
+
+
+def check_book(source_path: Path) -> None:
+    """Refuses a book the adapter refuses by policy, including on the paths that never reach the adapter."""
+    failure = epub_format_service().inspect("epub", LocalFormatSource(source_path)).failure
+    if failure is not None and failure.code in BOOK_REFUSALS:
+        raise BookRefused(failure.code)
 
 
 @dataclass(frozen=True, repr=False)
@@ -71,6 +113,9 @@ class LegacyTranslationRuntime:
         try:
             self._prepared = self._prepare()
             _validate_worker_options(self._options, translator_factory=self._prepared.translator_factory, cache_factory=self._cache_factory)
+        except BookRefused as error:
+            self.preflight_error = error
+            return JobFailure(JobFailureFamily.INPUT, error.code)
         except Exception as error:
             self.preflight_error = error
             return JobFailure(JobFailureFamily.RESOURCE, "preflight_failed")
@@ -135,5 +180,71 @@ def open_translate_project(processing_dir: Path, project_id: str, source_path: P
     artifacts = open_artifact_service(paths.database, paths.backups, root, project_id, payloads=payloads, clock=clock)
     provenance = open_provenance_repository(paths.database, paths.backups, project_id, clock=clock)
     ports = TranslateProjectPorts(projects, jobs, provenance, epub_format_service(), DestinationPublications(artifacts, payloads, destination),
-                                  LegacyOutputValidator(destination), LocalFormatSource(source_path), runtime)
+                                  LegacyOutputValidator(destination), LocalFormatSource(source_path), runtime, projects.run_guard(project_id))
     return TranslateProject(ports, clock=clock, **tuning)
+
+
+def validate_output(path: Path, on_progress: Callable[[int, int, str], None] | None = None) -> ValidationResult:
+    """The current validator, for what does not run through the use case."""
+    return validate_output_epub(path, on_progress=on_progress)
+
+
+def translate_without_project(source_path: Path, destination_path: Path, **arguments: object) -> TranslationReport:
+    """The current flow, for what has no project to belong to.
+
+    Dry run and preview create no project on purpose, and neither does the resume command until #146.
+    Everything else goes through ``translate_in_project``.
+    """
+    return translate_epub(source_path, destination_path, **arguments)
+
+
+class ProjectTranslationUnavailable(RuntimeError):
+    """The project's storage could not be opened. Nothing was started, and the message is a bounded code."""
+
+
+@dataclass(frozen=True, repr=False)
+class ProjectTranslation:
+    """One book of one stored project, in the current language work's terms."""
+
+    processing_dir: Path
+    project_id: str
+    source_sha256: str
+    source_path: Path
+    options: TranslationOptions
+    output: OutputPlan
+    replace_existing: bool
+    prepare: Callable[[], LegacyResources]
+    cache_factory: Callable[[], object]
+
+    def __repr__(self) -> str:
+        return f"ProjectTranslation(project_id={self.project_id!r})"
+
+
+@dataclass(frozen=True, repr=False)
+class ProjectTranslationRun:
+    """``report`` is None when the run ended with nothing to report on, as a refusal or a failure does."""
+
+    result: TranslateProjectResult
+    report: TranslationReport | None
+    review_segments: list[ReviewSegment]
+    preflight_error: Exception | None
+
+    def __repr__(self) -> str:
+        return f"ProjectTranslationRun(result={self.result!r})"
+
+
+def translate_in_project(translation: ProjectTranslation, observer: TranslateObserver) -> ProjectTranslationRun:
+    runtime = LegacyTranslationRuntime(translation.source_path, translation.options, translation.prepare, translation.cache_factory)
+    destination = translation.output.path
+    try:
+        use_case = open_translate_project(translation.processing_dir, translation.project_id, translation.source_path, destination,
+                                          overwrite=translation.replace_existing, runtime=runtime)
+    except (ProjectError, JobError, ArtifactError, ProvenanceError, OSError, sqlite3.Error) as error:
+        code = str(error) if isinstance(error, (ProjectError, JobError, ArtifactError, ProvenanceError)) else "project_storage_unavailable"
+        raise ProjectTranslationUnavailable(code) from None
+    result = use_case.execute(TranslateProjectCommand(translation.project_id, translation.source_sha256, translation.options, translation.output,
+                                                      overwrite=translation.replace_existing), observer=observer)
+    engine = result.engine
+    ended_with_a_report = engine.failure is None and result.raised is None and result.job_id is not None and runtime.preflight_error is None
+    report = runtime.report(result, destination) if ended_with_a_report else None
+    return ProjectTranslationRun(result, report, runtime.review_segments(result, destination), runtime.preflight_error)

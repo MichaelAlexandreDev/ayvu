@@ -570,14 +570,16 @@ Para schema, limites e recuperação de escrita interrompida, consulte o
 O repositório também oferece uma API explícita para resolver o banco local
 `projects/<UUID>/project.sqlite` e seus backups em `backups/schema/`.
 O bootstrap SQLite e as migrações são chamados pela composição quando necessários;
-a tradução atual continua sem criar automaticamente esse banco. O manifesto v1
+a tradução com projeto cria esse banco no primeiro uso. O manifesto v1
 e o cache independente permanecem preservados. Consulte o
 [protocolo de migração e recuperação](docs/architecture/project-migrations.md)
 para backup verificado, conflitos, queda de processo e recuperação manual.
 Esse banco também tem o [registro durável de jobs](docs/architecture/job-lifecycle.md),
 o [registro de artefatos e checkpoints](docs/architecture/job-artifacts.md) e o
-[registro de proveniência](docs/architecture/provenance.md), que ainda não são usados
-pela tradução nem pela retomada: elas continuam funcionando como descrito abaixo.
+[registro de proveniência](docs/architecture/provenance.md). Cada tradução com projeto
+vira um job nesse banco, do começo ao resultado final, e o
+[caso de uso](docs/architecture/translate-project.md) explica o que acontece em cada caso.
+Dry-run, preview e o comando `resume` não têm projeto e não criam job.
 Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
 consulta e fragmentos. Autenticação por referências de credenciais é trabalho
 futuro; fingerprints do manifesto continuam sendo metadados privados.
@@ -835,6 +837,15 @@ ayvu/
 
 ## Limitações
 
+- O Ayvu recusa EPUBs com conteúdo protegido, nomes de arquivo internos inseguros,
+  arquivos internos repetidos, declarações de entidade XML, ou além dos limites de
+  tamanho e compressão, em qualquer modo. Fontes com a ofuscação padrão do EPUB são
+  aceitas.
+- Se o computador ficar suspenso por mais de uma hora durante uma tradução, ela
+  termina com falha e nada é publicado. O que foi traduzido fica no cache, então
+  repetir o comando é rápido.
+- A mesma tradução não roda duas vezes ao mesmo tempo. Se o processo anterior foi
+  encerrado à força, repetir o comando funciona na hora.
 - EPUBs com XHTML malformado podem depender do comportamento do parser.
 - Livros técnicos costumam exigir glossário para manter termos consistentes.
 - A qualidade final depende do servidor de tradução usado.

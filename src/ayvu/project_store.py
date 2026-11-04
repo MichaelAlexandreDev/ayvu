@@ -11,6 +11,7 @@ import os
 import stat
 import tempfile
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
@@ -173,7 +174,7 @@ def build_project_request(
 
 
 @contextmanager
-def _workspace_lock(path: Path):
+def _workspace_lock(path: Path, timeout: float = LOCK_TIMEOUT_SECONDS):
     flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
     stream = os.fdopen(os.open(_safe_components(path), flags, 0o600), "r+b")
     locked = False
@@ -184,7 +185,7 @@ def _workspace_lock(path: Path):
         if info.st_size == 0:
             stream.write(b"0")
             stream.flush()
-        deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
+        deadline = time.monotonic() + timeout
         while True:
             try:
                 if os.name == "nt":
@@ -328,6 +329,15 @@ class ProjectJsonRepository:
                 raise ProjectStoreError('invalid_project_artifact_directory')
             return root
 
+    def run_guard(self, project_id: str) -> "ProjectRunGuard":
+        with self._transaction():
+            project = self._load(project_id)
+            directory = self._manifest_path(project.project_id).parent
+            root = _safe_components(directory / 'runs')
+            if not root.is_relative_to(directory):
+                raise ProjectStoreError('invalid_project_storage_path')
+            return ProjectRunGuard(root)
+
     def _check_source(self, request: ProjectRequest) -> None:
         canonical, size, digest = _fingerprint(Path(request.source_path))
         if Path(canonical).is_relative_to(self.root):
@@ -421,3 +431,37 @@ class ProjectJsonRepository:
                 raise ProjectStoreError("project_commit_uncertain") from None
         finally:
             temporary.unlink(missing_ok=True)
+
+
+class ProjectRunGuard:
+    """One lock file per plan, held for a whole run.
+
+    The system drops the lock when its process ends, however it ends, which a lease cannot tell: a lease
+    outlives a killed process for up to an hour. The files stay, because removing one could split a lock
+    between two processes.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self._root = root
+
+    def __repr__(self) -> str:
+        return "ProjectRunGuard()"
+
+    @contextmanager
+    def exclusive(self, input_fingerprint: str) -> Iterator[bool]:
+        """Yields whether this run is the only live one for the plan. A store that cannot lock raises."""
+        name = hashlib.sha256(input_fingerprint.encode()).hexdigest()
+        entered = False
+        try:
+            self._root.mkdir(parents=True, exist_ok=True, mode=0o700)
+            with _workspace_lock(self._root / f"{name}.lock", timeout=0):
+                entered = True
+                yield True
+        except ProjectStoreError as error:
+            if entered or str(error) != "workspace_busy":
+                raise
+            yield False
+        except OSError:
+            if entered:
+                raise
+            raise ProjectStoreError("run_guard_unavailable") from None

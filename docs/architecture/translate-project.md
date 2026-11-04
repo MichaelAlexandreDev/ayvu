@@ -5,8 +5,8 @@ Related issue: [#145 — Extract the translate-project application use case](htt
 `TranslateProject` translates one book of one stored project as one durable job, for any consumer. It imports no
 framework, store, format or provider: it receives them as ports from a composition root.
 
-**Nothing but the tests calls it yet.** Every command keeps the current flow until the CLI migrates, in the next step
-of #145. Until then, translating a book still creates no job.
+`translate` and the guided translation run through it, one book at a time, and so does each book of a batch. Dry run,
+preview and the `resume` command have no project, so they keep the current flow behind `translate_without_project`.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -20,7 +20,8 @@ of #145. Until then, translating a book still creates no job.
 1. **Refusals, with no job created.** The project must load, its language pair must match, and the source on disk must
    still be the revision the project records. A job store that cannot be opened stops here too, before any provider.
 2. **Reconciliation.** Whatever an earlier run left behind in this project is settled first.
-3. **Duplicates.** The same plan with a live lease is refused as `job_in_progress`. A plan that ended earlier is new work.
+3. **Duplicates.** The run takes the plan's guard. If another live process holds it, the run is refused as
+   `job_in_progress`. A plan that ended earlier is new work.
 4. **The job.** `queued -> preflight`, then the provider and cache checks. Their failure ends the job as `failed`.
 5. **The book.** `running`. The engine extracts, translates and reconstructs.
 6. **Staging.** The bytes go to a temporary file next to the destination, are read back and checked.
@@ -82,11 +83,25 @@ Reconciliation runs at the start of every execution, and through `reconcile()`.
 | Crash right after publishing | `ready` | `partially_completed`, `interrupted_after_publication` | Output kept, temporary name removed |
 | Crash after the record went ready | `ready` | `partially_completed`, `interrupted_after_publication` | Output kept |
 
-A job is settled only if its lease has expired, or if it has none in a state that needs one. A job with a live lease is
-left alone. Ctrl+C is handled in place by the same rules, and it still reaches the caller.
+A job is settled only if its lease has expired, if it has none in a state that needs one, or if it is on this run's own
+plan and the guard shows its owner is gone. Any other job with a live lease is left alone. Ctrl+C is handled in place by
+the same rules, and it still reaches the caller.
 
 A crash is judged by the bytes. If a file with exactly the expected bytes appeared at the destination by other means,
 the run cannot tell it from its own, and it ends as `publication_uncommitted` and not as a conflict.
+
+## The run guard
+
+A lease cannot say that its process died: after a `kill`, a closed terminal or a power cut it stays live for up to an
+hour, and repeating the command would be refused for that whole time. So each run also holds one lock file per plan, in
+`projects/<UUID>/runs/`, and the system releases it when the process ends, however it ends.
+
+Holding the guard therefore proves that a live lease on this plan belongs to nobody, and the run takes that job over and
+settles it. A job on another plan is left to its lease, and a queued job holds nothing and waits for its lease to expire.
+The guard also makes the duplicate check atomic across processes. The lock files stay, because removing one could split a
+lock between two processes.
+
+Two runs of one book on different plans, such as different outputs, can still run together.
 
 ## Leases
 
@@ -94,7 +109,8 @@ A separate thread renews the lease every 5 minutes, up to the 1-hour maximum, be
 can outlast any safe point. A run that loses its lease cannot publish, because the artifact store checks it.
 
 **A computer asleep for more than an hour loses the lease.** That run ends as `failed`, `lease_expired`. The cache keeps
-what was translated, so running it again is quick. This is new: today the same run would carry on after waking up.
+what was translated, so running it again is quick. This is new: before #145 the same run would carry on after waking up.
+The run keeps translating after it wakes, and it learns of the loss only when it tries to publish.
 
 ## Cancellation
 
@@ -106,9 +122,20 @@ as it would have. A worker that commits to cancelling wins over a failure in ano
 ## What it does not do
 
 - **Dry run and preview are refused as commands.** They need no project and create none, and identity must never be
-  made up to fit them, so they stay on the current flow behind their own adapter when the CLI migrates.
+  made up to fit them, so they stay on the current flow behind `translate_without_project`.
 - **It claims nothing about the producer.** The lineage record says `unknown` for provider, model, adapter and pipeline,
   because the v1 cache cannot say which produced a text. #153 and #146 replace this.
-- **It does not resume.** A job that ended stays ended, and `resume` keeps working from its own file until #146.
-- **Two processes can both pass the duplicate check**, since it is not atomic with creating the job. Neither can
-  overwrite the other's output without `--overwrite`, and with it each swap is atomic and the last one stands.
+- **It does not resume.** A job that ended stays ended, and `resume` keeps working from its own file until #146. That
+  file is still kept by the CLI, chapter by chapter, around the use case.
+- **It does not write the review CSV.** The CLI writes it from the result until #149.
+
+## What the CLI adds
+
+`ayvu.cli` turns each failure code into a message in its own table, and shows the exception's text only in developer
+mode. A book the adapter refuses by policy (protected content, unsafe names, duplicates, entities, the size and
+compression limits) is refused by `check_book` on every path, including dry run, preview and `resume`, before any
+translator is asked and before a resume file is written. A book the adapter merely cannot read is still judged by the
+current preflight, with its current message.
+
+A provider's empty `translatedText` stays a success on this path, as it is today, because it still runs through the
+current translator. #153 settles it with the rich path.

@@ -3,7 +3,6 @@
 This is the application's whole answer to "translate this project": it checks the project and its
 source revision, then owns the job from creation to its one terminal outcome, while the engine does
 the book and the injected ports do everything concrete. It imports no framework, store or provider.
-Nothing but the tests calls it yet. The CLI moves onto it in the next step of #145.
 
 Dry run and preview are refused here on purpose. They need no project and create none, and identity
 must never be made up to fit them, so they stay on the current path behind their own adapter.
@@ -174,6 +173,15 @@ class ProvenanceWriter(Protocol):
     def append(self, request: ProvenanceRequest) -> object: ...
 
 
+class RunGuard(Protocol):
+    """Says, for as long as it is held, whether this is the only live run of a plan.
+
+    It has to end with its process, however that process ends. A store that cannot tell raises ``ProjectError``.
+    """
+
+    def exclusive(self, input_fingerprint: str) -> AbstractContextManager[bool]: ...
+
+
 @dataclass(frozen=True, repr=False)
 class TranslateProjectPorts:
     projects: ProjectReader
@@ -184,6 +192,7 @@ class TranslateProjectPorts:
     validator: OutputValidator
     source: FormatSource
     runtime: TranslationRuntime
+    runs: RunGuard
 
     def __repr__(self) -> str:
         return "TranslateProjectPorts()"
@@ -361,17 +370,32 @@ class TranslateProject:
             return refused(JobFailureFamily.CAPABILITY, "unknown_adapter")
         plan = resolve_plan(command, project)
         try:
-            self.reconcile(command.project_id)
-            active = ports.jobs.list_jobs(command.project_id, states=_OWN_STATES)
-            if any(item.job.request.input_fingerprint == plan.input_fingerprint and not item.requires_reconciliation
-                   and item.job.lease is not None for item in active):
-                return refused(JobFailureFamily.POLICY, "job_in_progress")
-            job = ports.jobs.create(JobRequest(command.project_id, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION,
-                                               plan.input_fingerprint, (OUTPUT_ROLE,)))
-            job = ports.jobs.acquire_lease(job.job_id, self._lease_duration)
-        except (JobError, ArtifactError) as error:
+            with ports.runs.exclusive(plan.input_fingerprint) as alone:
+                if not alone:
+                    return refused(JobFailureFamily.POLICY, "job_in_progress")
+                try:
+                    self._take_over(command.project_id, plan.input_fingerprint)
+                    job = ports.jobs.create(JobRequest(command.project_id, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION,
+                                                       plan.input_fingerprint, (OUTPUT_ROLE,)))
+                    job = ports.jobs.acquire_lease(job.job_id, self._lease_duration)
+                except (JobError, ArtifactError) as error:
+                    return refused(JobFailureFamily.RESOURCE, _safe_code(error, "job_store_unavailable"))
+                return _Run(self, ports, command, project, plan, job, source, observer or TranslateObserver()).execute()
+        except ProjectError as error:
             return refused(JobFailureFamily.RESOURCE, _safe_code(error, "job_store_unavailable"))
-        return _Run(self, ports, command, project, plan, job, source, observer or TranslateObserver()).execute()
+
+    def _take_over(self, project_id: str, input_fingerprint: str) -> None:
+        """Holding the guard proves that whoever held a live lease on this plan is gone, so the lease is released.
+
+        A queued job keeps its lease until it expires, because it holds nothing and reconciliation leaves it alone.
+        """
+        ports = self._ports
+        for snapshot in ports.jobs.list_jobs(project_id, states=_OWN_STATES):
+            job = snapshot.job
+            if (job.request.input_fingerprint == input_fingerprint and job.lease is not None
+                    and not snapshot.requires_reconciliation and job.state is not JobState.QUEUED):
+                ports.jobs.release_lease(job.job_id, job.lease.owner_token)
+        self.reconcile(project_id)
 
 
 def _safe_code(error: Exception, fallback: str) -> str:
