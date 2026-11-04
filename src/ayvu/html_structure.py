@@ -478,6 +478,15 @@ def html_unit_template(unit: TranslationUnit) -> str:
     return "".join(pieces)
 
 
+def without_xml_invalid(text: str) -> str:
+    return _XML_INVALID.sub("", text)
+
+
+def normalize_translated_text(text: str) -> str:
+    """What an XML parser would do to a provider's text, so that reconstruction never refuses it."""
+    return without_xml_invalid(text).replace("\r\n", "\n").replace("\r", "\n")
+
+
 def _plan(segment: _Segment, text: str) -> list:
     """Checks every token of one unit, and returns plain text and part positions in order. Touches no node."""
     plain_translation = TAG_TOKEN_PATTERN.sub(" ", text)

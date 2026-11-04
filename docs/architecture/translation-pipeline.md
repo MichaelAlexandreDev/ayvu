@@ -23,8 +23,9 @@ There are two paths through the same stages:
 | Rich | `DocumentTranslator` | Real project, job, document and unit | Artifact, provenance and events |
 
 **The current translation uses only the legacy path**, so `translate_text` keeps its signature,
-results, messages and v1 cache key. Nothing in production calls the rich path until
-[#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145).
+results, messages and v1 cache key. [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) keeps
+that path, as [the engine](#the-engine) explains, so nothing in production calls the rich path until
+[#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153) gives it a cache.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -32,6 +33,8 @@ results, messages and v1 cache key. Nothing in production calls the rich path un
 | `ayvu.translation_plan` | Domain | The resolved plan, stage identities and fingerprints |
 | `ayvu.translation_pipeline` | Application | The stages, their ports and the legacy facade |
 | `ayvu.translation_document` | Application | The rich path: per-unit results, document artifact, replay, events and provenance |
+| `ayvu.translation_engine` | Application | One book through a format adapter and a unit executor, under the current flow's rules |
+| `ayvu.legacy_translation` | Format | The executor over `translate_text` and the v1 cache, and the current report's types |
 | `ayvu.html_structure` | Format | Traversal, durable units and markup-safe reconstruction |
 | `ayvu.html_translate` | Format | The compatibility facade, and `translate_text` adapting the current types to it |
 
@@ -58,6 +61,30 @@ Outer whitespace comes back last.
 
 `tests/test_translate_text_characterization.py` states these, and it was written and passing
 against the code before this extraction.
+
+## The engine
+
+`TranslationEngine` reads a book through the format adapter, hands each unit to an executor and gives the results
+back to the adapter. It parses no markup and calls no provider. It exists because the rich path cannot replace the
+current translation yet:
+
+| Rich path | What the current flow needs |
+| --- | --- |
+| Stops the document at the first failure | A failed text stays in the source language and the run goes on |
+| No production cache until #153 | Running a book again reuses the v1 cache |
+| Resuming needs #146 | The current `resume` keeps working from its file |
+
+#153 and #146 both depend on #145, so neither can come first. `ayvu.legacy_translation` is the named compatibility
+path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
+extraction needs a real project.
+
+**The current flow is the oracle.** `tests/test_translation_engine.py` runs both over the same books and compares
+the bytes, the order of provider calls, the cache, the report, the progress and the review rows.
+[Format compatibility](format-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
+`texts_skipped` is left at zero: only the current report object holds it, and nothing shows it.
+
+**Nothing in the current translation calls the engine yet.** Dry run and the preview stay on the current flow when
+callers migrate, because they create no project and so have no identity to give the adapter.
 
 ## The legacy facade
 

@@ -186,11 +186,6 @@ def test_a_corrupted_member_is_a_code():
 
 
 @pytest.mark.parametrize("build,code", [
-    (lambda: epub_bytes(drop=("mimetype",)), "missing_mimetype"),
-    (lambda: zip_bytes([*members()[1:], members()[0]]), "mimetype_not_first"),
-    (lambda: zip_bytes([("mimetype", b"application/epub+zip", ZIP_DEFLATED), *members()[1:]]), "mimetype_compressed"),
-    (lambda: epub_bytes(replace={"mimetype": b"text/plain"}), "invalid_mimetype"),
-    (lambda: epub_bytes(replace={"mimetype": b"application/epub+zipX"}), "invalid_mimetype"),
     (lambda: epub_bytes(drop=("META-INF/container.xml",)), "missing_container"),
     (lambda: epub_bytes(replace={"META-INF/container.xml": b"<not-xml"}), "malformed_container"),
     (lambda: epub_bytes(replace={"META-INF/container.xml": b"<container/>"}), "malformed_container"),
@@ -212,7 +207,7 @@ def test_a_corrupted_member_is_a_code():
     (lambda: epub_bytes(replace=opf_with(b'href="style.css"', b'href="/etc/passwd"')), "unsafe_manifest_href"),
     (lambda: epub_bytes(replace=opf_with(b'href="style.css"', b'href="a\\b.css"')), "unsafe_manifest_href"),
     (lambda: epub_bytes(replace=opf_with(b'href="style.css"', b'href="..%2F..%2F..%2Fetc%2Fpasswd"')), "unsafe_manifest_href"),
-], ids=range(26))
+], ids=range(21))
 def test_a_broken_structure_is_a_structured_failure(build, code):
     refused(build(), code)
 
@@ -433,3 +428,34 @@ def test_a_remote_manifest_item_stops_only_the_current_flow(tmp_path):
         epub.read_epub(str(path))
     with opened(path.read_bytes()) as archive:
         assert archive.package.documents
+
+
+@pytest.mark.parametrize("data", [
+    epub_bytes(drop=("mimetype",)),
+    zip_bytes([*members()[1:], members()[0]]),
+    zip_bytes([("mimetype", b"application/epub+zip", ZIP_DEFLATED), *members()[1:]]),
+    epub_bytes(replace={"mimetype": b"text/plain"}),
+    epub_bytes(replace={"mimetype": b"application/epub+zipX"}),
+    zip_bytes([("first.txt", b"x" * 20, ZIP_STORED), *members()]),
+], ids=["missing", "not-first", "compressed", "other-content", "longer-content", "stored-member-first"])
+def test_a_defective_mimetype_is_accepted_and_a_copy_corrects_it(data):
+    with opened(data) as archive:
+        assert not archive.mimetype_is_valid
+        before = [name for name in archive.names() if name != "mimetype"]
+        output = io.BytesIO()
+        archive.copy_to(output, {})
+    written = output.getvalue()
+    assert written[:4] == b"PK\x03\x04" and written[30:58] == b"mimetypeapplication/epub+zip"
+    with opened(written) as copy:
+        assert copy.mimetype_is_valid and copy.names() == ("mimetype", *before)
+        assert all(copy.read(name, 1024 ** 2) == ZipFile(io.BytesIO(data)).read(name) for name in before)
+
+
+def test_a_valid_mimetype_is_copied_as_it_is():
+    data = epub_bytes()
+    with opened(data) as archive:
+        assert archive.mimetype_is_valid
+        output = io.BytesIO()
+        archive.copy_to(output, {})
+    source, written = ZipFile(io.BytesIO(data)).getinfo("mimetype"), ZipFile(io.BytesIO(output.getvalue())).getinfo("mimetype")
+    assert (written.date_time, written.external_attr, written.create_system) == (source.date_time, source.external_attr, source.create_system)

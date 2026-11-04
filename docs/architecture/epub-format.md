@@ -28,6 +28,7 @@ It imports no provider, cache, glossary or interface, even indirectly, and a tes
 ## Reading
 
 Every check below runs before any unbounded read, and each failure is a bounded code that quotes nothing.
+A defective `mimetype` is not among them: a copy writes it correct and first.
 
 | Refused | Code |
 | --- | --- |
@@ -35,7 +36,6 @@ Every check below runs before any unbounded read, and each failure is a bounded 
 | Two names equal after case and Unicode normalization | `duplicate_member` |
 | A member marked as encrypted | `encrypted_member` |
 | Compression other than stored or deflate | `unsupported_compression` |
-| `mimetype` missing, not first, compressed or with other content | `missing_mimetype`, `mimetype_not_first`, `mimetype_compressed`, `invalid_mimetype` |
 | `container.xml` or the OPF missing or malformed | `missing_container`, `malformed_container`, `missing_package`, `malformed_package` |
 | A manifest item missing from the archive, or an `href` leaving it | `manifest_member_missing`, `unsafe_manifest_href` |
 | `encryption.xml` covering a document or the OPF, or using any other algorithm than font obfuscation | `encrypted_content` |

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 
+import pytest
 import requests
 from typer.testing import CliRunner
 
@@ -14,6 +15,13 @@ from ayvu.resume import COMPLETED_STATUS, RUNNING_STATUS, ResumeStateStore
 
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def _isolated_from_the_user(tmp_path, monkeypatch):
+    """The CLI's defaults are relative to the working directory and the home folder, which hold real books and caches."""
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.chdir(tmp_path)
 
 
 class FakeLibreTranslateSession:
@@ -446,3 +454,247 @@ def test_review_export_and_apply_review_cli_round_trip(tmp_path, monkeypatch):
     assert "Reviewed EPUB saved to:" in reviewed.output
     assert "Reviewed reader." in _read_member(reviewed_path, "OEBPS/text/chapter1.xhtml")
     assert source_path.read_bytes() == source_bytes
+
+
+# The translation command as a user meets it, through the CLI and a fake HTTP server only.
+# #145 moves what is behind it, so nothing here may patch anything inside Ayvu's translation.
+
+class FailingSession(FakeLibreTranslateSession):
+    def __init__(self, languages, failing_text: str) -> None:
+        super().__init__(languages)
+        self.failing_text = failing_text
+
+    def post(self, url: str, *, json: dict[str, str], timeout: float) -> requests.Response:
+        if self.failing_text in json["q"]:
+            self.posts.append(dict(json))
+            raise requests.exceptions.ConnectionError("translator went away")
+        return super().post(url, json=json, timeout=timeout)
+
+
+def _run_translate(tmp_path, monkeypatch, *extra, session=None, source_path=None, input=None):
+    source_path = source_path or _write_epub(tmp_path / "book.epub")
+    session = session or FakeLibreTranslateSession(_direct_languages())
+    _install_cli_environment(monkeypatch, tmp_path, session)
+    args = _translate_args(source_path, tmp_path / "cache.sqlite", output_path=tmp_path / "out.epub")
+    result = runner.invoke(app, [*args, *extra], input=input)
+    return result, session, tmp_path / "out.epub", source_path
+
+
+def _report_value(output: str, label: str) -> str:
+    for line in output.splitlines():
+        if label in line:
+            return line.split(label, 1)[1].strip(" │|")
+    raise AssertionError(f"{label} not in report:\n{output}")
+
+
+def _members(path: Path) -> dict[str, bytes]:
+    with ZipFile(path) as archive:
+        return {info.filename: archive.read(info) for info in archive.infolist()}
+
+
+def test_translate_cli_reports_what_it_did(tmp_path, monkeypatch):
+    result, session, output, source = _run_translate(tmp_path, monkeypatch)
+
+    assert result.exit_code == 0, result.output
+    assert _report_value(result.output, "Chapters processed") == "2"
+    assert _report_value(result.output, "Texts translated") == str(len(session.posts))
+    assert _report_value(result.output, "Errors") == "0"
+    assert _report_value(result.output, "Validation warnings") == "0"
+    assert list(_members(output)) == list(_members(source))
+
+
+def test_translate_cli_leaves_title_navigation_and_alt_alone_by_default(tmp_path, monkeypatch):
+    result, session, output, source = _run_translate(tmp_path, monkeypatch)
+
+    assert result.exit_code == 0, result.output
+    written, original = _members(output), _members(source)
+    assert written["OEBPS/content.opf"] == original["OEBPS/content.opf"]
+    assert written["OEBPS/nav.xhtml"] == original["OEBPS/nav.xhtml"]
+    assert 'alt="pixel"' in written["OEBPS/text/chapter1.xhtml"].decode()
+    assert not [payload for payload in session.posts if "Characterization Book" in payload["q"] or payload["q"] == "pixel"]
+
+
+def test_translate_cli_translates_title_navigation_and_alt_when_asked(tmp_path, monkeypatch):
+    result, session, output, _ = _run_translate(tmp_path, monkeypatch, "--translate-metadata", "--translate-alt-text")
+
+    assert result.exit_code == 0, result.output
+    written = _members(output)
+    assert b"<dc:title>PT:Characterization Book</dc:title>" in written["OEBPS/content.opf"]
+    assert b"PT:" in written["OEBPS/nav.xhtml"]
+    assert 'alt="PT:pixel"' in written["OEBPS/text/chapter1.xhtml"].decode()
+    assert _report_value(result.output, "Alt texts translated") == "1"
+    assert session.posts[0]["q"] == "Characterization Book"
+
+
+def test_translate_cli_translates_only_the_selected_chapter(tmp_path, monkeypatch):
+    result, session, output, source = _run_translate(tmp_path, monkeypatch, "--chapters", "2")
+
+    assert result.exit_code == 0, result.output
+    written, original = _members(output), _members(source)
+    assert written["OEBPS/text/chapter1.xhtml"] == original["OEBPS/text/chapter1.xhtml"]
+    assert b"PT:Goodbye reader." in written["OEBPS/text/chapter2.xhtml"]
+    assert _report_value(result.output, "Chapters processed") == "1"
+    assert not [payload for payload in session.posts if "Hello" in payload["q"]]
+
+
+def test_translate_cli_refuses_a_selection_that_matches_nothing(tmp_path, monkeypatch):
+    result, session, output, _ = _run_translate(tmp_path, monkeypatch, "--chapters", "99")
+
+    assert result.exit_code == 1
+    assert "no chapters matched selection: 99" in " ".join(result.output.split())
+    assert not output.exists() and not session.posts
+
+
+def test_translate_cli_dry_run_writes_nothing_and_calls_nothing(tmp_path, monkeypatch):
+    result, session, output, _ = _run_translate(tmp_path, monkeypatch, "--dry-run")
+
+    assert result.exit_code == 0, result.output
+    assert not output.exists() and not session.posts
+    assert not list((tmp_path / "processing").glob("projects/*/project.json"))
+
+
+def test_translate_cli_cache_only_uses_the_cache_and_lists_what_is_missing(tmp_path, monkeypatch):
+    source = _write_epub(tmp_path / "book.epub")
+    first, session, _, _ = _run_translate(tmp_path, monkeypatch, "--chapters", "1", source_path=source)
+    assert first.exit_code == 0, first.output
+    calls = len(session.posts)
+
+    missing = tmp_path / "missing.txt"
+    result, session, output, _ = _run_translate(
+        tmp_path, monkeypatch, "--cache-only", "--overwrite", "--missing-output", str(missing), source_path=source, session=session)
+
+    assert result.exit_code == 0, result.output
+    assert len(session.posts) == calls
+    written = _members(output)
+    assert b"PT:Hello title" in written["OEBPS/text/chapter1.xhtml"]
+    assert b"PT:" not in written["OEBPS/text/chapter2.xhtml"]
+    assert _report_value(result.output, "Texts missing") == "3"
+    assert "Goodbye reader." in missing.read_text(encoding="utf-8")
+
+
+def test_translate_cli_require_full_cache_writes_nothing_when_something_is_missing(tmp_path, monkeypatch):
+    result, session, output, _ = _run_translate(tmp_path, monkeypatch, "--cache-only", "--require-full-cache")
+
+    assert result.exit_code == 1
+    assert not output.exists() and not session.posts
+
+
+def test_translate_cli_keeps_going_after_a_failed_text_and_reports_it(tmp_path, monkeypatch):
+    session = FailingSession(_direct_languages(), "Goodbye reader.")
+    result, _, output, _ = _run_translate(tmp_path, monkeypatch, session=session)
+
+    assert _report_value(result.output, "Errors") == "1"
+    written = _members(output)
+    assert b"<p>Goodbye reader.</p>" in written["OEBPS/text/chapter2.xhtml"]
+    assert b"PT:Chapter two" in written["OEBPS/text/chapter2.xhtml"]
+    assert b"PT:Hello title" in written["OEBPS/text/chapter1.xhtml"]
+
+
+def test_translate_cli_fail_fast_stops_without_an_output(tmp_path, monkeypatch):
+    session = FailingSession(_direct_languages(), "Goodbye reader.")
+    result, _, output, _ = _run_translate(tmp_path, monkeypatch, "--fail-fast", session=session)
+
+    assert result.exit_code != 0
+    assert not output.exists()
+
+
+def test_translate_cli_refuses_to_replace_an_output_unless_told(tmp_path, monkeypatch):
+    output = tmp_path / "out.epub"
+    output.write_bytes(b"precious")
+    result, session, _, _ = _run_translate(tmp_path, monkeypatch)
+
+    assert result.exit_code == 1
+    assert output.read_bytes() == b"precious" and not session.posts
+
+    replaced, _, _, _ = _run_translate(tmp_path, monkeypatch, "--overwrite")
+    assert replaced.exit_code == 0, replaced.output
+    assert output.read_bytes()[:2] == b"PK"
+
+
+def test_translate_cli_keeps_the_output_and_exits_one_on_validation_warnings(tmp_path, monkeypatch):
+    source = _write_epub(tmp_path / "book.epub", chapter_two='<p><a href="gone.xhtml">Broken link</a></p>')
+    result, _, output, _ = _run_translate(tmp_path, monkeypatch, source_path=source)
+
+    assert result.exit_code == 1
+    assert output.exists()
+    assert _report_value(result.output, "Validation warnings") == "1"
+    assert "gone.xhtml" in result.output
+
+
+def test_translate_cli_with_workers_matches_a_sequential_run(tmp_path, monkeypatch):
+    sequential, _, output, source = _run_translate(tmp_path, monkeypatch, "--workers", "1")
+    assert sequential.exit_code == 0, sequential.output
+    expected = _members(output)
+    output.unlink()
+    (tmp_path / "cache.sqlite").unlink()
+
+    parallel, _, output, _ = _run_translate(tmp_path, monkeypatch, "--workers", "2", source_path=source)
+
+    assert parallel.exit_code == 0, parallel.output
+    assert _members(output) == expected
+
+
+def test_translate_cli_translation_memory_reuses_a_similar_text(tmp_path, monkeypatch):
+    first_book = _write_epub(tmp_path / "first.epub", chapter_one="<p>The quick brown fox jumps over the lazy dog</p>")
+    first, session, output, _ = _run_translate(tmp_path, monkeypatch, source_path=first_book)
+    assert first.exit_code == 0, first.output
+    output.unlink()
+    second_book = _write_epub(tmp_path / "second.epub", chapter_one="<p>The quick brown fox jumps over the lazy dog!</p>")
+    session.posts.clear()
+
+    result, session, output, _ = _run_translate(
+        tmp_path, monkeypatch, "--translation-memory", "--tm-apply-threshold", "0.9", "--tm-suggest-threshold", "0.8",
+        source_path=second_book, session=session)
+
+    assert result.exit_code == 0, result.output
+    assert _report_value(result.output, "Texts from memory") == "1"
+    assert b"PT:The quick brown fox jumps over the lazy dog" in _members(output)["OEBPS/text/chapter1.xhtml"]
+
+
+def test_translate_cli_never_changes_the_original_even_when_it_fails(tmp_path, monkeypatch):
+    source = _write_epub(tmp_path / "book.epub")
+    before = source.read_bytes()
+    session = FailingSession(_direct_languages(), "Hello title")
+    _run_translate(tmp_path, monkeypatch, "--fail-fast", session=session, source_path=source)
+
+    assert source.read_bytes() == before
+
+
+def test_translate_cli_reports_an_unreadable_book_without_a_traceback(tmp_path, monkeypatch):
+    source = tmp_path / "broken.epub"
+    source.write_bytes(b"not an epub")
+    result, session, output, _ = _run_translate(tmp_path, monkeypatch, source_path=source)
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output and not session.posts and not output.exists()
+
+
+def test_batch_translate_cli_translates_each_book_into_the_directory(tmp_path, monkeypatch):
+    first = _write_epub(tmp_path / "first.epub")
+    second = _write_epub(tmp_path / "second.epub")
+    session = FakeLibreTranslateSession(_direct_languages())
+    _install_cli_environment(monkeypatch, tmp_path, session)
+    target = tmp_path / "batch"
+    args = _translate_args(first, tmp_path / "cache.sqlite", output_dir=target)
+    position = args.index(str(first))
+    result = runner.invoke(app, [*args[:position + 1], str(second), *args[position + 1:]])
+
+    assert result.exit_code == 0, result.output
+    assert sorted(path.name for path in target.glob("*.epub")) == ["first-pt.epub", "second-pt.epub"]
+
+
+def test_preview_cli_translates_only_the_first_documents_and_keeps_project_state_empty(tmp_path, monkeypatch):
+    source = _write_epub(tmp_path / "book.epub")
+    session = FakeLibreTranslateSession(_direct_languages())
+    processing = _install_cli_environment(monkeypatch, tmp_path, session)
+    result = runner.invoke(app, ["--mode", "developer", "--preview", str(source)])
+
+    assert result.exit_code == 0, result.output
+    assert session.posts
+    preview = tmp_path / "home" / "Documentos" / "Livros" / "Preview" / "book-preview.epub"
+    assert b"PT:Hello title" in _members(preview)["OEBPS/text/chapter1.xhtml"]
+    assert not list(processing.glob("projects/*/project.json"))
+
+
+def test_these_tests_cannot_reach_the_users_folders(tmp_path):
+    assert Path.home() == tmp_path / "home" and Path.cwd() == tmp_path
