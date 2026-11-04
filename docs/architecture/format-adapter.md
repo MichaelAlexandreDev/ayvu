@@ -57,6 +57,10 @@ A new member is therefore a code change that every adapter has to answer for.
 | `not_applicable` | None | Yes, because there is nothing to lose | Yes |
 | `unknown` | None | No | No |
 
+A descriptor lists every locator schema it uses, since one format can place content in more than one way, such as
+a body and a package file. An inventory lists each document's logical key and title, which is what an application
+needs to resolve a selection before extraction.
+
 The aspects are structure, inline markup, styles, images, links, navigation, metadata and internal names, and
 they describe what preview and reconstruction write. A format that writes nothing cannot claim to preserve
 anything. `maturity` is informative, and negotiation never reads it.

@@ -12,7 +12,7 @@ from ayvu.content import AdapterIdentity, Locator, UnitContent, build_document
 from ayvu.format_adapter import (
     MAX_DETECTION_BYTES, AliasVerdict, ContentScope, DetectionEvidence, DetectionOutcome, ExtractionRequest, ExtractionResult, FidelityAspect,
     FidelityClaim, FidelityLevel, FidelityRequirement, FindingSeverity, FormatCancelledError, FormatError, FormatInventory,
-    FormatLimits, FormatMaturity, FormatOperation, FormatOperationError, FormatRequirements, FormatSignature, InspectionResult, MaterializationResult,
+    FormatLimits, FormatMaturity, FormatOperation, FormatOperationError, InventoryDocument, FormatRequirements, FormatSignature, InspectionResult, MaterializationResult,
     OperationClaim, OperationSupport, PreviewRequest, ReconstructionRequest, UnitTranslation, ValidationFinding, ValidationResult, negotiate_format,
 )
 from ayvu.format_local import LocalFormatSource, LocalOutputGuard
@@ -136,11 +136,12 @@ def test_a_format_that_extracts_must_state_scopes_and_one_that_does_not_cannot()
 
 
 @pytest.mark.parametrize("changes", [
-    {"adapter": "notes"}, {"locator_schema": "Bad"}, {"locator_version": 0}, {"locator_version": True}, {"contract_version": 0},
+    {"adapter": "notes"}, {"locators": ()}, {"locators": ("x", 1)}, {"locators": (("Bad", 1),)}, {"locators": (("x", 0),)}, {"locators": (("x", True),)},
+    {"locators": (("x", 1), ("x", 1))}, {"contract_version": 0},
     {"media_types": ("nope",)}, {"extensions": ("notes",)}, {"extensions": (".NOTES",)}, {"extensions": (".a", ".a")},
     {"format_versions": ("../x",)}, {"signatures": (b"x",)}, {"limits": 5}, {"maturity": "stable"}, {"content_scopes": frozenset({"body"})},
     {"operations": []}, {"fidelity": "all"}, {"extensions": (), "media_types": ()},
-], ids=lambda value: next(iter(value)))
+], ids=range(20))
 def test_malformed_descriptors_cannot_be_built(changes):
     with pytest.raises(FormatError, match="^invalid_descriptor$"):
         notes_descriptor(**changes)
@@ -228,8 +229,8 @@ def test_descriptors_are_listed_in_a_fixed_order():
     (replace(CARDS_REGISTRATION, adapter_id="other"), "incompatible_adapter"),
     (replace(CARDS_REGISTRATION, adapter_version=9), "incompatible_adapter"),
     (replace(CARDS_REGISTRATION, contract_version=9), "incompatible_adapter"),
-    (replace(CARDS_REGISTRATION, locator_schema="other"), "incompatible_locator"),
-    (replace(CARDS_REGISTRATION, locator_version=9), "incompatible_locator"),
+    (replace(CARDS_REGISTRATION, locators=(("other", 3),)), "incompatible_locator"),
+    (replace(CARDS_REGISTRATION, locators=(("fake_card", 9),)), "incompatible_locator"),
     (replace(CARDS_REGISTRATION, adapter_id="Bad Id"), "invalid_registration"),
     ("cards", "invalid_registration"),
 ], ids=range(8))
@@ -272,7 +273,7 @@ def test_stored_documents_resolve_only_to_a_compatible_adapter(cards):
     resegmented = registry_with((CARDS_REGISTRATION, adapter(adapter=AdapterIdentity("fake_cards", 2, 2))))
     with pytest.raises(FormatError, match="^incompatible_adapter$"):
         resegmented.for_document(document)
-    relocated = registry_with((replace(CARDS_REGISTRATION, locator_version=4), adapter(locator_version=4)))
+    relocated = registry_with((replace(CARDS_REGISTRATION, locators=(("fake_card", 4),)), adapter(locators=(("fake_card", 4),))))
     with pytest.raises(FormatError, match="^incompatible_locator$"):
         relocated.for_document(document)
 
@@ -359,6 +360,30 @@ def test_findings_of_the_wrong_type_are_a_mismatch(cards):
     adapter = FormatAdapter(cards_descriptor(), inspector=base, extractor=base, previewer=base, reconstructor=base,
                             validator=with_method("validate", lambda self, context: ["error"]))
     assert service_for(adapter).validate("fake_cards", LocalFormatSource(cards)).failure.code == "descriptor_mismatch"
+
+
+def test_a_format_can_place_content_in_more_than_one_way(cards):
+    base = CardsPorts()
+    two = (("fake_card", 3), ("fake_title", 1))
+    adapter = FormatAdapter(cards_descriptor(locators=two), inspector=base, extractor=base, previewer=base, reconstructor=base, validator=base)
+    service = service_for(adapter, replace(CARDS_REGISTRATION, locators=two))
+    assert service.extract("fake_cards", LocalFormatSource(cards), ExtractionRequest(PROJECT)).failure is None
+    with pytest.raises(FormatError, match="^incompatible_locator$"):
+        FormatRegistry().register(CARDS_REGISTRATION, adapter)
+
+
+@pytest.mark.parametrize("documents", [
+    [InventoryDocument("a")], ("a",), (InventoryDocument("a"), InventoryDocument("a")), (InventoryDocument("a"),),
+], ids=["list", "strings", "duplicate", "count-disagrees"])
+def test_an_inventory_cannot_contradict_its_document_list(documents):
+    with pytest.raises(FormatError, match="^invalid_inventory$"):
+        FormatInventory(2, 0, documents=documents)
+
+
+@pytest.mark.parametrize("kwargs", [{"logical_key": ""}, {"logical_key": None}, {"logical_key": "a", "title": 1}], ids=range(3))
+def test_inventory_documents_are_validated(kwargs):
+    with pytest.raises(FormatError, match="^invalid_inventory$"):
+        InventoryDocument(**kwargs)
 
 
 def test_validation_separates_errors_from_warnings(tmp_path, cards):
@@ -574,10 +599,10 @@ def test_documents_from_another_adapter_are_refused(envdir, tmp_path):
 
 def test_documents_with_another_locator_are_refused(envdir, cards):
     base = CardsPorts()
-    adapter = FormatAdapter(cards_descriptor(locator_version=4), inspector=base, extractor=base, previewer=base, reconstructor=base, validator=base)
+    adapter = FormatAdapter(cards_descriptor(locators=(("fake_card", 4),)), inspector=base, extractor=base, previewer=base, reconstructor=base, validator=base)
     env = FormatEnv(envdir / "env")
     documents = documents_of(cards)
-    service = FormatService(registry_with((replace(CARDS_REGISTRATION, locator_version=4), adapter)))
+    service = FormatService(registry_with((replace(CARDS_REGISTRATION, locators=(("fake_card", 4),)), adapter)))
     result = service.reconstruct("fake_cards", LocalFormatSource(cards), ReconstructionRequest(documents, complete(documents)), env.publication())
     assert result.failure.code == "incompatible_locator" and env.publisher.calls == 0
 
@@ -667,14 +692,14 @@ def detector(*pairs):
 
 def signed(name, signature=b"SAME", extensions=(".signed",)):
     base = CardsPorts()
-    return (FormatRegistration(name, 2, "fake_card", 3),
+    return (FormatRegistration(name, 2, (("fake_card", 3),)),
             FormatAdapter(cards_descriptor(adapter=AdapterIdentity(name, 2, 1), extensions=extensions, signatures=(FormatSignature(((0, signature),)),)),
                           inspector=base, extractor=base, previewer=base, reconstructor=base, validator=base))
 
 
 def named(name, extensions=(".plain",), media_types=()):
     base = NotesPorts()
-    return (FormatRegistration(name, 1, "fake_line", 1),
+    return (FormatRegistration(name, 1, (("fake_line", 1),)),
             FormatAdapter(notes_descriptor(adapter=AdapterIdentity(name, 1, 1), extensions=extensions, media_types=media_types), inspector=base, extractor=base))
 
 
@@ -892,7 +917,7 @@ def test_an_operation_error_needs_a_real_failure():
 def test_text_and_paths_stay_out_of_representations(cards):
     secret = "Call me Ishmael"
     documents = documents_of(cards)
-    values = [UnitTranslation("u", secret), DetectionEvidence(secret.encode()), FormatInventory(1, 0, title=secret, authors=(secret,)),
+    values = [UnitTranslation("u", secret), DetectionEvidence(secret.encode()), FormatInventory(1, 0, title=secret, authors=(secret,)), InventoryDocument(secret, secret),
               ExtractionRequest(PROJECT, selection=(secret,)), LocalFormatSource(f"/private/{secret}.cards"), LocalOutputGuard(f"/private/{secret}"),
               ReconstructionRequest(documents, (UnitTranslation(complete(documents)[0].unit_id, secret),))]
     for value in values:

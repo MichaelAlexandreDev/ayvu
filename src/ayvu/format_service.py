@@ -139,8 +139,7 @@ class FormatRegistration:
 
     adapter_id: str
     adapter_version: int
-    locator_schema: str
-    locator_version: int
+    locators: tuple[tuple[str, int], ...]
     contract_version: int = FORMAT_CONTRACT_VERSION
 
 
@@ -163,7 +162,7 @@ class FormatRegistry:
                 != (registration.adapter_id, registration.adapter_version, registration.contract_version)
                 or descriptor.contract_version != FORMAT_CONTRACT_VERSION):
             raise FormatError("incompatible_adapter")
-        if (descriptor.locator_schema, descriptor.locator_version) != (registration.locator_schema, registration.locator_version):
+        if descriptor.locators != registration.locators:
             raise FormatError("incompatible_locator")
         self._adapters[registration.adapter_id] = adapter
 
@@ -211,8 +210,7 @@ def _ids(descriptors: list[FormatDescriptor]) -> tuple[str, ...]:
 def _document_mismatch(descriptor: FormatDescriptor, document: ContentDocument) -> str | None:
     if document.adapter != descriptor.adapter:
         return "incompatible_adapter"
-    if any((unit.content.locator.schema, unit.content.locator.schema_version)
-           != (descriptor.locator_schema, descriptor.locator_version) for unit in document.units):
+    if any((unit.content.locator.schema, unit.content.locator.schema_version) not in descriptor.locators for unit in document.units):
         return "incompatible_locator"
     return None
 

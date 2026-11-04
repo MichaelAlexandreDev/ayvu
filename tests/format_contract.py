@@ -277,8 +277,17 @@ class FormatAdapterContract:
         descriptor = harness.adapter.descriptor
         for document in first:
             assert document.adapter == descriptor.adapter and document.source_fingerprint == LocalFormatSource(path).fingerprint()
-            assert all((unit.content.locator.schema, unit.content.locator.schema_version)
-                       == (descriptor.locator_schema, descriptor.locator_version) for unit in document.units)
+            assert all((unit.content.locator.schema, unit.content.locator.schema_version) in descriptor.locators
+                       for unit in document.units)
+
+    def test_the_inventory_lists_what_a_selection_can_name(self, harness, service, path):
+        self._require(harness, FormatOperation.INSPECT)
+        self._require(harness, FormatOperation.EXTRACT)
+        experimental = self._experimental(harness, FormatOperation.INSPECT)
+        inventory = service.inspect(self._id(harness), LocalFormatSource(path), allow_experimental=experimental).inventory
+        keys = {item.logical_key for item in inventory.documents}
+        assert keys, "an adapter that extracts must list its documents"
+        assert {document.logical_key for document in self._documents(harness, service, path)} <= keys
 
     def test_extraction_follows_the_selection_it_is_given(self, harness, service, path):
         self._require(harness, FormatOperation.EXTRACT)

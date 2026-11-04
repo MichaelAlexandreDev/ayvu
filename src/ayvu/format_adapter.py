@@ -175,6 +175,13 @@ class FormatLimits:
                 raise FormatError("invalid_limit")
 
 
+def _valid_locators(locators: object) -> bool:
+    """One format can place content in more than one way, such as a body and a package file."""
+    return (type(locators) is tuple and 1 <= len(locators) <= MAX_RECOGNITION_ITEMS and len(set(locators)) == len(locators)
+            and all(type(item) is tuple and len(item) == 2 and is_slug(item[0]) and type(item[1]) is int and item[1] >= 1
+                    for item in locators))
+
+
 def _strings(values: object, pattern: re.Pattern) -> bool:
     return (type(values) is tuple and len(values) <= MAX_RECOGNITION_ITEMS and len(set(values)) == len(values)
             and all(isinstance(value, str) and pattern.fullmatch(value) for value in values))
@@ -183,8 +190,7 @@ def _strings(values: object, pattern: re.Pattern) -> bool:
 @dataclass(frozen=True, repr=False)
 class FormatDescriptor:
     adapter: AdapterIdentity
-    locator_schema: str
-    locator_version: int
+    locators: tuple[tuple[str, int], ...]
     operations: tuple[OperationClaim, ...]
     fidelity: tuple[FidelityClaim, ...]
     media_types: tuple[str, ...] = ()
@@ -197,8 +203,7 @@ class FormatDescriptor:
     contract_version: int = FORMAT_CONTRACT_VERSION
 
     def __post_init__(self) -> None:
-        if (type(self.adapter) is not AdapterIdentity or not is_slug(self.locator_schema)
-                or type(self.locator_version) is not int or self.locator_version < 1
+        if (type(self.adapter) is not AdapterIdentity or not _valid_locators(self.locators)
                 or type(self.contract_version) is not int or self.contract_version < 1
                 or not _strings(self.media_types, _MEDIA_TYPE) or not _strings(self.extensions, _EXTENSION)
                 or not _strings(self.format_versions, _FORMAT_VERSION)
@@ -412,6 +417,21 @@ class AliasVerdict(StrEnum):
 
 
 @dataclass(frozen=True, repr=False)
+class InventoryDocument:
+    """What an application needs to resolve a selection into logical keys before extraction."""
+
+    logical_key: str
+    title: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.logical_key, str) or not self.logical_key or (self.title is not None and not isinstance(self.title, str)):
+            raise FormatError("invalid_inventory")
+
+    def __repr__(self) -> str:
+        return "InventoryDocument()"
+
+
+@dataclass(frozen=True, repr=False)
 class FormatInventory:
     document_count: int
     resource_count: int
@@ -419,8 +439,13 @@ class FormatInventory:
     title: str | None = None
     authors: tuple[str, ...] = ()
     language: str | None = None
+    documents: tuple[InventoryDocument, ...] = ()
 
     def __post_init__(self) -> None:
+        if (type(self.documents) is not tuple or any(type(item) is not InventoryDocument for item in self.documents)
+                or len({item.logical_key for item in self.documents}) != len(self.documents)
+                or (self.documents and len(self.documents) != self.document_count)):
+            raise FormatError("invalid_inventory")
         if (type(self.document_count) is not int or self.document_count < 0
                 or type(self.resource_count) is not int or self.resource_count < 0
                 or (self.title is not None and not isinstance(self.title, str))
