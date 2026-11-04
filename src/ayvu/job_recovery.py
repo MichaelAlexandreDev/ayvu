@@ -508,10 +508,10 @@ class InspectJobRecoverability:
                 reasons.append(_BLOCKING_SOURCE[state])
                 # With nothing durable at stake, a book that is gone stays the current flow's to report, in its own words.
                 blocked = durable or state is SourceState.CHANGED
-            elif evidence.policy_refusal(entry.reference, entry.project_id) is not None:
+            if state not in (SourceState.MISSING, SourceState.UNREADABLE) and evidence.policy_refusal(entry.reference, entry.project_id) is not None:
                 reasons.append(RecoveryReason.POLICY_DENIED)
                 # The legacy path has no job to protect, and the current flow refuses this same book before any translator.
-                blocked = durable
+                blocked = blocked or durable
             output = evidence.output(entry.reference, entry.project_id, entry.job_id, token)
             integrity = _integrity_reason(output.integrity)
             if integrity is not None:
@@ -584,12 +584,13 @@ class RequestJobResume:
                             continuation_of=entry.job_id, result=result, inspection=inspection)
 
 
+# In this order: a live run comes first, and a book refused by policy is told so even if it also changed.
 _REFUSAL_CODES = (
     (RecoveryReason.ACTIVE_LEASE, "job_in_progress"),
+    (RecoveryReason.POLICY_DENIED, "policy_denied"),
     (RecoveryReason.SOURCE_CHANGED, "source_changed"),
     (RecoveryReason.SOURCE_MISSING, "source_missing"),
     (RecoveryReason.SOURCE_UNREADABLE, "source_unreadable"),
-    (RecoveryReason.POLICY_DENIED, "policy_denied"),
     (RecoveryReason.INVOCATION_UNAVAILABLE, "invocation_unavailable"),
     (RecoveryReason.JOB_STATE_NOT_RESUMABLE, "job_not_resumable"),
 )

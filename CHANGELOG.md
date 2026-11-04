@@ -96,8 +96,16 @@ lancadas e secoes versionadas quando uma release for publicada.
 - `translate`, a tradução guiada e cada livro de um lote agora rodam pelo caso de
   uso `TranslateProject`, como um job durável com um único resultado final. Prompts,
   relatórios, nomes de saída e códigos de saída não mudam, salvo o que está abaixo.
-  Dry-run, preview e `resume` continuam sem projeto. Veja
+  Dry-run e preview continuam sem projeto. Veja
   `docs/architecture/translate-project.md`.
+- `resume` e a oferta do modo guiado agora retomam pelo job da tradução interrompida,
+  com um novo job ligado a ele, sempre que o arquivo de estado corresponde a esse job.
+  Os prompts não mudam. Um arquivo antigo sem job correspondente segue pelo caminho
+  anterior. Passam a ser recusados: retomar uma tradução ainda viva em outro processo, e
+  um livro alterado que um projeto registrou. Antes, ambos rodavam em silêncio. Um arquivo
+  de estado que não é UTF-8 deixa de causar traceback. A retomada continua sendo uma
+  reexecução completa sobre o cache, sem reaproveitar etapas. Veja
+  `docs/architecture/job-recovery.md`.
 - Passam a ser recusados, com mensagem clara e em todos os modos, EPUBs com conteúdo
   protegido, nomes internos inseguros, arquivos internos repetidos, entidades XML ou
   além dos limites de tamanho e compressão. Antes eles eram traduzidos.

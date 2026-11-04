@@ -5,8 +5,9 @@ Related issue: [#145 — Extract the translate-project application use case](htt
 `TranslateProject` translates one book of one stored project as one durable job, for any consumer. It imports no
 framework, store, format or provider: it receives them as ports from a composition root.
 
-`translate` and the guided translation run through it, one book at a time, and so does each book of a batch. Dry run,
-preview and the `resume` command have no project, so they keep the current flow behind `translate_without_project`.
+`translate` and the guided translation run through it, one book at a time, and so does each book of a batch, and a
+[resume](job-recovery.md) of a job it left behind. Dry run, preview and a resume file that recomputes to no job have no
+project to run in, so they keep the current flow behind `translate_without_project`.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -128,10 +129,10 @@ as it would have. A worker that commits to cancelling wins over a failure in ano
 - **Dry run and preview are refused as commands.** They need no project and create none, and identity must never be
   made up to fit them, so they stay on the current flow behind `translate_without_project`.
 - **It claims nothing about the producer.** The lineage record says `unknown` for provider, model, adapter and pipeline,
-  because the v1 cache cannot say which produced a text. #153 and #146 replace this.
+  because the v1 cache cannot say which produced a text. #153 replaces this.
 - **It does not decide what to resume.** A job that ended stays ended, and `execute` only links a new job to it when
-  given a ticket. [Job recovery](job-recovery.md) decides, and `resume` keeps working from its own file until it migrates.
-  That file is still kept by the CLI, chapter by chapter, around the use case.
+  given a ticket. [Job recovery](job-recovery.md) decides. The resume file is still kept by the CLI, chapter by chapter,
+  around the use case, because it is the only record of the address, the cache and the output.
 - **It does not write the review CSV.** The CLI writes it from the result until #149.
 
 ## What the CLI adds

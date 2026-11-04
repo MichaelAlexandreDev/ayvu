@@ -502,6 +502,10 @@ reexecuta a tradução com as opções da execução original. O cache evita
 retraduzir o que já foi concluído, então só os trechos pendentes chamam o
 tradutor.
 
+A retomada é recusada se a mesma tradução ainda estiver rodando em outro processo,
+se o livro tiver mudado ou se ele for recusado por política. Nesses casos nada é
+alterado, nem o arquivo de estado.
+
 ### Reconstruir usando apenas o cache
 
 O modo `--cache-only` monta o EPUB só com o que já está no cache e nunca chama o

@@ -2,8 +2,8 @@
 
 Related issue: [#146 — Migrate interrupted-job recovery to application use cases](https://github.com/MichaelAlexandreDev/ayvu/issues/146)
 
-Three use cases answer what was interrupted, what resuming it would mean, and resume it, for any consumer. **Nothing
-calls them yet**: the `resume` command and the guided offer keep working from their file until they migrate.
+Three use cases answer what was interrupted, what resuming it would mean, and resume it, for any consumer. The `resume`
+command and the guided offer run through them, with the prompts they always had.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -118,6 +118,28 @@ In production the answer is always `translate`, because no raw artifact exists. 
 Replaying raw results after a restart needs #153 for the evidence, and also a new operation: an expired lease cannot be
 released, renewed or acquired, a continuation does not own its parent's artifact, and reconciliation ends a `running` job
 before anything could reuse it.
+
+## What the CLI does with them
+
+It lists through `ListInterruptedJobs` and shows the files behind the entries, so a job with no file is not shown. Asking
+for a resume is the decision, as it always was, so it accepts `full_reexecution` and `replace_destination` by itself, and
+the sentence it prints about cached translations and retried segments is what discloses that calls can repeat.
+
+A refusal appears after the confirmation, followed by the same closing line as any failed resume.
+
+| What changed for someone resuming | Before | Now |
+| --- | --- | --- |
+| The original process is still alive | Both ran, and both wrote the output | Refused, as a duplicate `translate` is |
+| The book changed, and a project recorded it | Translated the new book in silence | Refused, as `translate` does |
+| The book is gone, on a durable job | "Não foi possível ler o EPUB" after the plan | "Informe uma fonte existente", with no plan |
+| A book refused by policy, on a durable job | Refused after the plan | Refused, with no plan |
+| A provider failure under `--fail-fast` | A traceback | The same message `translate` gives |
+| A state file that is not UTF-8, or a directory | A traceback | Listed as invalid |
+| A computer asleep for more than an hour | Carried on | Ends as `lease_expired`, as `translate` does |
+
+A translation that resumes through a job has the output of `translate`: it is published atomically, and an old file stays
+intact until the end. The job left behind now gets its outcome and a link, where before it stayed `running` after the
+book was done.
 
 ## Old files
 

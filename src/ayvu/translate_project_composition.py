@@ -29,13 +29,20 @@ from .format_local import LocalFormatSource
 from .format_service import FormatRegistry, FormatService
 from .job import JobError
 from .job_events import JobFailure, JobFailureFamily
-from .job_recovery import InspectJobRecoverability, ListInterruptedJobs, RequestJobResume
+from .job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from .job_recovery_store import LocalRecoveryEvidence
 from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report, to_review_segment
 from .project import ProjectError
 from .project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from .project_store import ProjectJsonRepository
 from .provenance import ProvenanceError
+from .resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
+    InvalidResumeState,
+    ResumeStateError,
+    ResumeStateStore,
+    TranslationResumeState,
+    default_processing_dir,
+)
 from .review_export import ReviewSegment
 from .translate_project import (
     ContinuationTicket,
@@ -203,6 +210,41 @@ def open_job_recovery(processing_dir: Path, *, clock: Callable[[], datetime] = _
     return JobRecovery(evidence, ListInterruptedJobs(evidence), InspectJobRecoverability(evidence), RequestJobResume(evidence))
 
 
+@dataclass(frozen=True, repr=False)
+class InterruptedTranslations:
+    """The files behind a listing, for a presentation that shows their paths. A job with no file has nothing to show here."""
+
+    running: tuple[TranslationResumeState, ...] = ()
+    invalid: tuple[InvalidResumeState, ...] = ()
+    entries: tuple[RecoveryEntry, ...] = ()
+
+    def __repr__(self) -> str:
+        return f"InterruptedTranslations(running={len(self.running)}, invalid={len(self.invalid)})"
+
+    @property
+    def has_findings(self) -> bool:
+        return bool(self.running or self.invalid)
+
+    def entry_of(self, state: TranslationResumeState) -> RecoveryEntry:
+        return self.entries[self.running.index(state)]
+
+
+def interrupted_translations(recovery: JobRecovery) -> InterruptedTranslations:
+    running: list[TranslationResumeState] = []
+    invalid: list[InvalidResumeState] = []
+    entries: list[RecoveryEntry] = []
+    for entry in recovery.list_interrupted.execute().entries:
+        file = recovery.evidence.legacy_entry(entry.reference)
+        if file is None:
+            continue
+        if file.state is None:
+            invalid.append(InvalidResumeState(path=file.path, message=file.message))
+        else:
+            running.append(file.state)
+            entries.append(entry)
+    return InterruptedTranslations(tuple(running), tuple(invalid), tuple(entries))
+
+
 def open_translate_project(processing_dir: Path, project_id: str, source_path: Path, destination: Path, *, overwrite: bool,
                            runtime: LegacyTranslationRuntime, clock: Callable[[], datetime] = _utc_now,
                            ops: DestinationFileOps | None = None, **tuning: object) -> TranslateProject:
@@ -227,7 +269,7 @@ def validate_output(path: Path, on_progress: Callable[[int, int, str], None] | N
 def translate_without_project(source_path: Path, destination_path: Path, **arguments: object) -> TranslationReport:
     """The current flow, for what has no project to belong to.
 
-    Dry run and preview create no project on purpose, and neither does the resume command until #146.
+    Dry run and preview create no project on purpose, and a resume file that recomputes to no job is not given one.
     Everything else goes through ``translate_in_project``.
     """
     return translate_epub(source_path, destination_path, **arguments)

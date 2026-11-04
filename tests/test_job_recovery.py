@@ -277,6 +277,11 @@ def test_on_the_legacy_path_only_a_proved_change_blocks():
     assert gone.entry.resumable and RecoveryReason.SOURCE_MISSING in gone.entry.reasons
 
 
+def test_a_changed_book_on_the_legacy_path_stays_blocked_when_policy_also_refuses_it():
+    seen = InspectJobRecoverability(Evidence(LEGACY, source=SourceState.CHANGED, policy="encrypted_content")).execute("legacy:a")
+    assert not seen.entry.resumable and {RecoveryReason.SOURCE_CHANGED, RecoveryReason.POLICY_DENIED} <= set(seen.entry.reasons)
+
+
 def test_policy_blocks_a_durable_resume_before_anything_runs():
     evidence = Evidence(DURABLE, jobs=(snapshot(),), policy="encrypted_content")
     runner = Runner()

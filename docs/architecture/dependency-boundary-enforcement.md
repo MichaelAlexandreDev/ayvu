@@ -111,7 +111,7 @@ that no longer waive a forbidden edge fail. Exceptions cannot waive unknown
 imports, syntax/read errors, cycles or missing ownership.
 
 The existing CLI edges expire as application use cases are extracted in #128,
-#146, #147, #149, #150, #152, #157 and composition is consolidated in #158.
+#147, #149, #150, #152, #157 and composition is consolidated in #158.
 #145 removed the CLI's edge to the validator and its use of `translate_epub`. What the
 CLI still imports from `epub_io` is inspect, export and apply-review, for #147 and #149.
 The compatibility CLI-to-config edge now expires in #158: first-use/Settings

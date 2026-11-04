@@ -28,7 +28,7 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 | visible text selection | `ayvu.html_translate.extract_visible_text` | `ayvu.html_structure.extract_html_document` | #144 delegates to it |
 | html reconstruction | `ayvu.html_translate.translate_html` | `ayvu.html_structure.reconstruct_html` | #144 delegates to it, with no second segmenter |
 | jobs | `ayvu.job_service.JobRepository` | `ayvu.job_service.JobRepository` | Not a format concern |
-| resume | `ayvu.resume.ResumeStateStore` | #146 | Not a format concern |
+| resume | `ayvu.resume.ResumeStateStore` | [`ayvu.job_recovery`](job-recovery.md) | Not a format concern |
 | output path | `ayvu.domain.OutputPlan` | #145 | Naming and overwrite rules stay with the application. `ayvu.format_service.OutputGuard` only refuses the source |
 | translation | `ayvu.epub_io.translate_epub` | `ayvu.translation_engine.TranslationEngine` | Orchestration leaves the format layer in #145. An adapter never calls a provider. `ayvu.translation_document.DocumentTranslator` takes over after #153 |
 
