@@ -52,7 +52,7 @@ entries fail, so a rename cannot silently discard protection.
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `preflight`, `library` | Transitional application | Translation, Library |
 | `cli`, `cli_progress` | Interface | CLI |
-| `epub_io`, `html_translate`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `epub_io`, `html_structure`, `html_translate`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translator` | Provider adapter with transitional embedded port | Providers |
 | `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
 | `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |
@@ -110,8 +110,9 @@ already call shared preference use cases, while legacy config conversion and
 construction stay at this transitional composition boundary.
 The exact CLI-to-project-store construction edge also expires in #158; domain
 and application project modules never import the concrete store.
-Preflight exceptions expire in #145. EPUB/HTML pipeline coupling expires in
-#143/#144, after #141 separates the provider contract from its HTTP adapter.
+Preflight exceptions and the coupling of the `html_translate` compatibility facade
+expire in #145. EPUB pipeline coupling expires in #144, after #141 separates the
+provider contract from its HTTP adapter. `html_structure` has no such coupling.
 Review coupling expires in #149. Fuzzy memory's exact-cache and vendor coupling
 expires in #161. Library configuration/process coupling expires in #151.
 The exact edge and condition for each of these are recorded individually in

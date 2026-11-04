@@ -13,7 +13,7 @@ Related issue: [#142 — Extract a versioned TranslationUnit pipeline](https://g
 ## Decision and scope
 
 The linguistic work on one text is a fixed sequence that knows nothing about documents.
-HTML traversal and markup reconstruction stay in `ayvu.html_translate`.
+HTML traversal and markup reconstruction are in [`ayvu.html_structure`](html-structure.md).
 
 There are two paths through the same stages:
 
@@ -32,7 +32,8 @@ results, messages and v1 cache key. Nothing in production calls the rich path un
 | `ayvu.translation_plan` | Domain | The resolved plan, stage identities and fingerprints |
 | `ayvu.translation_pipeline` | Application | The stages, their ports and the legacy facade |
 | `ayvu.translation_document` | Application | The rich path: per-unit results, document artifact, replay, events and provenance |
-| `ayvu.html_translate` | Format | The DOM, and `translate_text` adapting the current types to the facade |
+| `ayvu.html_structure` | Format | Traversal, durable units and markup-safe reconstruction |
+| `ayvu.html_translate` | Format | The compatibility facade, and `translate_text` adapting the current types to it |
 
 ## Stages
 
@@ -65,8 +66,8 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 
 The v1 cache and the memory reach the pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.html_translate` is the only adapter for the current cache, and only this facade selects it.
-`html_translate` therefore still imports the cache and glossary, and those boundary exceptions
-remain until [#143](https://github.com/MichaelAlexandreDev/ayvu/issues/143).
+`html_translate` therefore still imports the cache and glossary as a compatibility facade, and those
+boundary exceptions remain until #145. [`html_structure`](html-structure.md) has neither.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.html_translate`, passed on each call.
 
@@ -113,7 +114,9 @@ came from where is in the artifact, which is private because it holds the book's
 A suggestion from memory is `memory_suggested` on a `provider` result.
 
 **Protected parts** become tag tokens, so the stages keep them out of the provider and check them the
-same way as inline markup. A provider failure stops the document with a sanitized failure, unlike the
+same way as inline markup. A result holds `text`, with parts expanded, and `tokenized_text`, with tokens.
+Only the second tells original markup from what a provider wrote, so reconstruction uses it. Text that looks
+like a token is refused only outside a protected part. A provider failure stops the document with a sanitized failure, unlike the
 legacy path, which records text errors and continues. A provider's empty answer is a failure here too.
 
 **Ports.** `ExactCachePort` and `MemoryPort` key on the plan's raw fingerprint, which the v1 cache and
