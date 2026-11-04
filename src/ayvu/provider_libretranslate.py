@@ -13,7 +13,7 @@ from typing import Callable
 from .job_events import JobFailure, JobFailureFamily, normalize_failure
 from .provenance import NOT_APPLICABLE, UNKNOWN, ProducerIdentity
 from .provider import (
-    DeadlineFeature, DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderRequest,
+    DeadlineFeature, DeliveryState, ProviderError, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderRequest,
     TranslationProviderResult,
 )
 from .provider_capabilities import (
@@ -290,7 +290,10 @@ def discover_route(availability: ProviderAvailability, source: str, target: str,
         route = resolve_translation_route(languages, source, target, intermediate_candidates)
     except RouteResolutionError:
         return None
-    return ProviderRoute(route.source, route.target, route.intermediate)
+    try:
+        return ProviderRoute(route.source, route.target, route.intermediate)
+    except ProviderError:
+        return None  # A malformed language code cannot be routed, so it is not a route.
 
 
 class LibreTranslateDiscoveryAdapter:

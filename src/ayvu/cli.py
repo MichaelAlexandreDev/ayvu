@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
-from typing import NoReturn, Optional
+from typing import NoReturn, Optional, Protocol
 
 import typer
 from rich.console import Console
@@ -74,7 +74,8 @@ from .resume import (
 )
 from .review_export import ReviewSegment, write_review_csv
 from .review_import import ReviewImportError, read_review_csv
-from .translator import LibreTranslateTranslator, TranslationRoute, TranslatorError, TranslatorLanguage
+from .provider_composition import ProviderSetupError, cli_provider_session
+from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
 from .validation import validate_output_epub
 
 
@@ -82,6 +83,13 @@ app = typer.Typer(help="Translate local EPUB files with a local HTTP translator.
 cache_app = typer.Typer(help="Inspect, clean, export, and import the translation cache.")
 app.add_typer(cache_app, name="cache")
 console = Console()
+
+
+class _RouteView(Protocol):
+    @property
+    def is_direct(self) -> bool: ...
+
+    def describe(self) -> str: ...
 DEFAULT_SOURCE_LANGUAGE = "en"
 DEFAULT_TARGET_LANGUAGE = "pt"
 DEFAULT_TRANSLATOR_URL = "http://localhost:5000"
@@ -235,27 +243,29 @@ def test_translator(
         help="Maximum retry backoff delay in seconds.",
     ),
 ) -> None:
-    """Test connectivity with the local translator."""
+    """Test connectivity with the local translator by sending the text "Hello world"."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        translator = LibreTranslateTranslator(
+        result = cli_provider_session(
             url=url,
             timeout=timeout,
             retries=retries,
             requests_per_second=requests_per_second,
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
-        )
-        translated = translator.translate("Hello world", source, target)
-    except TranslatorError as exc:
+        ).test(source, target)
+        failure_code = None if result.outcome is DiscoveryOutcome.OK else result.code
+    except ProviderSetupError as exc:
+        failure_code = str(exc)
+    if failure_code is not None:
         _print_expected_error(
             "O teste do tradutor falhou.",
             "Inicie o LibreTranslate, verifique --url e tente novamente.",
             mode,
-            detail=str(exc),
+            detail=failure_code,
         )
-        raise typer.Exit(code=1) from exc
-    console.print(f"[green]Translator OK:[/green] Hello world -> {translated}")
+        raise typer.Exit(code=1)
+    console.print(f"[green]Translator OK:[/green] {SYNTHETIC_TEST_TEXT} -> {result.text}")
 
 
 @app.command("languages")
@@ -283,25 +293,27 @@ def languages(
     """List languages reported by the local LibreTranslate server."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        translator = LibreTranslateTranslator(
+        result = cli_provider_session(
             url=url,
             timeout=timeout,
             retries=retries,
             requests_per_second=requests_per_second,
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
-        )
-        available_languages = translator.list_languages()
-    except TranslatorError as exc:
+        ).languages()
+        failure_code = None if _languages_were_listed(result) else result.code
+    except ProviderSetupError as exc:
+        failure_code = str(exc)
+    if failure_code is not None:
         _print_expected_error(
             "Não foi possível listar os idiomas.",
             "Inicie o LibreTranslate, verifique --url e tente novamente.",
             mode,
-            detail=str(exc),
+            detail=failure_code,
         )
-        raise typer.Exit(code=1) from exc
+        raise typer.Exit(code=1)
 
-    _print_languages(available_languages)
+    _print_languages(result.languages)
 
 
 @cache_app.command("inspect")
@@ -1026,7 +1038,7 @@ def _resolve_performance_profile(name: str, mode: UserMode) -> PerformanceProfil
     raise typer.Exit(code=1)
 
 
-def _print_translation_route(route: TranslationRoute | None, mode: UserMode) -> None:
+def _print_translation_route(route: _RouteView | None, mode: UserMode) -> None:
     if route is None:
         return
     if mode == UserMode.DEVELOPER:
@@ -2956,7 +2968,7 @@ def _prompt_target_language_code(default_target: str) -> str:
     return target or default_target
 
 
-def _print_guided_language_choices(languages: tuple[TranslatorLanguage, ...]) -> None:
+def _print_guided_language_choices(languages: tuple[DiscoveredLanguage, ...]) -> None:
     table = Table(title="LibreTranslate languages")
     table.add_column("Option")
     table.add_column("Language")
@@ -2968,7 +2980,7 @@ def _print_guided_language_choices(languages: tuple[TranslatorLanguage, ...]) ->
     console.print(table)
 
 
-def _language_code_from_guided_choice(choice: str, languages: tuple[TranslatorLanguage, ...]) -> str | None:
+def _language_code_from_guided_choice(choice: str, languages: tuple[DiscoveredLanguage, ...]) -> str | None:
     if not choice.isdigit():
         return None
 
@@ -2978,16 +2990,20 @@ def _language_code_from_guided_choice(choice: str, languages: tuple[TranslatorLa
     return None
 
 
-def _load_languages_for_guided_selection() -> tuple[TranslatorLanguage, ...]:
-    translator = LibreTranslateTranslator(url=DEFAULT_TRANSLATOR_URL, timeout=10.0, retries=1)
-    try:
-        return translator.list_languages()
-    except TranslatorError as exc:
-        console.print(f"[yellow]Could not list LibreTranslate languages:[/yellow] {exc}")
-        return ()
+def _languages_were_listed(result: LanguagesResult) -> bool:
+    # A server with no installed language answered correctly: it just has nothing to list.
+    return result.outcome is DiscoveryOutcome.OK or result.code == "no_languages"
 
 
-def _print_languages(languages: tuple[TranslatorLanguage, ...]) -> None:
+def _load_languages_for_guided_selection() -> tuple[DiscoveredLanguage, ...]:
+    result = cli_provider_session(url=DEFAULT_TRANSLATOR_URL, timeout=10.0, retries=1).languages()
+    if _languages_were_listed(result):
+        return result.languages
+    console.print(f"[yellow]Could not list LibreTranslate languages:[/yellow] {result.code}")
+    return ()
+
+
+def _print_languages(languages: tuple[DiscoveredLanguage, ...]) -> None:
     table = Table(title="LibreTranslate languages")
     table.add_column("Language")
     table.add_column("Code")

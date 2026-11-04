@@ -23,7 +23,7 @@ FINGERPRINT_VERSION = 1
 MAX_LANGUAGES = 512
 MAX_LANGUAGE_TARGETS = 512
 MAX_LIMITS = 32
-_LOCALE = re.compile(r"[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*")
+_LOCALE = re.compile(r"[A-Za-z]{2,8}(?:[-_][A-Za-z0-9]{1,8})*")
 
 
 class ProviderCapabilityError(ValueError):

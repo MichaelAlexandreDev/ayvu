@@ -262,7 +262,7 @@ def test_languages_command_lists_translator_languages(monkeypatch):
                 TranslatorLanguage(code="en", name="English", targets=("pt",)),
             )
 
-    monkeypatch.setattr("ayvu.cli.LibreTranslateTranslator", FakeLanguageTranslator)
+    monkeypatch.setattr("ayvu.provider_composition.LibreTranslateTranslator", FakeLanguageTranslator)
 
     result = runner.invoke(
         app,
@@ -307,13 +307,14 @@ def test_languages_command_reports_failure_without_traceback(monkeypatch):
         def list_languages(self) -> tuple[TranslatorLanguage, ...]:
             raise TranslatorError("server unavailable")
 
-    monkeypatch.setattr("ayvu.cli.LibreTranslateTranslator", FailingLanguageTranslator)
+    monkeypatch.setattr("ayvu.provider_composition.LibreTranslateTranslator", FailingLanguageTranslator)
 
     result = runner.invoke(app, ["languages"])
 
     assert result.exit_code == 1
     assert "Não foi possível listar os idiomas." in result.output
-    assert "server unavailable" in result.output
+    assert "server unavailable" not in result.output
+    assert "provider_request_failed" in result.output
     assert "Inicie o LibreTranslate" in result.output
     assert "Traceback" not in result.output
 
@@ -844,7 +845,7 @@ def test_root_command_generates_guided_preview_when_confirmed(tmp_path, monkeypa
     monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.cli.default_preview_books_dir", lambda: preview_dir)
     monkeypatch.setattr(
-        "ayvu.cli.LibreTranslateTranslator",
+        "ayvu.provider_composition.LibreTranslateTranslator",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("languages should not be listed")),
     )
     monkeypatch.setattr(
@@ -901,7 +902,7 @@ def test_root_command_allows_guided_preview_target_from_languages(tmp_path, monk
 
     monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.cli.default_preview_books_dir", lambda: preview_dir)
-    monkeypatch.setattr("ayvu.cli.LibreTranslateTranslator", FakeLanguageTranslator)
+    monkeypatch.setattr("ayvu.provider_composition.LibreTranslateTranslator", FakeLanguageTranslator)
     monkeypatch.setattr("ayvu.cli.run_translation_preflight", fake_preflight)
     monkeypatch.setattr("ayvu.cli.TranslationCache", lambda _path: FakeCache())
     monkeypatch.setattr("ayvu.cli.translate_epub", fake_translate)
@@ -1217,7 +1218,7 @@ def test_root_command_settings_keeps_language_when_not_changed(tmp_path, monkeyp
 
 def test_root_command_settings_changes_and_persists_language(isolated_config, tmp_path, monkeypatch):
     monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "missing")
-    monkeypatch.setattr("ayvu.cli.LibreTranslateTranslator", FakeNoLanguagesTranslator)
+    monkeypatch.setattr("ayvu.provider_composition.LibreTranslateTranslator", FakeNoLanguagesTranslator)
 
     result = runner.invoke(app, [], input="4\n1\nes\n0\n")
 
@@ -1230,7 +1231,7 @@ def test_root_command_settings_changes_and_persists_language(isolated_config, tm
 def test_settings_unknown_fields_warn_and_refuse_lossy_update(isolated_config, monkeypatch):
     payload = b'{"version":1,"private_extension":{"value":"secret-canary"}}'
     isolated_config.write_bytes(payload)
-    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    monkeypatch.setattr('ayvu.provider_composition.LibreTranslateTranslator', FakeNoLanguagesTranslator)
     result = runner.invoke(app, [], input='4\n1\nes\n0\n')
     assert result.exit_code == 0
     assert 'somente leitura' in result.output
@@ -1242,7 +1243,7 @@ def test_settings_unknown_fields_warn_and_refuse_lossy_update(isolated_config, m
 
 def test_settings_save_failure_keeps_effective_session_values(isolated_config, monkeypatch):
     original = isolated_config.read_bytes()
-    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    monkeypatch.setattr('ayvu.provider_composition.LibreTranslateTranslator', FakeNoLanguagesTranslator)
     def fail(*args):
         raise OSError('private-canary-path')
     monkeypatch.setattr('ayvu.preferences_store.os.replace', fail)
@@ -1256,7 +1257,7 @@ def test_settings_save_failure_keeps_effective_session_values(isolated_config, m
 
 
 def test_settings_multiple_saves_advance_the_expected_revision(isolated_config, monkeypatch):
-    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    monkeypatch.setattr('ayvu.provider_composition.LibreTranslateTranslator', FakeNoLanguagesTranslator)
     result = runner.invoke(app, [], input='4\n1\nes\n4\nfoliate\n0\n')
     assert result.exit_code == 0
     assert result.output.count('Settings saved.') == 2
@@ -1270,7 +1271,7 @@ def test_first_use_failed_save_retains_session_without_claiming_success(isolated
     original_dir = tmp_path / 'Books' / 'Original'
     original_dir.mkdir(parents=True)
     (original_dir / 'first-use.epub').write_bytes(minimal_epub_path.read_bytes())
-    monkeypatch.setattr('ayvu.cli.LibreTranslateTranslator', FakeNoLanguagesTranslator)
+    monkeypatch.setattr('ayvu.provider_composition.LibreTranslateTranslator', FakeNoLanguagesTranslator)
     def fail(*args):
         raise PermissionError('private-canary')
     monkeypatch.setattr('ayvu.preferences_store.os.replace', fail)
@@ -1350,7 +1351,7 @@ def test_root_command_first_use_asks_and_saves_default_language(isolated_config,
     isolated_config.unlink()
     books_dir = tmp_path / "Minha Biblioteca"
     monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "missing")
-    monkeypatch.setattr("ayvu.cli.LibreTranslateTranslator", FakeNoLanguagesTranslator)
+    monkeypatch.setattr("ayvu.provider_composition.LibreTranslateTranslator", FakeNoLanguagesTranslator)
 
     result = runner.invoke(app, [], input=f"es\n{books_dir}\ny\n0\n")
 
@@ -1375,7 +1376,7 @@ def test_root_command_first_use_can_change_feature_folder_names(isolated_config,
     isolated_config.unlink()
     books_dir = tmp_path / "Minha Biblioteca"
     monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "missing")
-    monkeypatch.setattr("ayvu.cli.LibreTranslateTranslator", FakeNoLanguagesTranslator)
+    monkeypatch.setattr("ayvu.provider_composition.LibreTranslateTranslator", FakeNoLanguagesTranslator)
 
     result = runner.invoke(
         app,
@@ -3398,3 +3399,116 @@ def test_cli_console_width_does_not_depend_on_the_environment():
     from ayvu.cli import console
 
     assert console.width == 500
+
+
+def _fake_http(monkeypatch, *, get=(), post=()):
+    import requests as requests_module
+
+    class Session:
+        def __init__(self):
+            self.calls = []
+            self.get_script, self.post_script = list(get), list(post)
+
+        def _next(self, script):
+            item = script.pop(0)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        def get(self, url, *, timeout):
+            self.calls.append(("GET", url))
+            return self._next(self.get_script)
+
+        def post(self, url, *, json, timeout):
+            self.calls.append(("POST", url, json))
+            return self._next(self.post_script)
+
+    session = Session()
+    monkeypatch.setattr(requests_module, "Session", lambda: session)
+    return session
+
+
+def _http(status, body):
+    import requests as requests_module
+
+    response = requests_module.Response()
+    response.status_code = status
+    response._content = body.encode("utf-8")
+    response.url = "http://localhost:5000/x"
+    return response
+
+
+def test_test_translator_sends_only_the_known_text_and_reports_success(monkeypatch):
+    session = _fake_http(monkeypatch, post=[_http(200, '{"translatedText": "Ola mundo"}')])
+    result = runner.invoke(app, ["test-translator", "--retries", "0"])
+    assert result.exit_code == 0 and "Translator OK: Hello world -> Ola mundo" in result.output
+    assert session.calls == [("POST", "http://localhost:5000/translate", {"q": "Hello world", "source": "en", "target": "pt", "format": "text"})]
+
+
+def test_test_translator_help_discloses_the_text_it_sends():
+    result = runner.invoke(app, ["test-translator", "--help"])
+    assert result.exit_code == 0 and "Hello world" in result.output
+
+
+def test_test_translator_treats_an_empty_translation_as_a_failure(monkeypatch):
+    _fake_http(monkeypatch, post=[_http(200, '{"translatedText": ""}')])
+    result = runner.invoke(app, ["test-translator", "--retries", "0"])
+    assert result.exit_code == 1 and "Translator OK" not in result.output and "empty_result" in result.output
+
+
+@pytest.mark.parametrize("body", ["bad language pair SECRETBODY", "Call me Ishmael."])
+def test_test_translator_failure_shows_a_code_and_not_the_response(monkeypatch, body):
+    _fake_http(monkeypatch, post=[_http(400, body)])
+    result = runner.invoke(app, ["test-translator", "--retries", "0"])
+    assert result.exit_code == 1 and "O teste do tradutor falhou." in result.output
+    assert "provider_rejected" in result.output and body not in result.output
+
+
+def test_common_mode_failure_shows_no_technical_detail(monkeypatch):
+    _fake_http(monkeypatch, post=[_http(500, "oops")])
+    result = runner.invoke(app, ["--mode", "common", "test-translator", "--retries", "0"])
+    assert result.exit_code == 1 and "Detalhe técnico" not in result.output and "provider_server_error" not in result.output
+
+
+def test_test_translator_refuses_an_invalid_language_before_sending(monkeypatch):
+    session = _fake_http(monkeypatch)
+    result = runner.invoke(app, ["test-translator", "--source", "x y"])
+    assert result.exit_code == 1 and "invalid_locale" in result.output and session.calls == []
+
+
+@pytest.mark.parametrize("command", ["languages", "test-translator"])
+def test_bad_settings_report_a_code_without_a_traceback(command):
+    result = runner.invoke(app, [command, "--requests-per-second", "0"])
+    assert result.exit_code == 1 and "invalid_provider_settings" in result.output and "Traceback" not in result.output
+
+
+def test_credentials_in_the_url_never_reach_the_output(monkeypatch):
+    import requests as requests_module
+
+    url = "http://user:hunter2@private.example.test:5000"
+    _fake_http(monkeypatch, get=[requests_module.exceptions.ConnectionError(f"cannot reach {url}")], post=[requests_module.exceptions.ConnectionError(f"cannot reach {url}")])
+    for command in ("languages", "test-translator"):
+        result = runner.invoke(app, [command, "--url", url, "--retries", "0"])
+        assert result.exit_code == 1 and "hunter2" not in result.output and "private.example.test" not in result.output
+
+
+def test_languages_keeps_the_table_and_only_asks_for_languages(monkeypatch):
+    session = _fake_http(monkeypatch, get=[_http(200, '[{"code": "pt", "name": "Portuguese", "targets": ["en", "es"]}]')])
+    result = runner.invoke(app, ["languages", "--retries", "0"])
+    assert result.exit_code == 0 and "Portuguese" in result.output and "en, es" in result.output and "installed" in result.output
+    assert session.calls == [("GET", "http://localhost:5000/languages")]
+
+
+def test_languages_with_an_empty_list_still_succeeds(monkeypatch):
+    _fake_http(monkeypatch, get=[_http(200, "[]")])
+    result = runner.invoke(app, ["languages", "--retries", "0"])
+    assert result.exit_code == 0 and "LibreTranslate languages" in result.output
+
+
+def test_guided_selection_warns_with_a_code_and_not_the_response(monkeypatch, capsys):
+    from ayvu import cli as cli_module
+
+    _fake_http(monkeypatch, get=[_http(500, "SECRETBODY")] * 2)
+    assert cli_module._load_languages_for_guided_selection() == ()
+    output = capsys.readouterr().out
+    assert "provider_server_error" in output and "SECRETBODY" not in output

@@ -21,6 +21,8 @@ class FailingTranslator:
 
 
 class TranslatorWithLanguages:
+    timeout, retries, rate_limiter = 1.0, 0, RequestRateLimiter()
+
     def __init__(self, languages: tuple[TranslatorLanguage, ...]) -> None:
         self._languages = languages
         self.translate_calls: list[tuple[str, str, str]] = []
@@ -36,6 +38,8 @@ class TranslatorWithLanguages:
 
 
 class TranslatorWithFailingLanguages:
+    timeout, retries, rate_limiter = 1.0, 0, RequestRateLimiter()
+
     def translate(self, text: str, _source: str, _target: str) -> str:
         return text
 
@@ -72,8 +76,9 @@ def test_preflight_checks_cache_epub_and_translator(monkeypatch, tmp_path):
     with TranslationCache(cache_path) as cache:
         assert cache.get(probe_key) is None
     assert result.translator is translator
-    assert translator.calls == [("Hello world", "en", "pt")]
-    assert result.route is not None and result.route.is_direct
+    # No discovery available means an unknown route, never a hidden translation.
+    assert translator.calls == []
+    assert result.route is None
 
 
 def test_preflight_dry_run_skips_translator_probe(monkeypatch, tmp_path):
@@ -180,26 +185,23 @@ def test_preflight_rejects_blank_language_pair(tmp_path):
     assert "--source e --target" in error.value.next_step
 
 
-def test_preflight_reports_translator_probe_failure(monkeypatch, tmp_path):
+def test_preflight_never_translates_to_find_out_whether_a_translator_works(monkeypatch, tmp_path):
     monkeypatch.setattr("ayvu.preflight.create_translator", lambda *_args, **_kwargs: FailingTranslator())
     monkeypatch.setattr("ayvu.preflight.inspect_epub", lambda _path: object())
 
-    with pytest.raises(PreflightError) as error:
-        run_translation_preflight(
-            epub_path=tmp_path / "book.epub",
-            cache_path=tmp_path / "cache.sqlite",
-            glossary_path=None,
-            translator_name="libretranslate",
-            url="http://localhost:5000",
-            timeout=1.0,
-            retries=0,
-            language_pair=LanguagePair(source="en", target="pt"),
-            dry_run=False,
-        )
+    result = run_translation_preflight(
+        epub_path=tmp_path / "book.epub",
+        cache_path=tmp_path / "cache.sqlite",
+        glossary_path=None,
+        translator_name="libretranslate",
+        url="http://localhost:5000",
+        timeout=1.0,
+        retries=0,
+        language_pair=LanguagePair(source="en", target="pt"),
+        dry_run=False,
+    )
 
-    assert error.value.summary == "O tradutor não respondeu."
-    assert "language pair is not available" in error.value.detail
-    assert "par de idiomas está disponível" in error.value.next_step
+    assert result.route is None
 
 
 def test_preflight_reports_epub_failure(monkeypatch, tmp_path):
@@ -357,4 +359,74 @@ def test_preflight_reports_translator_unreachable_when_list_languages_fails(monk
         )
 
     assert error.value.summary == "O tradutor não respondeu."
-    assert "connection refused" in error.value.detail
+    assert "connection refused" not in error.value.detail
+    assert error.value.detail == "provider_request_failed"
+    assert "http://localhost:5000" not in error.value.next_step
+
+
+def _preflight(tmp_path, translator, monkeypatch, source="en", target="pt", url="http://localhost:5000"):
+    monkeypatch.setattr("ayvu.preflight.create_translator", lambda *_args, **_kwargs: translator)
+    monkeypatch.setattr("ayvu.preflight.inspect_epub", lambda _path: object())
+    return run_translation_preflight(
+        epub_path=tmp_path / "book.epub", cache_path=tmp_path / "cache.sqlite", glossary_path=None,
+        translator_name="libretranslate", url=url, timeout=1.0, retries=0,
+        language_pair=LanguagePair(source=source, target=target), dry_run=False,
+    )
+
+
+def test_preflight_discovers_routes_without_sending_any_text(monkeypatch, tmp_path):
+    translator = TranslatorWithLanguages((
+        TranslatorLanguage(code="fr", name="French", targets=("en",)), TranslatorLanguage(code="en", name="English", targets=("pt",)),
+    ))
+    result = _preflight(tmp_path, translator, monkeypatch, source="fr")
+    assert (result.route.source, result.route.intermediate, result.route.target) == ("fr", "en", "pt")
+    assert translator.translate_calls == [] and translator.list_calls == 1
+
+
+def test_preflight_empty_language_list_is_a_missing_pair_except_for_the_same_language(monkeypatch, tmp_path):
+    translator = TranslatorWithLanguages(())
+    with pytest.raises(PreflightError) as error:
+        _preflight(tmp_path, translator, monkeypatch)
+    assert error.value.summary == "O par de idiomas não está disponível no tradutor."
+    assert _preflight(tmp_path, TranslatorWithLanguages(()), monkeypatch, target="en").route.is_direct
+
+
+def test_preflight_never_repeats_credentials_from_the_url(monkeypatch, tmp_path):
+    with pytest.raises(PreflightError) as error:
+        _preflight(tmp_path, TranslatorWithFailingLanguages(), monkeypatch, url="http://user:hunter2@host:5000")
+    assert "hunter2" not in error.value.next_step and "hunter2" not in error.value.detail
+
+
+def test_preflight_accepts_underscored_codes_a_server_may_report(monkeypatch, tmp_path):
+    translator = TranslatorWithLanguages((TranslatorLanguage(code="pt_BR", name="Portuguese", targets=("en",)),))
+    assert _preflight(tmp_path, translator, monkeypatch, source="pt_BR", target="en").route.is_direct
+
+
+def test_preflight_next_step_is_exact_and_holds_no_address(monkeypatch, tmp_path):
+    with pytest.raises(PreflightError) as error:
+        _preflight(tmp_path, TranslatorWithFailingLanguages(), monkeypatch)
+    assert error.value.next_step == "Inicie o LibreTranslate, verifique --url e confirme que o servidor está acessível."
+
+
+def test_cli_network_decision_states_that_no_policy_ran():
+    from datetime import UTC, datetime
+
+    from ayvu.provider_composition import CLI_INSTANCE_ID, CliProviderSession
+    from ayvu.provider_network import NetworkClass, ProviderOperation, network_binding
+
+    session = CliProviderSession(TranslatorWithLanguages(()), clock=lambda: datetime(2026, 11, 3, tzinfo=UTC))
+    decision = session._decision(ProviderOperation.LANGUAGES)
+    assert decision.allowed is True and decision.network_class is NetworkClass.UNCLASSIFIED
+    assert decision.reason_code == "legacy_cli_unrestricted" and decision.policy_ref is None
+    assert decision.binding == network_binding(CLI_INSTANCE_ID, None, ProviderOperation.LANGUAGES)
+
+
+def test_a_malformed_code_from_discovery_is_not_a_route():
+    from datetime import UTC, datetime, timedelta
+
+    from ayvu.provider_capabilities import AvailabilityState, LanguageEvidence, observation
+    from ayvu.provider_libretranslate import discover_route
+
+    now = datetime(2026, 11, 3, tzinfo=UTC)
+    available = observation(AvailabilityState.AVAILABLE, None, now, timedelta(seconds=60), (LanguageEvidence("en", ("pt",)),))
+    assert discover_route(available, "x y", "x y", now) is None
