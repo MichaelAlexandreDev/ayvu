@@ -13,9 +13,8 @@ Related issue: [#127 — Define the FormatAdapter port and capability descriptor
 ## Decision and scope
 
 Every format reaches Ayvu through one contract, which states what it can do, how faithfully, and on what
-evidence. **No production format uses it yet.** `epub_io`, `html_translate`, `validation`, the CLI and
-`translate_epub` are unchanged, and [#144](https://github.com/MichaelAlexandreDev/ayvu/issues/144) implements
-the first real adapter. There are no plugins, nothing is discovered, and adapters are registered explicitly at
+evidence. EPUB is the only format behind it, in [the EPUB adapter](epub-format.md), and `translate` reaches it through
+[the use case](translate-project.md). There are no plugins, nothing is discovered, and adapters are registered explicitly at
 a composition root.
 
 | Module | Layer | Responsibility |

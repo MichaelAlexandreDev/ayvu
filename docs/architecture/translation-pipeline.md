@@ -96,7 +96,7 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 The v1 cache and the memory reach the pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.html_translate` is the only adapter for the current cache, and only this facade selects it.
 `html_translate` therefore still imports the cache and glossary as a compatibility facade, and those
-boundary exceptions remain until #145. [`html_structure`](html-structure.md) has neither.
+boundary exceptions remain until #153. [`html_structure`](html-structure.md) has neither.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.html_translate`, passed on each call.
 
@@ -185,8 +185,8 @@ records only itself.
 ## Consequences and limits
 
 - User-facing messages raised by the legacy path stay in Portuguese, as they were. Application code
-  holding interface text is debt to settle when
-  [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) moves translation to typed results.
+  holding interface text is debt to settle with the rich path in
+  [#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153). The use case stores only a code.
 - `LinguisticOutcome.glossary_usage` is opaque to the pipeline, since the application layer cannot
   import the glossary module.
 - The facade is built for each text, which adds a small allocation per call.

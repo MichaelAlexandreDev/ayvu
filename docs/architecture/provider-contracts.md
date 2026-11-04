@@ -122,7 +122,8 @@ on a required feature, a conflicting route, an expired deadline or a cancellatio
 
 **A deliberate difference until consumers migrate:** an empty `translatedText` is a
 success for `Translator.translate` and a failure for this adapter.
-[#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) has to settle it.
+[#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) keeps the current translator, so
+[#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153) settles it.
 
 ## Privacy
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,14 +41,9 @@ from .domain import (
 )
 from .epub_io import (
     ReviewApplyReport,
-    SelectedChapter,
-    TranslationReport,
     apply_reviewed_epub,
-    detect_epub_language,
     extract_markdown,
     inspect_epub,
-    resolve_chapter_selection,
-    translate_epub,
 )
 from .glossary import (
     GLOSSARY_RULE_PRESERVE,
@@ -76,7 +72,22 @@ from .review_export import ReviewSegment, write_review_csv
 from .review_import import ReviewImportError, read_review_csv
 from .provider_composition import ProviderSetupError, cli_provider_session
 from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
-from .validation import validate_output_epub
+from .translate_project import TranslateObserver
+from .translate_project_composition import (
+    BookRefused,
+    LegacyResources,
+    ProjectTranslation,
+    ProjectTranslationUnavailable,
+    SelectedChapter,
+    TranslationReport,
+    check_book,
+    detect_epub_language,
+    resolve_chapter_selection,
+    translate_in_project,
+    translate_without_project,
+    validate_output,
+)
+from .translation_engine import EngineObserver
 
 
 app = typer.Typer(help="Translate local EPUB files with a local HTTP translator.")
@@ -130,6 +141,159 @@ class TranslationRunResult:
     validation_warnings: list[str]
     markdown_report_path: Path | None = None
     project_id: str | None = None
+
+
+_BOOK_PROTECTED = (
+    "Este EPUB tem conteúdo protegido ou criptografado.",
+    "O Ayvu não traduz nem remove essa proteção. Escolha um EPUB sem proteção. O original não foi alterado.",
+)
+_BOOK_UNSAFE = (
+    "Este EPUB tem uma estrutura interna insegura, e o Ayvu preferiu não abri-lo.",
+    "Nomes de arquivo inseguros, arquivos repetidos ou declarações de entidade XML não são aceitos. "
+    "Tente outra cópia do livro. O original não foi alterado.",
+)
+_BOOK_TOO_BIG = (
+    "Este EPUB passa dos limites de tamanho ou de compressão aceitos.",
+    "Isso protege contra arquivos que se expandem demais ao abrir. Tente outra cópia do livro. O original não foi alterado.",
+)
+_BOOK_BROKEN = (
+    "Este EPUB está danificado ou incompleto.",
+    "Abra o livro em um leitor para conferir e tente outra cópia. O original não foi alterado.",
+)
+_TRANSLATION_FAILURES: dict[str, tuple[str, str]] = {
+    **dict.fromkeys(("encrypted_content", "encrypted_member", "malformed_encryption", "protected_member"), _BOOK_PROTECTED),
+    **dict.fromkeys(
+        ("unsafe_member_name", "unsafe_manifest_href", "member_name_too_long", "duplicate_member", "entity_declaration"),
+        _BOOK_UNSAFE,
+    ),
+    **dict.fromkeys(
+        ("suspicious_compression", "archive_too_large", "member_too_large", "document_too_large", "source_too_large", "too_many_members"),
+        _BOOK_TOO_BIG,
+    ),
+    **dict.fromkeys(
+        (
+            "corrupt_archive",
+            "corrupt_member",
+            "unsupported_compression",
+            "missing_container",
+            "missing_member",
+            "missing_package",
+            "malformed_container",
+            "malformed_package",
+            "manifest_member_missing",
+            "source_not_regular_file",
+        ),
+        _BOOK_BROKEN,
+    ),
+    "invalid_source_text": (
+        "Um texto deste EPUB não pôde ser preparado para tradução.",
+        "Ele tem caracteres que o Ayvu não aceita, como caracteres de controle. Nada foi publicado e o original não foi alterado.",
+    ),
+    "source_unreadable": (
+        "Não foi possível ler o EPUB informado.",
+        "Confirme que o arquivo existe e pode ser lido, e repita.",
+    ),
+    "source_changed": (
+        "O EPUB mudou enquanto a tradução começava.",
+        "Repita o comando com o arquivo já final. O que foi traduzido continua no cache.",
+    ),
+    "language_pair_mismatch": (
+        "Os idiomas pedidos não são os do projeto local.",
+        "Repita o comando. Se continuar, informe --source e --target explicitamente.",
+    ),
+    "no_chapters_matched": (
+        "Nenhum capítulo corresponde à seleção.",
+        "Veja os capítulos com 'ayvu inspect' e ajuste --chapters.",
+    ),
+    "nothing_to_materialize": (
+        "Este EPUB não tem nada que o Ayvu possa traduzir.",
+        "Confira o livro com 'ayvu inspect'. Nada foi publicado.",
+    ),
+    "job_in_progress": (
+        "Esta mesma tradução já está em andamento em outro processo.",
+        "Espere ela terminar. Para rodar ao mesmo tempo, use outra saída com --output.",
+    ),
+    "job_store_unavailable": (
+        "Não foi possível registrar o trabalho no projeto local.",
+        "Verifique as permissões e o espaço da pasta de processamento e repita. Nada foi traduzido.",
+    ),
+    "run_guard_unavailable": (
+        "Não foi possível registrar o trabalho no projeto local.",
+        "Verifique as permissões e o espaço da pasta de processamento e repita. Nada foi traduzido.",
+    ),
+    "lease_expired": (
+        "A tradução ficou parada por mais de uma hora e o trabalho perdeu a validade.",
+        "Isso costuma ser o computador suspenso. Nada foi publicado. Repita o comando: o que já foi traduzido está no cache.",
+    ),
+    "output_exists": (
+        "Apareceu um arquivo no destino durante a tradução, e ele não foi alterado.",
+        "Escolha outra saída com --output, ou use --overwrite para substituir {output}. O que foi traduzido está no cache.",
+    ),
+    "output_is_source": (
+        "A saída é o próprio EPUB original, que o Ayvu nunca altera.",
+        "Escolha outra saída com --output.",
+    ),
+    "provider_failed": (
+        "O tradutor falhou e a tradução parou, como pedido por --fail-fast.",
+        "Verifique o tradutor local e repita. O que já foi traduzido está no cache.",
+    ),
+    "text_failed": (
+        "Um texto falhou e a tradução parou, como pedido por --fail-fast.",
+        "Veja o detalhe com --mode developer e repita. O que já foi traduzido está no cache.",
+    ),
+    "publication_uncommitted": (
+        "O EPUB foi publicado, mas o projeto local não conseguiu registrar isso.",
+        "O arquivo está em {output}. Confira o livro antes de usar. Repetir com --overwrite gera um registro novo.",
+    ),
+    "job_record_failed": (
+        "O projeto local não conseguiu registrar o fim deste trabalho.",
+        "Verifique se {output} existe e confira o livro. Verifique as permissões e o espaço da pasta de processamento.",
+    ),
+    "provenance_failed": (
+        "O EPUB foi gerado, mas o histórico dele não pôde ser gravado no projeto local.",
+        "O livro está em {output}. Verifique as permissões e o espaço da pasta de processamento.",
+    ),
+    "unexpected_error": (
+        "Não foi possível concluir a tradução deste EPUB.",
+        "Veja o detalhe com --mode developer e repita. O que já foi traduzido está no cache e o original não foi alterado.",
+    ),
+}
+
+
+@dataclass(frozen=True)
+class _BookHooks:
+    """What one book reports to the terminal and to the resume file while it runs."""
+
+    on_chapter_start: Callable[[int, int, str], None]
+    on_chapter_done: Callable[[int, int, str, object], None]
+    on_text_processed: Callable[[str], None]
+    on_validation: Callable[[int, int, str], None]
+
+
+@dataclass(frozen=True)
+class _BookRequest:
+    epub_path: Path
+    output_plan: OutputPlan
+    replace_existing: bool
+    options: TranslationOptions
+    cache_path: Path
+    prepare: Callable[[], object]
+    wants_review: bool
+    project_id: str | None = None
+    source_sha256: str | None = None
+    processing_dir: Path | None = None
+
+
+@dataclass(frozen=True)
+class _BookOutcome:
+    """``failure`` is a bounded code. With it there is no report, because the run never reached one."""
+
+    report: TranslationReport | None = None
+    validation: object | None = None
+    review_segments: list[ReviewSegment] | None = None
+    failure: str | None = None
+    raised: Exception | None = None
+    warning: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1389,6 +1553,7 @@ def _run_translation(
     )
 
     project_id = None
+    source_sha256 = None
     if resolve_managed_project and not dry_run:
         try:
             project_request = build_project_request(
@@ -1413,6 +1578,7 @@ def _run_translation(
             )
             resolution = resolve_project(ProjectJsonRepository(_processing_dir(config)), project_request)
             project_id = resolution.project.project_id
+            source_sha256 = resolution.project.source_sha256
         except ProjectError as exc:
             next_step = {
                 "source_missing": "Informe uma fonte existente; o projeto anterior foi preservado.",
@@ -1432,7 +1598,14 @@ def _run_translation(
             )
             raise typer.Exit(code=1) from None
 
-    try:
+    resume_store: ResumeStateStore | None = None
+    resume_state: TranslationResumeState | None = None
+    progress = _translation_progress_display()
+    progress_view = TranslationProgress(progress, dry_run=dry_run, workers=workers)
+
+    def prepare() -> object:
+        nonlocal resume_store, resume_state
+        check_book(epub_path)
         preflight = run_translation_preflight(
             epub_path=epub_path,
             cache_path=cache_path,
@@ -1448,84 +1621,96 @@ def _run_translation(
             dry_run=dry_run,
             cache_only=cache_only,
         )
+        _print_translation_route(preflight.route, mode=mode)
+        if not dry_run and not cache_only:
+            resume_store, resume_state = _save_running_resume_state(
+                epub_path=epub_path,
+                output_path=output_path,
+                cache_path=cache_path,
+                translator_name=translator_name,
+                url=url,
+                glossary_path=resolved_glossary_path,
+                options=translation_options,
+                overwrite=overwrite,
+                timeout=timeout,
+                retries=retries,
+                requests_per_second=requests_per_second,
+                retry_backoff=retry_backoff,
+                retry_backoff_max=retry_backoff_max,
+                processing_dir=_processing_dir(config),
+            )
+        progress.start()
+        return preflight
+
+    def on_chapter_start(index: int, total: int, name: str) -> None:
+        nonlocal resume_state
+        progress_view.chapter_started(index, total, name)
+        if resume_store and resume_state:
+            resume_state = resume_state.start_chapter(name, total)
+            _save_resume_state(resume_store, resume_state)
+
+    def on_chapter_done(index: int, total: int, name: str, stats: object) -> None:
+        nonlocal resume_state
+        progress_view.chapter_done(index, total, name, stats)
+        if resume_store and resume_state:
+            ok = not stats.errors and stats.missing == 0
+            failed = len(stats.errors) + stats.missing
+            resume_state = resume_state.record_chapter(
+                name=name,
+                total=total,
+                ok=ok,
+                failed_segment_count=failed,
+            )
+            _save_resume_state(resume_store, resume_state)
+
+    validation_task = None
+
+    def on_validation(index: int, total: int, _name: str) -> None:
+        nonlocal validation_task
+        if validation_task is None:
+            validation_task = progress.add_task("Validando EPUB", total=total)
+        progress.update(validation_task, total=total, completed=index, description=f"Validando EPUB {index}/{total}")
+
+    hooks = _BookHooks(on_chapter_start, on_chapter_done, progress_view.text_processed, on_validation)
+    book = _BookRequest(
+        epub_path=epub_path,
+        output_plan=output_plan,
+        # Whoever gets this far with a file already there accepted replacing it, by flag or at the prompt.
+        replace_existing=overwrite or output_path.exists(),
+        options=translation_options,
+        cache_path=cache_path,
+        prepare=prepare,
+        wants_review=review_output_path is not None,
+        project_id=project_id,
+        source_sha256=source_sha256,
+        processing_dir=_processing_dir(config) if project_id is not None else None,
+    )
+    try:
+        try:
+            outcome = (
+                _translate_without_project(book, hooks)
+                if project_id is None
+                else _translate_in_project(book, hooks)
+            )
+        finally:
+            progress.stop()
     except PreflightError as exc:
         _print_expected_error(exc.summary, exc.next_step, mode, detail=exc.detail)
         raise typer.Exit(code=1) from exc
-
-    _print_translation_route(preflight.route, mode=mode)
-
-    resume_store: ResumeStateStore | None = None
-    resume_state: TranslationResumeState | None = None
-    if not dry_run and not cache_only:
-        resume_store, resume_state = _save_running_resume_state(
-            epub_path=epub_path,
-            output_path=output_path,
-            cache_path=cache_path,
-            translator_name=translator_name,
-            url=url,
-            glossary_path=resolved_glossary_path,
-            options=translation_options,
-            overwrite=overwrite,
-            timeout=timeout,
-            retries=retries,
-            requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff,
-            retry_backoff_max=retry_backoff_max,
-            processing_dir=_processing_dir(config),
+    except BookRefused as exc:
+        _print_translation_failure(_BookOutcome(failure=exc.code), output_path, mode)
+        raise typer.Exit(code=1) from exc
+    except ProjectTranslationUnavailable as exc:
+        _print_expected_error(
+            "Não foi possível abrir o estado do projeto local.",
+            "Verifique as permissões da pasta de processamento e repita. Nada foi traduzido nem escrito.",
+            mode,
+            detail=str(exc),
         )
-
-    progress_view: TranslationProgress | None = None
-    review_segments: list[ReviewSegment] | None = [] if review_output_path is not None else None
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            TimeElapsedColumn(),
-            console=console,
-        ) as progress:
-            progress_view = TranslationProgress(progress, dry_run=dry_run, workers=workers)
-
-            def on_chapter_start(index: int, total: int, name: str) -> None:
-                nonlocal resume_state
-                progress_view.chapter_started(index, total, name)
-                if resume_store and resume_state:
-                    resume_state = resume_state.start_chapter(name, total)
-                    _save_resume_state(resume_store, resume_state)
-
-            def on_chapter_done(index: int, total: int, name: str, stats: HtmlTranslationStats) -> None:
-                nonlocal resume_state
-                progress_view.chapter_done(index, total, name, stats)
-                if resume_store and resume_state:
-                    ok = not stats.errors and stats.missing == 0
-                    failed = len(stats.errors) + stats.missing
-                    resume_state = resume_state.record_chapter(
-                        name=name,
-                        total=total,
-                        ok=ok,
-                        failed_segment_count=failed,
-                    )
-                    _save_resume_state(resume_store, resume_state)
-
-            with TranslationCache(cache_path) as cache:
-                report = translate_epub(
-                    epub_path,
-                    output_path,
-                    translator=preflight.translator,
-                    cache=cache,
-                    options=translation_options,
-                    glossary=preflight.glossary,
-                    on_chapter_start=on_chapter_start,
-                    on_chapter_done=on_chapter_done,
-                    on_text_processed=progress_view.text_processed,
-                    review_segments=review_segments,
-                    translator_factory=getattr(preflight, "translator_factory", None),
-                    cache_factory=lambda: TranslationCache(cache_path),
-                )
+        raise typer.Exit(code=1) from exc
     except KeyboardInterrupt as exc:
         _print_interrupted_translation(
-            snapshot=progress_view.snapshot() if progress_view else None,
+            snapshot=progress_view.snapshot(),
             output_path=output_path,
             cache_path=cache_path,
             dry_run=dry_run,
@@ -1536,6 +1721,12 @@ def _run_translation(
             retry_backoff_max=retry_backoff_max,
         )
         raise typer.Exit(code=1) from exc
+
+    if outcome.report is None:
+        _print_translation_failure(outcome, output_path, mode)
+        raise typer.Exit(code=1)
+    report = outcome.report
+    review_segments = outcome.review_segments
 
     if review_output_path is not None and review_segments is not None:
         _write_review_output(review_output_path, review_segments, overwrite=overwrite, mode=mode)
@@ -1550,10 +1741,8 @@ def _run_translation(
             mode=mode,
         )
 
-    validation = (
-        _validate_with_progress(output_path) if report.output_written and not dry_run else None
-    )
-    validation_warnings = validation.warnings if validation else []
+    validation = outcome.validation
+    validation_warnings = list(validation.warnings) if validation else []
 
     _print_report(report, dry_run, validation_warnings)
     markdown_report_path = None
@@ -1582,12 +1771,98 @@ def _run_translation(
         else:
             raise typer.Exit(code=1)
 
+    if outcome.warning is not None:
+        _print_translation_failure(outcome, output_path, mode)
+        if outcome.warning != "provenance_failed":
+            raise typer.Exit(code=1)
+
     return TranslationRunResult(
         report=report,
         validation_warnings=validation_warnings,
         markdown_report_path=markdown_report_path,
         project_id=project_id,
     )
+
+
+def _translation_progress_display() -> Progress:
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    )
+
+
+def _translate_without_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
+    """Dry run and the resume command, which have no project. See ``translate_without_project``."""
+    preflight = book.prepare()
+    review_segments: list[ReviewSegment] | None = [] if book.wants_review else None
+    with TranslationCache(book.cache_path) as cache:
+        report = translate_without_project(
+            book.epub_path,
+            book.output_plan.path,
+            translator=preflight.translator,
+            cache=cache,
+            options=book.options,
+            glossary=preflight.glossary,
+            on_chapter_start=hooks.on_chapter_start,
+            on_chapter_done=hooks.on_chapter_done,
+            on_text_processed=hooks.on_text_processed,
+            review_segments=review_segments,
+            translator_factory=getattr(preflight, "translator_factory", None),
+            cache_factory=lambda: TranslationCache(book.cache_path),
+        )
+    validation = None
+    if report.output_written and not book.options.dry_run:
+        validation = validate_output(book.output_plan.path, on_progress=hooks.on_validation)
+    return _BookOutcome(report=report, validation=validation, review_segments=review_segments)
+
+
+def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
+    def prepare() -> LegacyResources:
+        preflight = book.prepare()
+        return LegacyResources(preflight.translator, preflight.glossary, getattr(preflight, "translator_factory", None))
+
+    run = translate_in_project(
+        ProjectTranslation(
+            book.processing_dir,
+            book.project_id,
+            book.source_sha256,
+            book.epub_path,
+            book.options,
+            book.output_plan,
+            book.replace_existing,
+            prepare,
+            lambda: TranslationCache(book.cache_path),
+        ),
+        TranslateObserver(
+            EngineObserver(hooks.on_chapter_start, hooks.on_chapter_done, hooks.on_text_processed),
+            on_validation_progress=hooks.on_validation,
+        ),
+    )
+    if run.preflight_error is not None:
+        raise run.preflight_error
+    result = run.result
+    reason = None if result.outcome is None else result.outcome.summary.reason_code
+    if run.report is None:
+        code = reason if reason == "publication_uncommitted" else (result.failure.code if result.failure else "job_record_failed")
+        return _BookOutcome(failure=code, raised=result.raised)
+    warning = "job_record_failed" if not result.recorded else (reason if reason == "provenance_failed" else None)
+    return _BookOutcome(
+        report=run.report,
+        validation=result.validation,
+        review_segments=run.review_segments if book.wants_review else None,
+        warning=warning,
+    )
+
+
+def _print_translation_failure(outcome: _BookOutcome, output_path: Path, mode: UserMode) -> None:
+    code = outcome.failure or outcome.warning or "unexpected_error"
+    template = _TRANSLATION_FAILURES.get(code) or _TRANSLATION_FAILURES["unexpected_error"]
+    detail = str(outcome.raised) if outcome.raised is not None and str(outcome.raised) else code
+    _print_expected_error(template[0], template[1].format(output=output_path), mode, detail=detail)
 
 
 def _run_batch_translation(
@@ -1810,6 +2085,12 @@ def _run_preview(
             raise typer.Exit(code=1)
 
     try:
+        check_book(epub_path)
+    except BookRefused as exc:
+        _print_translation_failure(_BookOutcome(failure=exc.code), output_path, mode)
+        raise typer.Exit(code=1) from exc
+
+    try:
         preflight = run_translation_preflight(
             epub_path=epub_path,
             cache_path=cache_path,
@@ -1840,7 +2121,7 @@ def _run_preview(
     ) as progress:
         progress_view = TranslationProgress(progress, dry_run=False)
         with TranslationCache(cache_path) as cache:
-            report = translate_epub(
+            report = translate_without_project(
                 epub_path,
                 output_path,
                 translator=preflight.translator,
@@ -2022,7 +2303,7 @@ def _validate_with_progress(output_path: Path) -> ValidationResult:
                 description=f"Validando EPUB {index}/{total}",
             )
 
-        return validate_output_epub(output_path, on_progress=on_progress)
+        return validate_output(output_path, on_progress=on_progress)
 
 
 def _print_validation_warnings(warnings: list[str]) -> None:

@@ -13,6 +13,7 @@ import logging
 import os
 import sqlite3
 import threading
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -963,6 +964,77 @@ def test_a_job_with_a_live_lease_is_left_alone_and_a_duplicate_is_refused(world)
     assert duplicate.job_id is None and duplicate.failure.code == "job_in_progress"
     assert first.state is JobState.VALIDATED
     assert len(world.all_jobs()) == 1
+
+
+def _job_left_by_a_dead_process(world, command, *, state=JobState.RUNNING, fingerprint=None):
+    jobs = world.jobs()
+    request = _job_request(world, command)
+    if fingerprint is not None:
+        request = replace(request, input_fingerprint=fingerprint)
+    job = jobs.create(request)
+    job = jobs.acquire_lease(job.job_id, timedelta(hours=1))
+    if state is not JobState.QUEUED:
+        job = jobs.transition(job.job_id, JobState.PREFLIGHT, expected_revision=job.revision)
+        job = jobs.transition(job.job_id, JobState.RUNNING, expected_revision=job.revision)
+    return job
+
+
+def test_a_live_lease_on_this_plan_with_no_live_owner_is_taken_over(world):
+    command = world.command()
+    left = _job_left_by_a_dead_process(world, command)
+
+    result = world.use_case(command).execute(command)
+
+    assert result.state is JobState.VALIDATED
+    settled = world.jobs().get(left.job_id).job
+    assert settled.state is JobState.FAILED and settled.terminal_summary.reason_code == "interrupted"
+
+
+def test_a_live_lease_on_another_plan_is_left_alone(world):
+    command = world.command()
+    other = _job_left_by_a_dead_process(world, command, fingerprint="sha256:" + "a" * 64)
+
+    result = world.use_case(command).execute(command)
+
+    assert result.state is JobState.VALIDATED
+    assert world.jobs().get(other.job_id).job.state is JobState.RUNNING
+
+
+def test_a_queued_job_keeps_its_lease_until_it_expires(world):
+    command = world.command()
+    queued = _job_left_by_a_dead_process(world, command, state=JobState.QUEUED)
+
+    result = world.use_case(command).execute(command)
+
+    assert result.state is JobState.VALIDATED
+    assert world.jobs().get(queued.job_id).job.state is JobState.QUEUED
+    world.clock.advance(hours=2)
+    assert world.use_case(command).reconcile(command.project_id) == (queued.job_id,)
+
+
+def test_the_guard_is_given_back_after_ctrl_c(world):
+    command = world.command()
+    def interrupt(_text):
+        raise KeyboardInterrupt
+    world.translator.on_call = interrupt
+    with pytest.raises(KeyboardInterrupt):
+        world.use_case(command).execute(command)
+    world.translator.on_call = None
+
+    assert world.use_case(command).execute(command).state is JobState.VALIDATED
+
+
+def test_a_guard_that_cannot_be_taken_refuses_before_any_job(world):
+    command = world.command()
+    use_case = world.use_case(command)
+    root = world.processing / "projects" / world.project.project_id / "runs"
+    root.parent.mkdir(parents=True, exist_ok=True)
+    root.write_bytes(b"blocked")
+
+    result = use_case.execute(command)
+
+    assert result.job_id is None and result.failure.code == "run_guard_unavailable"
+    assert world.all_jobs() == []
 
 
 def test_a_job_left_behind_is_settled_before_new_work_starts(world):
