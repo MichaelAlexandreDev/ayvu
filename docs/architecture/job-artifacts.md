@@ -19,9 +19,10 @@ The project stores job-owned payloads as files and their metadata in the
 - `projects/<project UUID>/artifacts/ready/<artifact UUID>.bin`: published payload.
 - Table `job_artifacts`: identity, ownership, lifecycle, size and digest.
 
-A checkpoint is an artifact with its own `role`; there is no separate table. No use
-case adopts this yet: translation still writes to the output the user chose, and the
-final-output workflow, pipeline stages and CLI do not change. Provenance, content
+A checkpoint is an artifact with its own `role`; there is no separate table. A final
+output keeps this record and protocol but not this location:
+[`TranslateProject`](translate-project.md#publishing-to-the-chosen-file) publishes it to
+the file the user chose. The CLI does not use that yet, and pipeline stages do not change. Provenance, content
 addressing, retention and cross-job reuse are not accepted here.
 
 | Module | Layer | Responsibility |

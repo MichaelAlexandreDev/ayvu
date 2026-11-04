@@ -266,6 +266,10 @@ class FormatService:
     def __repr__(self) -> str:
         return "FormatService()"
 
+    def safe_points(self, adapter_id: object) -> tuple[str, ...]:
+        """What a ``CancellationSource`` must declare to run this adapter. An unknown adapter raises."""
+        return format_safe_points(self._registry.get(adapter_id).descriptor)
+
     def detect(self, source: FormatSource) -> DetectionResult:
         try:
             evidence = DetectionEvidence(source.head(MAX_DETECTION_BYTES), source.extension)

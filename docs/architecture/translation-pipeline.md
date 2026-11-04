@@ -83,7 +83,9 @@ the bytes, the order of provider calls, the cache, the report, the progress and 
 [Format compatibility](format-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
 `texts_skipped` is left at zero: only the current report object holds it, and nothing shows it.
 
-**Nothing in the current translation calls the engine yet.** Dry run and the preview stay on the current flow when
+[`TranslateProject`](translate-project.md) wraps the engine in a durable job.
+
+**Nothing in the current translation calls either of them yet.** Dry run and the preview stay on the current flow when
 callers migrate, because they create no project and so have no identity to give the adapter.
 
 ## The legacy facade

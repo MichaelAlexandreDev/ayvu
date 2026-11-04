@@ -5,7 +5,8 @@ markup or calls a provider. It keeps the current flow's rules: a failed text sta
 language and the run goes on, unless the run is fail-fast. It is not ``DocumentTranslator``, which
 stops at the first failure and has no production cache until #153.
 
-Nothing in the current translation uses it yet. #145 migrates callers.
+Nothing in the current translation uses it yet. #145 migrates callers. ``ayvu.translate_project``
+wraps it in a durable job.
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from collections.abc import Callable, Iterator
 from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
+from threading import Event
 from typing import Protocol
 
 from .artifact import Artifact
@@ -21,7 +23,11 @@ from .domain import ChapterSelection, ChapterSelectionError
 from .format_adapter import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
 from .format_service import FormatPublication, FormatService, FormatSource
 from .job_events import JobFailure, JobFailureFamily
+from .job_execution import CancellationToken
 
+ENGINE_BEFORE_CHAPTER = "engine_before_chapter"
+ENGINE_BEFORE_UNIT = "engine_before_unit"
+ENGINE_SAFE_POINTS = (ENGINE_BEFORE_CHAPTER, ENGINE_BEFORE_UNIT)
 STATUS_TRANSLATED = "translated"
 STATUS_CACHE = "cache"
 STATUS_MEMORY = "memory"
@@ -57,6 +63,15 @@ class ExecutorPool(Protocol):
     """Each worker gets its own executor, because a provider session or a cache cannot be shared."""
 
     def worker(self) -> AbstractContextManager[UnitExecutor]: ...
+
+
+@dataclass(frozen=True, repr=False)
+class TranslationResources:
+    executor: UnitExecutor
+    pool: ExecutorPool | None = None
+
+    def __repr__(self) -> str:
+        return "TranslationResources()"
 
 
 @dataclass(frozen=True, repr=False)
@@ -183,6 +198,10 @@ class _ChapterOutcome:
     statuses: list[str] = field(default_factory=list)
 
 
+class _Cancelled(Exception):
+    """Unwinds to ``run``. It is never a text's failure, so nothing below may swallow it as one."""
+
+
 def _scopes(request: EngineRequest) -> frozenset[ContentScope]:
     scopes = {ContentScope.BODY}
     if request.translate_metadata:
@@ -196,10 +215,11 @@ def _is_metadata(document: ContentDocument) -> bool:
     return any(unit.content.kind.name == METADATA_KIND for unit in document.units)
 
 
-def _translate_chapter(executor: UnitExecutor, chapter: _Chapter, *, fail_fast: bool,
-                       on_status: Callable[[str], None]) -> _ChapterOutcome:
+def _translate_chapter(executor: UnitExecutor, chapter: _Chapter, *, fail_fast: bool, on_status: Callable[[str], None],
+                       checkpoint: Callable[[str], None]) -> _ChapterOutcome:
     outcome = _ChapterOutcome()
     for unit in chapter.document.units:
+        checkpoint(ENGINE_BEFORE_UNIT)
         try:
             execution = executor.execute(unit)
         except Exception as error:
@@ -223,11 +243,12 @@ def _translate_chapter(executor: UnitExecutor, chapter: _Chapter, *, fail_fast: 
 
 class TranslationEngine:
     def __init__(self, formats: FormatService, executor: UnitExecutor, *, pool: ExecutorPool | None = None,
-                 observer: EngineObserver | None = None) -> None:
+                 observer: EngineObserver | None = None, cancellation: CancellationToken | None = None) -> None:
         self._formats = formats
         self._executor = executor
         self._pool = pool
         self._observer = observer or EngineObserver()
+        self._cancellation = cancellation
 
     def __repr__(self) -> str:
         return "TranslationEngine()"
@@ -236,46 +257,58 @@ class TranslationEngine:
         if self._observer.on_text_processed:
             self._observer.on_text_processed(status)
 
+    def _checkpoint(self, safe_point: str) -> None:
+        if self._cancellation is not None and self._cancellation.checkpoint(safe_point) is not None:
+            raise _Cancelled
+
     def run(self, request: EngineRequest) -> EngineResult:
         """Nothing is sent to a provider before the book has been read and the selection resolved."""
         if request.workers < 1 or (request.workers > 1 and self._pool is None):
             raise ValueError("a worker pool is required for more than one worker")
         result = EngineResult()
+        try:
+            self._run(request, result)
+        except _Cancelled:
+            result.failure = JobFailure(JobFailureFamily.CANCELLED, "cancelled")
+        return result
+
+    def _run(self, request: EngineRequest, result: EngineResult) -> None:
         extraction = self._formats.extract(request.adapter_id, request.source,
-                                           ExtractionRequest(request.project_id, _scopes(request)))
+                                           ExtractionRequest(request.project_id, _scopes(request)),
+                                           cancellation=self._cancellation)
         if extraction.failure is not None:
             result.failure = extraction.failure
-            return result
+            return
         title = next((document for document in extraction.documents if _is_metadata(document)), None)
         chapters = self._chapters(request, [document for document in extraction.documents if document is not title], result)
         if chapters is None:
-            return result
+            return
         materialized: list[ContentDocument] = []
         translations: list[UnitTranslation] = []
         if request.translate_metadata:
+            self._checkpoint(ENGINE_BEFORE_UNIT)
             self._translate_title(request, title, result, materialized, translations)
         run_chapters = self._run_parallel if request.workers > 1 else self._run_sequential
         for chapter, outcome in run_chapters(request, chapters, result):
             materialized.append(chapter.document)
             translations.extend(outcome.translations)
         if request.require_full_cache and result.stats.missing > 0:
-            return result
+            return
         if not materialized:
             result.failure = JobFailure(JobFailureFamily.INPUT, "nothing_to_materialize")
-            return result
+            return
         materialization = self._formats.reconstruct(
             request.adapter_id, request.source, ReconstructionRequest(tuple(materialized), tuple(translations)),
-            request.publication)
+            request.publication, cancellation=self._cancellation)
         result.failure, result.artifact = materialization.failure, materialization.artifact
         result.output_written = materialization.failure is None
-        return result
 
     def _chapters(self, request: EngineRequest, documents: list[ContentDocument], result: EngineResult) -> list[_Chapter] | None:
         names = dict(request.facts.document_names)
         titles: dict[str, str | None] = {}
         selection = request.chapter_selection
         if selection is not None:
-            inspection = self._formats.inspect(request.adapter_id, request.source)
+            inspection = self._formats.inspect(request.adapter_id, request.source, cancellation=self._cancellation)
             if inspection.failure is not None:
                 result.failure = inspection.failure
                 return None
@@ -331,9 +364,13 @@ class TranslationEngine:
     def _run_sequential(self, request: EngineRequest, chapters: list[_Chapter],
                         result: EngineResult) -> Iterator[tuple[_Chapter, _ChapterOutcome]]:
         for chapter in chapters:
+            self._checkpoint(ENGINE_BEFORE_CHAPTER)
             self._start(chapter, len(chapters))
             try:
-                outcome = _translate_chapter(self._executor, chapter, fail_fast=request.fail_fast, on_status=self._status)
+                outcome = _translate_chapter(self._executor, chapter, fail_fast=request.fail_fast, on_status=self._status,
+                                             checkpoint=self._checkpoint)
+            except _Cancelled:
+                raise
             except Exception as error:
                 result.stats.errors.append(f"{chapter.name}: {error}")
                 if request.fail_fast:
@@ -344,26 +381,44 @@ class TranslationEngine:
 
     def _run_parallel(self, request: EngineRequest, chapters: list[_Chapter],
                       result: EngineResult) -> Iterator[tuple[_Chapter, _ChapterOutcome]]:
+        stopping = Event()
+
+        def checkpoint(safe_point: str) -> None:
+            if stopping.is_set():
+                raise _Cancelled
+            self._checkpoint(safe_point)
+
         def work(chapter: _Chapter) -> _ChapterOutcome:
+            # Checked first, so the chapters still queued end quickly without opening a worker.
+            checkpoint(ENGINE_BEFORE_CHAPTER)
             statuses: list[str] = []
             with self._pool.worker() as executor:
-                outcome = _translate_chapter(executor, chapter, fail_fast=request.fail_fast, on_status=statuses.append)
+                outcome = _translate_chapter(executor, chapter, fail_fast=request.fail_fast, on_status=statuses.append,
+                                             checkpoint=checkpoint)
             outcome.statuses = statuses
             return outcome
 
         with ThreadPoolExecutor(max_workers=request.workers) as threads:
             futures: list[tuple[_Chapter, Future[_ChapterOutcome]]] = [(chapter, threads.submit(work, chapter)) for chapter in chapters]
-            # Reported in book order, whichever worker finished first.
-            for chapter, future in futures:
-                self._start(chapter, len(chapters))
-                try:
-                    outcome = future.result()
-                except Exception as error:
-                    result.stats.errors.append(f"{chapter.name}: {error}")
-                    if request.fail_fast:
+            try:
+                # Reported in book order, whichever worker finished first.
+                for chapter, future in futures:
+                    self._start(chapter, len(chapters))
+                    try:
+                        outcome = future.result()
+                    except _Cancelled:
                         raise
-                    continue
-                for status in outcome.statuses:
-                    self._status(status)
-                self._finished(chapter, outcome, len(chapters), result)
-                yield chapter, outcome
+                    except Exception as error:
+                        result.stats.errors.append(f"{chapter.name}: {error}")
+                        if request.fail_fast:
+                            raise
+                        continue
+                    for status in outcome.statuses:
+                        self._status(status)
+                    self._finished(chapter, outcome, len(chapters), result)
+                    yield chapter, outcome
+            except (_Cancelled, KeyboardInterrupt):
+                # Leaving this block waits for the workers, and it must not wait for the whole book.
+                stopping.set()
+                threads.shutdown(wait=False, cancel_futures=True)
+                raise
