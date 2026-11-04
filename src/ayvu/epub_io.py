@@ -13,6 +13,7 @@ from ebooklib import epub
 
 from .cache import TranslationCache
 from .domain import ChapterSelection, ChapterSelectionError, TranslationOptions
+from .epub_archive import package_title, parse_package_for_edit, serialize_package
 from .glossary import Glossary, GlossaryUsage
 from .html_translate import (
     HtmlTranslatedSegment,
@@ -42,11 +43,6 @@ TextProgressCallback = Callable[[str], None]
 MetadataReviewCallback = Callable[[str, TextTranslationResult], None]
 TranslatorFactory = Callable[[], Translator]
 CacheFactory = Callable[[], TranslationCache]
-OPF_NAMESPACE = "http://www.idpf.org/2007/opf"
-DC_NAMESPACE = "http://purl.org/dc/elements/1.1/"
-
-ET.register_namespace("", OPF_NAMESPACE)
-ET.register_namespace("dc", DC_NAMESPACE)
 
 
 @dataclass
@@ -772,9 +768,9 @@ def _apply_metadata_review(
         return
 
     opf_content = source_epub.read(opf_archive_path)
-    root = ET.fromstring(opf_content)
-    title = _first_metadata_title(root)
-    if title is None or title.text is None or not title.text.strip():
+    root = parse_package_for_edit(opf_content)
+    title = package_title(root)
+    if title is None or len(title) or title.text is None or not title.text.strip():
         report.missing_in_epub.append(row.segment_id)
         return
 
@@ -782,12 +778,12 @@ def _apply_metadata_review(
         report.inconsistent.append(row.segment_id)
         return
 
-    title.text = row.translated
+    changed = row.translated != title.text
+    if changed:
+        title.text = row.translated
     report.applied += 1
-    replacements.add(
-        opf_archive_path,
-        ET.tostring(root, encoding="utf-8", xml_declaration=_has_xml_declaration(opf_content)),
-    )
+    if changed:
+        replacements.add(opf_archive_path, serialize_package(root, opf_content))
 
 
 def _clean_extracted_text(text: str) -> str:
@@ -1045,8 +1041,10 @@ def _translate_opf_title(
     memory: TranslationMemory | None = None,
     on_review_text: MetadataReviewCallback | None = None,
 ) -> bytes | None:
-    root = ET.fromstring(opf_content)
-    title = _first_metadata_title(root)
+    root = parse_package_for_edit(opf_content)
+    title = package_title(root)
+    if title is not None and len(title):
+        raise ValueError("the title holds a comment, element or entity, so it stays untranslated")
     if title is None or title.text is None or not title.text.strip():
         return None
 
@@ -1064,21 +1062,12 @@ def _translate_opf_title(
     )
     if on_review_text:
         on_review_text(title.text, result)
-    if not result.missing:
+    changed = not result.missing and result.text != title.text
+    if changed:
         title.text = result.text
     report.record_text(result)
     _notify_text_processed(on_text_processed, _text_progress_status(result, options.dry_run))
-    return ET.tostring(root, encoding="utf-8", xml_declaration=_has_xml_declaration(opf_content))
-
-
-def _first_metadata_title(root: ET.Element) -> ET.Element | None:
-    metadata = _first_child_by_local_name(root, "metadata")
-    if metadata is None:
-        return None
-    for child in metadata:
-        if _local_name(child.tag) == "title":
-            return child
-    return None
+    return serialize_package(root, opf_content) if changed else None
 
 
 def _first_child_by_local_name(root: ET.Element, name: str) -> ET.Element | None:
@@ -1090,10 +1079,6 @@ def _first_child_by_local_name(root: ET.Element, name: str) -> ET.Element | None
 
 def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
-
-
-def _has_xml_declaration(content: bytes) -> bool:
-    return content.lstrip().startswith(b"<?xml")
 
 
 def _text_progress_status(result: TextTranslationResult, dry_run: bool) -> str:

@@ -376,6 +376,7 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.provider_composition", "ayvu.provider_service"),
     ("ayvu.provider_composition", "ayvu.translator"),
     ("ayvu.epub_io", "ayvu.domain"),
+    ("ayvu.epub_io", "ayvu.epub_archive"),
     ("ayvu.epub_io", "ayvu.html_translate"),
     ("ayvu.epub_io", "ayvu.translation_memory"),
     ("ayvu.validation", "ayvu.epub_archive"),
