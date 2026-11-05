@@ -2836,7 +2836,7 @@ def test_extract_says_the_output_is_the_problem_when_the_book_is_fine(tmp_path):
     assert output.read_text() == "mine"
 
 
-def test_inspect_says_a_protected_book_is_protected_and_not_broken(tmp_path):
+def test_inspect_says_a_book_is_protected_without_refusing_it_or_showing_its_data(tmp_path):
     epub_path = tmp_path / "book.epub"
     encryption = (b'<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" '
                   b'xmlns:e="http://www.w3.org/2001/04/xmlenc#"><e:EncryptedData><e:EncryptionMethod '
@@ -2846,16 +2846,18 @@ def test_inspect_says_a_protected_book_is_protected_and_not_broken(tmp_path):
 
     result = runner.invoke(app, ["--mode", "common", "inspect", str(epub_path)])
 
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     assert "EPUB válido" not in result.output
     assert "proteção" in result.output
+    assert "EPUB information" not in result.output
+    assert "The Title" not in result.output and "An Author" not in result.output
 
 
 def test_extract_blames_the_chapter_name_when_it_cannot_become_a_file(tmp_path, monkeypatch):
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(epub_bytes())
     monkeypatch.setattr(MarkdownDirectoryWriter, "_name", staticmethod(
-        lambda _ordinal, _stem: (None, JobFailure(JobFailureFamily.POLICY, "reserved_output_name"))))
+        lambda _ordinal, _stem: (None, JobFailure(JobFailureFamily.POLICY, "unsafe_output_name"))))
     output = tmp_path / "out"
 
     result = runner.invoke(app, ["extract", str(epub_path), "--output", str(output)])

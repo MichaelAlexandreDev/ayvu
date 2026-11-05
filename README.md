@@ -1,6 +1,6 @@
 # ayvu
 
-`ayvu` é uma CLI em Python para traduzir arquivos EPUB locais usando um tradutor HTTP local compatível com LibreTranslate. A ferramenta preserva a estrutura interna do livro e modifica apenas textos visíveis ao leitor.
+`ayvu` é uma ferramenta em Python para traduzir arquivos EPUB locais usando um tradutor HTTP local compatível com LibreTranslate. A ferramenta preserva a estrutura interna do livro e modifica apenas textos visíveis ao leitor.
 
 O EPUB original nunca é alterado. A saída é gravada em um novo arquivo `.epub`.
 
@@ -36,39 +36,66 @@ Por padrão, arquivos `.epub`, cache local e glossários privados ficam fora do 
 
 ## Requisitos
 
-- Python 3.11+
-- `uv` ou `pip`
-- Um servidor local compatível com LibreTranslate
+- Python 3.11 ou mais recente. A disponibilidade das dependências nativas do
+  desktop depende da versão do Python, sistema operacional e arquitetura.
+- `uv` ou `pip`.
+- Um servidor compatível com LibreTranslate para traduções reais.
+- Para o desktop, uma sessão gráfica e as dependências nativas exigidas pelo Qt.
 
-## Instalação Com uv
+## Instalação com uv
 
-Dentro do diretório do projeto:
+Dentro do diretório do projeto, instale apenas a CLI:
 
 ```bash
 cd ayvu
-uv sync --extra dev
-```
-
-Execute os comandos sem ativar manualmente o ambiente virtual:
-
-```bash
+uv sync
 uv run ayvu --help
 ```
 
-## Instalação Com pip
+Para instalar o suporte desktop opcional e executar seu ponto de entrada:
+
+```bash
+uv sync --extra desktop
+uv run --extra desktop ayvu-desktop
+```
+
+O extra instala `PySide6-Essentials==6.11.2`, sem Addons ou WebEngine. O ponto
+de entrada informa que a interface ainda não está disponível e termina com código
+1; sua implementação pertence a DESKTOP-010. `ayvu-desktop --help` retorna 0.
+Sem o extra, o comando informa como instalar a dependência e termina com código 1.
+Os fluxos de tradução documentados abaixo estão disponíveis pela CLI, cuja
+instalação padrão não exige PySide6.
+
+Para desenvolver e executar os testes da CLI:
+
+```bash
+uv sync --extra dev
+uv run --extra dev pytest
+```
+
+Para desenvolver o desktop, selecione ambos os extras:
+
+```bash
+uv sync --extra dev --extra desktop
+uv run --extra dev --extra desktop pytest
+```
+
+Ao alternar entre esses perfis, inclua os extras desejados no comando `uv run`,
+pois o uv sincroniza o ambiente conforme a seleção informada.
+
+## Instalação com pip
 
 ```bash
 cd ayvu
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+python -m pip install -e .              # CLI
+# Ou: python -m pip install -e ".[desktop]"
+# Para desenvolvimento: python -m pip install -e ".[dev,desktop]"
 ```
 
-Com o ambiente ativado:
-
-```bash
-ayvu --help
-```
+Com o ambiente ativado, use `ayvu --help` ou, com o extra desktop,
+`ayvu-desktop`.
 
 ## Servidor de Tradução
 
@@ -122,7 +149,7 @@ uv run ayvu inspect livro.epub
 
 O comando é somente de leitura: mostra caminho, título, autores, idioma e as
 contagens de documentos e itens, sem criar cache ou projeto. Livro protegido por
-DRM é recusado, como em `translate`. Em erros de leitura,
+DRM recebe só um aviso, sem título ou autores. `translate` e `extract` o recusam. Em erros de leitura,
 o modo desenvolvedor mostra um código de motivo seguro em vez do texto interno
 do parser.
 
@@ -261,10 +288,11 @@ sensível do livro e deve ficar em armazenamento local protegido. Se o CSV já
 existir, use `--overwrite` ou escolha outro caminho. A opção não funciona com
 `--dry-run`, porque o dry-run não gera texto traduzido revisável.
 
-Para revisar, abra o CSV em um editor ou planilha e altere só duas colunas:
-`reviewed_text`, que já vem com a tradução automática, e `review_status`, que
-começa como `pending` e precisa ser `reviewed` em **todas** as linhas, inclusive
-nas que você não mudou. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
+Para revisar, abra o CSV em um editor ou planilha. Nas linhas que quiser corrigir,
+altere `reviewed_text`, que já vem com a tradução automática, e mude `review_status`
+de `pending` para `reviewed`. As demais linhas podem ficar como estão e mantêm a
+tradução automática. Se editar uma linha sem marcá-la, o pacote é recusado, para a
+correção não se perder. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
 mantenha cada um, na mesma ordem. As demais colunas ligam a linha ao livro e não
 podem mudar. Salvar pela planilha é aceito, com vírgula ou ponto e vírgula.
 

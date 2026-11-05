@@ -950,8 +950,12 @@ def map_review_package(package: ReviewPackage, *, project: ProjectManifest, mach
                                for index, part in enumerate(unit.content.protected_parts))
         if row.protected_parts != expected_parts:
             raise ReviewExchangeError("protected_contract_mismatch")
-        if row.review_status != "reviewed":
-            raise ReviewExchangeError("review_not_approved")
+        if row.review_status == "rejected":
+            raise ReviewExchangeError("review_rejected")
+        # A pending row keeps the machine translation and is never recorded as human work.
+        # An edit left unmarked stops the package, so a correction is never silently dropped.
+        if row.review_status == "pending" and row.reviewed_text != row.machine_translation:
+            raise ReviewExchangeError("pending_row_edited")
         if not row.reviewed_text:
             raise ReviewExchangeError("empty_review_text")
         markers = [marker for marker, _kind in expected_parts]
@@ -962,6 +966,8 @@ def map_review_package(package: ReviewPackage, *, project: ProjectManifest, mach
 
     if len(staged) != len(expected_by_key):
         raise ReviewExchangeError("incomplete_package")
+    if not any(row.review_status == "reviewed" for row in row_by_key.values()):
+        raise ReviewExchangeError("review_not_approved")
     doc_by_id = {document.document_id: document for document in documents}
     ordered_documents = tuple(doc_by_id[key] for key in sorted(doc_by_id))
     return ReviewReconstructionPlan(ordered_documents, tuple(staged))

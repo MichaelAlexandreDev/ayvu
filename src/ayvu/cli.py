@@ -418,6 +418,11 @@ def inspect(
         _print_epub_read_error("inspection_failed", mode)
         raise typer.Exit(code=1) from None
     if result.failure is not None:
+        if _TRANSLATION_FAILURES.get(result.failure.code) is _BOOK_PROTECTED:
+            # Being protected is the answer to "what is this book", so it is not an error. Its data stays hidden.
+            console.print(f"[yellow]{_BOOK_PROTECTED[0]}[/yellow]")
+            console.print("Os dados do livro não são exibidos, e o Ayvu não traduz nem remove essa proteção.")
+            return
         _print_content_failure(result.failure.code, mode)
         raise typer.Exit(code=1)
     table = Table(title="EPUB information")
@@ -1127,7 +1132,7 @@ def _print_epub_read_error(detail: str, mode: UserMode) -> None:
     )
 
 
-_CONTENT_NAME_FAILURES = frozenset({"unsafe_output_name", "reserved_output_name", "duplicate_output_target", "output_name_too_long"})
+_CONTENT_NAME_FAILURES = frozenset({"unsafe_output_name", "duplicate_output_target"})
 
 
 def _print_content_failure(code: str, mode: UserMode) -> None:
@@ -2433,6 +2438,7 @@ def apply_review(
             table.add_row("Documents", str(validated.counts.documents))
             table.add_row("Units", str(validated.counts.units))
             table.add_row("Reviewed", str(validated.counts.reviewed))
+            table.add_row("Kept machine translation", str(validated.counts.pending))
             console.print(table)
             raise typer.Exit(code=0)
         _print_review_apply_failure(validated.code, mode)
@@ -2453,6 +2459,7 @@ def apply_review(
     table.add_row("Output", _display_optional_path(output_path))
     table.add_row("Documents", str(applied.counts.documents))
     table.add_row("Units applied", str(applied.counts.reviewed))
+    table.add_row("Kept machine translation", str(applied.counts.pending))
     console.print(table)
     console.print(f"[green]Reviewed EPUB saved to:[/green] {output_path}")
 
@@ -2480,8 +2487,24 @@ def _print_review_apply_failure(code: str, mode: UserMode) -> None:
         return
     if code == "review_not_approved":
         _print_expected_error(
-            "O pacote ainda tem linhas sem aprovação.",
-            "Edite reviewed_text onde quiser e marque review_status como reviewed em todas as linhas, inclusive nas que ficaram iguais.",
+            "Nenhuma linha do pacote foi marcada como revisada.",
+            "Edite reviewed_text nas linhas que quiser e marque review_status como reviewed nelas. As demais mantêm a tradução automática.",
+            mode,
+            detail=code,
+        )
+        return
+    if code == "pending_row_edited":
+        _print_expected_error(
+            "Uma linha foi editada, mas não foi marcada como revisada.",
+            "Marque review_status como reviewed nessa linha, ou desfaça a edição em reviewed_text. Nada foi gravado.",
+            mode,
+            detail=code,
+        )
+        return
+    if code == "review_rejected":
+        _print_expected_error(
+            "O pacote tem uma linha marcada como rejeitada.",
+            "Corrija reviewed_text e marque a linha como reviewed, ou volte para pending para manter a tradução automática. Nada foi gravado.",
             mode,
             detail=code,
         )
