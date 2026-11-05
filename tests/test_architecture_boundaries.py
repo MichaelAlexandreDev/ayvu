@@ -55,6 +55,9 @@ OWNERS = {
     "ayvu.validation": Owner("format", "EPUB/Quality"),
     "ayvu.translator": Owner("provider", "Providers"),
     "ayvu.cache": Owner("knowledge", "Exact cache"),
+    "ayvu.cache_admin": Owner("application", "Cache administration"),
+    "ayvu.cache_admin_store": Owner("knowledge", "Cache administration"),
+    "ayvu.cache_admin_composition": Owner("composition", "Cache administration"),
     "ayvu.glossary": Owner("knowledge", "Glossary"),
     "ayvu.translation_memory": Owner("domain", "Knowledge/TM"),
     "ayvu.config": Owner("infrastructure", "Preferences"),
@@ -289,6 +292,12 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.cache_admin", "ayvu.job_events"),
+    ("ayvu.cache_admin_store", "ayvu.cache_admin"),
+    ("ayvu.cache_admin_store", "ayvu.cache"),
+    ("ayvu.cache_admin_composition", "ayvu.cache_admin"),
+    ("ayvu.cache_admin_composition", "ayvu.cache_admin_store"),
+    ("ayvu.cli", "ayvu.cache_admin"),
     ("ayvu.cache_identity", "ayvu.job"),
     ("ayvu.cache_identity", "ayvu.provenance"),
     ("ayvu.translation_document", "ayvu.cache_identity"),
@@ -577,6 +586,7 @@ ALLOWED_INTERNAL_EDGES = {
 
 
 EXCEPTIONS = {
+    ("ayvu.cli", "ayvu.cache_admin_composition"): Exemption("Cache administration", 158, "cache administration composed at the root"),
     ("ayvu.cli", "ayvu.project_store"): Exemption(
         "Projects", 158, "project repository constructed in the shared composition root"),
     ("ayvu.cli", "sqlite3"): Exemption("CLI", 158, "CLI uses application outcomes"),
