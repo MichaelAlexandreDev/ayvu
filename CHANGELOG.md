@@ -13,6 +13,11 @@ lancadas e secoes versionadas quando uma release for publicada.
   rico. A migração preserva as entradas v1 sem promovê-las a acertos v2; a CLI
   continua no cache legado. Administração v2 aguarda DESKTOP-127. Representações
   dos DTOs legados de cache ocultam texto e caminho.
+- O catálogo guiado de glossários recusa links simbólicos e arquivos com múltiplos
+  links físicos, sinaliza arquivos inválidos ou grandes demais e limita arquivos,
+  entradas e texto. Salvar é atômico, e uma edição é recusada se o arquivo mudou
+  depois de aberto. Caminhos explícitos `--glossary` mantêm o carregador avançado
+  existente.
 
 - O comando `translate` aceita no máximo 100 EPUBs e recusa `--missing-output`
   com múltiplos arquivos; em cache-only, o nome dos textos ausentes continua

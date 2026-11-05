@@ -459,7 +459,7 @@ Usar glossário no modo comum:
 uv run ayvu
 ```
 
-Escolha `Glossaries` para criar ou editar um glossário guiado. O Ayvu pede o termo original,
+Escolha `Glossaries` para criar ou editar um glossário guiado. Na criação, o Ayvu pede o termo original,
 permite informar uma tradução preferida ou preservar o termo sem tradução, mostra uma prévia,
 valida o conteúdo e salva o JSON em:
 
@@ -475,6 +475,15 @@ Quando `XDG_CONFIG_HOME` não estiver definido, o fallback é:
 
 Se houver glossários salvos, o fluxo guiado de tradução permite escolher um deles antes de
 confirmar a saída do EPUB.
+
+O catálogo guiado aceita até 1.000 arquivos JSON, cada um com até 1 MiB, 10.000
+entradas, termos de até 1.024 caracteres e traduções de até 4.096 caracteres; o
+JSON salvo também tem limite de 1 MiB. Arquivos inválidos, grandes demais ou com
+links simbólicos ou múltiplos links físicos não podem ser selecionados: escolha
+outro glossário ou corrija o arquivo fora do fluxo guiado. Uma edição é recusada se o arquivo mudou depois de aberto; nesse caso, abra-o de novo.
+O conteúdo e os nomes dos glossários são privados. Essas regras se aplicam ao
+catálogo gerenciado; caminhos explícitos de `--glossary` continuam sendo lidos
+pelo carregador avançado existente.
 
 Usar glossário no modo desenvolvedor:
 
