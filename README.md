@@ -567,6 +567,14 @@ apagadas sem modificar o SQLite. `cache export` grava JSON legível e
 `cache import` lê esse JSON; entradas existentes são puladas por padrão e podem
 ser substituídas com `--replace`.
 
+Se o cache ainda não existir, `inspect` mostra zero entradas e `export` grava
+um JSON vazio sem criar o cache nem sua pasta. A limpeza rejeita uma seleção
+que mudou entre a prévia e a remoção; nesse caso, execute o comando novamente.
+Erros detalhados usam códigos curtos, sem incluir conteúdo das entradas.
+O destino da exportação deve ser um arquivo diferente do próprio cache SQLite.
+Exportação e importação têm limite de 512 MiB e 1.000.000 de entradas; acima
+disso, exporte em partes com `--source`, `--target` ou `--before`.
+
 O arquivo exportado inclui texto original e texto traduzido. Trate esse JSON
 como conteúdo privado do livro, da mesma forma que o EPUB e o cache SQLite.
 

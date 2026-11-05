@@ -13,6 +13,11 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from rich.table import Table
 
 from .cache import CacheError, CacheImportReport, CacheSummaryRow, TranslationCache
+from .cache_admin import (
+    CacheAdminError, CacheFilter, CacheRef, FileRef, InspectRequest,
+    PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest,
+)
+from .cache_admin_composition import cache_admin_services
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
 from .content_composition import open_content_use_cases
 from .config import (
@@ -521,12 +526,15 @@ def cache_inspect(
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     before_value = _normalize_cache_before(before, mode)
     try:
-        with TranslationCache(cache_path) as cache:
-            rows = cache.summary(source_lang=source, target_lang=target, before=before_value)
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        services = cache_admin_services()
+        result = services.inspect.execute(InspectRequest(CacheRef(str(cache_path)), CacheFilter(source, target, before_value)))
+        if result.failure:
+            raise CacheAdminError(result.failure.code, result.failure.family)
+        rows = result.value.pairs
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível inspecionar o cache.",
-            "Verifique o caminho informado em --cache e tente novamente.",
+            _cache_failure_hint(exc.code, "Verifique o caminho informado em --cache e tente novamente."),
             mode,
             detail=str(exc),
         )
@@ -564,23 +572,39 @@ def cache_clean(
     )
 
     try:
-        with TranslationCache(cache_path) as cache:
-            if dry_run:
-                matched = _count_cache_entries(cache, source=source, target=target, before=before_value)
-                console.print(f"[yellow]Dry run:[/yellow] {_plural_cache_entries(matched)} would be removed.")
-                return
-
-            report = cache.delete_entries(source_lang=source, target_lang=target, before=before_value)
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        services = cache_admin_services()
+        selection = services.preview.execute(PreviewCleanRequest(
+            CacheRef(str(cache_path)), CacheFilter(source, target, before_value, all_entries)))
+        if selection.failure:
+            raise CacheAdminError(selection.failure.code, selection.failure.family)
+        if dry_run:
+            console.print(f"[yellow]Dry run:[/yellow] {_plural_cache_entries(selection.value.count)} would be removed.")
+            return
+        report = services.clean.execute(ExecuteCleanRequest(selection.value))
+        if report.failure:
+            raise CacheAdminError(report.failure.code, report.failure.family)
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível limpar o cache.",
-            "Verifique o caminho informado em --cache e tente novamente.",
+            _cache_failure_hint(exc.code, "Verifique o caminho informado em --cache e tente novamente."),
             mode,
             detail=str(exc),
         )
         raise typer.Exit(code=1) from exc
 
-    console.print(f"[green]Deleted {_plural_cache_entries(report.deleted)}.[/green]")
+    console.print(f"[green]Deleted {_plural_cache_entries(report.value)}.[/green]")
+
+
+_CACHE_LIMIT_CODES = frozenset({"limit_exceeded", "file_too_large", "too_many_entries", "text_too_large",
+                                "structure_too_deep", "structure_too_large"})
+
+
+def _cache_failure_hint(code: str, default: str, too_large: str | None = None) -> str:
+    if code == "cache_busy":
+        return "Outro processo está usando o cache. Espere ele terminar e tente novamente."
+    if too_large is not None and code in _CACHE_LIMIT_CODES:
+        return f"O limite é de 512 MiB por arquivo e 1.000.000 de entradas. {too_large}"
+    return default
 
 
 @cache_app.command("export")
@@ -601,25 +625,23 @@ def cache_export(
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     before_value = _normalize_cache_before(before, mode)
     try:
-        with TranslationCache(cache_path) as cache:
-            report = cache.export_json(
-                output,
-                source_lang=source,
-                target_lang=target,
-                before=before_value,
-                overwrite=overwrite,
-            )
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        services = cache_admin_services()
+        report = services.export.execute(ExportRequest(
+            CacheRef(str(cache_path)), FileRef(str(output)), CacheFilter(source, target, before_value), overwrite))
+        if report.failure:
+            raise CacheAdminError(report.failure.code, report.failure.family)
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível exportar o cache.",
-            "Verifique --cache, o caminho de saída e tente novamente.",
+            _cache_failure_hint(exc.code, "Verifique --cache, o caminho de saída e tente novamente.",
+                                "Exporte em partes com --source, --target ou --before."),
             mode,
             detail=str(exc),
         )
         raise typer.Exit(code=1) from exc
 
-    console.print(f"[green]Cache export saved to:[/green] {report.path}")
-    console.print(f"Entries exported: {report.exported}")
+    console.print(f"[green]Cache export saved to:[/green] {output}")
+    console.print(f"Entries exported: {report.value}")
 
 
 @cache_app.command("import")
@@ -638,18 +660,21 @@ def cache_import(
     """Import cached translations from an Ayvu JSON export."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        with TranslationCache(cache_path) as cache:
-            report = cache.import_json(input_path, replace=replace)
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        services = cache_admin_services()
+        report = services.import_cache.execute(ImportRequest(CacheRef(str(cache_path)), FileRef(str(input_path)), replace))
+        if report.failure:
+            raise CacheAdminError(report.failure.code, report.failure.family)
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível importar o cache.",
-            "Confirme que o arquivo foi exportado pelo Ayvu e tente novamente.",
+            _cache_failure_hint(exc.code, "Confirme que o arquivo foi exportado pelo Ayvu e tente novamente.",
+                                "Exporte em partes menores com --source, --target ou --before e importe cada uma."),
             mode,
             detail=str(exc),
         )
         raise typer.Exit(code=1) from exc
 
-    _print_cache_import_report(report)
+    _print_cache_import_report(report.value)
 
 
 @app.command()

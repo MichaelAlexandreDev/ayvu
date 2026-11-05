@@ -79,6 +79,9 @@ entries fail, so a rename cannot silently discard protection.
 | `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
 | `provider_composition` | Composition | Assembles LibreTranslate and its network decision for the CLI, until #158 |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
+| `cache_admin` | Application | Typed cache administration use cases and ports |
+| `cache_admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
+| `cache_admin_composition` | Composition | Local cache administration adapters |
 | `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |
 
 Application imports domain/application contracts; domain imports domain APIs.

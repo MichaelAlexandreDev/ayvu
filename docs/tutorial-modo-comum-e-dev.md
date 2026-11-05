@@ -264,6 +264,14 @@ uv run ayvu cache import cache-ayvu.json --cache .cache/traducoes.sqlite
 Esse JSON contém textos originais e traduzidos. Trate o arquivo exportado como
 privado.
 
+Se o cache ainda não existir, a inspeção mostra zero entradas e a exportação
+gera um JSON vazio sem criar o cache ou sua pasta. Se a limpeza informar que a
+seleção mudou, rode novamente a prévia e depois o comando com `--yes`.
+Escolha para a exportação um arquivo diferente do cache SQLite; detalhes de
+erros usam códigos curtos sem o conteúdo das entradas.
+Exportação e importação têm limite de 512 MiB e 1.000.000 de entradas; acima
+disso, exporte em partes com `--source`, `--target` ou `--before`.
+
 ### Reaproveitar trechos parecidos com a memória de tradução
 
 O cache só reaproveita trechos idênticos. Para também reaproveitar trechos

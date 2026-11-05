@@ -7,6 +7,15 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ## Nao publicado
 
+### Alterado
+
+- Inspecionar ou exportar cache ausente não cria o banco nem sua pasta; a
+  exportação continua produzindo JSON vazio. A limpeza verifica se a seleção
+  mudou antes de remover entradas e erros detalhados usam códigos sem conteúdo.
+  A exportação recusa substituir o próprio arquivo SQLite do cache.
+  Exportação e importação têm limite de 512 MiB e 1.000.000 de entradas; acima
+  disso, exporte em partes com `--source`, `--target` ou `--before`.
+
 ### Adicionado
 
 - Modo comum guiado ao executar `uv run ayvu`.

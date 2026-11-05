@@ -5,9 +5,9 @@ under the shared application contracts of `DEC-017`, recorded in the
 [modular-monolith ADR](modular-monolith-boundaries.md). It complements the
 [job lifecycle](job-lifecycle.md) and does not redefine its state machine.
 
-No interface uses these contracts yet. The CLI keeps its progress callbacks and
-`KeyboardInterrupt` handling, and nothing here is persisted. Later use cases adopt
-them one at a time.
+Cache administration uses the failure and cooperative-cancellation contracts;
+its CLI retains presentation and confirmation. Other CLI workflows keep their
+own progress callbacks and `KeyboardInterrupt` handling. Nothing here is persisted.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
