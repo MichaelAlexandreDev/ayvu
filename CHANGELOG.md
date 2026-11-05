@@ -93,6 +93,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Atualizado
 
+- O contrato de revisão ganhou o pacote v2 `ayvu.review_exchange`, limitado e
+  ligado a projeto, fonte, artefato de tradução, formato, locator e unidades
+  estáveis. CSV v1 agora é apenas para inspeção: `apply-review` recusa antes de
+  abrir o EPUB ou criar saída e informa `legacy_reexport_required`. A API de
+  mapeamento v2 preserva partes estruturais, mas ainda não está conectada à CLI.
+  Veja `docs/architecture/review-exchange.md`.
 - `translate`, a tradução guiada e cada livro de um lote agora rodam pelo caso de
   uso `TranslateProject`, como um job durável com um único resultado final. Prompts,
   relatórios, nomes de saída e códigos de saída não mudam, salvo o que está abaixo.

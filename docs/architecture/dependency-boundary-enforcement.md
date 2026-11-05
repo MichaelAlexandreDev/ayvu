@@ -112,8 +112,11 @@ imports, syntax/read errors, cycles or missing ownership.
 
 The existing CLI edges expire as application use cases are extracted in #128,
 #147, #149, #150, #152, #157 and composition is consolidated in #158.
-#145 removed the CLI's edge to the validator and its use of `translate_epub`. What the
-CLI still imports from `epub_io` is inspect, export and apply-review, for #147 and #149.
+#145 removed the CLI's edge to the validator and its use of `translate_epub`.
+The CLI still imports `epub_io` inspection/extraction helpers and separately
+uses the v1 review exporter/inspection reader. `apply-review` now rejects v1
+before calling `epub_io.apply_reviewed_epub`; the v2 mapper is not connected to
+the command. Remaining legacy edges expire under #147 and #149.
 The compatibility CLI-to-config edge now expires in #158: first-use/Settings
 already call shared preference use cases, while legacy config conversion and
 construction stay at this transitional composition boundary.

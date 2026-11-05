@@ -410,7 +410,7 @@ def test_translate_cli_resolves_intermediate_route_end_to_end(tmp_path, monkeypa
     assert ("en", "pt") in pairs
 
 
-def test_review_export_and_apply_review_cli_round_trip(tmp_path, monkeypatch):
+def test_legacy_review_export_is_inspectable_but_v1_cli_apply_is_fail_closed(tmp_path, monkeypatch):
     source_path = _write_epub(tmp_path / "reviewable.epub")
     source_bytes = source_path.read_bytes()
     session = FakeLibreTranslateSession(_direct_languages())
@@ -449,10 +449,10 @@ def test_review_export_and_apply_review_cli_round_trip(tmp_path, monkeypatch):
     reviewed = runner.invoke(app, ["--mode", "developer", "apply-review", str(source_path), str(review_path)])
 
     reviewed_path = tmp_path / "reviewable-pt-reviewed.epub"
-    assert reviewed.exit_code == 0, reviewed.output
-    assert reviewed_path.exists()
-    assert "Reviewed EPUB saved to:" in reviewed.output
-    assert "Reviewed reader." in _read_member(reviewed_path, "OEBPS/text/chapter1.xhtml")
+    assert reviewed.exit_code == 1, reviewed.output
+    assert "legacy_reexport_required" in reviewed.output
+    assert "pacote v2" in reviewed.output
+    assert not reviewed_path.exists()
     assert source_path.read_bytes() == source_bytes
 
 

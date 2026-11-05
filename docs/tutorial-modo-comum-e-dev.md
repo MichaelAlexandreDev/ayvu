@@ -438,30 +438,26 @@ uv run ayvu translate livro.epub \
   --review-output livro-review.csv
 ```
 
-O CSV contém uma linha por segmento traduzido, com `segment_id`, índice e nome
-do capítulo, caminho interno do documento, idiomas, indicação de cache e textos
-original/traduzido lado a lado. O arquivo só é criado quando a opção é usada. Se
-o caminho já existir, passe `--overwrite` ou escolha outro arquivo. `--dry-run`
-não gera CSV de revisão porque não produz tradução revisável.
+O CSV v1 contém linhas e textos traduzidos para inspeção local. Seus IDs
+posicionais e campos de origem não provam a revisão do projeto nem a identidade
+do artefato. O arquivo só é criado quando a opção é usada. Se o caminho já
+existir, passe `--overwrite` ou escolha outro arquivo. `--dry-run` não gera CSV
+de revisão porque não produz tradução revisável.
 
-### Importar revisão e reconstruir o EPUB
+### Inspecionar arquivo v1 de revisão
 
 ```bash
-uv run ayvu apply-review livro.epub livro-review.csv \
-  --output livro-revisado.epub
+uv run ayvu apply-review livro.epub livro-review.csv
 ```
 
-Depois de editar a coluna `translated` do CSV, `apply-review` lê o EPUB original
-e o CSV revisado, confere que cada segmento ainda corresponde ao livro (comparando
-o texto original) e aplica as traduções revisadas em um novo EPUB, sem tocar no
-original. Sem `--output`, o padrão é `<nome>-<idioma>-reviewed.epub`; use
-`--overwrite` para substituir. O relatório informa segmentos aplicados e lista
-trechos sem revisão, ausentes no EPUB, inconsistentes, com `segment_id`
-duplicado ou documentos desconhecidos.
-
-Como o CSV guarda só o texto visível, formatação inline dentro de um parágrafo
-revisado (negrito, itálico, links) vira texto plano ao aplicar; a estrutura de
-blocos do EPUB é preservada.
+O leitor v1 é limitado e serve apenas para inspeção e diagnóstico. `apply-review`
+recusa o CSV antes de abrir o EPUB ou criar saída. O contrato de pacote v2 está
+na API `ayvu.review_exchange`; ele liga as linhas à identidade estável das
+unidades, à revisão do projeto e ao artefato de tradução, e preserva markup
+protegido usando somente placeholders emitidos para aquela unidade e pacote.
+A orquestração CLI ainda não exporta nem aplica v2. Até essa integração,
+`apply-review` informa `legacy_reexport_required`. Detalhes do contrato estão em
+[`architecture/review-exchange.md`](architecture/review-exchange.md).
 
 ### Sobrescrever saída existente
 

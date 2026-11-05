@@ -28,7 +28,7 @@ from ayvu.epub_io import (
 )
 from ayvu.glossary import GLOSSARY_RULE_FORBIDDEN, GLOSSARY_RULE_PRESERVE, Glossary, GlossaryEntry
 from ayvu.review_export import REVIEW_CSV_COLUMNS, write_review_csv
-from ayvu.review_import import ReviewImportData, ReviewRow, read_review_csv
+from ayvu.review_import import ReviewImportData, ReviewImportError, ReviewRow, read_review_csv
 from epub_fakes import OPF, epub_bytes
 
 
@@ -698,30 +698,19 @@ def _rewrite_csv(csv_path: Path, mutate) -> None:
         writer.writerows(rows)
 
 
-def test_apply_reviewed_epub_applies_reviewed_translation(minimal_epub_path: Path, tmp_path: Path):
+def test_apply_reviewed_epub_rejects_a_valid_v1_inline_review_before_writing(minimal_epub_path: Path, tmp_path: Path):
     csv_path = _export_review_csv(minimal_epub_path, tmp_path)
-
-    def review_paragraph(row: dict) -> None:
-        if "Hello reader" in row["original"]:
-            row["translated"] = "REVISADO leitor."
-
-    _rewrite_csv(csv_path, review_paragraph)
-
+    source_before = minimal_epub_path.read_bytes()
     output_path = tmp_path / "minimal-reviewed.epub"
-    report = apply_reviewed_epub(minimal_epub_path, output_path, read_review_csv(csv_path))
 
-    chapter = _read_chapter_one(output_path)
-    assert "REVISADO leitor." in chapter
-    assert report.applied >= 1
-    assert report.inconsistent == []
-    assert report.missing_in_epub == []
-    # Original EPUB is never modified (its English text is split by an inline link).
-    original_chapter = _read_chapter_one(minimal_epub_path)
-    assert "Hello reader. Visit" in original_chapter
-    assert "chapter two</a>" in original_chapter
+    with pytest.raises(ReviewImportError, match="^legacy_reexport_required$"):
+        apply_reviewed_epub(minimal_epub_path, output_path, read_review_csv(csv_path))
+
+    assert minimal_epub_path.read_bytes() == source_before
+    assert not output_path.exists()
 
 
-def test_apply_reviewed_epub_reports_inconsistent_when_original_changed(
+def test_apply_reviewed_epub_rejects_edited_v1_even_when_text_is_positionally_matched(
     minimal_epub_path: Path,
     tmp_path: Path,
 ):
@@ -735,13 +724,12 @@ def test_apply_reviewed_epub_reports_inconsistent_when_original_changed(
     _rewrite_csv(csv_path, tamper_paragraph)
 
     output_path = tmp_path / "minimal-reviewed.epub"
-    report = apply_reviewed_epub(minimal_epub_path, output_path, read_review_csv(csv_path))
+    with pytest.raises(ReviewImportError, match="^legacy_reexport_required$"):
+        apply_reviewed_epub(minimal_epub_path, output_path, read_review_csv(csv_path))
+    assert not output_path.exists()
 
-    assert "c0001-s0003" in report.inconsistent
-    assert "Nao deve ser aplicado." not in _read_chapter_one(output_path)
 
-
-def test_apply_reviewed_epub_reports_unknown_document(minimal_epub_path: Path, tmp_path: Path):
+def test_apply_reviewed_epub_rejects_v1_unknown_document(minimal_epub_path: Path, tmp_path: Path):
     review = ReviewImportData(
         rows=(
             ReviewRow(
@@ -755,23 +743,17 @@ def test_apply_reviewed_epub_reports_unknown_document(minimal_epub_path: Path, t
     )
 
     output_path = tmp_path / "minimal-reviewed.epub"
-    report = apply_reviewed_epub(minimal_epub_path, output_path, review)
-
-    assert report.unknown_documents == ["OEBPS/text/ghost.xhtml"]
-    assert report.applied == 0
-    assert output_path.exists()
+    with pytest.raises(ReviewImportError, match="^legacy_reexport_required$"):
+        apply_reviewed_epub(minimal_epub_path, output_path, review)
+    assert not output_path.exists()
 
 
-def test_apply_reviewed_epub_reports_missing_segment_index(minimal_epub_path: Path, tmp_path: Path):
-    csv_path = _export_review_csv(minimal_epub_path, tmp_path)
-    data = read_review_csv(csv_path)
-    document_path = next(row.document_path for row in data.rows if row.segment_id == "c0001-s0001")
-
+def test_apply_reviewed_epub_rejects_v1_out_of_range_segment_index(minimal_epub_path: Path, tmp_path: Path):
     review = ReviewImportData(
         rows=(
             ReviewRow(
                 segment_id="c0001-s9999",
-                document_path=document_path,
+                document_path="OEBPS/text/chapter1.xhtml",
                 original="Out of range",
                 translated="Fora de alcance",
             ),
@@ -780,9 +762,9 @@ def test_apply_reviewed_epub_reports_missing_segment_index(minimal_epub_path: Pa
     )
 
     output_path = tmp_path / "minimal-reviewed.epub"
-    report = apply_reviewed_epub(minimal_epub_path, output_path, review)
-
-    assert "c0001-s9999" in report.missing_in_epub
+    with pytest.raises(ReviewImportError, match="^legacy_reexport_required$"):
+        apply_reviewed_epub(minimal_epub_path, output_path, review)
+    assert not output_path.exists()
 
 
 # The OPF title: only its text changes
@@ -980,57 +962,15 @@ def test_a_translation_that_xml_cannot_hold_leaves_the_opf_valid_and_counts_once
     assert statuses.count("translated") == len(translator.calls) - 1
 
 
-def test_applying_a_reviewed_title_changes_only_its_text(tmp_path: Path):
+@pytest.mark.parametrize("review", [
+    _reviewed_title("Titulo <Revisado>"),
+    _reviewed_title("The Title"),
+    _reviewed_title("a\x0bb"),
+])
+def test_opf_title_v1_review_is_rejected_before_reconstruction(tmp_path: Path, review: ReviewImportData):
     source = _book_with_opf(tmp_path, RICH_OPF)
     output = tmp_path / "out.epub"
-    report = apply_reviewed_epub(source, output, _reviewed_title("Titulo <Revisado>"))
-
-    assert report.applied == 1
-    expected = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">Titulo &lt;Revisado&gt;</dc:title>')
-    assert _without_declaration(_opf_of(output)) == _without_declaration(expected)
-
-
-def test_applying_a_reviewed_title_finds_metadata_nested_in_the_package(tmp_path: Path):
-    opf = RICH_OPF.replace(b"<metadata>", b"<wrapper><metadata>", 1).replace(b"</metadata>", b"</metadata></wrapper>", 1)
-    source = _book_with_opf(tmp_path, opf)
-    output = tmp_path / "out.epub"
-    report = apply_reviewed_epub(source, output, _reviewed_title("Revisado"))
-
-    assert report.applied == 1 and b">Revisado</dc:title>" in _opf_of(output)
-
-
-def test_applying_an_unchanged_reviewed_title_keeps_the_opf_bytes(tmp_path: Path):
-    source = _book_with_opf(tmp_path, RICH_OPF)
-    output = tmp_path / "out.epub"
-    report = apply_reviewed_epub(source, output, _reviewed_title("The Title"))
-
-    assert report.applied == 1
-    assert _opf_of(output) == RICH_OPF
-
-
-def test_applying_a_review_to_a_title_holding_other_nodes_reports_it(tmp_path: Path):
-    opf = RICH_OPF.replace(TITLE_BYTES, b'<dc:title id="t">The Title<!-- c --></dc:title>')
-    source = _book_with_opf(tmp_path, opf)
-    output = tmp_path / "out.epub"
-    report = apply_reviewed_epub(source, output, _reviewed_title("Revisado"))
-
-    assert report.applied == 0 and report.missing_in_epub == ["metadata-title"]
-    assert _opf_of(output) == opf
-
-
-def test_applying_a_review_that_differs_from_the_title_keeps_the_opf_bytes(tmp_path: Path):
-    source = _book_with_opf(tmp_path, RICH_OPF)
-    output = tmp_path / "out.epub"
-    report = apply_reviewed_epub(source, output, _reviewed_title("Revisado", original="Another Title"))
-
-    assert report.applied == 0 and report.inconsistent == ["metadata-title"]
-    assert _opf_of(output) == RICH_OPF
-
-
-def test_a_review_that_xml_cannot_hold_writes_no_output(tmp_path: Path):
-    source = _book_with_opf(tmp_path, RICH_OPF)
-    output = tmp_path / "out.epub"
-    with pytest.raises(ValueError):
-        apply_reviewed_epub(source, output, _reviewed_title("a\x0bb"))
+    with pytest.raises(ReviewImportError, match="^legacy_reexport_required$"):
+        apply_reviewed_epub(source, output, review)
 
     assert not output.exists()

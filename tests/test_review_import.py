@@ -71,13 +71,49 @@ def test_read_review_csv_rejects_missing_required_columns(tmp_path: Path):
     with pytest.raises(ReviewImportError) as error:
         read_review_csv(csv_path)
 
-    assert "document_path" in str(error.value)
-    assert "original" in str(error.value)
+    assert error.value.code == "missing_required_columns"
 
 
 def test_read_review_csv_rejects_missing_file(tmp_path: Path):
     with pytest.raises(ReviewImportError):
         read_review_csv(tmp_path / "missing.csv")
+
+
+def test_legacy_column_cardinality_fails_before_csv_materializes_cells(tmp_path: Path, monkeypatch):
+    import ayvu.review_import as importer
+
+    path = tmp_path / "too-many-columns.csv"
+    path.write_bytes(b"x," * (importer.MAX_REVIEW_COLUMNS * 1000))
+    monkeypatch.setattr(importer.csv, "reader", lambda *_args, **_kwargs: pytest.fail("csv.reader must not run"))
+
+    with pytest.raises(ReviewImportError) as error:
+        read_review_csv(path)
+
+    assert error.value.code == "invalid_column_count"
+
+
+@pytest.mark.parametrize(
+    "limit_name,value,code",
+    [
+        ("MAX_REVIEW_ROWS", 0, "too_many_rows"),
+        ("MAX_REVIEW_COLUMNS", 1, "invalid_column_count"),
+        ("MAX_REVIEW_CELL_CHARS", 1, "cell_too_large"),
+        ("MAX_REVIEW_TOTAL_CHARS", 1, "decoded_content_too_large"),
+    ],
+)
+def test_legacy_reader_enforces_each_decoded_budget(tmp_path: Path, monkeypatch, limit_name, value, code):
+    import ayvu.review_import as importer
+
+    path = write_review_csv(tmp_path / "legacy.csv", [
+        ReviewSegment("c0001-s0001", "book.epub", "out.epub", 1, "chapter", "chapter.xhtml",
+                      "OEBPS/chapter.xhtml", "text", "en", "pt", "Source text", "Machine text")
+    ])
+    monkeypatch.setattr(importer, limit_name, value)
+
+    with pytest.raises(ReviewImportError) as error:
+        read_review_csv(path)
+
+    assert error.value.code == code
 
 
 def _base_row() -> dict[str, object]:

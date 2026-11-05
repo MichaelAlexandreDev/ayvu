@@ -27,7 +27,7 @@ from ayvu.domain import (
     TranslationOptions,
     UserMode,
 )
-from ayvu.epub_io import ReviewApplyReport, TranslationReport
+from ayvu.epub_io import TranslationReport
 from ayvu.glossary import GlossaryUsage
 from ayvu.html_translate import HtmlTranslationStats
 from ayvu.library import LibraryOpenError
@@ -2178,8 +2178,27 @@ def test_translate_command_rejects_existing_review_output_without_overwrite(tmp_
     assert result.exit_code == 1
     assert "Arquivo de revisão já existe." in result.output
     assert "Use --overwrite" in result.output
+    assert str(review_path) not in result.output
     assert review_path.read_text(encoding="utf-8") == "already here"
     assert "Traceback" not in result.output
+
+
+def test_review_output_write_errors_redact_destination_path(tmp_path, monkeypatch, capsys):
+    review_path = tmp_path / "PRIVATE_REVIEW_PATH_CANARY_148.csv"
+    review_path.write_text("exists", encoding="utf-8")
+    with pytest.raises(typer.Exit):
+        cli_module._resolve_review_output_path(review_path, False, False, UserMode.DEVELOPER)
+    assert "PRIVATE_REVIEW_PATH_CANARY_148" not in capsys.readouterr().out
+
+    def fail_write(path, *_args, **_kwargs):
+        raise OSError(f"cannot write {path}")
+
+    monkeypatch.setattr(cli_module, "write_review_csv", fail_write)
+    with pytest.raises(typer.Exit):
+        cli_module._write_review_output(review_path, [], False, UserMode.DEVELOPER)
+    output = capsys.readouterr().out
+    assert "review_output_unwritable" in output
+    assert "PRIVATE_REVIEW_PATH_CANARY_148" not in output
 
 
 def test_translate_command_rejects_review_output_with_dry_run(tmp_path, monkeypatch):
@@ -3336,48 +3355,40 @@ def _write_review_csv_file(path: Path, target: str = "pt") -> Path:
     return write_review_csv(path, [segment])
 
 
-def test_apply_review_command_reports_and_saves_epub(tmp_path, monkeypatch):
+def test_apply_review_command_rejects_v1_before_opening_epub_or_reconstructing(tmp_path, monkeypatch):
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake epub")
     review_path = _write_review_csv_file(tmp_path / "review.csv")
 
-    captured: dict[str, object] = {}
+    def fail_apply(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("legacy v1 must be rejected before apply")
 
-    def fake_apply(input_path: Path, output_path: Path, review: object) -> ReviewApplyReport:
-        captured["output"] = output_path
-        return ReviewApplyReport(
-            input_path=input_path,
-            output_path=output_path,
-            source_language="en",
-            target_language="pt",
-            applied=2,
-            untranslated=1,
-            inconsistent=["c0001-s0005"],
-            missing_in_epub=["c0002-s0009"],
-            duplicated=["c0001-s0003"],
-            unknown_documents=["OEBPS/ghost.xhtml"],
-        )
-
-    monkeypatch.setattr("ayvu.cli.apply_reviewed_epub", fake_apply)
-    monkeypatch.setattr(
-        "ayvu.cli.validate_output",
-        lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1),
-    )
+    monkeypatch.setattr("ayvu.cli.validate_output", fail_apply)
 
     result = runner.invoke(app, ["apply-review", str(epub_path), str(review_path)])
 
-    assert result.exit_code == 0
-    assert "Segments applied" in result.output
-    assert "Inconsistent segments (original changed):" in result.output
-    assert "c0001-s0005" in result.output
-    assert "had no reviewed translation" in result.output
-    assert "Reviewed EPUB saved to:" in result.output
-    # Default output is derived from the input stem and the CSV target language.
-    assert captured["output"] == tmp_path / "book-pt-reviewed.epub"
+    assert result.exit_code == 1
+    assert "CSV v1 serve apenas para inspeção" in result.output
+    assert "legacy_reexport_required" in result.output
+    assert "pacote v2" in result.output
     assert "Traceback" not in result.output
 
 
-def test_apply_review_command_rejects_existing_output_without_overwrite(tmp_path, monkeypatch):
+def test_apply_review_command_requires_a_v2_mapper_for_nonlegacy_input(tmp_path, monkeypatch):
+    epub_path = tmp_path / "book.epub"
+    epub_path.write_bytes(b"fake epub")
+    review_path = tmp_path / "package.csv"
+    review_path.write_text("placeholder", encoding="utf-8")
+    monkeypatch.setattr(cli_module, "read_review_csv", lambda _path: object())
+
+    result = runner.invoke(app, ["apply-review", str(epub_path), str(review_path)])
+
+    assert result.exit_code == 1
+    assert "review_v2_mapper_required" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_apply_review_command_rejects_legacy_before_output_conflict_check(tmp_path, monkeypatch):
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake epub")
     review_path = _write_review_csv_file(tmp_path / "review.csv")
@@ -3387,13 +3398,10 @@ def test_apply_review_command_rejects_existing_output_without_overwrite(tmp_path
     def fail_apply(*_args: object, **_kwargs: object) -> object:
         raise AssertionError("apply should not run when output already exists")
 
-    monkeypatch.setattr("ayvu.cli.apply_reviewed_epub", fail_apply)
-
     result = runner.invoke(app, ["apply-review", str(epub_path), str(review_path)])
 
     assert result.exit_code == 1
-    assert "Arquivo de saída já existe." in result.output
-    assert "Use --overwrite" in result.output
+    assert "legacy_reexport_required" in result.output
     assert output_path.read_bytes() == b"already here"
     assert "Traceback" not in result.output
 
@@ -3403,11 +3411,6 @@ def test_apply_review_command_reports_unreadable_review_file(tmp_path, monkeypat
     epub_path.write_bytes(b"fake epub")
     broken_csv = tmp_path / "broken.csv"
     broken_csv.write_text("segment_id,translated\nc0001-s0001,x\n", encoding="utf-8")
-
-    def fail_apply(*_args: object, **_kwargs: object) -> object:
-        raise AssertionError("apply should not run when CSV is malformed")
-
-    monkeypatch.setattr("ayvu.cli.apply_reviewed_epub", fail_apply)
 
     result = runner.invoke(app, ["apply-review", str(epub_path), str(broken_csv)])
 
