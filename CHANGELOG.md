@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- O cache standalone dispõe de preparação e repositório exato v2 para o caminho
+  rico. A migração preserva as entradas v1 sem promovê-las a acertos v2; a CLI
+  continua no cache legado. Administração v2 aguarda DESKTOP-127. Representações
+  dos DTOs legados de cache ocultam texto e caminho.
 - O catálogo guiado de glossários recusa links simbólicos e arquivos com múltiplos
   links físicos, sinaliza arquivos inválidos ou grandes demais e limita arquivos,
   entradas e texto. Salvar é atômico, e uma edição é recusada se o arquivo mudou

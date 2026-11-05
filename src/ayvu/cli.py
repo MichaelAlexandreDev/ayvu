@@ -624,6 +624,8 @@ _CACHE_LIMIT_CODES = frozenset({"limit_exceeded", "file_too_large", "too_many_en
 
 
 def _cache_failure_hint(code: str, default: str, too_large: str | None = None) -> str:
+    if code == "v2-admin-required":
+        return "Este cache requer administração compatível com v2."
     if code == "cache_busy":
         return "Outro processo está usando o cache. Espere ele terminar e tente novamente."
     if too_large is not None and code in _CACHE_LIMIT_CODES:

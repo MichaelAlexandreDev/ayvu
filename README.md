@@ -602,6 +602,14 @@ Trechos já traduzidos serão reaproveitados automaticamente.
 O checkpoint de retomada preserva as opções de execução do tradutor, como
 timeout, workers, retries, limite de requisições por segundo e backoff.
 
+A CLI usa o cache legado v1. O caminho rico dispõe de cache v2 independente;
+a migração preserva os dados v1 sem transformá-los em acertos exatos v2. Os
+comandos de administração abaixo são para v1: em v2, limpeza, importação e
+exportação retornam `v2-admin-required`, e a inspeção pode recusar o namespace.
+Conserve o v1 somente para leitura e escolha um arquivo distinto para um novo
+v2 pela API `prepare_cache`; aguarde DESKTOP-127 para administração v2. Veja
+[cache standalone v2](docs/architecture/standalone-cache-v2.md).
+
 O cache pode ser inspecionado, limpo, exportado e importado separadamente dos
 comandos de tradução:
 
