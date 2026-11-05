@@ -9,11 +9,24 @@ O Ayvu traduz arquivos EPUB locais usando um servidor HTTP compatível com Libre
 
 ## Antes de começar
 
-Instale as dependências do projeto:
+Com Python 3.11 ou mais recente e `uv`, instale a CLI no diretório do projeto:
 
 ```bash
-uv sync --extra dev
+uv sync
 ```
+
+Os dois modos deste tutorial são modos da CLI. Para instalar o suporte
+desktop opcional baseado em PySide6 e executar seu ponto de entrada:
+
+```bash
+uv sync --extra desktop
+uv run --extra desktop ayvu-desktop
+```
+
+O ponto de entrada ainda não abre uma interface; a implementação será tratada
+em DESKTOP-010. Para desenvolvimento, use `uv sync --extra
+dev`; para incluir o desktop, acrescente `--extra desktop`. Ao executar comandos
+com `uv run`, informe os extras necessários para manter essa seleção.
 
 Suba um LibreTranslate local:
 
@@ -344,7 +357,7 @@ uv run ayvu inspect livro.epub
 
 `inspect` é somente de leitura e mantém a tabela com caminho, título, autores,
 idioma, documentos e itens. Não cria cache ou projeto. Livro protegido por
-DRM é recusado, como em `translate`. Em modo desenvolvedor,
+DRM recebe só um aviso, sem título ou autores. `translate` e `extract` o recusam. Em modo desenvolvedor,
 falhas mostram um código de motivo normalizado, sem repassar mensagens internas
 do parser.
 
@@ -488,10 +501,11 @@ não produz tradução revisável.
 
 ### Validar e aplicar uma revisão
 
-Antes de aplicar, abra o CSV em um editor ou planilha e altere só duas colunas:
-`reviewed_text`, que já vem com a tradução automática, e `review_status`, que
-começa como `pending` e precisa ser `reviewed` em **todas** as linhas, inclusive
-nas que você não mudou. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
+Antes de aplicar, abra o CSV em um editor ou planilha. Nas linhas que quiser corrigir,
+altere `reviewed_text`, que já vem com a tradução automática, e mude `review_status`
+de `pending` para `reviewed`. As demais linhas podem ficar como estão e mantêm a
+tradução automática. Se editar uma linha sem marcá-la, o pacote é recusado, para a
+correção não se perder. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
 mantenha cada um, na mesma ordem. As demais colunas ligam a linha ao livro e não
 podem mudar. Salvar pela planilha é aceito, com vírgula ou ponto e vírgula.
 
