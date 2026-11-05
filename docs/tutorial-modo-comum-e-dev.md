@@ -140,8 +140,16 @@ Se `XDG_CONFIG_HOME` não estiver definido, o fallback é:
 
 Ao criar ou editar um glossário, informe o termo original e escolha entre uma tradução
 preferida ou preservar o termo sem tradução. O Ayvu mostra uma prévia dos termos, valida o
-JSON e salva o arquivo. Na próxima tradução guiada, se houver glossários salvos, escolha o
+JSON e salva o arquivo. Uma edição é recusada se o arquivo mudou depois de aberto. Na próxima tradução guiada, se houver glossários salvos, escolha o
 glossário desejado antes de iniciar o processamento.
+
+O catálogo guiado aceita no máximo 1.000 arquivos JSON. Cada arquivo e a saída
+serializada podem ter até 1 MiB, com no máximo 10.000 entradas, termos de até
+1.024 caracteres e traduções de até 4.096 caracteres. Arquivos inválidos, grandes
+demais, links simbólicos e arquivos com múltiplos links físicos não podem ser
+selecionados. Escolha outro ou corrija o arquivo fora do fluxo guiado. Nomes e conteúdo do glossário são dados privados. O caminho
+explícito `--glossary` continua usando o carregador avançado existente, separado
+dessas regras do catálogo gerenciado.
 
 No modo desenvolvedor, crie um glossário a partir do exemplo versionado:
 
