@@ -347,8 +347,10 @@ def test_duplicate_conflicting_and_invalid_status_rows_are_structured_failures(m
     ("unknown_unit", "unknown_unit"),
     ("missing", "missing_unit"),
     ("pending", "review_not_approved"),
+    ("rejected", "review_rejected"),
+    ("edited_pending", "pending_row_edited"),
 ])
-def test_mapping_rejects_unknown_missing_and_unreviewed_units(mutation, code):
+def test_mapping_rejects_unknown_missing_and_unusable_rows(mutation, code):
     _source, project, artifact, documents, machine, package = make_context()
     reviewed = mark_reviewed(package)
     if mutation == "unknown_document":
@@ -359,12 +361,34 @@ def test_mapping_rejects_unknown_missing_and_unreviewed_units(mutation, code):
         reviewed = replace(reviewed, rows=(changed,))
     elif mutation == "missing":
         reviewed = replace(reviewed, rows=())
+    elif mutation == "rejected":
+        reviewed = replace(reviewed, rows=(replace(reviewed.rows[0], review_status="rejected"), *reviewed.rows[1:]))
+    elif mutation == "edited_pending":
+        edited = replace(reviewed.rows[0], review_status="pending", reviewed_text=reviewed.rows[0].reviewed_text + " x")
+        reviewed = replace(reviewed, rows=(edited, *reviewed.rows[1:]))
     else:
         reviewed = replace(package, rows=package.rows)
 
     error_code(code, lambda: map_review_package(reviewed, project=project, machine_artifact=artifact,
                                                 descriptor=DESCRIPTOR, format_version="3.0", documents=documents,
                                                 machine_translations=machine))
+
+
+def test_a_pending_row_keeps_the_machine_translation_while_a_reviewed_one_changes():
+    _source, project, artifact, documents, machine, package = make_context(
+        '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>First line.</p><p>Second line.</p></body></html>')
+    assert len(package.rows) == 2
+    marked = replace(package.rows[0], reviewed_text=package.rows[0].machine_translation + " HUMAN", review_status="reviewed")
+    partial = replace(package, rows=(marked, *package.rows[1:]))
+
+    plan = map_review_package(partial, project=project, machine_artifact=artifact, descriptor=DESCRIPTOR,
+                              format_version="3.0", documents=documents, machine_translations=machine)
+
+    by_unit = {item.unit_id: item.text for item in plan.translations}
+    assert len(by_unit) == len(package.rows)
+    assert "HUMAN" in by_unit[marked.unit_id]
+    for row in package.rows[1:]:
+        assert by_unit[row.unit_id] == machine[row.unit_id]
 
 
 def test_source_machine_and_locator_fingerprints_are_exactly_bound():
