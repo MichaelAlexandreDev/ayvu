@@ -8,15 +8,28 @@ Evidence updated: 2026-10-06
 
 Related issue: [#124 — DESKTOP-003](https://github.com/DevStarrk1137/ayvu/issues/124)
 
-## Implementation note (DESKTOP-009)
+## Implementation note (DESKTOP-009 and DESKTOP-010)
 
 The packaging foundation now provides an optional `desktop` extra pinned to
 `PySide6-Essentials==6.11.2` and the `ayvu-desktop` entry point. It does not
 include Addons or WebEngine, and the entry point does not yet launch an
-interface; DESKTOP-010 owns that work. The CLI remains independent of Qt. This
-packaging change does not constitute acceptance of this ADR or a supported OS,
+interface. DESKTOP-010 adds the structural and injectable composition seam
+described below; it does not supply a working screen. The CLI remains
+independent of Qt. This packaging change does not constitute acceptance of this ADR or a supported OS,
 accessibility, or distribution claim. The evaluation and acceptance record below
 remain historical evidence for the proposed decision.
+
+The `ayvu.desktop` structure separates `presentation/views`, `viewmodels`,
+`adapters/qt`, `resources`, and `platform` concerns from `bootstrap`. The
+composition module `ayvu.desktop.bootstrap.composition` accepts explicit
+`DesktopOverrides` for the data directory, environment, clock, and platform,
+and `DesktopFactories` for configuration, storage, provider, jobs, and
+application construction. Factories are context managers: startup returns a
+graph or a sanitized diagnostic, and acquired resources close in reverse order.
+An injected startup smoke check exercises this seam without claiming concrete
+desktop adapters or a delivered workflow. The existing entry point remains a
+placeholder; this structure does not accept the ADR or establish platform,
+accessibility, or distribution support.
 
 ## Question
 
