@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -313,3 +314,11 @@ def test_resume_state_scan_ignores_missing_processing_dir(tmp_path):
     assert scan.running == ()
     assert scan.invalid == ()
     assert not scan.has_findings
+
+
+def test_resume_state_records_the_profile_and_an_old_file_has_none(tmp_path):
+    state = replace(make_state(tmp_path), profile_name="tec")
+    data = json.loads(json.dumps(state.to_dict()))
+    assert TranslationResumeState.from_dict(data).profile_name == "tec"
+    del data["profile_name"]
+    assert TranslationResumeState.from_dict(data).profile_name is None

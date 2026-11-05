@@ -70,6 +70,8 @@ class TranslationResumeState:
     completed_chapters: tuple[str, ...] = ()
     failed_chapters: tuple[str, ...] = ()
     failed_segment_count: int = 0
+    # Part of the project's identity, and the only part this file did not hold. Old files have none.
+    profile_name: str | None = None
 
     @classmethod
     def create(
@@ -87,6 +89,7 @@ class TranslationResumeState:
         requests_per_second: float | None = None,
         retry_backoff: float = 0.5,
         retry_backoff_max: float = 8.0,
+        profile_name: str | None = None,
     ) -> "TranslationResumeState":
         now = _utc_now()
         return cls(
@@ -124,6 +127,7 @@ class TranslationResumeState:
             requests_per_second=requests_per_second,
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
+            profile_name=profile_name,
         )
 
     @classmethod
@@ -179,6 +183,7 @@ class TranslationResumeState:
             completed_chapters=_optional_str_tuple(data, "completed_chapters"),
             failed_chapters=_optional_str_tuple(data, "failed_chapters"),
             failed_segment_count=_optional_int_default(data, "failed_segment_count", default=0),
+            profile_name=_optional_text(data, "profile_name"),
         )
 
     def to_dict(self) -> dict[str, Any]:

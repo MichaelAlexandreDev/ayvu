@@ -287,6 +287,17 @@ class SqliteArtifactRepository:
                  request.input_fingerprint)).fetchone()
             return None if row is None else _decode(row)
 
+    def list_ready(self, job_id: str, limit: int = 256) -> tuple[Artifact, ...]:
+        """The ready records of one job, oldest first. Read only; it says nothing about their files."""
+        validate_identity(job_id)
+        if type(limit) is not int or limit < 1:
+            raise ArtifactValidationError("invalid_limit")
+        with self._read() as connection:
+            rows = connection.execute(
+                f"SELECT {_COLUMNS} FROM job_artifacts WHERE job_id = ? AND state = 'ready' ORDER BY created_at, artifact_id LIMIT ?",
+                (job_id, limit)).fetchall()
+            return tuple(_decode(row) for row in rows)
+
     def list_staging(self, limit: int) -> tuple[StagedArtifact, ...]:
         if type(limit) is not int or limit < 1:
             raise ArtifactValidationError("invalid_limit")

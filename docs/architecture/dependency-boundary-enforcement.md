@@ -56,6 +56,8 @@ entries fail, so a rename cannot silently discard protection.
 | `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation_engine` | Application | One book through a format adapter and a unit executor |
 | `translate_project` | Application | One project's book as one durable job, from its ports |
+| `job_recovery` | Application | Listing, inspecting and resuming interrupted translations |
+| `job_recovery_store` | Infrastructure | The read-only evidence recovery decides from |
 | `translate_project_composition` | Composition | The current language work and validator behind those ports |
 | `artifact_destination` | Infrastructure | Publishing a job's output to the file the user chose |
 | `translator` | Provider adapter with transitional embedded port | Providers |

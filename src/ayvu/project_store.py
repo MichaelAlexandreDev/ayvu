@@ -11,7 +11,7 @@ import os
 import stat
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
@@ -29,6 +29,8 @@ MAX_MANIFEST_BYTES = 32 * 1024
 MAX_PROJECTS = 1024
 MAX_SOURCE_BYTES = 4 * 1024**3
 LOCK_TIMEOUT_SECONDS = 5.0
+# How long a run waits for its guard. Only long enough to outlast a reader probing whether the guard is held.
+RUN_GUARD_WAIT_SECONDS = 0.05
 
 
 class ProjectStoreError(ProjectError):
@@ -40,6 +42,17 @@ class ProjectDatabasePaths:
     project_id: str
     database: Path
     backups: Path
+
+
+@dataclass(frozen=True, repr=False)
+class ProjectCatalog:
+    """What could be read, and one bounded code for each entry that could not."""
+
+    projects: tuple[ProjectManifest, ...] = ()
+    failures: tuple[str, ...] = ()
+
+    def __repr__(self) -> str:
+        return f"ProjectCatalog(projects={len(self.projects)}, failures={len(self.failures)})"
 
 
 def _no_duplicates(pairs):
@@ -103,7 +116,8 @@ def _read_regular(path: Path, limit: int) -> bytes:
         return data
 
 
-def _fingerprint(path: Path, limit: int = MAX_SOURCE_BYTES, *, allow_aliases: bool = False) -> tuple[str, int, str]:
+def _fingerprint(path: Path, limit: int = MAX_SOURCE_BYTES, *, allow_aliases: bool = False,
+                 between_chunks: Callable[[], None] | None = None) -> tuple[str, int, str]:
     try:
         canonical = _safe_components(path.expanduser().resolve(strict=True) if allow_aliases else path)
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
@@ -120,6 +134,8 @@ def _fingerprint(path: Path, limit: int = MAX_SOURCE_BYTES, *, allow_aliases: bo
                 if count > limit:
                     raise ProjectSourceError("source_too_large")
                 digest.update(chunk)
+                if between_chunks is not None:
+                    between_chunks()
             after = os.fstat(stream.fileno())
             current = _safe_components(canonical).lstat()
             signature = lambda value: (value.st_dev, value.st_ino, value.st_size,
@@ -135,12 +151,34 @@ def _fingerprint(path: Path, limit: int = MAX_SOURCE_BYTES, *, allow_aliases: bo
         raise ProjectSourceError("source_unreadable") from None
 
 
-def build_project_request(
-    source_path: Path, *, source: str, target: str,
-    selections: dict[str, object] | None = None, glossary_path: Path | None = None,
-    profile_name: str | None = None,
-) -> ProjectRequest:
-    canonical, size, fingerprint = _fingerprint(source_path)
+def translation_selections(*, translator: str, url: str, chunk_limit: int, translate_metadata: bool, translate_alt_text: bool,
+                           chapters: str | None, translation_memory: object | None) -> dict[str, object]:
+    """What a translation's project identity is made of. Every caller has to agree on this, so it is here."""
+    return {
+        "translator": translator,
+        "url": url,
+        "chunk_limit": chunk_limit,
+        "translate_metadata": translate_metadata,
+        "translate_alt_text": translate_alt_text,
+        "chapters": chapters,
+        "translation_memory": (
+            [translation_memory.apply_threshold, translation_memory.suggest_threshold, translation_memory.max_candidates]
+            if translation_memory is not None else None
+        ),
+    }
+
+
+@dataclass(frozen=True, repr=False)
+class ConfigurationReferences:
+    profile_ref: str | None
+    glossary_ref: str | None
+    provider_ref: str
+    configuration_ref: str
+
+
+def configuration_references(*, selections: dict[str, object] | None = None, glossary_path: Path | None = None,
+                             profile_name: str | None = None) -> ConfigurationReferences:
+    """The digests of a configuration, without touching the book. A missing glossary raises ``source_missing``."""
     try:
         # Raw configuration is transient. Only digests enter the manifest/DTO.
         options = dict(selections or {})
@@ -162,15 +200,47 @@ def build_project_request(
         provider = hashlib.sha256(json.dumps(
             [options.get("translator"), options.get("url")], separators=(",", ":")).encode()).hexdigest()
         profile = None if profile_name is None else "profile:" + hashlib.sha256(profile_name.encode()).hexdigest()
+        return ConfigurationReferences(profile, glossary_ref, "provider:" + provider, "configuration:" + identity)
+    except ProjectError:
+        raise
+    except (ValueError, TypeError):
+        raise ProjectManifestError("invalid_configuration") from None
+
+
+def build_project_request(
+    source_path: Path, *, source: str, target: str,
+    selections: dict[str, object] | None = None, glossary_path: Path | None = None,
+    profile_name: str | None = None,
+) -> ProjectRequest:
+    canonical, size, fingerprint = _fingerprint(source_path)
+    references = configuration_references(selections=selections, glossary_path=glossary_path, profile_name=profile_name)
+    try:
         return ProjectRequest(
-            canonical, size, fingerprint, source, target, profile_ref=profile,
-            glossary_ref=glossary_ref, provider_ref="provider:" + provider,
-            configuration_ref="configuration:" + identity,
+            canonical, size, fingerprint, source, target, profile_ref=references.profile_ref,
+            glossary_ref=references.glossary_ref, provider_ref=references.provider_ref,
+            configuration_ref=references.configuration_ref,
         )
     except ProjectError:
         raise
     except (ValueError, TypeError):
         raise ProjectManifestError("invalid_configuration") from None
+
+
+def canonical_source_path(path: Path) -> str:
+    """The form a manifest stores a source path in. It reads nothing but the path's own components."""
+    return os.path.normcase(str(_safe_components(path)))
+
+
+def source_digest(path: Path, *, between_chunks: Callable[[], None] | None = None) -> tuple[int, str]:
+    """Size and SHA-256 of a source, read only. ``between_chunks`` may raise to stop a long read."""
+    _, size, digest = _fingerprint(path, between_chunks=between_chunks)
+    return size, digest
+
+
+def file_digest(path: Path, *, between_chunks: Callable[[], None] | None = None) -> tuple[int, str]:
+    """The same for an ordinary file of the user, such as an output, which may be a link or have other names."""
+    _, size, digest = _fingerprint(path, allow_aliases=True, between_chunks=between_chunks)
+    return size, digest
 
 
 @contextmanager
@@ -298,24 +368,60 @@ class ProjectJsonRepository:
         with self._transaction():
             return self._load(project_id)
 
+    def read_catalog(self) -> ProjectCatalog:
+        """Every project that can be read, with nothing created, locked or changed.
+
+        A reader cannot wait for or block a run, and the writes it could meet are atomic replacements of a
+        manifest. One bad entry is one failure here, and not the end of the listing.
+        """
+        projects, failures = [], []
+        try:
+            entries = sorted(_safe_components(self.root).iterdir(), key=lambda entry: entry.name)
+        except FileNotFoundError:
+            return ProjectCatalog()
+        except (OSError, ProjectError):
+            return ProjectCatalog(failures=("project_storage_unavailable",))
+        for entry in entries[:MAX_PROJECTS + 2]:
+            if entry.name == ".workspace.lock":
+                continue
+            if entry.name.startswith(".staging-"):
+                failures.append("incomplete_project_creation")
+                continue
+            try:
+                if entry.is_symlink() or not entry.is_dir():
+                    raise ProjectStoreError("invalid_workspace_entry")
+                projects.append(self._load(entry.name))
+            except ProjectError as error:
+                failures.append(str(error))
+            except OSError:
+                failures.append("project_storage_unavailable")
+        return ProjectCatalog(tuple(projects[:MAX_PROJECTS]), tuple(failures))
+
+    def _database_paths(self, project_id: str) -> ProjectDatabasePaths:
+        project = self._load(project_id)
+        directory = self._manifest_path(project.project_id).parent
+        database = _safe_components(directory / 'project.sqlite')
+        backups = _safe_components(directory / 'backups' / 'schema')
+        for target in (database, backups):
+            if not target.is_relative_to(directory):
+                raise ProjectStoreError('invalid_project_storage_path')
+        if database.exists():
+            if not database.is_file():
+                raise ProjectStoreError('invalid_project_database')
+            if database.stat().st_nlink != 1:
+                raise ProjectStoreError('project_database_recovery_required')
+        for directory_path in (backups.parent, backups):
+            if directory_path.exists() and not directory_path.is_dir():
+                raise ProjectStoreError('invalid_project_backup_directory')
+        return ProjectDatabasePaths(project.project_id, database, backups)
+
     def resolve_database_paths(self, project_id: str) -> ProjectDatabasePaths:
         with self._transaction():
-            project = self._load(project_id)
-            directory = self._manifest_path(project.project_id).parent
-            database = _safe_components(directory / 'project.sqlite')
-            backups = _safe_components(directory / 'backups' / 'schema')
-            for target in (database, backups):
-                if not target.is_relative_to(directory):
-                    raise ProjectStoreError('invalid_project_storage_path')
-            if database.exists():
-                if not database.is_file():
-                    raise ProjectStoreError('invalid_project_database')
-                if database.stat().st_nlink != 1:
-                    raise ProjectStoreError('project_database_recovery_required')
-            for directory_path in (backups.parent, backups):
-                if directory_path.exists() and not directory_path.is_dir():
-                    raise ProjectStoreError('invalid_project_backup_directory')
-            return ProjectDatabasePaths(project.project_id, database, backups)
+            return self._database_paths(project_id)
+
+    def read_database_paths(self, project_id: str) -> ProjectDatabasePaths:
+        """The same checks as ``resolve_database_paths``, for a reader: no lock, and nothing is created."""
+        return self._database_paths(project_id)
 
     def resolve_artifact_root(self, project_id: str) -> Path:
         """The project's artifact directory. It is validated here and created on first use."""
@@ -329,14 +435,21 @@ class ProjectJsonRepository:
                 raise ProjectStoreError('invalid_project_artifact_directory')
             return root
 
+    def _run_guard(self, project_id: str) -> "ProjectRunGuard":
+        project = self._load(project_id)
+        directory = self._manifest_path(project.project_id).parent
+        root = _safe_components(directory / 'runs')
+        if not root.is_relative_to(directory):
+            raise ProjectStoreError('invalid_project_storage_path')
+        return ProjectRunGuard(root)
+
     def run_guard(self, project_id: str) -> "ProjectRunGuard":
         with self._transaction():
-            project = self._load(project_id)
-            directory = self._manifest_path(project.project_id).parent
-            root = _safe_components(directory / 'runs')
-            if not root.is_relative_to(directory):
-                raise ProjectStoreError('invalid_project_storage_path')
-            return ProjectRunGuard(root)
+            return self._run_guard(project_id)
+
+    def read_run_guard(self, project_id: str) -> "ProjectRunGuard":
+        """For a reader that only asks whether a run is alive with ``held``."""
+        return self._run_guard(project_id)
 
     def _check_source(self, request: ProjectRequest) -> None:
         canonical, size, digest = _fingerprint(Path(request.source_path))
@@ -447,14 +560,48 @@ class ProjectRunGuard:
     def __repr__(self) -> str:
         return "ProjectRunGuard()"
 
+    def _path(self, input_fingerprint: str) -> Path:
+        return self._root / f"{hashlib.sha256(input_fingerprint.encode()).hexdigest()}.lock"
+
+    def held(self, input_fingerprint: str) -> bool:
+        """Whether a live process holds this plan. It creates and writes nothing.
+
+        Asking takes a shared lock for an instant, which ``exclusive`` outlasts with its short wait.
+        """
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        try:
+            descriptor = os.open(_safe_components(self._path(input_fingerprint)), flags)
+        except FileNotFoundError:
+            return False
+        except OSError:
+            raise ProjectStoreError("run_guard_unavailable") from None
+        try:
+            if os.name == "nt":
+                import msvcrt
+                try:
+                    msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+                except (BlockingIOError, PermissionError):
+                    return True
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                return False
+            import fcntl
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return True
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            return False
+        finally:
+            os.close(descriptor)
+
     @contextmanager
     def exclusive(self, input_fingerprint: str) -> Iterator[bool]:
         """Yields whether this run is the only live one for the plan. A store that cannot lock raises."""
-        name = hashlib.sha256(input_fingerprint.encode()).hexdigest()
         entered = False
         try:
             self._root.mkdir(parents=True, exist_ok=True, mode=0o700)
-            with _workspace_lock(self._root / f"{name}.lock", timeout=0):
+            with _workspace_lock(self._path(input_fingerprint), timeout=RUN_GUARD_WAIT_SECONDS):
                 entered = True
                 yield True
         except ProjectStoreError as error:

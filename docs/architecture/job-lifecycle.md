@@ -85,8 +85,8 @@ nonterminal job appears as `requires_reconciliation` in `JobSnapshot`. Reads use
 read-only connection, so loading never changes the job or claims an outcome. While
 in this condition, acquiring, renewing and releasing all raise
 `lease_requires_reconciliation`. Explicit transitions remain available, and entering
-a terminal state clears the lease in the same transaction. Automatic reconciliation
-belongs to [#146](https://github.com/MichaelAlexandreDev/ayvu/issues/146).
+a terminal state clears the lease in the same transaction.
+[Recovery](job-recovery.md) reads this condition and leaves acting on it to a run.
 
 ## Continuations
 
@@ -118,10 +118,10 @@ being repaired. `busy` is a typed error, and retry policy belongs to the caller.
 ## Relationship to resume and control files
 
 `*.ayvu-state.json` remains the only recovery mechanism in use, and `resume.py` keeps
-its `running`/`completed` values. Job code does not import, read, rewrite or delete
-those files, and a legacy checkpoint is not imported as a job. Moving recovery to
-application use cases belongs to
-[#146](https://github.com/MichaelAlexandreDev/ayvu/issues/146).
+its `running`/`completed` values. The job modules do not import, read, rewrite or delete
+those files, and a legacy checkpoint is not imported as a job.
+[Job recovery](job-recovery.md) reads them, as a record of how a run was invoked, and
+checks them against a job's fingerprint before believing them.
 
 ## Consequences and limits
 
