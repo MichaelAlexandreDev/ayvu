@@ -372,12 +372,19 @@ inputs, selects permitted local adapters, invokes a use case, and renders its
 result with Rich. Existing commands and exit behavior remain compatible while
 orchestration is replaced behind one command at a time.
 
-### Future Desktop composition root
+### Desktop composition root
 
-A future Desktop root may build the same application services with Desktop
-presenters and event-loop adapters. It must not import the CLI, reuse Rich
-objects, or create a parallel EPUB/cache/provider core. No Desktop root or Qt
-dependency is introduced by this decision.
+The injectable Desktop root in `ayvu.desktop.bootstrap.composition` accepts
+factories and environment overrides to assemble a graph, returning a sanitized
+diagnostic on startup failure and closing acquired resources in reverse order.
+Its package separates views, viewmodels, Qt adapter concerns, resources, and
+platform concerns. It does not establish concrete adapters or a delivered
+workflow; the desktop entry point remains a placeholder. A Desktop root may
+build the same application services with Desktop presenters and event-loop
+adapters. It must not import the CLI, reuse Rich objects, or create a parallel
+EPUB/cache/provider core. This accepted decision itself introduced neither the
+Desktop root nor a Qt dependency; see the [desktop evaluation](adr-desktop-stack.md)
+for the implementation's scope and the proposed toolkit decision.
 
 ### Future local API composition root
 

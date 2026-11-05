@@ -9,6 +9,16 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- O cache standalone dispõe de preparação e repositório exato v2 para o caminho
+  rico. A migração preserva as entradas v1 sem promovê-las a acertos v2; a CLI
+  continua no cache legado. Administração v2 aguarda DESKTOP-127. Representações
+  dos DTOs legados de cache ocultam texto e caminho.
+- O catálogo guiado de glossários recusa links simbólicos e arquivos com múltiplos
+  links físicos, sinaliza arquivos inválidos ou grandes demais e limita arquivos,
+  entradas e texto. Salvar é atômico, e uma edição é recusada se o arquivo mudou
+  depois de aberto. Caminhos explícitos `--glossary` mantêm o carregador avançado
+  existente.
+
 - O comando `translate` aceita no máximo 100 EPUBs e recusa `--missing-output`
   com múltiplos arquivos; em cache-only, o nome dos textos ausentes continua
   automático por livro. Destinos duplicados são recusados antes do lote, e as
@@ -30,6 +40,10 @@ lancadas e secoes versionadas quando uma release for publicada.
   disso, exporte em partes com `--source`, `--target` ou `--before`.
 
 ### Adicionado
+
+- Extra opcional `desktop` com PySide6-Essentials e ponto de entrada reservado
+  `ayvu-desktop`; a interface será implementada em DESKTOP-010. A instalação
+  da CLI continua independente do Qt.
 
 - Modo comum guiado ao executar `uv run ayvu`.
 - Modo desenvolvedor direto e opcao global `--mode`.
@@ -121,10 +135,14 @@ lancadas e secoes versionadas quando uma release for publicada.
   saída informa o número concluído e o restante. No modo desenvolvedor, o detalhe
   que antes mostrava a exceção do parser agora mostra um código de motivo
   normalizado, sem conteúdo do livro ou caminhos originados pelo parser.
-  `inspect` e `extract` agora recusam livro protegido por DRM, como `translate` já
-  fazia, e explicam o motivo. `extract` também recusa capítulo cujo nome é inválido
-  ou reservado em algum sistema (`con`, `c:h`, `c*h`), que antes virava arquivo no
-  Linux. Pasta de saída inválida gera mensagem própria em vez de falha não tratada.
+  `inspect` de livro protegido por DRM mostra só um aviso, sem os dados do livro, e
+  `extract` o recusa, como `translate` já fazia. Em `extract`, caracteres de nome de
+  capítulo inválidos em algum sistema (`c:h`, `c*h`) viram `_`, e nomes longos demais
+  são encurtados, para o texto de todo capítulo ser exportado. Pasta de saída
+  inválida gera mensagem própria em vez de falha não tratada.
+- `apply-review` aplica só as linhas marcadas como `reviewed`; as demais mantêm a
+  tradução automática e não são registradas como revisão humana. Editar uma linha sem
+  marcá-la, ou marcar uma como `rejected`, recusa o pacote.
 - O contrato de revisão ganhou o pacote v2 `ayvu.review_exchange`, limitado e
   ligado a projeto, fonte, artefato de tradução, formato, locator e unidades
   estáveis. CSV v1 agora é apenas para inspeção: `apply-review` recusa antes de

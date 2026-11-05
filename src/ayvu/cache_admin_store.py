@@ -10,11 +10,10 @@ import sqlite3
 import stat
 import tempfile
 from pathlib import Path
-from contextlib import closing
-from urllib.parse import quote
 
 from .cache import SCHEMA
 from .cache_admin import (CacheAdminError, CacheSummary, CachePair, CleanSelection, ImportCounts, checkpoint, report, validate_payload)
+from .cache_schema import CacheSchemaError, SchemaState, classify_cache, participating_admin_connection
 
 MAX_FILE_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 1_000_000
@@ -36,6 +35,8 @@ class CacheStorageError(CacheAdminError):
 def _error(exc: Exception) -> CacheStorageError:
     if isinstance(exc, CacheAdminError):
         return exc
+    if isinstance(exc, CacheSchemaError):
+        return CacheStorageError(exc.code)
     if isinstance(exc, FileNotFoundError):
         return CacheStorageError('not_found')
     if isinstance(exc, FileExistsError):
@@ -62,6 +63,15 @@ def _path(ref):
     return Path(ref.value)
 
 
+def _absent(ref):
+    path = _path(ref)
+    if path.exists():
+        return False
+    if classify_cache(path) is SchemaState.PARTIAL:
+        raise CacheStorageError('v2-admin-required')
+    return True
+
+
 def _filter(filters):
     clauses, args = [], []
     for name, column, op in [('source_lang', 'source_lang', '='), ('target_lang', 'target_lang', '='), ('before', 'created_at', '<')]:
@@ -70,12 +80,6 @@ def _filter(filters):
             clauses.append(f'{column} {op} ?')
             args.append(value)
     return (' WHERE ' + ' AND '.join(clauses) if clauses else ''), tuple(args)
-
-
-def _connect(ref, write=False):
-    # mode=ro/rw forbids SQLite from creating an absent source.
-    uri = 'file:' + quote(str(_path(ref).absolute()), safe='/') + ('?mode=rw' if write else '?mode=ro')
-    return sqlite3.connect(uri, uri=True, timeout=BUSY_TIMEOUT_SECONDS)
 
 
 def _has_entries_table(conn):
@@ -110,11 +114,11 @@ class SQLiteCacheStore:
         try:
             checkpoint(request, "cache_before_read")
             report(request, "inspect", 0, 1)
-            if not _path(ref).exists():
+            if _absent(ref):
                 report(request, "inspect", 1, 1)
                 return CacheSummary(False, 0, 0, ())
             where, args = _filter(filters)
-            with closing(_connect(ref)) as conn:
+            with participating_admin_connection(_path(ref), timeout=BUSY_TIMEOUT_SECONDS) as conn:
                 if not _has_entries_table(conn):
                     report(request, "inspect", 1, 1)
                     return CacheSummary(True, 0, _path(ref).stat().st_size, ())
@@ -135,10 +139,10 @@ class SQLiteCacheStore:
         try:
             checkpoint(request, "cache_before_read")
             report(request, "preview", 0, 1)
-            if not _path(ref).exists():
+            if _absent(ref):
                 report(request, "preview", 1, 1)
                 return CleanSelection(ref, filters, 0, hashlib.sha256().hexdigest())
-            with closing(_connect(ref)) as conn:
+            with participating_admin_connection(_path(ref), timeout=BUSY_TIMEOUT_SECONDS) as conn:
                 count, digest = _selection(conn, filters, check) if _has_entries_table(conn) else (0, hashlib.sha256().hexdigest())
                 report(request, "preview", 1, 1)
                 return CleanSelection(ref, filters, count, digest)
@@ -151,44 +155,42 @@ class SQLiteCacheStore:
         try:
             checkpoint(request, "cache_before_mutation")
             report(request, "clean", 0, count)
-            if not _path(ref).exists():
+            if _absent(ref):
                 if count == 0 and digest == hashlib.sha256().hexdigest():
                     return 0
                 raise CacheStorageError('stale_preview')
-            conn = _connect(ref, write=True)
-            try:
-                conn.execute('BEGIN IMMEDIATE')
-                if not _has_entries_table(conn):
-                    if (count, digest) != (0, hashlib.sha256().hexdigest()):
+            with participating_admin_connection(_path(ref), write=True, timeout=BUSY_TIMEOUT_SECONDS) as conn:
+                try:
+                    conn.execute('BEGIN IMMEDIATE')
+                    if not _has_entries_table(conn):
+                        if (count, digest) != (0, hashlib.sha256().hexdigest()):
+                            raise CacheStorageError('stale_preview')
+                        conn.rollback()
+                        return 0
+                    if _selection(conn, filters, check) != (count, digest):
                         raise CacheStorageError('stale_preview')
+                    checkpoint(request, "cache_before_mutation")
+                    where, args = _filter(filters)
+                    deleted = conn.execute('DELETE FROM translations' + where, args).rowcount
+                    checkpoint(request, "cache_before_commit")
+                    report(request, "clean", deleted, count)
+                    conn.commit()
+                    return deleted
+                except BaseException:
                     conn.rollback()
-                    return 0
-                if _selection(conn, filters, check) != (count, digest):
-                    raise CacheStorageError('stale_preview')
-                checkpoint(request, "cache_before_mutation")
-                where, args = _filter(filters)
-                deleted = conn.execute('DELETE FROM translations' + where, args).rowcount
-                checkpoint(request, "cache_before_commit")
-                report(request, "clean", deleted, count)
-                conn.commit()
-                return deleted
-            except BaseException:
-                conn.rollback()
-                raise
-            finally:
-                conn.close()
+                    raise
         except Exception as exc:
             raise _error(exc) from None
 
     def export_payload(self, request):
         ref, filters = request.cache, request.filters
         try:
-            if not _path(ref).exists():
+            if _absent(ref):
                 return b'{\n  \"version\": 1,\n  \"entries\": []\n}\n'
             where, args = _filter(filters)
             entries = []
             byte_count = 0
-            with closing(_connect(ref)) as conn:
+            with participating_admin_connection(_path(ref), timeout=BUSY_TIMEOUT_SECONDS) as conn:
                 if not _has_entries_table(conn):
                     return b'{\n  \"version\": 1,\n  \"entries\": []\n}\n'
                 oversized = conn.execute('SELECT 1 FROM translations' + where + (' AND ' if where else ' WHERE ') + '(length(CAST(original_text AS BLOB)) > ? OR length(CAST(translated_text AS BLOB)) > ? OR length(CAST(source_lang AS BLOB)) > ? OR length(CAST(target_lang AS BLOB)) > ? OR length(CAST(original_text_hash AS BLOB)) > ? OR length(CAST(created_at AS BLOB)) > ?) LIMIT 1', (*args, MAX_TEXT_LENGTH * 4, MAX_TEXT_LENGTH * 4, *([MAX_METADATA_LENGTH * 4] * 4))).fetchone()
@@ -217,33 +219,30 @@ class SQLiteCacheStore:
             validate_payload(payload)
             entries = json.loads(payload)["entries"]
             path = _path(ref)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            conn = sqlite3.connect(path, timeout=BUSY_TIMEOUT_SECONDS)
             imported = skipped = replaced = 0
-            try:
-                conn.execute('BEGIN IMMEDIATE')
-                conn.execute(SCHEMA)
-                for entry in entries:
-                    report(request, "import", imported + skipped + replaced, len(entries))
-                    checkpoint(request, "cache_between_entries")
-                    key = (entry['source_lang'], entry['target_lang'], entry['original_text_hash'])
-                    exists = conn.execute('SELECT 1 FROM translations WHERE source_lang=? AND target_lang=? AND original_text_hash=?', key).fetchone()
-                    if exists and not replace:
-                        skipped += 1
-                    elif exists:
-                        conn.execute('UPDATE translations SET original_text=?, translated_text=?, created_at=? WHERE source_lang=? AND target_lang=? AND original_text_hash=?', (entry['original_text'], entry['translated_text'], entry['created_at'], *key))
-                        replaced += 1
-                    else:
-                        conn.execute('INSERT INTO translations (source_lang,target_lang,original_text_hash,original_text,translated_text,created_at) VALUES (?,?,?,?,?,?)', (*key, entry['original_text'], entry['translated_text'], entry['created_at']))
-                        imported += 1
-                checkpoint(request, "cache_before_commit")
-                conn.commit()
-                return ImportCounts(imported, skipped, replaced)
-            except BaseException:
-                conn.rollback()
-                raise
-            finally:
-                conn.close()
+            with participating_admin_connection(path, write=True, create=True, timeout=BUSY_TIMEOUT_SECONDS) as conn:
+                try:
+                    conn.execute('BEGIN IMMEDIATE')
+                    conn.execute(SCHEMA)
+                    for entry in entries:
+                        report(request, "import", imported + skipped + replaced, len(entries))
+                        checkpoint(request, "cache_between_entries")
+                        key = (entry['source_lang'], entry['target_lang'], entry['original_text_hash'])
+                        exists = conn.execute('SELECT 1 FROM translations WHERE source_lang=? AND target_lang=? AND original_text_hash=?', key).fetchone()
+                        if exists and not replace:
+                            skipped += 1
+                        elif exists:
+                            conn.execute('UPDATE translations SET original_text=?, translated_text=?, created_at=? WHERE source_lang=? AND target_lang=? AND original_text_hash=?', (entry['original_text'], entry['translated_text'], entry['created_at'], *key))
+                            replaced += 1
+                        else:
+                            conn.execute('INSERT INTO translations (source_lang,target_lang,original_text_hash,original_text,translated_text,created_at) VALUES (?,?,?,?,?,?)', (*key, entry['original_text'], entry['translated_text'], entry['created_at']))
+                            imported += 1
+                    checkpoint(request, "cache_before_commit")
+                    conn.commit()
+                    return ImportCounts(imported, skipped, replaced)
+                except BaseException:
+                    conn.rollback()
+                    raise
         except Exception as exc:
             raise _error(exc) from None
 

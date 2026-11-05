@@ -52,15 +52,14 @@ from .domain import (
     default_preview_books_dir,
     default_translated_books_dir,
 )
-from .glossary import (
-    GLOSSARY_RULE_PRESERVE,
-    GLOSSARY_RULE_TRANSLATE,
-    Glossary,
-    GlossaryEntry,
-    GlossaryError,
-    load_glossary,
-    save_glossary,
+from .glossary_catalog import (
+    Entry as GlossaryEntry, GlossaryReference, list_glossaries, read_glossary,
+    create_glossary, update_glossary,
 )
+from .glossary_catalog_composition import managed_glossary_repository
+
+GLOSSARY_RULE_TRANSLATE = "translate"
+GLOSSARY_RULE_PRESERVE = "preserve"
 from .html_translate import HtmlTranslationStats
 from .library_service import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
 from .library_adapters import LocalLibraryFilesystem, ReaderLauncher
@@ -419,6 +418,11 @@ def inspect(
         _print_epub_read_error("inspection_failed", mode)
         raise typer.Exit(code=1) from None
     if result.failure is not None:
+        if _TRANSLATION_FAILURES.get(result.failure.code) is _BOOK_PROTECTED:
+            # Being protected is the answer to "what is this book", so it is not an error. Its data stays hidden.
+            console.print(f"[yellow]{_BOOK_PROTECTED[0]}[/yellow]")
+            console.print("Os dados do livro não são exibidos, e o Ayvu não traduz nem remove essa proteção.")
+            return
         _print_content_failure(result.failure.code, mode)
         raise typer.Exit(code=1)
     table = Table(title="EPUB information")
@@ -620,6 +624,8 @@ _CACHE_LIMIT_CODES = frozenset({"limit_exceeded", "file_too_large", "too_many_en
 
 
 def _cache_failure_hint(code: str, default: str, too_large: str | None = None) -> str:
+    if code == "v2-admin-required":
+        return "Este cache requer administração compatível com v2."
     if code == "cache_busy":
         return "Outro processo está usando o cache. Espere ele terminar e tente novamente."
     if too_large is not None and code in _CACHE_LIMIT_CODES:
@@ -1128,7 +1134,7 @@ def _print_epub_read_error(detail: str, mode: UserMode) -> None:
     )
 
 
-_CONTENT_NAME_FAILURES = frozenset({"unsafe_output_name", "reserved_output_name", "duplicate_output_target", "output_name_too_long"})
+_CONTENT_NAME_FAILURES = frozenset({"unsafe_output_name", "duplicate_output_target"})
 
 
 def _print_content_failure(code: str, mode: UserMode) -> None:
@@ -2434,6 +2440,7 @@ def apply_review(
             table.add_row("Documents", str(validated.counts.documents))
             table.add_row("Units", str(validated.counts.units))
             table.add_row("Reviewed", str(validated.counts.reviewed))
+            table.add_row("Kept machine translation", str(validated.counts.pending))
             console.print(table)
             raise typer.Exit(code=0)
         _print_review_apply_failure(validated.code, mode)
@@ -2454,6 +2461,7 @@ def apply_review(
     table.add_row("Output", _display_optional_path(output_path))
     table.add_row("Documents", str(applied.counts.documents))
     table.add_row("Units applied", str(applied.counts.reviewed))
+    table.add_row("Kept machine translation", str(applied.counts.pending))
     console.print(table)
     console.print(f"[green]Reviewed EPUB saved to:[/green] {output_path}")
 
@@ -2481,8 +2489,24 @@ def _print_review_apply_failure(code: str, mode: UserMode) -> None:
         return
     if code == "review_not_approved":
         _print_expected_error(
-            "O pacote ainda tem linhas sem aprovação.",
-            "Edite reviewed_text onde quiser e marque review_status como reviewed em todas as linhas, inclusive nas que ficaram iguais.",
+            "Nenhuma linha do pacote foi marcada como revisada.",
+            "Edite reviewed_text nas linhas que quiser e marque review_status como reviewed nelas. As demais mantêm a tradução automática.",
+            mode,
+            detail=code,
+        )
+        return
+    if code == "pending_row_edited":
+        _print_expected_error(
+            "Uma linha foi editada, mas não foi marcada como revisada.",
+            "Marque review_status como reviewed nessa linha, ou desfaça a edição em reviewed_text. Nada foi gravado.",
+            mode,
+            detail=code,
+        )
+        return
+    if code == "review_rejected":
+        _print_expected_error(
+            "O pacote tem uma linha marcada como rejeitada.",
+            "Corrija reviewed_text e marque a linha como reviewed, ou volte para pending para manter a tradução automática. Nada foi gravado.",
             mode,
             detail=code,
         )
@@ -2975,101 +2999,99 @@ def _print_guided_glossary_menu(directory: Path) -> None:
 
 
 def _create_guided_glossary(directory: Path) -> Path | None:
-    path = _prompt_new_glossary_path(directory)
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if items is None:
+        return None
+    path = _prompt_new_glossary_path(directory, items)
     if path is None:
         return None
-
-    glossary = _prompt_guided_glossary_terms(Glossary())
-    return _save_guided_glossary(path, glossary)
+    entries = _prompt_guided_glossary_terms(())
+    return _save_guided_glossary(repository, path, entries)
 
 
 def _edit_guided_glossary(directory: Path) -> Path | None:
-    files = _list_glossary_files(directory)
-    if not files:
-        console.print("[yellow]No saved glossaries found.[/yellow]")
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if not items:
+        if items is not None:
+            console.print("[yellow]No saved glossaries found.[/yellow]")
         return None
-
-    path = _prompt_saved_glossary_path(files)
-    if path is None:
+    item = _prompt_saved_glossary_path(items)
+    if item is None:
         return None
-
-    glossary = _load_guided_glossary(path)
-    if glossary is None:
+    snapshot = _load_guided_glossary(repository, item.reference)
+    if snapshot is None:
         return None
-
-    updated = _prompt_guided_glossary_terms(glossary)
-    return _save_guided_glossary(path, updated)
+    entries = _prompt_guided_glossary_terms(snapshot.entries)
+    return _save_guided_glossary(repository, directory / item.reference.value, entries, snapshot.revision)
 
 
 def _preview_guided_glossary(directory: Path) -> None:
-    files = _list_glossary_files(directory)
-    if not files:
-        console.print("[yellow]No saved glossaries found.[/yellow]")
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if not items:
+        if items is not None:
+            console.print("[yellow]No saved glossaries found.[/yellow]")
         return
-
-    path = _prompt_saved_glossary_path(files)
-    if path is None:
+    item = _prompt_saved_glossary_path(items)
+    if item is None:
         return
-
-    glossary = _load_guided_glossary(path)
-    if glossary is None:
-        return
-    _print_guided_glossary_preview(glossary)
+    snapshot = _load_guided_glossary(repository, item.reference)
+    if snapshot is not None:
+        _print_guided_glossary_preview(snapshot.entries)
 
 
 def _choose_guided_translation_glossary() -> Path | None:
-    files = _list_glossary_files(default_glossaries_dir())
-    if not files:
+    directory = default_glossaries_dir()
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if not items:
         return None
-
     console.print("[yellow]Saved glossaries are available.[/yellow]")
     while True:
-        path = _prompt_saved_glossary_path(files, back_label="Run without glossary")
-        if path is None:
+        item = _prompt_saved_glossary_path(items, back_label="Run without glossary")
+        if item is None:
             return None
-        if _load_guided_glossary(path) is not None:
+        if _load_guided_glossary(repository, item.reference) is not None:
+            path = directory / item.reference.value
             console.print(f"[green]Glossary selected:[/green] {path}")
             return path
         console.print("Choose another glossary or run without glossary.")
 
 
-def _prompt_new_glossary_path(directory: Path) -> Path | None:
+def _prompt_new_glossary_path(directory: Path, items: tuple) -> Path | None:
     while True:
         raw_name = typer.prompt("Glossary name", default="glossary").strip()
         stem = _safe_filename_part(Path(raw_name).stem or raw_name).lower()
         path = directory / f"{stem}.json"
-        if not path.exists():
+        if not any(item.reference.value.casefold() == path.name.casefold() for item in items):
             return path
-
         console.print(f"[yellow]Glossary already exists:[/yellow] {path}")
         if not typer.confirm("Choose another glossary name?", default=True):
             console.print("Glossary was not created.")
             return None
 
 
-def _prompt_guided_glossary_terms(glossary: Glossary) -> Glossary:
-    entries = list(glossary.entries)
+def _prompt_guided_glossary_terms(glossary: tuple[GlossaryEntry, ...]) -> tuple[GlossaryEntry, ...]:
+    entries = list(glossary)
     if entries:
-        _print_guided_glossary_preview(Glossary(entries))
-
+        _print_guided_glossary_preview(tuple(entries))
     while True:
         term = typer.prompt("Original term (leave empty to finish)", default="").strip()
         if not term:
-            if entries:
-                return Glossary(entries)
-            console.print("[yellow]No glossary terms were added.[/yellow]")
-            return Glossary()
-
+            if not entries:
+                console.print("[yellow]No glossary terms were added.[/yellow]")
+            return tuple(entries)
         entry = _prompt_guided_glossary_entry(term)
         replaced = _upsert_glossary_entry(entries, entry)
         if replaced:
             console.print(f"[green]Term updated:[/green] {entry.term}")
         else:
             console.print(f"[green]Term added:[/green] {entry.term}")
-        _print_guided_glossary_preview(Glossary(entries))
-
+        _print_guided_glossary_preview(tuple(entries))
         if not typer.confirm("Add another term?", default=True):
-            return Glossary(entries)
+            return tuple(entries)
 
 
 def _prompt_guided_glossary_entry(term: str) -> GlossaryEntry:
@@ -3102,86 +3124,98 @@ def _upsert_glossary_entry(entries: list[GlossaryEntry], entry: GlossaryEntry) -
     return False
 
 
-def _save_guided_glossary(path: Path, glossary: Glossary) -> Path | None:
-    if not glossary.entries:
+def _save_guided_glossary(repository, path: Path, glossary: tuple[GlossaryEntry, ...], revision=None) -> Path | None:
+    if not glossary:
         console.print("[yellow]Glossary was not saved because it has no terms.[/yellow]")
         return None
-
     _print_guided_glossary_preview(glossary)
     if not typer.confirm("Save this glossary?", default=True):
         console.print("Glossary was not saved.")
         return None
-
-    try:
-        saved_path = save_glossary(path, glossary)
-    except GlossaryError as exc:
-        console.print(f"[red]Glossary validation failed:[/red] {exc}")
+    reference = GlossaryReference(path.name)
+    if revision is None:
+        result = create_glossary(repository, reference, glossary)
+    else:
+        result = update_glossary(repository, reference, glossary, revision)
+    if result.failure is not None:
+        console.print(f"[red]Glossary was not saved:[/red] {_glossary_failure(result.failure)}")
         return None
+    console.print(f"[green]Glossary saved:[/green] {path}")
+    return path
 
-    console.print(f"[green]Glossary saved:[/green] {saved_path}")
-    return saved_path
+
+_GLOSSARY_STATUS = {
+    "invalid": "invalid file",
+    "oversized": "too large",
+    "unsafe-link": "link, not accepted",
+    "unsafe-multilink": "hard link, not accepted",
+}
+_GLOSSARY_FAILURES = {
+    "invalid": "the file is not a valid glossary.",
+    "oversized": "the file is above the glossary limits.",
+    "unsafe-link": "links are not accepted in the glossary folder.",
+    "unsafe-multilink": "a file with more than one hard link is not accepted in the glossary folder.",
+    "missing": "the file no longer exists.",
+    "stale-revision": "the file changed after it was opened. Open it again and repeat the change.",
+    "already-exists": "a glossary with this name already exists.",
+    "catalog-too-large": "the glossary folder has more than 1000 files.",
+}
 
 
-def _load_guided_glossary(path: Path) -> Glossary | None:
-    try:
-        return load_glossary(path)
-    except GlossaryError as exc:
-        console.print(f"[red]Could not load glossary:[/red] {exc}")
+def _glossary_failure(code: str) -> str:
+    return _GLOSSARY_FAILURES.get(code, f"the glossary could not be used ({code}).")
+
+
+def _load_guided_glossary(repository, reference):
+    result = read_glossary(repository, reference)
+    if result.failure is not None:
+        console.print(f"[red]Could not load glossary:[/red] {_glossary_failure(result.failure)}")
         return None
+    return result.value
 
 
-def _prompt_saved_glossary_path(files: tuple[Path, ...], back_label: str = "Back") -> Path | None:
-    _print_saved_glossaries(files)
+def _prompt_saved_glossary_path(items: tuple, back_label: str = "Back"):
+    _print_saved_glossaries(items)
     console.print(f"{GLOSSARY_BACK_OPTION}. {back_label}")
-
     while True:
         choice = typer.prompt("Choose glossary", default=GLOSSARY_BACK_OPTION).strip()
         if choice == GLOSSARY_BACK_OPTION:
             return None
-        if choice.isdigit() and 1 <= int(choice) <= len(files):
-            return files[int(choice) - 1]
-        console.print(f"[red]Invalid glossary.[/red] Choose 1-{len(files)} or 0.")
+        if choice.isdigit() and 1 <= int(choice) <= len(items):
+            return items[int(choice) - 1]
+        console.print(f"[red]Invalid glossary.[/red] Choose 1-{len(items)} or 0.")
 
 
-def _print_saved_glossaries(files: tuple[Path, ...]) -> None:
+def _print_saved_glossaries(items: tuple) -> None:
     table = Table(title="Saved glossaries")
     table.add_column("Option")
     table.add_column("Name")
     table.add_column("Terms")
-    for index, path in enumerate(files, start=1):
-        table.add_row(str(index), path.stem, _glossary_term_count(path))
+    for index, item in enumerate(items, start=1):
+        table.add_row(str(index), Path(item.reference.value).stem,
+                      str(item.count) if item.status == "valid" else _GLOSSARY_STATUS.get(item.status, item.status))
     console.print(table)
 
 
-def _glossary_term_count(path: Path) -> str:
-    glossary = _load_guided_glossary(path)
-    if glossary is None:
-        return "invalid"
-    return str(len(glossary.entries))
-
-
-def _print_guided_glossary_preview(glossary: Glossary) -> None:
-    if not glossary.entries:
+def _print_guided_glossary_preview(glossary: tuple[GlossaryEntry, ...]) -> None:
+    if not glossary:
         console.print("[yellow]Glossary has no terms yet.[/yellow]")
         return
-
     table = Table(title="Glossary preview")
     table.add_column("Term")
     table.add_column("Rule")
     table.add_column("Translation")
-    for entry in glossary.entries:
+    for entry in glossary:
         table.add_row(entry.term, entry.rule, entry.translation or "-")
     console.print(table)
 
 
-def _list_glossary_files(directory: Path) -> tuple[Path, ...]:
-    if not directory.exists():
-        return ()
-    try:
-        return tuple(sorted(path for path in directory.glob("*.json") if path.is_file()))
-    except OSError as exc:
-        console.print(f"[yellow]Could not list glossaries:[/yellow] {exc}")
-        return ()
+def _list_glossary_files(repository):
+    result = list_glossaries(repository)
+    if result.failure is not None:
+        console.print(f"[yellow]Could not list glossaries:[/yellow] {_glossary_failure(result.failure)}")
+        return None
+    return result.value
 
 
 _LIBRARY_WARNINGS = {

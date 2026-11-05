@@ -37,8 +37,10 @@ missing-value rendering as before. The source path is rendered only because the 
 
 `ExportVisibleContent` authorizes the selected output root before reading the source, negotiates the declared
 visible-content capability, extracts records with one checked source fingerprint, validates an optional expected
-revision, and asks the writer to plan every filename before publishing any content. The writer rejects invalid,
-reserved, absolute or traversal-like names; canonical duplicates; symlink escapes; source aliases; and conflicts.
+revision, and asks the writer to plan every filename before publishing any content. A chapter's name never stops the
+export: characters invalid on some system become `_` and a name too long for a file is shortened, with the ordinal keeping
+names unique. The writer rejects absolute or traversal-like names, canonical duplicates, symlink escapes, source aliases
+and conflicts.
 Existing non-empty directories still require `--overwrite`.
 
 Each file is written to a private temporary file in the destination filesystem, flushed and checked, then published
