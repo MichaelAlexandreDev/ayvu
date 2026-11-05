@@ -320,7 +320,10 @@ A biblioteca inicial usa a estrutura configurada no modo comum. Com os nomes pad
 
 Mantenha EPUBs originais em `Original`, previews em `Preview`, traduções finais em `Traduzidos` e relatórios em `Relatorios`. Ao escolher `Open library`, o Ayvu lista os livros em ordem alfabética, mostra quais têm original e quais traduções foram encontradas, permite ver informações do livro e abre a versão selecionada no leitor de EPUB.
 
-Se o Ayvu não detectar um leitor padrão do sistema, abra `Settings` e preencha `Reader app` com o comando do seu leitor, por exemplo `foliate`.
+Ao pedir a abertura, o arquivo é verificado novamente antes de iniciar o leitor. Links para fora
+da pasta de livros não entram na biblioteca; itens ignorados geram um aviso.
+
+Se o Ayvu não detectar um leitor padrão do sistema, abra `Settings` e preencha `Reader app` com o executável e suas opções, por exemplo `foliate --new-window`. Não use um interpretador de comandos como `sh`.
 
 ## Tutorial dev: comandos diretos
 

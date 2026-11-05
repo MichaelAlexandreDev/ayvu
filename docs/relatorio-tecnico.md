@@ -249,7 +249,7 @@ uv run ayvu --mode common translate livro.epub
 
 `src/ayvu/review_application.py` define os casos de uso framework-neutral de exportação, validação e aplicação. `src/ayvu/review_composition.py` conecta `TranslateProjectResult`, o codec e mapper v2, o adaptador EPUB e a publicação D106. `src/ayvu/review_exchange.py` define o pacote v2 canônico, limitado e ligado às unidades duráveis. `src/ayvu/review_import.py` mantém a inspeção v1 limitada e redigida; aplicar v1 retorna `legacy_reexport_required`.
 
-`src/ayvu/library.py` varre as pastas de biblioteca configuradas, agrupa EPUB original e traduções por livro e resolve o comando usado para abrir EPUBs no app leitor.
+`src/ayvu/library_service.py` coordena o agrupamento de originais e traduções; `src/ayvu/library_adapters.py` implementa a varredura, a autorização e a abertura no leitor externo.
 
 `src/ayvu/translator.py` define o contrato `Translator` e o backend `LibreTranslateTranslator`.
 

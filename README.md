@@ -763,6 +763,10 @@ original e quais traduções foram encontradas, permite ver informações do liv
 selecionada no app leitor. Se nenhum leitor padrão for detectado, configure o comando do leitor em
 `Settings` no campo `Reader app`.
 
+Ao abrir uma versão, o Ayvu verifica novamente se o EPUB continua o mesmo e dentro da pasta de
+livros. Links para fora dessa pasta não entram na biblioteca; itens ignorados geram um aviso.
+Em `Reader app`, informe o executável e suas opções, sem interpretador de comandos como `sh`.
+
 ## Configuração
 
 O Ayvu define um formato inicial para preferências locais. No modo comum, o primeiro uso pergunta o
