@@ -1,8 +1,10 @@
 # ADR: Desktop technology evaluation
 
-Status: `Proposed`
+Status: `Accepted`
 
 Date: 2026-10-02
+
+Accepted: 2026-11-05 by the project maintainer, through explicit approval in the development session
 
 Evidence updated: 2026-10-06
 
@@ -15,9 +17,9 @@ The packaging foundation now provides an optional `desktop` extra pinned to
 include Addons or WebEngine, and the entry point does not yet launch an
 interface. DESKTOP-010 adds the structural and injectable composition seam
 described below; it does not supply a working screen. The CLI remains
-independent of Qt. This packaging change does not constitute acceptance of this ADR or a supported OS,
-accessibility, or distribution claim. The evaluation and acceptance record below
-remain historical evidence for the proposed decision.
+independent of Qt. This packaging change does not, by itself, make a supported OS,
+accessibility, or distribution claim. The ADR was accepted later; see the
+acceptance record below.
 
 The `ayvu.desktop` structure separates `presentation/views`, `viewmodels`,
 `adapters/qt`, `resources`, and `platform` concerns from `bootstrap`. The
@@ -28,8 +30,8 @@ application construction. Factories are context managers: startup returns a
 graph or a sanitized diagnostic, and acquired resources close in reverse order.
 An injected startup smoke check exercises this seam without claiming concrete
 desktop adapters or a delivered workflow. The existing entry point remains a
-placeholder; this structure does not accept the ADR or establish platform,
-accessibility, or distribution support.
+placeholder; this structure does not establish platform, accessibility, or
+distribution support.
 
 ## Question
 
@@ -266,8 +268,9 @@ criteria.
 
 ## Consequences
 
-- The ADR and Desktop capability remain `Proposed`; the live issue stays open
-  until its evidence and acceptance criteria have direct results.
+- The ADR is `Accepted` (see the acceptance record). Desktop platform,
+  accessibility and distribution support stay unclaimed until their evidence
+  has direct results.
 - The generated spike `uv.lock` and its digest accompany the current Qt
   measurements; later changes to that lock invalidate direct comparability.
 - No production dependency, entry point, screen, lockfile, or supported-OS
@@ -279,6 +282,17 @@ criteria.
 
 ## Acceptance record
 
-No human acceptance has been recorded. This ADR must remain `Proposed` until a
-maintainer explicitly accepts or rejects the recommendation after the missing
-spike evidence is reviewed.
+Accepted on 2026-11-05 by the project maintainer, through explicit approval in
+the development session: PySide6 with Qt Widgets, in the optional `desktop`
+extra, is the toolkit for the desktop vertical.
+
+The acceptance does not resolve the open items named in the proposed
+recommendation. They stay release gates, not waived:
+
+- whether the measured 190.75 MiB onedir footprint fits the product;
+- keyboard and screen-reader checks on the declared Linux target;
+- Qt licensing and notices for the exact included-file inventory;
+- native checks on Windows or macOS before either is claimed.
+
+If footprint or distribution obligations fail the product constraints, the
+alternatives are reconsidered with the same criteria.

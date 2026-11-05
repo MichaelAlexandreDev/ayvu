@@ -1,16 +1,19 @@
 # Product security, privacy, and data flows
 
-Status: `Proposed`
+Status: `Accepted`
 
 Date: 2026-09-29
+
+Accepted: 2026-11-05 by the project maintainer, through explicit approval in the development session
 
 Related issue: [#129 — DESKTOP-008](https://github.com/MichaelAlexandreDev/ayvu/issues/129)
 
 Evidence baseline: `main` at `1a28b84` (PR #186). This is a source-based threat
 assessment, not a penetration test, security certification, or acceptance of
 residual risk. Controls described as proposed are not implemented by this
-document. Closing the documentation issue does not accept this model or any
-other proposed architecture decision.
+document. Accepting this model accepts its threat assessment and the ownership
+of the gaps it names; it does not accept any other proposed architecture
+decision.
 
 ## Scope and decision boundary
 
@@ -498,8 +501,10 @@ issues, using synthetic fixtures, fake transports/process launchers and
 
 ## Residual risks and human decisions
 
-- This model remains `Proposed`. No operator has accepted the current alias,
-  archive, egress or privacy gaps merely by merging it.
+- This model was accepted on 2026-11-05 by the project maintainer. Acceptance
+  records the assessment and the owners of each gap; it does not close the
+  current alias, archive, egress or privacy gaps, which stay open in their
+  owning issues.
 - #144 explicitly keeps legacy facades unchanged. G05 needs maintainer priority
   review; a separate urgent patch may be warranted before the migration chain.
 - Budgets, retention periods, remote provider approval, rights evidence and
