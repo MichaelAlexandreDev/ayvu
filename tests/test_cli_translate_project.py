@@ -384,6 +384,67 @@ def test_a_lost_failure_event_does_not_keep_the_destination_locked(tmp_path, mon
     assert again.exit_code == 0, again.output
 
 
+def _translated_with_a_package(tmp_path, monkeypatch) -> tuple[Path, Path, Path]:
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=tmp_path / "machine.epub")
+    assert translated.exit_code == 0, translated.output
+    return source, review_path, tmp_path / "reviewed.epub"
+
+
+def test_reviewing_one_line_applies_it_and_keeps_the_machine_translation_elsewhere(tmp_path, monkeypatch):
+    source, review_path, output = _translated_with_a_package(tmp_path, monkeypatch)
+    package = decode_review_package(review_path.read_bytes())
+    target = next(row for row in package.rows if "Hello reader" in row.machine_translation)
+    edited = replace(target, reviewed_text=target.machine_translation.replace("PT:", "HUMAN:"), review_status="reviewed")
+    review_path.write_bytes(encode_review_package(replace(package, rows=tuple(
+        edited if row is target else row for row in package.rows))))
+
+    checked = runner.invoke(app, ["apply-review", str(source), str(review_path), "--validate-only"])
+    applied = _apply(source, review_path, output)
+
+    assert checked.exit_code == 0, checked.output
+    assert applied.exit_code == 0, applied.output
+    with ZipFile(output) as archive:
+        chapter = archive.read("OEBPS/c1.xhtml").decode()
+    assert "HUMAN:Hello reader." in chapter
+    assert "PT:Hello title" in chapter
+    job = next(job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package")
+    paths = ProjectJsonRepository(tmp_path / "processing").resolve_database_paths(job.request.project_id)
+    provenance = open_provenance_repository(paths.database, paths.backups, job.request.project_id, clock=lambda: datetime.now(UTC))
+    units = [node.record for node in provenance.list_by_job(job.job_id, limit=1024).nodes
+             if node.record.request.operation == "review_unit"]
+    assert [record.request.subject.value for record in units] == [target.unit_id]
+
+
+def test_an_edit_left_unmarked_stops_the_package_and_says_so(tmp_path, monkeypatch):
+    source, review_path, output = _translated_with_a_package(tmp_path, monkeypatch)
+    package = decode_review_package(review_path.read_bytes())
+    edited = replace(package.rows[0], reviewed_text=package.rows[0].machine_translation + " changed")
+    review_path.write_bytes(encode_review_package(replace(package, rows=(edited, *package.rows[1:]))))
+
+    refused = _apply(source, review_path, output)
+
+    assert refused.exit_code == 1
+    assert "pending_row_edited" in refused.output
+    assert "não foi marcada" in refused.output
+    assert not output.exists()
+
+
+def test_a_rejected_line_stops_the_package_and_says_so(tmp_path, monkeypatch):
+    source, review_path, output = _translated_with_a_package(tmp_path, monkeypatch)
+    package = decode_review_package(review_path.read_bytes())
+    rejected = replace(package.rows[0], review_status="rejected")
+    review_path.write_bytes(encode_review_package(replace(package, rows=(rejected, *package.rows[1:]))))
+
+    refused = _apply(source, review_path, output)
+
+    assert refused.exit_code == 1
+    assert "review_rejected" in refused.output
+    assert not output.exists()
+
+
 def test_a_package_nobody_approved_says_what_to_mark(tmp_path, monkeypatch):
     source = _book(tmp_path / "book.epub")
     review_path = tmp_path / "review.csv"

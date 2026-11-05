@@ -326,8 +326,8 @@ class LocalReviewPackagePort:
                                   sum(row.review_status == "reviewed" for row in package.rows),
                                   sum(row.review_status != "reviewed" for row in package.rows))
             return ReviewValidationMaterial(identity, False, counts, (error.code,))
-        reviewed = tuple(item.unit_id for item in context.plan.translations)
-        counts = ReviewCounts(identity.document_count, identity.unit_count, identity.unit_count, 0)
+        reviewed = tuple(row.unit_id for row in package.rows if row.review_status == "reviewed")
+        counts = ReviewCounts(identity.document_count, identity.unit_count, len(reviewed), identity.unit_count - len(reviewed))
         return ReviewValidationMaterial(identity, True, counts, plan=context, reviewed_unit_ids=reviewed)
 
     @staticmethod

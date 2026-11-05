@@ -149,7 +149,7 @@ uv run ayvu inspect livro.epub
 
 O comando é somente de leitura: mostra caminho, título, autores, idioma e as
 contagens de documentos e itens, sem criar cache ou projeto. Livro protegido por
-DRM é recusado, como em `translate`. Em erros de leitura,
+DRM recebe só um aviso, sem título ou autores. `translate` e `extract` o recusam. Em erros de leitura,
 o modo desenvolvedor mostra um código de motivo seguro em vez do texto interno
 do parser.
 
@@ -288,10 +288,11 @@ sensível do livro e deve ficar em armazenamento local protegido. Se o CSV já
 existir, use `--overwrite` ou escolha outro caminho. A opção não funciona com
 `--dry-run`, porque o dry-run não gera texto traduzido revisável.
 
-Para revisar, abra o CSV em um editor ou planilha e altere só duas colunas:
-`reviewed_text`, que já vem com a tradução automática, e `review_status`, que
-começa como `pending` e precisa ser `reviewed` em **todas** as linhas, inclusive
-nas que você não mudou. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
+Para revisar, abra o CSV em um editor ou planilha. Nas linhas que quiser corrigir,
+altere `reviewed_text`, que já vem com a tradução automática, e mude `review_status`
+de `pending` para `reviewed`. As demais linhas podem ficar como estão e mantêm a
+tradução automática. Se editar uma linha sem marcá-la, o pacote é recusado, para a
+correção não se perder. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
 mantenha cada um, na mesma ordem. As demais colunas ligam a linha ao livro e não
 podem mudar. Salvar pela planilha é aceito, com vírgula ou ponto e vírgula.
 

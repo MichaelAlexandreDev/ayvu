@@ -27,7 +27,9 @@ from ayvu.format_service import FormatAdapter, FormatRegistration, FormatRegistr
 from ayvu.job_events import JobFailure, JobFailureFamily
 from ayvu.job_execution import CancellationSource
 from ayvu.markdown_writer import MarkdownDirectoryWriter
-from epub_fakes import epub_bytes, opf_with, OPF
+from zipfile import ZIP_DEFLATED
+
+from epub_fakes import ONE, OPF, TWO, epub_bytes, opf_with
 from format_fakes import NOTES_REGISTRATION, NotesPorts, notes_adapter, notes_descriptor
 
 
@@ -311,7 +313,6 @@ def test_export_validates_an_expected_source_revision_before_planning(tmp_path):
 
 @pytest.mark.parametrize("stem,code", [
     ("/absolute/canary", "unsafe_output_name"), ("../traversal", "unsafe_output_name"),
-    ("CON", "reserved_output_name"), ("bad:name", "unsafe_output_name"),
 ])
 def test_markdown_writer_refuses_unsafe_names_before_publishing_output(tmp_path, stem, code):
     source_path = tmp_path / "source.epub"
@@ -838,3 +839,35 @@ def test_a_refused_link_for_another_reason_is_still_a_failure(tmp_path, monkeypa
         export_request(path, tmp_path / "out"))
 
     assert result.failure.code == "output_permission_denied"
+
+
+@pytest.mark.parametrize("stem,expected", [
+    ("con", "001-con.md"), ("CON", "001-CON.md"), ("bad:name", "001-bad_name.md"), ("c*h?", "001-c_h_.md"),
+    ("a\\b", "001-a_b.md"), ("tab\there", "001-tab_here.md"), ("dot. ", "001-dot. .md"),
+])
+def test_a_chapter_name_never_stops_the_export(stem, expected):
+    name, failure = MarkdownDirectoryWriter._name(1, stem)
+    assert failure is None and name == expected
+
+
+def test_a_chapter_name_too_long_for_a_file_is_shortened_on_a_character_boundary():
+    name, failure = MarkdownDirectoryWriter._name(7, "ç" * 200)
+    assert failure is None
+    assert name.startswith("007-ç") and name.endswith("ç.md")
+    assert len(name.encode("utf-8")) <= 255
+
+
+def test_a_book_with_awkward_chapter_names_exports_all_its_text(tmp_path):
+    opf = OPF.replace(b"text/one.xhtml", b"text/con.xhtml").replace(b"text/two%20words.xhtml", b"text/c%2Ah.xhtml")
+    members = {"OEBPS/content.opf": opf}
+    source = epub_bytes(replace=members, drop=("OEBPS/text/one.xhtml", "OEBPS/text/two words.xhtml"),
+                        add=(("OEBPS/text/con.xhtml", ONE, ZIP_DEFLATED), ("OEBPS/text/c*h.xhtml", TWO, ZIP_DEFLATED)))
+    path = write_epub(tmp_path / "source.epub", source)
+    out = tmp_path / "out"
+
+    result = ExportVisibleContent(epub_service(), MarkdownDirectoryWriter()).execute(export_request(path, out))
+
+    assert result.failure is None
+    names = sorted(item.name for item in out.iterdir())
+    assert any(name.endswith("-con.md") for name in names) and any(name.endswith("-c_h.md") for name in names)
+    assert any("Second" in item.read_text() for item in out.iterdir())

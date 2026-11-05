@@ -49,9 +49,12 @@ whitespace normalization.
 backslash is doubled, and an empty cell means an empty note. All other text
 columns preserve empty strings exactly. A blank `reviewed_text` can be parsed
 for inspection but cannot produce a reconstruction plan. The review status is
-one of `pending`, `reviewed`, or `rejected`; mapping requires every row to be
-`reviewed`. There is no implied approval, translation-memory insertion, or
-training consent.
+one of `pending`, `reviewed`, or `rejected`. Mapping needs at least one `reviewed`
+row. A `pending` row keeps the machine translation, and is refused with
+`pending_row_edited` if its `reviewed_text` was changed, so a correction is never
+dropped silently. A `rejected` row stops the package with `review_rejected`. Only
+`reviewed` rows are recorded as human work. There is no implied approval,
+translation-memory insertion, or training consent.
 
 ## Spreadsheet safety and limits
 
