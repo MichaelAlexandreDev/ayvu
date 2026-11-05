@@ -31,6 +31,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- Extra opcional `desktop` com PySide6-Essentials e ponto de entrada reservado
+  `ayvu-desktop`; a interface será implementada em DESKTOP-010. A instalação
+  da CLI continua independente do Qt.
+
 - Modo comum guiado ao executar `uv run ayvu`.
 - Modo desenvolvedor direto e opcao global `--mode`.
 - Preview traduzido com `uv run ayvu --preview livro.epub`.

@@ -9,11 +9,24 @@ O Ayvu traduz arquivos EPUB locais usando um servidor HTTP compatível com Libre
 
 ## Antes de começar
 
-Instale as dependências do projeto:
+Com Python 3.11 ou mais recente e `uv`, instale a CLI no diretório do projeto:
 
 ```bash
-uv sync --extra dev
+uv sync
 ```
+
+Os dois modos deste tutorial são modos da CLI. Para instalar o suporte
+desktop opcional baseado em PySide6 e executar seu ponto de entrada:
+
+```bash
+uv sync --extra desktop
+uv run --extra desktop ayvu-desktop
+```
+
+O ponto de entrada ainda não abre uma interface; a implementação será tratada
+em DESKTOP-010. Para desenvolvimento, use `uv sync --extra
+dev`; para incluir o desktop, acrescente `--extra desktop`. Ao executar comandos
+com `uv run`, informe os extras necessários para manter essa seleção.
 
 Suba um LibreTranslate local:
 
