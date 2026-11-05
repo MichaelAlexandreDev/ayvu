@@ -221,6 +221,9 @@ class FormatAdapterContract:
         if operation is FormatOperation.EXTRACT:
             request = ExtractionRequest(PROJECT, harness.adapter.descriptor.content_scopes, allow_experimental=experimental)
             return service.extract(adapter_id, source, request, cancellation=cancellation)
+        if operation is FormatOperation.EXPORT_VISIBLE_CONTENT:
+            return service.export_visible_content(adapter_id, source, allow_experimental=experimental,
+                                                  cancellation=cancellation)
         publication = publication or env.publication()
         method = service.preview if operation is FormatOperation.PREVIEW else service.reconstruct
         return method(adapter_id, source, self._request(harness, operation, documents, translations), publication, cancellation=cancellation)
@@ -273,8 +276,13 @@ class FormatAdapterContract:
         for operation in self._running(harness):
             if not self._experimental(harness, operation) or operation in MATERIALIZING_OPERATIONS:
                 continue
-            method = service.inspect if operation is FormatOperation.INSPECT else service.validate
-            assert method(self._id(harness), LocalFormatSource(path)).failure.code == "experimental_not_allowed"
+            if operation is FormatOperation.INSPECT:
+                result = service.inspect(self._id(harness), LocalFormatSource(path))
+            elif operation is FormatOperation.EXPORT_VISIBLE_CONTENT:
+                result = service.export_visible_content(self._id(harness), LocalFormatSource(path))
+            else:
+                result = service.validate(self._id(harness), LocalFormatSource(path))
+            assert result.failure.code == "experimental_not_allowed"
 
     def test_every_running_operation_succeeds_and_leaves_the_source_alone(self, harness, service, env, path):
         before = (path.read_bytes(), path.stat().st_mtime_ns)

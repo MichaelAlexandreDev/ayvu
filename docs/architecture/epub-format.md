@@ -13,8 +13,9 @@ Related issue: [#144 — Implement the production EPUB FormatAdapter](https://gi
 ## Decision and scope
 
 EPUB is the first real format behind the [format contract](format-adapter.md). **`translate` and the guided
-translation use it**, through [the use case](translate-project.md). Dry run, preview and a resume with no job keep `translate_epub`,
-and `inspect_epub` keeps its own code until #147. `apply_reviewed_epub` rejects
+translation use it**, through [the use case](translate-project.md). Dry run, preview and a resume with no job keep `translate_epub`.
+`inspect` and `extract` now use the shared read-only
+[content use cases](content-inspect-export.md), and `apply_reviewed_epub` rejects
 legacy v1 review data before EPUB access; v2 apply is orchestrated by the shared
 review use case and delegates reconstruction and validation to this adapter.
 
@@ -25,6 +26,12 @@ review use case and delegates reconstruction and validation to this adapter.
 | `ayvu.html_structure` | Every XHTML document, so there is [no second segmenter](html-structure.md) |
 
 It imports no provider, cache, glossary or interface, even indirectly, and a test imports it alone to prove that.
+
+For visible-content export, the adapter returns one record per XHTML item in the current manifest order. It derives
+the output stem from the internal item name and delegates reader-visible body text selection to
+`html_structure.extract_body_visible_text`; the Markdown writer does not parse EPUB or HTML. The CLI keeps the
+existing `NNN-stem.md` names and text formatting. The old `epub_io.extract_markdown` helper remains as a legacy
+facade, but `inspect` and `extract` no longer call it.
 
 ## Reading
 
@@ -66,6 +73,8 @@ available. A legitimate book above them is refused, so they may need to change.
 
 The signature is `mimetype` as the first member with its exact content, within the [bounded window](format-adapter.md).
 A file with the extension and without the signature is `no_match` with `signature_conflict`.
+`inspect` and `extract` still try that one candidate, because a defective `mimetype` does not stop a translation
+either: the adapter opens the book or reports why it cannot.
 
 Detection reads only that. **A corrupt, unsupported or oversized file that passes it is reported by the first
 operation**, whose failure has a family and a code: `resource`, `integrity`, `policy` or `input`.

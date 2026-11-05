@@ -130,7 +130,8 @@ def test_a_format_that_extracts_must_state_scopes_and_one_that_does_not_cannot()
     with pytest.raises(FormatError, match="^contradictory_claim$"):
         notes_descriptor(content_scopes=frozenset())
     claims = (OperationClaim(FormatOperation.INSPECT, OperationSupport.SUPPORTED, EVIDENCE),
-              *unsupported(FormatOperation.EXTRACT, FormatOperation.PREVIEW, FormatOperation.RECONSTRUCT, FormatOperation.VALIDATE))
+              *unsupported(FormatOperation.EXTRACT, FormatOperation.EXPORT_VISIBLE_CONTENT, FormatOperation.PREVIEW,
+                          FormatOperation.RECONSTRUCT, FormatOperation.VALIDATE))
     with pytest.raises(FormatError, match="^contradictory_claim$"):
         notes_descriptor(operations=claims)
 
@@ -706,8 +707,8 @@ def named(name, extensions=(".plain",), media_types=()):
 @pytest.mark.parametrize("adapters,evidence,outcome,reason,candidates", [
     ([], DetectionEvidence(b"x"), DetectionOutcome.NO_MATCH, "no_candidate", ()),
     ([signed("a", b"AAA")], DetectionEvidence(b"AAA...", ".other"), DetectionOutcome.MATCH, "signature_match", ("a",)),
-    ([signed("a", b"AAA")], DetectionEvidence(b"BBB", ".signed"), DetectionOutcome.NO_MATCH, "signature_conflict", ()),
-    ([signed("a", b"AAA")], DetectionEvidence(b"", ".signed"), DetectionOutcome.NO_MATCH, "signature_conflict", ()),
+    ([signed("a", b"AAA")], DetectionEvidence(b"BBB", ".signed"), DetectionOutcome.NO_MATCH, "signature_conflict", ("a",)),
+    ([signed("a", b"AAA")], DetectionEvidence(b"", ".signed"), DetectionOutcome.NO_MATCH, "signature_conflict", ("a",)),
     ([signed("a", b"AAA")], DetectionEvidence(b"BBB", None), DetectionOutcome.NO_MATCH, "no_candidate", ()),
     ([named("a")], DetectionEvidence(b"anything", ".plain"), DetectionOutcome.MATCH, "extension_match", ("a",)),
     ([named("a")], DetectionEvidence(b"anything", ".other"), DetectionOutcome.NO_MATCH, "no_candidate", ()),

@@ -324,6 +324,12 @@ Use o modo desenvolvedor quando quiser execução previsível por terminal, auto
 uv run ayvu inspect livro.epub
 ```
 
+`inspect` é somente de leitura e mantém a tabela com caminho, título, autores,
+idioma, documentos e itens. Não cria cache ou projeto. Livro protegido por
+DRM é recusado, como em `translate`. Em modo desenvolvedor,
+falhas mostram um código de motivo normalizado, sem repassar mensagens internas
+do parser.
+
 ### Testar o tradutor
 
 ```bash
@@ -556,6 +562,12 @@ e não cria estado de retomada.
 ```bash
 uv run ayvu extract livro.epub --output livro-extraido/
 ```
+
+Um diretório não vazio exige `--overwrite`. Com essa opção, somente os arquivos
+Markdown do plano são substituídos; arquivos sem relação são preservados. Cada
+arquivo é publicado atomicamente. Se uma falha acontecer depois de publicações,
+a mensagem informa quantos arquivos foram publicados e quantos não foram. O
+comando não oferece transação para o diretório inteiro.
 
 ### Forçar modo comum ou desenvolvedor
 

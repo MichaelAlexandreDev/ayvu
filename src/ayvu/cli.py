@@ -14,6 +14,7 @@ from rich.table import Table
 
 from .cache import CacheError, CacheImportReport, CacheSummaryRow, TranslationCache
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
+from .content_composition import open_content_use_cases
 from .config import (
     DEFAULT_BOOKS_DIR,
     AyvuConfig,
@@ -39,7 +40,6 @@ from .domain import (
     default_preview_books_dir,
     default_translated_books_dir,
 )
-from .epub_io import extract_markdown, inspect_epub
 from .glossary import (
     GLOSSARY_RULE_PRESERVE,
     GLOSSARY_RULE_TRANSLATE,
@@ -389,19 +389,22 @@ def inspect(
     """Show basic information about an EPUB."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        info = inspect_epub(epub_path)
-    except Exception as exc:
-        _print_epub_read_error(str(exc), mode)
-        raise typer.Exit(code=1) from exc
+        result = open_content_use_cases().inspect_path(epub_path)
+    except Exception:
+        _print_epub_read_error("inspection_failed", mode)
+        raise typer.Exit(code=1) from None
+    if result.failure is not None:
+        _print_content_failure(result.failure.code, mode)
+        raise typer.Exit(code=1)
     table = Table(title="EPUB information")
     table.add_column("Field")
     table.add_column("Value")
-    table.add_row("Path", str(info.path))
-    table.add_row("Title", info.title or "-")
-    table.add_row("Authors", ", ".join(info.authors) if info.authors else "-")
-    table.add_row("Language", info.language or "-")
-    table.add_row("Documents", str(info.document_count))
-    table.add_row("Items", str(info.item_count))
+    table.add_row("Path", str(epub_path))
+    table.add_row("Title", result.title or "-")
+    table.add_row("Authors", ", ".join(result.authors) if result.authors else "-")
+    table.add_row("Language", result.language or "-")
+    table.add_row("Documents", str(result.document_count))
+    table.add_row("Items", str(result.item_count))
     console.print(table)
 
 
@@ -1064,6 +1067,40 @@ def _print_epub_read_error(detail: str, mode: UserMode) -> None:
         mode,
         detail=detail,
     )
+
+
+_CONTENT_NAME_FAILURES = frozenset({"unsafe_output_name", "reserved_output_name", "duplicate_output_target", "output_name_too_long"})
+
+
+def _print_content_failure(code: str, mode: UserMode) -> None:
+    """Says which side failed: the book, a chapter's name or the chosen output."""
+    if code in _CONTENT_NAME_FAILURES:
+        _print_expected_error(
+            "Um capítulo deste EPUB tem um nome que não pode virar arquivo.",
+            "Nada foi gravado. O original não foi alterado.",
+            mode,
+            detail=code,
+        )
+    elif code.startswith("output_") or code in {"invalid_output_directory", "source_alias", "source_alias_unknown"}:
+        _print_expected_error(
+            "Não foi possível gravar na pasta de saída.",
+            "Confirme que --output é uma pasta gravável, diferente do livro, e tente novamente. O original não foi alterado.",
+            mode,
+            detail=code,
+        )
+    elif code == "source_changed":
+        _print_expected_error(
+            "O EPUB mudou enquanto era lido.",
+            "Espere o arquivo terminar de ser alterado e tente novamente.",
+            mode,
+            detail=code,
+        )
+    elif _TRANSLATION_FAILURES.get(code) is _BOOK_PROTECTED:
+        # A protected book is not a broken one, so "confirm that it is valid" would send the person the wrong way.
+        message, hint = _BOOK_PROTECTED
+        _print_expected_error(message, hint, mode, detail=code)
+    else:
+        _print_epub_read_error(code, mode)
 
 
 def _resolve_source_language(
@@ -2179,16 +2216,24 @@ def extract(
 ) -> None:
     """Extract visible text from EPUB documents to Markdown files without translating."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    if output.exists() and any(output.iterdir()) and not overwrite:
-        console.print(f"[red]Output directory is not empty:[/red] {output}")
-        console.print("Use --overwrite to write into it.")
-        raise typer.Exit(code=1)
     try:
-        written = extract_markdown(epub_path, output)
-    except Exception as exc:
-        _print_epub_read_error(str(exc), mode)
-        raise typer.Exit(code=1) from exc
-    console.print(f"[green]Extracted {len(written)} Markdown files to[/green] {output}")
+        result = open_content_use_cases().export_path(epub_path, output, overwrite=overwrite)
+    except Exception:
+        _print_epub_read_error("visible_content_export_failed", mode)
+        raise typer.Exit(code=1) from None
+    if result.failure is not None:
+        if result.failure.code == "output_not_empty":
+            console.print(f"[red]Output directory is not empty:[/red] {output}")
+            console.print("Use --overwrite to write into it.")
+            raise typer.Exit(code=1)
+        if result.partial_publication:
+            console.print(
+                f"[red]Partially extracted {result.completed_count} Markdown files to[/red] {output}; "
+                f"{result.failed_count + result.not_started_count} were not published."
+            )
+        _print_content_failure(result.failure.code, mode)
+        raise typer.Exit(code=1)
+    console.print(f"[green]Extracted {result.completed_count} Markdown files to[/green] {output}")
 
 
 @app.command("apply-review")

@@ -62,6 +62,15 @@ def extract_visible_text(html: str | bytes) -> list[str]:
     return [str(text_node) for text_node in visible_text_nodes(soup) if str(text_node).strip()]
 
 
+def extract_body_visible_text(html: str | bytes) -> list[str]:
+    """Returns reader-visible body text, matching EPUB document projections that omit the head."""
+    soup = BeautifulSoup(html, "lxml-xml")
+    body = soup.find("body")
+    if body is None:
+        return []
+    return [str(text_node) for text_node in visible_text_nodes(body) if str(text_node).strip()]
+
+
 def image_elements(soup: BeautifulSoup) -> list:
     return [node for node in soup.find_all(True) if tag_name(node) == "img"]
 

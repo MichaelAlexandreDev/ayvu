@@ -49,6 +49,7 @@ class FormatOperationError(FormatError):
 class FormatOperation(StrEnum):
     INSPECT = "inspect"
     EXTRACT = "extract"
+    EXPORT_VISIBLE_CONTENT = "export_visible_content"
     PREVIEW = "preview"
     RECONSTRUCT = "reconstruct"
     VALIDATE = "validate"
@@ -173,6 +174,28 @@ class FormatLimits:
         for value in (self.max_source_bytes, self.max_documents):
             if value is not None and (type(value) is not int or value < 1):
                 raise FormatError("invalid_limit")
+
+
+@dataclass(frozen=True, repr=False)
+class VisibleContentDocument:
+    """Ordered, already-selected visible text from one source document.
+
+    The adapter owns the document key and output stem. The writer sees text
+    fragments only; neither value is allowed into the default representation.
+    """
+
+    logical_key: str
+    output_stem: str
+    fragments: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if (not isinstance(self.logical_key, str) or not self.logical_key
+                or not isinstance(self.output_stem, str) or not self.output_stem
+                or type(self.fragments) is not tuple or not all(isinstance(item, str) for item in self.fragments)):
+            raise FormatError("invalid_visible_content")
+
+    def __repr__(self) -> str:
+        return f"VisibleContentDocument(fragments={len(self.fragments)})"
 
 
 def _valid_locators(locators: object) -> bool:
@@ -440,6 +463,7 @@ class FormatInventory:
     authors: tuple[str, ...] = ()
     language: str | None = None
     documents: tuple[InventoryDocument, ...] = ()
+    source_document_count: int | None = None
 
     def __post_init__(self) -> None:
         if (type(self.documents) is not tuple or any(type(item) is not InventoryDocument for item in self.documents)
@@ -450,11 +474,14 @@ class FormatInventory:
                 or type(self.resource_count) is not int or self.resource_count < 0
                 or (self.title is not None and not isinstance(self.title, str))
                 or (self.language is not None and not isinstance(self.language, str))
-                or type(self.authors) is not tuple or not all(isinstance(author, str) for author in self.authors)):
+                or type(self.authors) is not tuple or not all(isinstance(author, str) for author in self.authors)
+                or (self.source_document_count is not None
+                    and (type(self.source_document_count) is not int or self.source_document_count < 0))):
             raise FormatError("invalid_inventory")
 
     def __repr__(self) -> str:
-        return f"FormatInventory(document_count={self.document_count}, resource_count={self.resource_count})"
+        return (f"FormatInventory(document_count={self.document_count}, resource_count={self.resource_count}, "
+                f"source_document_count={self.source_document_count})")
 
 
 class FindingSeverity(StrEnum):
@@ -481,13 +508,41 @@ def _exactly_one(value_present: bool, failure: object) -> None:
         raise FormatError("invalid_result")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class InspectionResult:
     inventory: FormatInventory | None = None
     failure: JobFailure | None = None
+    source_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         _exactly_one(self.inventory is not None, self.failure)
+        if ((self.inventory is not None and not valid_source_fingerprint(self.source_fingerprint))
+                or (self.failure is not None and self.source_fingerprint is not None)):
+            raise FormatError("invalid_result")
+
+    def __repr__(self) -> str:
+        return "InspectionResult(success)" if self.inventory is not None else f"InspectionResult(failure={self.failure!r})"
+
+
+@dataclass(frozen=True, repr=False)
+class VisibleContentExtractionResult:
+    documents: tuple[VisibleContentDocument, ...] | None = None
+    source_fingerprint: str | None = None
+    failure: JobFailure | None = None
+
+    def __post_init__(self) -> None:
+        _exactly_one(self.documents is not None, self.failure)
+        if self.documents is not None:
+            if (type(self.documents) is not tuple or any(type(item) is not VisibleContentDocument for item in self.documents)
+                    or not valid_source_fingerprint(self.source_fingerprint)):
+                raise FormatError("invalid_result")
+        elif self.source_fingerprint is not None:
+            raise FormatError("invalid_result")
+
+    def __repr__(self) -> str:
+        if self.failure is not None:
+            return f"VisibleContentExtractionResult(failure={self.failure!r})"
+        return f"VisibleContentExtractionResult(documents={len(self.documents or ())})"
 
 
 @dataclass(frozen=True)

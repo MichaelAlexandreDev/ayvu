@@ -91,6 +91,18 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Atualizado
 
+- `inspect` e `extract` agora usam os casos de uso compartilhados de inspeção e
+  exportação de texto visível pelo registry de formatos. A tabela, os nomes e o
+  Markdown continuam iguais; a inspeção é somente de leitura. `extract` valida
+  todos os destinos antes de escrever e publica cada arquivo atomicamente,
+  preservando arquivos sem relação. Se uma falha ocorrer após uma publicação, a
+  saída informa o número concluído e o restante. No modo desenvolvedor, o detalhe
+  que antes mostrava a exceção do parser agora mostra um código de motivo
+  normalizado, sem conteúdo do livro ou caminhos originados pelo parser.
+  `inspect` e `extract` agora recusam livro protegido por DRM, como `translate` já
+  fazia, e explicam o motivo. `extract` também recusa capítulo cujo nome é inválido
+  ou reservado em algum sistema (`con`, `c:h`, `c*h`), que antes virava arquivo no
+  Linux. Pasta de saída inválida gera mensagem própria em vez de falha não tratada.
 - O contrato de revisão ganhou o pacote v2 `ayvu.review_exchange`, limitado e
   ligado a projeto, fonte, artefato de tradução, formato, locator e unidades
   estáveis. CSV v1 agora é apenas para inspeção: `apply-review` recusa antes de
