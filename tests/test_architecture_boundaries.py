@@ -75,6 +75,7 @@ OWNERS = {
     "ayvu.artifact": Owner("domain", "Artifacts"),
     "ayvu.artifact_service": Owner("application", "Artifacts"),
     "ayvu.artifact_store": Owner("infrastructure", "Artifacts"),
+    "ayvu.cache_identity": Owner("domain", "Translation cache identity"),
     "ayvu.content": Owner("domain", "Content"),
     "ayvu.translation_protection": Owner("domain", "Translation"),
     "ayvu.translation_pipeline": Owner("application", "Translation"),
@@ -282,6 +283,11 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.cache_identity", "ayvu.job"),
+    ("ayvu.cache_identity", "ayvu.provenance"),
+    ("ayvu.translation_document", "ayvu.cache_identity"),
+    ("ayvu.translation_pipeline", "ayvu.cache_identity"),
+    ("ayvu.translation_plan", "ayvu.cache_identity"),
     ("ayvu.sqlite_migrations", "ayvu.migration_contracts"),
     ("ayvu.project_schema", "ayvu.job"),
     ("ayvu.project_schema", "ayvu.artifact"),

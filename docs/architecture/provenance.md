@@ -17,10 +17,11 @@ the [project database](local-project-storage.md) as schema version 4. It records
 operations, source kinds, producers and [artifacts](job-artifacts.md), and not the
 content they processed.
 
-**No current code writes provenance.** Translation, cache, translation memory, review
-and validation are not instrumented, so this does not provide production provenance
-yet. Later issues add those integrations, and they must measure the storage cost
-described below. Corpus, datasets, quality scoring and telemetry are not accepted here.
+`DocumentTranslator` writes provenance for provider, exact-cache and fuzzy-memory outcomes
+when the rich path is used. The current CLI composition remains behind its named v1 adapter,
+so it does not write these records. Review and validation are not instrumented. Later issues
+may add those integrations, and they must measure the storage cost described below. Corpus,
+datasets, quality scoring and telemetry are not accepted here.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |

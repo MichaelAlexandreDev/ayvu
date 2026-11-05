@@ -71,7 +71,7 @@ current translation yet:
 | Rich path | What the current flow needs |
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
-| No production cache until #153 | Running a book again reuses the v1 cache |
+| No durable v2 repository in #153 | Running the CLI still reuses the v1 cache |
 | Replay needs a job it can run in | [A resume](job-recovery.md) is a full re-execution over the v1 cache |
 
 #153 and #146 both depend on #145, so neither can come first. `ayvu.legacy_translation` is the named compatibility
@@ -93,24 +93,33 @@ callers migrate, because they create no project and so have no identity to give 
 `LegacyTextPipelineFacade` has no document, project or job identity, by design. It creates no
 artifact, provenance record or replay key, and it never derives an ID from text or order.
 
-The v1 cache and the memory reach the pipeline only through ports. `_LegacyV1Cache` in
-`ayvu.html_translate` is the only adapter for the current cache, and only this facade selects it.
-`html_translate` therefore still imports the cache and glossary as a compatibility facade, and those
-boundary exceptions remain until #153. [`html_structure`](html-structure.md) has neither.
+The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
+`ayvu.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
+The standalone SQLite cache remains v1 until #123. The CLI stays on the characterized adapter until that
+migration. [`html_structure`](html-structure.md) has neither cache nor glossary.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.html_translate`, passed on each call.
 
 ## The resolved plan
 
 `resolve_plan` is pure, and it yields no plan unless the required capabilities are plainly accepted.
-Its fingerprints split at the glossary:
+Its artifact and cache identities split at the glossary:
 
-| Change | Raw fingerprint | Post-processing fingerprint |
-| --- | --- | --- |
-| Producer, route, capabilities, chunk limit, policy, context | Changes | |
-| Any stage version up to `raw_cache_write` | Changes | |
-| Glossary | Changes only if the provider received it natively | Changes |
-| `post_processing` version | | Changes |
+| Change | Raw artifact fingerprint | V2 semantic cache fingerprint | Post-processing fingerprint |
+| --- | --- | --- | --- |
+| Producer, route, capabilities, chunk limit, policy, context | Changes | Changes when cache-eligible | |
+| Any stage version up to `raw_cache_write` | Changes | Changes | |
+| Glossary | Changes only if the provider received it natively | Changes only with a native terminology revision | Changes |
+| `post_processing` version | | | Changes |
+
+The v2 identity also includes per-hop provider/model/adapter revisions, effective configuration and
+capability fingerprints, prompt/context strategy revisions, generation parameters, segmentation, chunking,
+protection, normalization and applicable format constraints. Each exact key hashes the original unit text,
+including its outer whitespace and protected markup; that digest stays outside the semantic fingerprint.
+Low-entropy prompt, context and native terminology inputs require an owner-issued revision tied to a durable
+snapshot. Missing critical provider, model or pipeline identity makes a plan cache-ineligible. The current
+rich provider boundary resolves one provider identity across every route hop; a plan cannot invent different
+per-hop providers before an execution boundary resolves them.
 
 If what really ran differs from the plan, the document fails with `plan_invalidated` or
 `result_route_conflict`, because a new plan is needed.
@@ -148,13 +157,39 @@ Only the second tells original markup from what a provider wrote, so reconstruct
 like a token is refused only outside a protected part. A provider failure stops the document with a sanitized failure, unlike the
 legacy path, which records text errors and continues. A provider's empty answer is a failure here too.
 
-**Ports.** `ExactCachePort` and `MemoryPort` key on the plan's raw fingerprint, which the v1 cache and
-the cache-backed memory do not satisfy, so a plan cannot reach them. **There is no production cache
-for this path** until [#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153).
+**Ports.** `ExactCachePort` takes an exact entry key with authorized scope, cached-value kind, semantic
+fingerprint and source-content digest. The digest stays outside the semantic fingerprint. Pinned cache-only
+first resolves its opaque boundary reference against local durable identity data in the port, checks the
+resolved scope and semantics, then performs exact lookups; an unresolved reference is a miss. Compatible
+resolution enumerates bounded local identities. Neither port operation may discover a provider or use
+transport. Writes use atomic `put_if_absent`; a same-key value or provenance conflict is typed and never
+replaces the winner. `MemoryPort` receives scope, kind and semantic fingerprint but no exact source digest.
+It cannot return a legacy candidate, and the pipeline checks each candidate's identity again. Fuzzy reuse is
+neither approval nor corpus consent.
+
+Identity v2 uses a closed projection and canonical UTF-8 payload with a 64 KiB ceiling, at most 8 route
+hops, 256 entries per named mapping/collection and 1,024 UTF-8 bytes per opaque scalar. Ordered route and
+stage sequences retain their order; mappings are sorted by canonical key. Changing field semantics or a
+ceiling requires a new identity version. Canonical integers are bounded by `±(2^63 - 1)`; chunk and stage
+versions are positive. Canonical decimals have magnitude at most `1,000,000,000` and at most 18 fractional
+digits. Fingerprints, keys, scopes and derived hashes are sensitive
+correlators and stay out of repr, events, logs, errors and diagnostics.
+
+Cache-only has two modes: `pinned` resolves one durable execution identity reference locally and performs exact lookup;
+`resolve-compatible` carries no pin and enumerates at most 256 local identities in the authorized scope.
+Zero candidates miss, one is checked against the current semantic identity and more than one distinct
+identity is ambiguous. Duplicates for one exact key are corruption. Neither mode uses discovery or
+transport. A rich result reports incomplete units when misses are allowed; it publishes no raw-results
+artifact for an incomplete document. The CLI keeps its current partial EPUB and `--require-full-cache`
+behavior behind the legacy adapter.
+
+The port has no SQLite implementation here. Contract and integration tests use in-memory fakes; the
+standalone cache storage migration belongs to #123. The current CLI still selects `_LegacyV1Cache`, which
+cannot return a v2 hit or populate v2 provenance.
 
 ## Replay
 
-If the raw fingerprint, document revision and job all match, only post-processing runs. The artifact's
+If the semantic fingerprint, document revision and job all match, only post-processing runs. The artifact's
 digest and size are checked, then its content is compared with the document unit by unit.
 
 | Found | Result |

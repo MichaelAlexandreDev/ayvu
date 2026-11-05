@@ -35,6 +35,21 @@ from ayvu.translation_document import (
     TranslationExecutionError, UnitSource,
 )
 from ayvu.translation_memory import TranslationMemoryMatch
+from ayvu.cache_identity import (
+    CacheCompatibilityIdentity,
+    CacheAuthorizationPolicy,
+    CacheOnlyRequest,
+    CacheLookupState,
+    CacheMissReason,
+    CacheProvenanceMetadata,
+    CacheValueKind,
+    CompatibleMemoryCandidate,
+    ExactCacheEntry,
+    ExactCacheLookup,
+    PutIfAbsentResult,
+    PutIfAbsentState,
+    TRANSLATION_STAGE_AGGREGATE,
+)
 from ayvu.translation_plan import ResolvedTranslationPlan, resolve_plan
 from ayvu.translator import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
 from provider_fakes import FakeSession, http_response
@@ -97,13 +112,27 @@ class PlanCache:
         self.stored = {}
         self.calls = []
 
-    def get(self, fingerprint, text, language_pair):
-        self.calls.append(('get', fingerprint))
-        return self.stored.get((fingerprint, text))
+    def lookup(self, key):
+        self.calls.append(('lookup', key))
+        entry = self.stored.get(key)
+        if entry is None:
+            return ExactCacheLookup(CacheLookupState.MISS, reason=CacheMissReason.ENTRY_NOT_FOUND)
+        return ExactCacheLookup(CacheLookupState.HIT, value=entry.value)
 
-    def set(self, fingerprint, text, language_pair, translated):
-        self.calls.append(('set', fingerprint))
-        self.stored[(fingerprint, text)] = translated
+    def resolve_compatible(self, scope, value_kind, source_digest, *, limit):
+        self.calls.append(('resolve', scope, value_kind, source_digest, limit))
+        return tuple(key for key in self.stored if key.scope == scope and key.value_kind is value_kind
+                     and key.source_content_digest == source_digest)
+
+    def put_if_absent(self, entry):
+        self.calls.append(('put_if_absent', entry.key))
+        winner = self.stored.get(entry.key)
+        if winner is None:
+            self.stored[entry.key] = entry
+            return PutIfAbsentResult(PutIfAbsentState.INSERTED)
+        if winner.value == entry.value and winner.provenance == entry.provenance:
+            return PutIfAbsentResult(PutIfAbsentState.IDEMPOTENT)
+        return PutIfAbsentResult(PutIfAbsentState.CONFLICT)
 
 
 class Env:
@@ -329,7 +358,8 @@ def test_a_non_json_payload_with_a_valid_digest_fails_closed(env):
 def test_exact_cache_is_keyed_by_the_plan_and_reuse_skips_the_provider(env):
     cache = PlanCache()
     env.translate(document(key='one.vtt'), translator_options={'exact_cache': cache})
-    assert {call[1] for call in cache.calls} == {plan().raw_fingerprint} and len(cache.stored) == 2
+    assert {key.semantic_fingerprint for key in cache.stored} == {plan().semantic_fingerprint} and len(cache.stored) == 2
+    assert len({key.source_content_digest for key in cache.stored}) == 2
     provider = Provider()
     result = env.translate(document(key='two.vtt'), provider, context=env.context(progress_phase='second'), translator_options={'exact_cache': cache})
     assert provider.requests == [] and result.units[0].source is UnitSource.EXACT_CACHE and result.units[0].text == ' [HELLO THERE] '
@@ -348,16 +378,16 @@ def test_the_legacy_v1_ports_do_not_fit_the_generic_path():
     from ayvu.html_translate import _LegacyV1Cache
     from ayvu.translation_document import ExactCachePort, MemoryPort
     from ayvu.translation_memory import TranslationMemory
-    assert 'plan_fingerprint' in inspect.signature(ExactCachePort.get).parameters
+    assert 'key' in inspect.signature(ExactCachePort.lookup).parameters
     assert 'plan_fingerprint' not in inspect.signature(_LegacyV1Cache.get).parameters
-    assert 'plan_fingerprint' in inspect.signature(MemoryPort.lookup).parameters
+    assert 'query' in inspect.signature(MemoryPort.lookup).parameters
     assert 'plan_fingerprint' not in inspect.signature(TranslationMemory.lookup).parameters
 
 
 def test_the_generic_path_cannot_reach_the_legacy_cache():
     from pathlib import Path
     source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'translation_document.py').read_text()
-    for name in ('from .cache', 'TranslationCache', 'from .html_translate', '_LegacyV1Cache', 'import requests'):
+    for name in ('from .cache import', 'TranslationCache', 'from .html_translate', '_LegacyV1Cache', 'import requests'):
         assert name not in source
 
 
@@ -366,9 +396,14 @@ class PlanMemory:
         self.match = match
         self.calls = []
 
-    def lookup(self, fingerprint, text, language_pair):
-        self.calls.append(fingerprint)
-        return self.match
+    def lookup(self, query):
+        self.calls.append(query)
+        if self.match is None:
+            return None
+        return CompatibleMemoryCandidate(
+            self.match.original, self.match.translated, self.match.score, self.match.applied,
+            CacheCompatibilityIdentity(query.scope, query.value_kind, query.semantic_fingerprint),
+        )
 
 
 def test_applied_memory_skips_the_provider_and_is_recorded_as_unknown_producer(env):
@@ -376,7 +411,7 @@ def test_applied_memory_skips_the_provider_and_is_recorded_as_unknown_producer(e
     provider = Provider()
     result = env.translate(document(cue('a', 'Good night', 1)), provider, translator_options={'memory': memory})
     assert provider.requests == [] and result.units[0].source is UnitSource.APPLIED_MEMORY and result.units[0].text == 'BOA NOITE'
-    assert memory.calls == [plan().raw_fingerprint]
+    assert [query.semantic_fingerprint for query in memory.calls] == [plan().semantic_fingerprint]
     record = next(node.record for node in env.records() if node.record.request.source_kind is SourceKind.TRANSLATION_MEMORY)
     assert record.request.producer.provider == UNKNOWN and not record.request.producer.fully_identified
 
@@ -387,7 +422,8 @@ def test_a_memory_suggestion_is_distinct_from_applied_memory(env):
     assert result.units[0].source is UnitSource.PROVIDER and result.units[0].memory_suggested
 
 
-@pytest.mark.parametrize('options,source', [({'cache_only': True}, UnitSource.CACHE_ONLY_MISSING), ({'dry_run': True}, UnitSource.DRY_RUN)], ids=['cache-only', 'dry-run'])
+@pytest.mark.parametrize('options,source', [({'cache_only': CacheOnlyRequest.resolve_compatible()}, UnitSource.CACHE_ONLY_MISSING),
+                                            ({'dry_run': True}, UnitSource.DRY_RUN)], ids=['cache-only', 'dry-run'])
 def test_gates_call_no_provider_and_publish_nothing(env, options, source):
     provider = Provider()
     result = env.translate(provider=provider, **options)
@@ -447,7 +483,7 @@ def test_any_protected_part_corruption_fails_before_cache_artifact_and_output(en
     subject = document(cue('a', 'Say <b>hi</b> now', 1, protected_parts=(ProtectedPart(4, 7, 'markup'), ProtectedPart(9, 13, 'markup'))))
     with pytest.raises(TranslationExecutionError, match='^protected_content_not_preserved$') as caught:
         env.translate(subject, Provider(respond), translator_options={'exact_cache': cache})
-    assert caught.value.failure.family is JobFailureFamily.INTEGRITY and 'set' not in [call[0] for call in cache.calls]
+    assert caught.value.failure.family is JobFailureFamily.INTEGRITY and 'put_if_absent' not in [call[0] for call in cache.calls]
     assert not (env.root / 'ready').exists() and env.records() == ()
 
 
@@ -594,10 +630,10 @@ def test_cancellation_at_each_safe_point_stops_work_and_publishes_nothing(env, m
         return Glossed(text)
 
     class Cache(PlanCache):
-        def get(self, fingerprint, text, language_pair):
+        def lookup(self, key):
             if moment == 'between_stages':
                 source.request('user_requested', NOW)
-            return super().get(fingerprint, text, language_pair)
+            return super().lookup(key)
 
     if moment == 'before_first_unit':
         source.request('user_requested', NOW)
@@ -615,6 +651,8 @@ def test_cancellation_at_each_safe_point_stops_work_and_publishes_nothing(env, m
     assert source.acknowledgement.safe_point in SAFE_POINTS
     if moment == 'before_first_unit':
         assert provider_calls == [] and source.acknowledgement.safe_point == 'pipeline_before_unit'
+    if moment == 'between_stages':
+        assert provider_calls == [] and source.acknowledgement.safe_point == 'pipeline_between_stages'
     if moment == 'between_units':
         assert len(provider_calls) == 1
     if moment == 'between_chunks':
@@ -756,7 +794,10 @@ def test_a_publication_conflict_is_reported_not_overwritten(env):
 
 def test_provenance_traces_the_artifact_to_the_job_input_and_distinguishes_origins(env):
     cache = PlanCache()
-    cache.stored[(plan().raw_fingerprint, 'Good night')] = 'Boa noite'
+    from ayvu.cache_identity import exact_entry_key
+    scope = CacheAuthorizationPolicy(PROJECT).resolve()
+    key = exact_entry_key(scope, TRANSLATION_STAGE_AGGREGATE, plan().semantic_fingerprint, 'Good night')
+    cache.stored[key] = ExactCacheEntry(key, 'Boa noite', CacheProvenanceMetadata('translate', PRODUCER, plan().pipeline_revision))
     subject = document()
     result = env.translate(subject, translator_options={'exact_cache': cache})
     trace = env.provenance.trace_artifact(result.artifact_id, max_depth=8, max_records=32)
@@ -843,7 +884,8 @@ def test_the_facade_remains_free_of_durable_state():
     assert RAW_RESULTS_ROLE == 'raw_results' and LanguagePair(source='en', target='pt') and requests
 
 
-@pytest.mark.parametrize('options', [{'dry_run': True}, {'cache_only': True}], ids=['dry-run', 'cache-only'])
+@pytest.mark.parametrize('options', [{'dry_run': True}, {'cache_only': CacheOnlyRequest.resolve_compatible()}],
+                         ids=['dry-run', 'cache-only'])
 def test_an_untranslated_unit_returns_its_exact_source_with_protected_parts(env, options):
     subject = document(cue('a', ' Say <b> now ', 1, protected_parts=(ProtectedPart(5, 8, 'markup'),)))
     assert env.translate(subject, **options).units[0].text == ' Say <b> now '

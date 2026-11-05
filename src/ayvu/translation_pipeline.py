@@ -10,6 +10,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Callable, Protocol
 
+from .cache_identity import (
+    CacheEligibility,
+    CacheLookupState,
+    CacheMissReason,
+    CacheOnlyRequest,
+    ExactCacheLookup,
+)
 from .chunking import split_text
 from .domain import LanguagePair
 from .translation_memory import TranslationMemoryMatch
@@ -59,13 +66,19 @@ class GlossaryOutcome(Protocol):
     usage: object
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class LinguisticOutcome:
     text: str
     source: LinguisticSource
     glossary_usage: object | None = None
     memory_suggestion: TranslationMemoryMatch | None = None
     raw_text: str | None = None
+    cache_eligibility: CacheEligibility | None = None
+    cache_lookup_state: CacheLookupState | None = None
+    cache_miss_reason: CacheMissReason | None = None
+
+    def __repr__(self) -> str:
+        return f"LinguisticOutcome(source={self.source.value!r}, cache={None if self.cache_lookup_state is None else self.cache_lookup_state.value!r})"
 
 
 def _lookup_memory_suggestion(memory: LegacyMemory | None, core: str,
@@ -154,7 +167,8 @@ class LinguisticStages:
         if self._on_stage is not None:
             self._on_stage(stage_id)
 
-    def run(self, text: str, language_pair: LanguagePair, *, dry_run: bool = False, cache_only: bool = False,
+    def run(self, text: str, language_pair: LanguagePair, *, dry_run: bool = False,
+            cache_only: bool | CacheOnlyRequest = False,
             chunk_limit: int = 3000) -> LinguisticOutcome:
         self._enter("unit_whitespace")
         parts = TextParts.from_text(text)
@@ -162,9 +176,23 @@ class LinguisticStages:
             return LinguisticOutcome(text, LinguisticSource.BLANK)
 
         self._enter("exact_reuse")
-        cached = self._cache.get(parts.core, language_pair)
+        read = self._cache.get(parts.core, language_pair)
+        if isinstance(read, ExactCacheLookup):
+            cache_state = read.state
+            cache_reason = read.reason
+            cached = read.value if read.state is CacheLookupState.HIT else None
+        else:
+            cache_state = None
+            cache_reason = None
+            cached = read
         if cached is not None and protected_content_is_intact(parts.core, cached):
-            return self._finish(parts, cached, LinguisticSource.EXACT_CACHE)
+            return self._finish(parts, cached, LinguisticSource.EXACT_CACHE, cache_lookup_state=cache_state)
+
+        if isinstance(cache_only, CacheOnlyRequest):
+            return LinguisticOutcome(
+                text, LinguisticSource.CACHE_ONLY_MISSING, cache_eligibility=getattr(self._cache, "eligibility", None),
+                cache_lookup_state=cache_state, cache_miss_reason=cache_reason,
+            )
 
         self._enter("legacy_fuzzy_reuse")
         suggestion = _lookup_memory_suggestion(self._memory, parts.core, language_pair)
@@ -173,7 +201,8 @@ class LinguisticStages:
 
         self._enter("execution_gates")
         if cache_only:
-            return LinguisticOutcome(text, LinguisticSource.CACHE_ONLY_MISSING, memory_suggestion=suggestion)
+            return LinguisticOutcome(text, LinguisticSource.CACHE_ONLY_MISSING, memory_suggestion=suggestion,
+                                     cache_lookup_state=cache_state, cache_miss_reason=cache_reason)
         if dry_run:
             return LinguisticOutcome(text, LinguisticSource.DRY_RUN, memory_suggestion=suggestion)
 
@@ -181,7 +210,8 @@ class LinguisticStages:
 
         self._enter("raw_cache_write")
         self._cache.set(parts.core, language_pair, translated)
-        return self._finish(parts, translated, LinguisticSource.PROVIDER, suggestion)
+        return self._finish(parts, translated, LinguisticSource.PROVIDER, suggestion,
+                            cache_lookup_state=cache_state, cache_miss_reason=cache_reason)
 
     def _translate(self, core: str, language_pair: LanguagePair, chunk_limit: int) -> str:
         source, target = language_pair.source, language_pair.target
@@ -212,12 +242,20 @@ class LinguisticStages:
         return translated
 
     def _finish(self, parts: TextParts, translated: str, source: LinguisticSource,
-                suggestion: TranslationMemoryMatch | None = None) -> LinguisticOutcome:
+                suggestion: TranslationMemoryMatch | None = None, *, cache_lookup_state: CacheLookupState | None = None,
+                cache_miss_reason: CacheMissReason | None = None) -> LinguisticOutcome:
         """Glossary runs on every reused or new text, and the outer whitespace comes back last."""
         self._enter("post_processing")
         application = self._apply_glossary(translated)
-        return LinguisticOutcome(parts.restore(application.text), source, application.usage, suggestion, translated)
+        return LinguisticOutcome(parts.restore(application.text), source, application.usage, suggestion, translated,
+                                 getattr(self._cache, "eligibility", None), cache_lookup_state, cache_miss_reason)
 
 
 class LegacyTextPipelineFacade(LinguisticStages):
     """The stages under ``translate_text``. It stays unable to reach anything durable."""
+
+    def run(self, text: str, language_pair: LanguagePair, *, dry_run: bool = False,
+            cache_only: bool = False, chunk_limit: int = 3000) -> LinguisticOutcome:
+        if type(cache_only) is not bool:
+            raise ValueError("legacy_cache_only_requires_boolean")
+        return super().run(text, language_pair, dry_run=dry_run, cache_only=cache_only, chunk_limit=chunk_limit)
