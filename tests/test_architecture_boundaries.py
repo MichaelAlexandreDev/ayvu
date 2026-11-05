@@ -40,6 +40,7 @@ OWNERS = {
     "ayvu.project_store": Owner("infrastructure", "Projects"),
     "ayvu.chunking": Owner("domain", "Translation"),
     "ayvu.cli": Owner("interface", "CLI"),
+    "ayvu.desktop_bootstrap": Owner("interface", "Desktop"),
     "ayvu.cli_progress": Owner("interface", "CLI"),
     "ayvu.preflight": Owner("composition", "Translation"),
     "ayvu.epub_io": Owner("format", "EPUB"),

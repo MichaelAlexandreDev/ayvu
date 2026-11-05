@@ -23,12 +23,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+desktop = [
+  "PySide6-Essentials==6.11.2"
+]
 dev = [
   "pytest>=7.4"
 ]
 
 [project.scripts]
 ayvu = "ayvu.cli:app"
+ayvu-desktop = "ayvu.desktop_bootstrap:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

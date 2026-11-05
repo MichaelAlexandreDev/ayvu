@@ -1,6 +1,6 @@
 # ayvu
 
-`ayvu` é uma CLI em Python para traduzir arquivos EPUB locais usando um tradutor HTTP local compatível com LibreTranslate. A ferramenta preserva a estrutura interna do livro e modifica apenas textos visíveis ao leitor.
+`ayvu` é uma ferramenta em Python para traduzir arquivos EPUB locais usando um tradutor HTTP local compatível com LibreTranslate. A ferramenta preserva a estrutura interna do livro e modifica apenas textos visíveis ao leitor.
 
 O EPUB original nunca é alterado. A saída é gravada em um novo arquivo `.epub`.
 
@@ -36,39 +36,66 @@ Por padrão, arquivos `.epub`, cache local e glossários privados ficam fora do 
 
 ## Requisitos
 
-- Python 3.11+
-- `uv` ou `pip`
-- Um servidor local compatível com LibreTranslate
+- Python 3.11 ou mais recente. A disponibilidade das dependências nativas do
+  desktop depende da versão do Python, sistema operacional e arquitetura.
+- `uv` ou `pip`.
+- Um servidor compatível com LibreTranslate para traduções reais.
+- Para o desktop, uma sessão gráfica e as dependências nativas exigidas pelo Qt.
 
-## Instalação Com uv
+## Instalação com uv
 
-Dentro do diretório do projeto:
+Dentro do diretório do projeto, instale apenas a CLI:
 
 ```bash
 cd ayvu
-uv sync --extra dev
-```
-
-Execute os comandos sem ativar manualmente o ambiente virtual:
-
-```bash
+uv sync
 uv run ayvu --help
 ```
 
-## Instalação Com pip
+Para instalar o suporte desktop opcional e executar seu ponto de entrada:
+
+```bash
+uv sync --extra desktop
+uv run --extra desktop ayvu-desktop
+```
+
+O extra instala `PySide6-Essentials==6.11.2`, sem Addons ou WebEngine. O ponto
+de entrada informa que a interface ainda não está disponível e termina com código
+1; sua implementação pertence a DESKTOP-010. `ayvu-desktop --help` retorna 0.
+Sem o extra, o comando informa como instalar a dependência e termina com código 1.
+Os fluxos de tradução documentados abaixo estão disponíveis pela CLI, cuja
+instalação padrão não exige PySide6.
+
+Para desenvolver e executar os testes da CLI:
+
+```bash
+uv sync --extra dev
+uv run --extra dev pytest
+```
+
+Para desenvolver o desktop, selecione ambos os extras:
+
+```bash
+uv sync --extra dev --extra desktop
+uv run --extra dev --extra desktop pytest
+```
+
+Ao alternar entre esses perfis, inclua os extras desejados no comando `uv run`,
+pois o uv sincroniza o ambiente conforme a seleção informada.
+
+## Instalação com pip
 
 ```bash
 cd ayvu
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+python -m pip install -e .              # CLI
+# Ou: python -m pip install -e ".[desktop]"
+# Para desenvolvimento: python -m pip install -e ".[dev,desktop]"
 ```
 
-Com o ambiente ativado:
-
-```bash
-ayvu --help
-```
+Com o ambiente ativado, use `ayvu --help` ou, com o extra desktop,
+`ayvu-desktop`.
 
 ## Servidor de Tradução
 

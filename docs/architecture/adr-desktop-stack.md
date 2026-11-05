@@ -8,6 +8,16 @@ Evidence updated: 2026-10-06
 
 Related issue: [#124 — DESKTOP-003](https://github.com/DevStarrk1137/ayvu/issues/124)
 
+## Implementation note (DESKTOP-009)
+
+The packaging foundation now provides an optional `desktop` extra pinned to
+`PySide6-Essentials==6.11.2` and the `ayvu-desktop` entry point. It does not
+include Addons or WebEngine, and the entry point does not yet launch an
+interface; DESKTOP-010 owns that work. The CLI remains independent of Qt. This
+packaging change does not constitute acceptance of this ADR or a supported OS,
+accessibility, or distribution claim. The evaluation and acceptance record below
+remain historical evidence for the proposed decision.
+
 ## Question
 
 Which Python desktop toolkit should Ayvu use for a future accessible interface
