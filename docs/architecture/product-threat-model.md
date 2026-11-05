@@ -117,7 +117,7 @@ flowchart LR
 | B05 / Review + Formats | Bounded [review_import.py](../../src/ayvu/review_import.py) v1 inspection; [review_exchange.py](../../src/ayvu/review_exchange.py) v2 codec/mapper; [review_application.py](../../src/ayvu/review_application.py) and [review_composition.py](../../src/ayvu/review_composition.py) use cases/adapters | V2 has byte/row/column/cell/content/metadata limits, reversible formula escaping, opaque revision-bound identities and protected-part validation. CLI export/apply use v2 and D106 publication; v1 apply stops with `legacy_reexport_required`. Review packages contain sensitive text and remain local files |
 | B06 / Jobs + Infrastructure | [resume.py](../../src/ayvu/resume.py): `ResumeStateStore.save/load`; [cli.py](../../src/ayvu/cli.py): `_resume_translation` restores paths, URL and execution parameters | Version/field validation exists; write is direct and resume uses `overwrite=True`; no durable job identity, lease or source fingerprint authenticates that state |
 | B07 / current writers: Formats + Infrastructure + Policies; future artifact state: Artifacts + Provenance (lineage) | `epub_io._copy_epub_with_replacements`, the active [`markdown_writer.py`](../../src/ayvu/markdown_writer.py), and CLI review/report/missing-text writers publish files | Visible-content Markdown validates canonical targets and stages each file before atomic publication; other file-writing paths retain their separately documented conflict and staging guarantees |
-| B08 / Library + Infrastructure | [library.py](../../src/ayvu/library.py): `scan_library`, `open_library_epub`, `_reader_command` | Selected path must be a file; launch uses argument vector, not a shell string; configured executable, inherited environment and reader behavior remain outside containment |
+| B08 / Library + Infrastructure | [library_service.py](../../src/ayvu/library_service.py) and [library_adapters.py](../../src/ayvu/library_adapters.py) | Scan-local references, canonical containment and file identity are checked before an argv-based launch; the path may still change after that check. Configured executable, inherited environment and reader behavior remain outside containment |
 | B09 / Interfaces + Policies | CLI terminal/progress/errors and `_render_markdown_report` consume names, warnings and operation failures | `inspect`/`extract` now show bounded format reason codes in developer mode and omit parser exception text. Other legacy provider/parser/report paths retain their existing presentation and need separate review |
 | B10 / Maintainer + Infrastructure | [pyproject.toml](../../pyproject.toml), [uv.lock](../../uv.lock) and [CI](../../.github/workflows/tests.yml) install/build dependencies | Lock checks, pinned Actions and package smoke are delivered; these do not certify package safety or implement a model/plugin/update installer |
 
@@ -321,17 +321,17 @@ concurrency/interruption and zero provider/output effects on rejected recovery.
 
 ### T08 — Configured executable and reader side effects (High)
 
-**B01/B08; Library + Policies + Infrastructure.** Book text does not become
-shell syntax in `open_library_epub`: `Popen` receives an argv list. A configured
-untrusted executable or its inherited environment can still read files/send
-data; parser exploits and external-reader options remain an external boundary.
-P: explicit executable/open authorization, bounded argument validation and
-minimal process authority. D: record sanitized external-open outcome. R: report
-launch failure without retrying a different executable silently. V/owner:
-[#151](https://github.com/MichaelAlexandreDev/ayvu/issues/151) for process-port and
-authorization tests; #159 for the explicit limit on offline claims. OS isolation
-selection belongs to #167; a launched general-purpose reader is not thereby
-contained by Ayvu.
+**B01/B08; Library + Policies + Infrastructure.** The library service resolves an
+opaque entry against its latest scan and the local adapter revalidates canonical
+containment and identity before launch. The reader adapter supplies an argv list
+without a shell and appends the EPUB path as one argument. A same-user process can
+still change the path after validation and before the reader opens it. A configured
+executable or inherited environment can read files or send data; parser exploits
+and external-reader options remain an external boundary. Launch outcomes are
+normalized and failure does not silently retry a different configured executable.
+See [library discovery](library-discovery.md) for the cancellation and platform
+limits. #159 owns the limit on offline claims; OS isolation selection belongs to
+#167. A general-purpose reader is not contained by Ayvu.
 
 ### T09 — Prompt injection and excessive AI/MCP authority (High, proposed)
 

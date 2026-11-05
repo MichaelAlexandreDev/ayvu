@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- A abertura de um EPUB da biblioteca revalida o arquivo antes de iniciar o leitor; um arquivo
+  substituído pede para abrir a biblioteca de novo. Itens ignorados, como pasta sem permissão ou
+  link para fora da pasta de livros, geram um aviso em vez de sumir em silêncio.
+  Interpretadores de comandos como `sh` não são aceitos em `Reader app`.
 - Inspecionar ou exportar cache ausente não cria o banco nem sua pasta; a
   exportação continua produzindo JSON vazio. A limpeza verifica se a seleção
   mudou antes de remover entradas e erros detalhados usam códigos sem conteúdo.

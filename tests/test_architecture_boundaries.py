@@ -103,7 +103,8 @@ OWNERS = {
     "ayvu.review_exchange": Owner("infrastructure", "Review"),
     "ayvu.review_application": Owner("application", "Review"),
     "ayvu.review_composition": Owner("composition", "Review"),
-    "ayvu.library": Owner("application", "Library"),
+    "ayvu.library_service": Owner("application", "Library"),
+    "ayvu.library_adapters": Owner("infrastructure", "Library"),
     "ayvu.content_use_cases": Owner("application", "Formats"),
     "ayvu.markdown_writer": Owner("infrastructure", "Formats"),
     "ayvu.content_composition": Owner("composition", "Formats"),
@@ -441,7 +442,8 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.cli", "ayvu.translation_engine"),
     ("ayvu.cli", "ayvu.review_application"),
     ("ayvu.cli", "ayvu.domain"),
-    ("ayvu.cli", "ayvu.library"),
+    ("ayvu.cli", "ayvu.library_service"),
+    ("ayvu.library_adapters", "ayvu.library_service"),
     ("ayvu.cli", "ayvu.provider_discovery"),
     ("ayvu.preflight", "ayvu.provider_discovery"),
     ("ayvu.provider_composition", "ayvu.provider_capabilities"),
@@ -610,10 +612,7 @@ EXCEPTIONS = {
     ("ayvu.html_translate", "ayvu.translator"): Exemption("Formats", 153, "compatibility facade retired with the versioned cache"),
     ("ayvu.translation_memory", "rapidfuzz"): Exemption("Knowledge", 161, "TM matching behind repository boundary"),
     ("ayvu.translation_memory", "ayvu.cache"): Exemption("Knowledge", 161, "approved TM separated from exact cache"),
-    ("ayvu.library", "subprocess"): Exemption("Library", 151, "reader launch behind process port"),
-    ("ayvu.library", "os"): Exemption("Library", 151, "filesystem queries behind discovery port"),
-    ("ayvu.library", "shutil"): Exemption("Library", 151, "executable discovery behind process port"),
-    ("ayvu.library", "ayvu.config"): Exemption("Library", 151, "configuration passed as application values"),
+    ("ayvu.cli", "ayvu.library_adapters"): Exemption("Library", 158, "library adapters composed at the shared application root"),
 }
 
 

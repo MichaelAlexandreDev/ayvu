@@ -50,7 +50,9 @@ entries fail, so a rename cannot silently discard protection.
 | `provenance_service` | Application | Provenance repository port and query results |
 | `provenance_store` | Infrastructure | Append-only SQLite lineage and bounded traversal |
 | `translation_memory` | Transitional domain | Knowledge/TM |
-| `library` | Transitional application | Library |
+| `library` | Transitional application | Legacy library compatibility |
+| `library_service` | Application | Library discovery and authorized open coordination |
+| `library_adapters` | Infrastructure | Local library scanning and reader launch |
 | `preflight` | Composition | Translation |
 | `cli`, `cli_progress` | Interface | CLI |
 | `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
@@ -134,7 +136,7 @@ edges to the CLI and to the provider composition expire in #158. The coupling of
 EPUB pipeline coupling expires in #144, after #141 separates the
 provider contract from its HTTP adapter. `html_structure` has no such coupling.
 Legacy review projection coupling expires in #158. Fuzzy memory's exact-cache and vendor coupling
-expires in #161. Library configuration/process coupling expires in #151.
+expires in #161. The guided library flow uses `library_service` and `library_adapters`.
 The exact edge and condition for each of these are recorded individually in
 the test data; these references do not imply that those issues are completed.
 
