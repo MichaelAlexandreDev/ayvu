@@ -107,7 +107,7 @@ current translation yet:
 | Rich path | What the current flow needs |
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
-| No durable v2 repository in #153 | Running the CLI still reuses the v1 cache |
+| The rich SQLite repository requires v2 identity | Running the CLI still reuses the v1 cache |
 | Replay needs a job it can run in | [A resume](job-recovery.md) is a full re-execution over the v1 cache |
 
 #153 and #146 both depend on #145, so neither can come first. `ayvu.legacy_translation` is the named compatibility
@@ -131,8 +131,7 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 
 The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
-The standalone SQLite cache remains v1 until #154. The CLI stays on the characterized adapter until that
-migration. [`html_structure`](html-structure.md) has neither cache nor glossary.
+The standalone cache now has a v2 boundary and repository; the CLI stays on the characterized v1 adapter. [`html_structure`](html-structure.md) has neither cache nor glossary.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.html_translate`, passed on each call.
 
@@ -219,9 +218,10 @@ transport. A rich result reports incomplete units when misses are allowed; it pu
 artifact for an incomplete document. The CLI keeps its current partial EPUB and `--require-full-cache`
 behavior behind the legacy adapter.
 
-The port has no SQLite implementation here. Contract and integration tests use in-memory fakes; the
-standalone cache storage migration belongs to #154. The current CLI still selects `_LegacyV1Cache`, which
-cannot return a v2 hit or populate v2 provenance.
+`SQLiteExactCache` implements the port for the rich path after `prepare_cache` runs before workers.
+The current CLI still selects `_LegacyV1Cache`, which cannot return a v2 hit or populate v2 provenance.
+Migration preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
+[standalone cache v2](standalone-cache-v2.md) for locking, recovery and limits.
 
 ## Replay
 

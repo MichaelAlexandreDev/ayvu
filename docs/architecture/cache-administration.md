@@ -46,3 +46,13 @@ muda a identidade ou formato do cache v1.
   substituído. Em um sistema sem hard links, como pendrive FAT ou exFAT, a publicação sem `--overwrite` usa criação exclusiva
   seguida de substituição: continua sem poder sobrescrever, mas um arquivo vazio fica visível por um instante.
 - O export e o import ficaram cerca de 3 e 4 vezes mais lentos, por causa da validação: 150 mil entradas levam 6,5 s e 10,4 s.
+
+## Limite do cache v2
+
+Os comandos e contratos descritos acima administram somente o namespace legado
+v1. Para um banco v2, `clean`, `import` e `export` retornam `v2-admin-required`
+antes de mutação ou publicação; `inspect` pode recusar por namespace. Conserve o
+v1 somente para leitura e, se precisar de um cache v2 novo, escolha um arquivo
+distinto pela fronteira `prepare_cache`; isso não transfere entradas legadas.
+A administração v2 é tratada em DESKTOP-127. O protocolo de migração, seus
+limites e a recuperação estão em [cache standalone v2](standalone-cache-v2.md).

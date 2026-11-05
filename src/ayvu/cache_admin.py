@@ -27,7 +27,7 @@ SAFE_POINTS = ("cache_before_read", "cache_between_entries", "cache_before_mutat
 class CacheAdminError(Exception):
     """Bounded error code from a trusted adapter, never an exception message."""
     def __init__(self, code: str, family: JobFailureFamily = JobFailureFamily.RESOURCE):
-        if not isinstance(code, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", code):
+        if code != "v2-admin-required" and (not isinstance(code, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", code)):
             code = "unexpected_error"
         self.code, self.family = code, family
         super().__init__(code)

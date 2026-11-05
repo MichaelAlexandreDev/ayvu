@@ -143,7 +143,7 @@ class JobFailure:
     def __post_init__(self) -> None:
         if type(self.family) is not JobFailureFamily or type(self.retryable) is not bool:
             raise JobEventError("invalid_failure")
-        if not is_slug(self.code):
+        if not is_slug(self.code) and self.code != "v2-admin-required":
             raise JobEventError("invalid_code")
         _validate_diagnostics(self.diagnostics)
 

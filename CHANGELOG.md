@@ -9,6 +9,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- O cache standalone dispõe de preparação e repositório exato v2 para o caminho
+  rico. A migração preserva as entradas v1 sem promovê-las a acertos v2; a CLI
+  continua no cache legado. Administração v2 aguarda DESKTOP-127. Representações
+  dos DTOs legados de cache ocultam texto e caminho.
+
 - O comando `translate` aceita no máximo 100 EPUBs e recusa `--missing-output`
   com múltiplos arquivos; em cache-only, o nome dos textos ausentes continua
   automático por livro. Destinos duplicados são recusados antes do lote, e as

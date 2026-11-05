@@ -222,6 +222,13 @@ LibreTranslate ele ainda é apenas informativo.
 
 ### Usar cache de forma consistente
 
+A CLI usa o cache legado v1. Os comandos de administração neste tutorial são
+para v1; em v2, limpeza, importação e exportação retornam `v2-admin-required`,
+e a inspeção pode recusar o namespace. Conserve o v1 somente para leitura e
+escolha outro arquivo para um novo v2 pela API `prepare_cache`; acompanhe
+DESKTOP-127 para administração v2. A migração não transforma entradas legadas
+em acertos exatos v2. Veja [cache standalone v2](architecture/standalone-cache-v2.md).
+
 Para retomar com segurança, repita o mesmo cache entre execuções:
 
 ```bash
