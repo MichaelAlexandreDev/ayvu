@@ -13,7 +13,7 @@ Related issue: [#144 — Implement the production EPUB FormatAdapter](https://gi
 ## Decision and scope
 
 EPUB is the first real format behind the [format contract](format-adapter.md). **`translate` and the guided
-translation use it**, through [the use case](translate-project.md). Dry run, preview and `resume` keep `translate_epub`,
+translation use it**, through [the use case](translate-project.md). Dry run, preview and a resume with no job keep `translate_epub`,
 and `apply_reviewed_epub` and `inspect_epub` keep their own code until #147 and #149.
 
 | Module | Responsibility |

@@ -60,28 +60,31 @@ from .preflight import PreflightError, run_translation_preflight
 from .project import ProjectError
 from .project_service import resolve_project
 from .project_store import ProjectJsonRepository, build_project_request, translation_selections
-from .resume import (
-    InvalidResumeState,
-    ResumeStateError,
-    ResumeStateScan,
-    ResumeStateStore,
-    TranslationResumeState,
-    default_processing_dir,
-)
+from .job_recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
 from .review_export import ReviewSegment, write_review_csv
 from .review_import import ReviewImportError, read_review_csv
 from .provider_composition import ProviderSetupError, cli_provider_session
 from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
-from .translate_project import TranslateObserver
+from .translate_project import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from .translate_project_composition import (
     BookRefused,
+    InterruptedTranslations,
+    InvalidResumeState,
+    JobRecovery,
     LegacyResources,
     ProjectTranslation,
     ProjectTranslationUnavailable,
+    ResumeStateError,
+    ResumeStateStore,
     SelectedChapter,
     TranslationReport,
+    TranslationResumeState,
+    book_refusal,
     check_book,
+    default_processing_dir,
     detect_epub_language,
+    interrupted_translations,
+    open_job_recovery,
     resolve_chapter_selection,
     translate_in_project,
     translate_without_project,
@@ -141,8 +144,25 @@ class TranslationRunResult:
     validation_warnings: list[str]
     markdown_report_path: Path | None = None
     project_id: str | None = None
+    job_result: TranslateProjectResult | None = None
 
 
+_RESUME_RACED = (
+    "Esta tradução mudou enquanto a retomada começava.",
+    "Rode 'ayvu resume' de novo para ver como ela está agora. Nada foi alterado.",
+)
+_PROJECT_NEXT_STEPS = {
+    "source_missing": "Informe uma fonte existente; o projeto anterior foi preservado.",
+    "source_changed": "A fonte foi alterada. Restaure a revisão original ou escolha explicitamente outra fonte para um novo projeto.",
+    "ambiguous_project": "Há projetos compatíveis duplicados. Preserve os manifests e resolva a duplicação antes de repetir.",
+    "incomplete_project_creation": "Com todas as execuções encerradas, preserve a pasta .staging-* movendo-a para fora de projects e repita o comando.",
+    "project_commit_uncertain": "O manifesto pode já estar publicado. Recarregue o estado ou repita a tradução para reutilizar o projeto.",
+    "credential_bearing_endpoint": "Use uma URL do tradutor sem usuário, senha, parâmetros de consulta ou fragmento.",
+}
+_PROJECT_NEXT_STEP = (
+    "Verifique a fonte, as permissões da pasta de processamento e o estado do projeto; "
+    "preserve os arquivos existentes antes de corrigir conflitos."
+)
 _BOOK_PROTECTED = (
     "Este EPUB tem conteúdo protegido ou criptografado.",
     "O Ayvu não traduz nem remove essa proteção. Escolha um EPUB sem proteção. O original não foi alterado.",
@@ -213,6 +233,9 @@ _TRANSLATION_FAILURES: dict[str, tuple[str, str]] = {
         "Esta mesma tradução já está em andamento em outro processo.",
         "Espere ela terminar. Para rodar ao mesmo tempo, use outra saída com --output.",
     ),
+    "stale_revision": _RESUME_RACED,
+    "continuation_exists": _RESUME_RACED,
+    "job_not_resumable": _RESUME_RACED,
     "job_store_unavailable": (
         "Não foi possível registrar o trabalho no projeto local.",
         "Verifique as permissões e o espaço da pasta de processamento e repita. Nada foi traduzido.",
@@ -282,6 +305,8 @@ class _BookRequest:
     project_id: str | None = None
     source_sha256: str | None = None
     processing_dir: Path | None = None
+    continuation: ContinuationTicket | None = None
+    operation_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -294,6 +319,7 @@ class _BookOutcome:
     failure: str | None = None
     raised: Exception | None = None
     warning: str | None = None
+    job_result: TranslateProjectResult | None = None
 
 
 @dataclass(frozen=True)
@@ -349,8 +375,9 @@ def main(
         return
 
     config = _load_existing_config_or_default()
-    scan = _print_processing_translation_states(ResumeStateStore(_processing_dir(config)))
-    if _offer_detected_translation_resume(scan.running, mode=mode):
+    recovery = open_job_recovery(_processing_dir(config))
+    found = _print_processing_translation_states(recovery)
+    if _offer_detected_translation_resume(found, recovery, mode=mode):
         return
 
     if _run_guided_main_flow(ctx, mode=mode):
@@ -891,10 +918,10 @@ def resume(
     """Resume a translation in progress from its saved checkpoint."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     config = _load_existing_config_or_default()
-    store = ResumeStateStore(_processing_dir(config))
-    scan = store.scan()
+    recovery = open_job_recovery(_processing_dir(config))
+    found = interrupted_translations(recovery)
 
-    state = _select_resume_state(scan.running, epub_path, target, mode=mode)
+    state = _select_resume_state(found.running, epub_path, target, mode=mode)
     if state is None:
         raise typer.Exit(code=1)
 
@@ -902,7 +929,7 @@ def resume(
         f"[green]Resuming translation:[/green] {state.input_path.name} -> {state.output_path.name}"
     )
     _print_resume_checkpoint(state)
-    _resume_translation(state, mode=mode)
+    _resume_translation(state, found, recovery, mode=mode)
 
 
 def _print_expected_error(summary: str, next_step: str, mode: UserMode, detail: str = "") -> None:
@@ -1493,6 +1520,9 @@ def _run_translation(
     report_dir: Path | None = None,
     confirm_output_location: bool = True,
     resolve_managed_project: bool = True,
+    project_profile_name: str | None = None,
+    continuation: ContinuationTicket | None = None,
+    operation_id: str | None = None,
 ) -> TranslationRunResult:
     config = config or _load_existing_config_or_default()
     resolved_profile_name, profile = _resolve_requested_profile(config, profile_name, mode=mode)
@@ -1500,6 +1530,8 @@ def _run_translation(
     resolved_glossary_path = _resolve_glossary_path(glossary_path, profile)
     resolved_source, source_inferred = _resolve_source_language(source, epub_path, mode=mode)
     language_pair = LanguagePair(source=resolved_source, target=resolved_target)
+    # A resume holds the profile of the run it continues, and shows no profile, because it applies none of its settings.
+    identity_profile_name = project_profile_name or resolved_profile_name
     _print_translation_plan(
         language_pair,
         source_inferred=source_inferred,
@@ -1561,7 +1593,7 @@ def _run_translation(
                 source=language_pair.source,
                 target=language_pair.target,
                 glossary_path=resolved_glossary_path,
-                profile_name=resolved_profile_name,
+                profile_name=identity_profile_name,
                 selections=translation_selections(
                     translator=translator_name,
                     url=url,
@@ -1576,22 +1608,7 @@ def _run_translation(
             project_id = resolution.project.project_id
             source_sha256 = resolution.project.source_sha256
         except ProjectError as exc:
-            next_step = {
-                "source_missing": "Informe uma fonte existente; o projeto anterior foi preservado.",
-                "source_changed": "A fonte foi alterada. Restaure a revisão original ou escolha explicitamente outra fonte para um novo projeto.",
-                "ambiguous_project": "Há projetos compatíveis duplicados. Preserve os manifests e resolva a duplicação antes de repetir.",
-                "incomplete_project_creation": "Com todas as execuções encerradas, preserve a pasta .staging-* movendo-a para fora de projects e repita o comando.",
-                "project_commit_uncertain": "O manifesto pode já estar publicado. Recarregue o estado ou repita a tradução para reutilizar o projeto.",
-                "credential_bearing_endpoint": "Use uma URL do tradutor sem usuário, senha, parâmetros de consulta ou fragmento.",
-            }.get(str(exc),
-                "Verifique a fonte, as permissões da pasta de processamento e o estado do projeto; "
-                "preserve os arquivos existentes antes de corrigir conflitos.")
-            _print_expected_error(
-                "Não foi possível resolver o projeto local.",
-                next_step,
-                mode,
-                detail=str(exc),
-            )
+            _print_project_failure(str(exc), mode)
             raise typer.Exit(code=1) from None
 
     resume_store: ResumeStateStore | None = None
@@ -1634,7 +1651,7 @@ def _run_translation(
                 retry_backoff=retry_backoff,
                 retry_backoff_max=retry_backoff_max,
                 processing_dir=_processing_dir(config),
-                profile_name=resolved_profile_name,
+                profile_name=identity_profile_name,
             )
         progress.start()
         return preflight
@@ -1681,6 +1698,8 @@ def _run_translation(
         project_id=project_id,
         source_sha256=source_sha256,
         processing_dir=_processing_dir(config) if project_id is not None else None,
+        continuation=continuation,
+        operation_id=operation_id,
     )
     try:
         try:
@@ -1778,6 +1797,7 @@ def _run_translation(
         validation_warnings=validation_warnings,
         markdown_report_path=markdown_report_path,
         project_id=project_id,
+        job_result=outcome.job_result,
     )
 
 
@@ -1793,7 +1813,7 @@ def _translation_progress_display() -> Progress:
 
 
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
-    """Dry run and the resume command, which have no project. See ``translate_without_project``."""
+    """Dry run, and a resume file that recomputes to no job. See ``translate_without_project``."""
     preflight = book.prepare()
     review_segments: list[ReviewSegment] | None = [] if book.wants_review else None
     with TranslationCache(book.cache_path) as cache:
@@ -1833,6 +1853,8 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
             book.replace_existing,
             prepare,
             lambda: TranslationCache(book.cache_path),
+            book.continuation,
+            book.operation_id,
         ),
         TranslateObserver(
             EngineObserver(hooks.on_chapter_start, hooks.on_chapter_done, hooks.on_text_processed),
@@ -1845,14 +1867,20 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
     reason = None if result.outcome is None else result.outcome.summary.reason_code
     if run.report is None:
         code = reason if reason == "publication_uncommitted" else (result.failure.code if result.failure else "job_record_failed")
-        return _BookOutcome(failure=code, raised=result.raised)
+        return _BookOutcome(failure=code, raised=result.raised, job_result=result)
     warning = "job_record_failed" if not result.recorded else (reason if reason == "provenance_failed" else None)
     return _BookOutcome(
         report=run.report,
         validation=result.validation,
         review_segments=run.review_segments if book.wants_review else None,
         warning=warning,
+        job_result=result,
     )
+
+
+def _print_project_failure(code: str, mode: UserMode) -> None:
+    next_step = _PROJECT_NEXT_STEPS.get(code, _PROJECT_NEXT_STEP)
+    _print_expected_error("Não foi possível resolver o projeto local.", next_step, mode, detail=code)
 
 
 def _print_translation_failure(outcome: _BookOutcome, output_path: Path, mode: UserMode) -> None:
@@ -2484,16 +2512,13 @@ def _interrupted_output_message(output_path: Path, dry_run: bool) -> str:
     return f"Translated EPUB was not written: {output_path}"
 
 
-def _print_processing_translation_states(store: ResumeStateStore) -> ResumeStateScan:
-    scan = store.scan()
-    if not scan.has_findings:
-        return scan
-
-    if scan.running:
-        _print_running_resume_states(scan.running)
-    if scan.invalid:
-        _print_invalid_resume_states(scan.invalid)
-    return scan
+def _print_processing_translation_states(recovery: JobRecovery) -> InterruptedTranslations:
+    found = interrupted_translations(recovery)
+    if found.running:
+        _print_running_resume_states(found.running)
+    if found.invalid:
+        _print_invalid_resume_states(found.invalid)
+    return found
 
 
 def _run_guided_main_flow(ctx: typer.Context, mode: UserMode) -> bool:
@@ -3307,7 +3332,8 @@ def _display_language_targets(targets: tuple[str, ...]) -> str:
     return f"{first_targets} (+{len(targets) - 8})"
 
 
-def _offer_detected_translation_resume(states: tuple[TranslationResumeState, ...], mode: UserMode) -> bool:
+def _offer_detected_translation_resume(found: InterruptedTranslations, recovery: JobRecovery, mode: UserMode) -> bool:
+    states = found.running
     if not states:
         return False
     # In DEVELOPER mode, we don't resume automatically to avoid unexpected behavior.
@@ -3327,13 +3353,26 @@ def _offer_detected_translation_resume(states: tuple[TranslationResumeState, ...
         return False
 
     console.print(f"[green]Resuming translation:[/green] {state.input_path.name} -> {state.output_path.name}")
-    _resume_translation(state, mode=mode)
+    _resume_translation(state, found, recovery, mode=mode)
     return True
 
 
-def _resume_translation(state: TranslationResumeState, mode: UserMode) -> None:
-    try:
-        _run_translation(
+class _ResumeRunner:
+    """Runs a resume with what its file recorded, on whichever path the use case chose."""
+
+    def __init__(self, state: TranslationResumeState, mode: UserMode) -> None:
+        self._state = state
+        self._mode = mode
+
+    def run_legacy(self, reference: str) -> None:
+        self._run(resolve_managed_project=False)
+
+    def run_durable(self, reference: str, ticket: ContinuationTicket, operation_id: str) -> TranslateProjectResult:
+        return self._run(continuation=ticket, operation_id=operation_id).job_result
+
+    def _run(self, **identity: object) -> TranslationRunResult:
+        state, mode = self._state, self._mode
+        return _run_translation(
             epub_path=state.input_path,
             output=state.output_path,
             review_output=None,
@@ -3360,13 +3399,40 @@ def _resume_translation(state: TranslationResumeState, mode: UserMode) -> None:
             translate_metadata=state.translate_metadata,
             translate_alt_text=state.translate_alt_text,
             translation_memory=state.translation_memory_options(),
-            resolve_managed_project=False,
+            project_profile_name=state.profile_name,
+            **identity,
         )
+
+
+def _resume_translation(state: TranslationResumeState, found: InterruptedTranslations, recovery: JobRecovery, mode: UserMode) -> None:
+    entry = found.entry_of(state)
+    # Asking for this resume is the decision: the command says what it does, and it has always replaced its output.
+    request = ResumeRequest(entry.reference, entry.job_id, entry.project_id, entry.expected_revision, tuple(RequiredDecision))
+    try:
+        result = recovery.request_resume.execute(request, _ResumeRunner(state, mode))
+        if result.status in (ResumeStatus.REFUSED, ResumeStatus.ALREADY_REQUESTED):
+            _print_resume_refusal(result, state, mode)
+            raise typer.Exit(code=1)
     except typer.Exit:
         console.print(
             "Não foi possível retomar a tradução detectada. Verifique a mensagem acima e reinicie a tradução se necessário."
         )
         raise
+
+
+def _print_resume_refusal(result: ResumeResult, state: TranslationResumeState, mode: UserMode) -> None:
+    code = "continuation_exists" if result.status is ResumeStatus.ALREADY_REQUESTED else result.code
+    if code in ("source_changed", "source_missing", "source_unreadable"):
+        _print_project_failure(code, mode)
+    elif code == "not_found":
+        _print_expected_error(
+            "No translation in progress was found to resume.",
+            "Start a translation with 'ayvu translate <epub>' or check the processing folder.",
+            mode,
+        )
+    else:
+        failure = (book_refusal(state.input_path) or "unexpected_error") if code == "policy_denied" else code
+        _print_translation_failure(_BookOutcome(failure=failure), state.output_path, mode)
 
 
 def _select_resume_state(

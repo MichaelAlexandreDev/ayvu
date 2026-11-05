@@ -14,9 +14,8 @@ The UUID is randomly allocated once, stored in the manifest, and survives restar
 
 Direct, guided and batch translations resolve projects before translator
 preflight. Cache-only reconstruction also resolves a project. Dry-run and the
-separate preview path do not create project state. Legacy `resume` continues to
-use its existing checkpoint without requiring a manifest; checkpoint conversion
-belongs to a later issue. A project created before a failed preflight remains
+separate preview path do not create project state. [`resume`](job-recovery.md) uses a
+project only if its checkpoint recomputes to a job in one, and never creates one. A project created before a failed preflight remains
 available for a retry.
 
 Manifest removal never automatically deletes a source, output, cache, glossary,

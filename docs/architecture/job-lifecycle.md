@@ -24,8 +24,8 @@ contracts, checkpoints, artifacts, retry policy, scheduling and workers are not
 accepted here. Progress, outcome and cancellation contracts were defined separately,
 under `DEC-017`, in [job events and cancellation](job-events-cancellation.md); they
 persist nothing. Checkpoints and artifacts were accepted separately in
-[job artifacts](job-artifacts.md). No interface uses jobs yet: translation, resume and the CLI keep
-their current behavior, and translating a book still creates no project database.
+[job artifacts](job-artifacts.md). [`TranslateProject`](translate-project.md) and
+[job recovery](job-recovery.md) are what use jobs.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -117,11 +117,11 @@ being repaired. `busy` is a typed error, and retry policy belongs to the caller.
 
 ## Relationship to resume and control files
 
-`*.ayvu-state.json` remains the only recovery mechanism in use, and `resume.py` keeps
-its `running`/`completed` values. The job modules do not import, read, rewrite or delete
-those files, and a legacy checkpoint is not imported as a job.
+`resume.py` keeps its `running`/`completed` values. The job modules do not import, read,
+rewrite or delete `*.ayvu-state.json`, and a legacy checkpoint is not imported as a job.
 [Job recovery](job-recovery.md) reads them, as a record of how a run was invoked, and
-checks them against a job's fingerprint before believing them.
+checks them against a job's fingerprint before believing them. A file that recomputes to
+no job still runs on the current flow, with no job.
 
 ## Consequences and limits
 

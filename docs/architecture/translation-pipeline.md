@@ -72,7 +72,7 @@ current translation yet:
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
 | No production cache until #153 | Running a book again reuses the v1 cache |
-| Resuming needs #146 | The current `resume` keeps working from its file |
+| Replay needs a job it can run in | [A resume](job-recovery.md) is a full re-execution over the v1 cache |
 
 #153 and #146 both depend on #145, so neither can come first. `ayvu.legacy_translation` is the named compatibility
 path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
@@ -165,7 +165,7 @@ digest and size are checked, then its content is compared with the document unit
 | Valid digest but content that does not match | Fails closed with `invalid_raw_results` |
 
 **Limit:** only the owning job can replay, so a continuation job redoes the work. A job's lease must
-also be live, so resuming after a crash needs [#146](https://github.com/MichaelAlexandreDev/ayvu/issues/146).
+also be live, so [a resume](job-recovery.md#whether-a-stage-can-be-reused) does not replay yet.
 Because a phase cannot return in one event stream, a second run in the same stream needs its own
 `progress_phase`.
 

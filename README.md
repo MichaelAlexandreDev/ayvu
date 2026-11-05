@@ -579,7 +579,7 @@ o [registro de artefatos e checkpoints](docs/architecture/job-artifacts.md) e o
 [registro de proveniência](docs/architecture/provenance.md). Cada tradução com projeto
 vira um job nesse banco, do começo ao resultado final, e o
 [caso de uso](docs/architecture/translate-project.md) explica o que acontece em cada caso.
-Dry-run, preview e o comando `resume` não têm projeto e não criam job.
+Dry-run e preview não têm projeto e não criam job.
 Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
 consulta e fragmentos. Autenticação por referências de credenciais é trabalho
 futuro; fingerprints do manifesto continuam sendo metadados privados.
@@ -606,6 +606,18 @@ uma, informe o EPUB e o `--target` para escolher. O comando mostra o checkpoint
 `Retry policy`) e reexecuta a tradução com as opções salvas. Ao executar apenas
 `uv run ayvu`, o modo comum também procura estados em andamento e oferece retomar
 a execução detectada, mostrando o mesmo resumo de checkpoint.
+
+Uma retomada nunca reabre um job que terminou: ela encerra o job interrompido, se
+ainda não tiver um resultado, e cria um novo ligado a ele. Ela é recusada se a mesma
+tradução ainda estiver rodando em outro processo, se o livro tiver mudado desde o
+começo ou se o livro for recusado por política. Um arquivo de estado antigo, sem job
+correspondente, continua funcionando como sempre, sem criar projeto nem job. Veja
+[recuperação de traduções](docs/architecture/job-recovery.md).
+
+O tradutor pode ser chamado de novo para um trecho que estava em andamento quando a
+execução foi interrompida. O cache evita repetir o que já foi concluído, mas ainda não
+prova qual provedor ou modelo produziu um texto, então toda retomada reprocessa o livro
+inteiro em vez de reaproveitar etapas.
 
 Checkpoint e cache se complementam: o **cache** guarda cada trecho já traduzido e
 evita retraduzi-lo, enquanto o **checkpoint** registra o progresso e as falhas.
