@@ -85,6 +85,13 @@ class OutputPlan:
         return self.path.exists()
 
 
+def automatic_output_candidate(directory: Path, stem: str, suffix: str, index: int) -> Path:
+    """One candidate in the existing automatic report naming sequence."""
+    if index < 1:
+        raise ValueError("invalid_candidate_index")
+    return directory / (f"{stem}{suffix}" if index == 1 else f"{stem}-{index}{suffix}")
+
+
 def default_translated_books_dir() -> Path:
     return Path.home() / "Documentos" / "Livros" / "Traduzidos"
 

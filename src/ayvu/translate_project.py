@@ -80,6 +80,7 @@ class TranslateProjectCommand:
     media_type: str = EPUB_MEDIA_TYPE
     operation_id: str | None = None
     schema_version: int = TRANSLATE_COMMAND_VERSION
+    accepted_output: AcceptedOutputPlan | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if self.schema_version != TRANSLATE_COMMAND_VERSION:
@@ -100,6 +101,9 @@ class TranslateProjectCommand:
             raise TranslateCommandError("preview_needs_no_project")
         if type(self.options.workers) is not int or self.options.workers < 1:
             raise TranslateCommandError("invalid_workers")
+        if self.accepted_output is not None and (self.accepted_output.execution_output != self.output
+                                                 or self.accepted_output.overwrite != self.overwrite):
+            raise TranslateCommandError("output_plan_mismatch")
 
     def __repr__(self) -> str:
         return f"TranslateProjectCommand(project_id={self.project_id!r}, schema_version={self.schema_version})"
@@ -191,6 +195,20 @@ class OutputPublications(Protocol):
     def reconcile(self) -> None: ...
 
 
+class AcceptedOutputPlan(Protocol):
+    """Opaque accepted revision; the output decision and publication guard travel together."""
+
+    @property
+    def output(self) -> OutputPlan: ...
+    @property
+    def execution_output(self) -> OutputPlan: ...
+    @property
+    def overwrite(self) -> bool: ...
+    def revalidate(self) -> None: ...
+    def publication_guard(self) -> None: ...
+    def mark_published(self) -> None: ...
+
+
 class ProvenanceWriter(Protocol):
     def append(self, request: ProvenanceRequest) -> object: ...
 
@@ -250,6 +268,7 @@ class TranslateProjectResult:
     raised: Exception | None = None
     artifact_destination: object | None = field(default=None, repr=False, compare=False)
     project_revision: int | None = field(default=None, repr=False)
+    report_ref: str | None = field(default=None, repr=False)
 
     def __repr__(self) -> str:
         state = None if self.state is None else self.state.value
@@ -258,6 +277,14 @@ class TranslateProjectResult:
     @property
     def output_ready(self) -> bool:
         return self.artifact is not None and self.recorded and self.state in (JobState.VALIDATED, JobState.PARTIALLY_COMPLETED)
+
+
+class TranslateProjectInterrupted(KeyboardInterrupt):
+    """The interruption and the durable result settled before it escaped the active item."""
+
+    def __init__(self, result: TranslateProjectResult) -> None:
+        super().__init__("interrupted")
+        self.result = result
 
 
 def _counters(stats: TextStats, chapters: int, validation: OutputValidation | None) -> tuple[tuple[str, int], ...]:
@@ -416,6 +443,11 @@ class TranslateProject:
         def refused(family: JobFailureFamily, code: str) -> TranslateProjectResult:
             return TranslateProjectResult(command.project_id, failure=JobFailure(family, code))
 
+        if command.accepted_output is not None:
+            try:
+                command.accepted_output.revalidate()
+            except ValueError:
+                return refused(JobFailureFamily.INTEGRITY, "destination_changed")
         ports = self._ports
         try:
             project = ports.projects.load(command.project_id)
@@ -554,7 +586,7 @@ class _Run:
             self._drive()
         except KeyboardInterrupt:
             self._interrupted()
-            raise
+            raise TranslateProjectInterrupted(self._result()) from None
         except ChapterSelectionError as error:
             self._raised = error
             self._attempt(lambda: self._fail(JobFailure(JobFailureFamily.INPUT, "no_chapters_matched")))
@@ -628,6 +660,8 @@ class _Run:
             if self._validation.warnings or not self._validation.ok:
                 self._emit(JobWarning("validation_warnings"))
         self._progress("publishing", "step", 0, 1)
+        if self._command.accepted_output is not None:
+            self._command.accepted_output.publication_guard()
 
     def _conclude(self) -> None:
         engine = self._engine
@@ -638,6 +672,8 @@ class _Run:
             self._terminal(JobState.PARTIALLY_COMPLETED, "cache_incomplete")
         else:
             self._artifact = engine.artifact
+            if self._command.accepted_output is not None:
+                self._command.accepted_output.mark_published()
             self._progress("publishing", "step", 1, 1)
             self._move(JobState.COMPLETED)
             self._move(JobState.VALIDATING)
@@ -773,4 +809,6 @@ class _Run:
         return TranslateProjectResult(
             self._command.project_id, self._job.job_id, self._job.state, self._outcome, self._failure or self._engine.failure, artifact,
             self._engine, self._validation, self._log.replay(), self._recorded and self._job.terminal, self._raised,
-            self._command.output.path, self._project.revision)
+            self._command.output.path, self._project.revision,
+            self._job.job_id if self._engine.failure is None and self._recorded
+            and self._job.state in (JobState.VALIDATED, JobState.PARTIALLY_COMPLETED) else None)

@@ -415,19 +415,36 @@ uv run ayvu translate livro-1.epub livro-2.epub livro-3.epub \
   --continue-on-error
 ```
 
-Quando mais de um EPUB é informado, o Ayvu calcula uma saída por livro usando o
+O comando aceita até 100 EPUBs e os processa sequencialmente na ordem informada.
+Sem `--source`, o idioma de origem é identificado nos metadados de cada livro;
+os livros podem ter idiomas diferentes. Quando mais de um EPUB é informado, o Ayvu calcula uma saída por livro usando o
 padrão `<nome>-<idioma>.epub` dentro de `--output-dir`. Sem `--output-dir`, usa a
-pasta de traduzidos configurada. O batch não aceita `--output` nem
-`--review-output`, pois essas opções apontam para um único arquivo.
+pasta de traduzidos configurada. O batch não aceita `--output`,
+`--review-output` nem `--missing-output`, pois essas opções apontam para um único arquivo.
 
 Por padrão, o comando para no primeiro livro que falhar. Com
 `--continue-on-error`, os próximos EPUBs continuam sendo processados, mas a
 execução termina com código 1 se qualquer item falhar. Saídas existentes seguem
 a mesma regra do fluxo individual: use `--overwrite` para substituir no modo
-desenvolvedor, ou confirme a substituição quando estiver no modo comum.
+desenvolvedor, ou confirme a substituição quando estiver no modo comum. O Ayvu
+recusa destinos de EPUB duplicados antes de começar e pede as escolhas para
+todos os conflitos do modo comum antes de processar o primeiro livro.
 
-Cada item do batch mostra seu relatório no terminal e salva um relatório
+Cada item que chega à etapa de relatório o mostra no terminal e salva um
 Markdown separado na pasta de relatórios configurada.
+Em `--cache-only`, textos ausentes geram também um arquivo automático por livro
+nessa pasta. Com `--dry-run`, esses arquivos auxiliares continuam sendo salvos,
+mas o EPUB traduzido não é publicado. Uma tradução parcial por falhas de trechos
+ou ausências no cache, sem `--fail-fast` e com validação aceita, não conta como
+falha do item.
+Se não houver nome automático disponível para um auxiliar, o item falha;
+`--continue-on-error` permite seguir para os próximos. Evite alterar caminhos
+de entrada, saída ou relatórios durante a execução: ainda existe uma janela
+entre a última verificação e a substituição ou criação exclusiva do arquivo.
+Uma interrupção encerra o lote com os resultados dos itens iniciados e não inicia
+o próximo livro. Se a gravação do relatório falhar, o item falha mesmo que seu
+EPUB já tenha sido publicado. Uma recusa anterior à execução não mostra resumo
+vazio.
 
 ### Traduzir capítulos selecionados
 

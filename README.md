@@ -22,7 +22,7 @@ O EPUB original nunca é alterado. A saída é gravada em um novo arquivo `.epub
 - Modo comum guiado e modo desenvolvedor direto.
 - Biblioteca inicial para listar originais e traduções e abrir EPUBs no leitor configurado ou padrão do sistema.
 - Checagens internas antes de iniciar traduções reais.
-- Modo `dry-run` para simular o processamento sem gerar arquivo.
+- Modo `dry-run` para simular o processamento sem gerar EPUB traduzido.
 - Modo `cache-only` para reconstruir o EPUB usando apenas o cache, sem chamar o tradutor.
 - Extração de texto visível para Markdown.
 - Relatório final no terminal e opção de salvar relatório Markdown no modo comum.
@@ -167,18 +167,35 @@ uv run ayvu translate livro-1.epub livro-2.epub livro-3.epub \
   --continue-on-error
 ```
 
-No batch, cada livro gera um EPUB separado com o padrão
+O comando aceita até 100 EPUBs e os processa sequencialmente, na ordem informada.
+Sem `--source`, o idioma de origem é identificado separadamente nos metadados
+de cada livro, que podem ter idiomas diferentes. Fora de `--dry-run`, cada livro
+gera um EPUB separado com o padrão
 `<nome>-<idioma>.epub` dentro de `--output-dir`. Se `--output-dir` não for
 informado, o Ayvu usa a pasta de traduzidos configurada. O comando para no
 primeiro erro por padrão; com `--continue-on-error`, continua nos livros
 restantes e termina com código 1 se algum item falhar. Saídas existentes não
 são sobrescritas sem confirmação no modo comum ou sem `--overwrite` no modo
-desenvolvedor.
+desenvolvedor. Destinos de EPUB duplicados são recusados antes do início; no
+modo comum, as escolhas para conflitos são feitas antes de processar os livros.
 
-As opções `--output` e `--review-output` são exclusivas do fluxo de um único
+As opções `--output`, `--review-output` e `--missing-output` são exclusivas do fluxo de um único
 EPUB, porque um caminho único de saída ou CSV não é suficiente para representar
 vários livros. O batch salva automaticamente um relatório Markdown separado por
-livro na pasta de relatórios configurada.
+livro que chega à etapa de relatório, na pasta de relatórios configurada.
+Em `--cache-only`, quando há textos ausentes, cada livro também recebe um
+arquivo de textos ausentes com nome automático nessa pasta. No `--dry-run`,
+o relatório e o arquivo de textos ausentes continuam sendo salvos, mas o EPUB
+não é publicado. Uma tradução parcial por falhas de trechos ou ausências no cache,
+sem `--fail-fast` e com validação aceita, não conta como falha do item.
+Se os nomes automáticos disponíveis se esgotarem, o item falha e a opção
+`--continue-on-error` determina se os demais continuam. As verificações de
+destino reduzem riscos, mas alterações concorrentes nos caminhos ainda podem
+ocorrer entre a última verificação e a substituição ou criação exclusiva do arquivo.
+Uma interrupção encerra o lote sem iniciar o próximo livro e preserva o resultado
+dos itens iniciados. Se o relatório não puder ser salvo, o item falha; um EPUB
+já publicado continua no destino. Uma recusa antes da execução não mostra um
+resumo vazio.
 
 Traduzir apenas capítulos selecionados:
 

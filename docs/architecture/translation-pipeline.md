@@ -15,6 +15,42 @@ Related issue: [#142 — Extract a versioned TranslationUnit pipeline](https://g
 The linguistic work on one text is a fixed sequence that knows nothing about documents.
 HTML traversal and markup reconstruction are in [`ayvu.html_structure`](html-structure.md).
 
+The CLI accepts at most 100 EPUBs in a sequential batch. Without an explicit
+source language it resolves each book's metadata independently. Each completed item saves
+a Markdown report, and cache-only misses also save an automatically named
+missing-text file; a multi-input request cannot use `--missing-output`. Duplicate
+EPUB destinations are rejected before the batch starts; common-mode conflict
+decisions are collected before processing. Dry runs still save the applicable
+automatic reports and missing-text files, but do not publish translated EPUBs.
+
+`TranslateBatch` orchestrates items in order through injected planning and item
+execution ports. `ayvu.translate_batch_composition` supplies a reusable production
+composition that binds each item to its execution and the batch cancellation
+controller. Normal executions delegate to `TranslateProject`; dry runs use the
+existing project-free path. The batch does not run items concurrently. The
+`TranslateProjectCommand.accepted_output` carries the accepted plan and must
+match the command's output; its revision is checked before execution and at
+publication.
+
+`BatchCancellationController` binds a fresh `CancellationSource` to each active
+job. An interruption returns the aggregate of started items and prevents the next
+item from starting. Depending on when it occurs, the active job may finish as
+`CANCELLED`, `FAILED` with `interrupted`, or `PARTIALLY_COMPLETED` with
+`interrupted_after_publication`.
+A pre-execution refusal does not print an empty batch summary.
+
+A `report_ref` identifies the job result rendered as a report and is exposed only
+when its Markdown was saved. If saving fails, the item is `FAILED` with
+`report_failed`; `job_state` and `output_published` retain the actual job and
+publication facts, while successful artifact and report references are absent.
+Exhaustion of the bounded automatic-name search is recorded as an item failure,
+while the planner continues reserving names for the remaining items.
+
+Path identity uses existing filesystem metadata and read-only case-sensitivity
+checks. These checks and the final operation are separate: a concurrent change
+can occur between the last check and `os.replace` or exclusive auxiliary creation,
+including replacement of a directory. They do not provide an absolute guarantee.
+
 There are two paths through the same stages:
 
 | Path | Entry | Identity | Durable state |
