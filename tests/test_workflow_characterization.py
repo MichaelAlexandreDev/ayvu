@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 
@@ -12,6 +12,7 @@ from typer.testing import CliRunner
 
 from ayvu.cli import app
 from ayvu.resume import COMPLETED_STATUS, RUNNING_STATUS, ResumeStateStore
+from ayvu.review_exchange import decode_review_package, encode_review_package
 
 
 runner = CliRunner()
@@ -21,6 +22,7 @@ runner = CliRunner()
 def _isolated_from_the_user(tmp_path, monkeypatch):
     """The CLI's defaults are relative to the working directory and the home folder, which hold real books and caches."""
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
 
 
@@ -410,7 +412,7 @@ def test_translate_cli_resolves_intermediate_route_end_to_end(tmp_path, monkeypa
     assert ("en", "pt") in pairs
 
 
-def test_legacy_review_export_is_inspectable_but_v1_cli_apply_is_fail_closed(tmp_path, monkeypatch):
+def test_cli_review_export_is_v2_and_apply_reconstructs_only_after_validation(tmp_path, monkeypatch):
     source_path = _write_epub(tmp_path / "reviewable.epub")
     source_bytes = source_path.read_bytes()
     session = FakeLibreTranslateSession(_direct_languages())
@@ -429,30 +431,26 @@ def test_legacy_review_export_is_inspectable_but_v1_cli_apply_is_fail_closed(tmp
     )
     assert translated.exit_code == 0, translated.output
     assert review_path.exists()
+    package_bytes = review_path.read_bytes()
+    assert package_bytes.startswith(b"AYVU-REVIEW-PACKAGE,2,")
+    package = decode_review_package(package_bytes)
+    edited = replace(package, rows=tuple(
+        replace(row, reviewed_text=row.machine_translation.replace("PT:", "Reviewed:"), review_status="reviewed")
+        for row in package.rows))
+    review_path.write_bytes(encode_review_package(edited))
 
-    with review_path.open(encoding="utf-8", newline="") as input_file:
-        reader = csv.DictReader(input_file)
-        rows = list(reader)
-        fieldnames = reader.fieldnames
-    assert fieldnames is not None
-    edited = False
-    for row in rows:
-        if "Hello reader" in row["original"]:
-            row["translated"] = "Reviewed reader."
-            edited = True
-    assert edited
-    with review_path.open("w", encoding="utf-8", newline="") as output_file:
-        writer = csv.DictWriter(output_file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
+    output_path = tmp_path / "reviewable-pt-reviewed.epub"
+    preview = runner.invoke(app, ["--mode", "developer", "apply-review", str(source_path), str(review_path),
+                                  "--validate-only"])
+    reviewed = runner.invoke(app, ["--mode", "developer", "apply-review", str(source_path), str(review_path),
+                                   "--output", str(output_path)])
 
-    reviewed = runner.invoke(app, ["--mode", "developer", "apply-review", str(source_path), str(review_path)])
-
-    reviewed_path = tmp_path / "reviewable-pt-reviewed.epub"
-    assert reviewed.exit_code == 1, reviewed.output
-    assert "legacy_reexport_required" in reviewed.output
-    assert "pacote v2" in reviewed.output
-    assert not reviewed_path.exists()
+    assert preview.exit_code == 0, preview.output
+    assert "Review package validation" in " ".join(preview.output.split())
+    assert reviewed.exit_code == 0, reviewed.output
+    assert "Review application report" in reviewed.output
+    assert output_path.exists()
+    assert 'Reviewed:Hello <a href="chapter2.xhtml#two">reader</a>.' in _read_member(output_path, "OEBPS/text/chapter1.xhtml")
     assert source_path.read_bytes() == source_bytes
 
 

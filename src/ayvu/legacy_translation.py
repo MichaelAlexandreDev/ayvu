@@ -19,13 +19,10 @@ from .epub_io import TranslationReport, _validate_worker_options
 from .format_service import FormatPublication, FormatService, FormatSource
 from .html_structure import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
 from .html_translate import HtmlTranslationStats, TextTranslationResult, translate_text
-from .review_export import (
-    METADATA_CHAPTER_NAME, METADATA_SEGMENT_ID, METADATA_SEGMENT_KIND, ReviewSegment, format_segment_id,
-)
 from .translation_memory import TranslationMemory
 from .translation_engine import (
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED,
-    BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, ReviewEntry, TextStats, TranslationEngine,
+    BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, TextStats, TranslationEngine,
     UnitExecution,
 )
 
@@ -152,25 +149,12 @@ def to_report(result: EngineResult, source_path: Path, destination_path: Path, p
     return report
 
 
-def to_review_segment(entry: ReviewEntry, source_path: Path, destination_path: Path, options: TranslationOptions) -> ReviewSegment:
-    metadata = entry.kind == METADATA_KIND
-    return ReviewSegment(
-        segment_id=METADATA_SEGMENT_ID if metadata else format_segment_id(entry.chapter_index, entry.segment_index),
-        source_epub=str(source_path), output_epub=str(destination_path), chapter_index=entry.chapter_index,
-        chapter_name=METADATA_CHAPTER_NAME if metadata else entry.chapter_name,
-        document_name=entry.logical_key if metadata else entry.chapter_name, document_path=entry.logical_key,
-        segment_kind=METADATA_SEGMENT_KIND if metadata else _REVIEW_KINDS.get(entry.kind, "text"),
-        source_language=options.source, target_language=options.target, original=entry.original,
-        translated=entry.translated, from_cache=entry.from_cache)
-
-
 def translate_book(source_path: Path, destination_path: Path, translator: object, cache: object, options: TranslationOptions, *,
                    formats: FormatService, source: FormatSource, publication: FormatPublication, project_id: str,
                    glossary: object | None = None,
                    on_chapter_start: Callable[[int, int, str], None] | None = None,
                    on_chapter_done: Callable[[int, int, str, HtmlTranslationStats], None] | None = None,
                    on_text_processed: Callable[[str], None] | None = None,
-                   review_segments: list[ReviewSegment] | None = None,
                    translator_factory: Callable[[], object] | None = None,
                    cache_factory: Callable[[], object] | None = None) -> tuple[TranslationReport, EngineResult]:
     """The engine in the current report's terms. A failure is in the result, and nothing was published."""
@@ -189,6 +173,4 @@ def translate_book(source_path: Path, destination_path: Path, translator: object
         EPUB_ADAPTER_ID, source, publication, project_id, package.facts, options.translate_metadata,
         options.translate_alt_text, options.chapter_selection, options.fail_fast,
         options.cache_only and options.require_full_cache, options.workers))
-    if review_segments is not None:
-        review_segments.extend(to_review_segment(entry, source_path, destination_path, options) for entry in result.review)
     return to_report(result, source_path, destination_path, package, options, glossary), result

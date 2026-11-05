@@ -1,11 +1,11 @@
 """The translation engine against the current flow, which is the oracle until #145 retires it.
 
 Each parity scenario runs both and compares everything a user can observe: the bytes, the calls
-to the provider and their order, the cache, the report, the progress and the review rows.
+to the provider and their order, the cache, the report and the progress. Review export now belongs
+to the shared review application use case, which consumes the engine's stable documents and units.
 """
 from __future__ import annotations
 
-import dataclasses
 import io
 import sqlite3
 import threading
@@ -95,21 +95,20 @@ REPORT_FIELDS = (
     "detected_language", "target_language")
 
 
-def observed(report, translator, statuses, starts, done, review, output, cache_path) -> dict:
+def observed(report, translator, statuses, starts, done, output, cache_path) -> dict:
     usage = report.glossary_usage
     return {
         "report": {name: getattr(report, name) for name in REPORT_FIELDS},
         "glossary": (usage.applied_terms, usage.required_terms_missing),
         "calls": sorted(translator.calls) if translator.parallel else translator.calls,
         "statuses": statuses, "starts": starts, "done": done,
-        "review": [dataclasses.astuple(segment) for segment in review],
         "output": output, "cache": cache_rows(cache_path),
     }
 
 
 def run_current(source: Path, directory: Path, options: TranslationOptions, *, change=None, glossary=None, seed=False, parallel=False):
     directory.mkdir()
-    translator, statuses, starts, done, review = Prefix(change), [], [], [], []
+    translator, statuses, starts, done = Prefix(change), [], [], []
     translator.parallel = parallel
     cache_path = directory / "cache.sqlite"
     destination = directory / "out.epub"
@@ -123,20 +122,19 @@ def run_current(source: Path, directory: Path, options: TranslationOptions, *, c
             source, destination, translator, cache, options, glossary=glossary,
             on_chapter_start=lambda *item: starts.append(item), on_chapter_done=lambda index, total, name, stats: done.append(
                 (index, total, name, stats.translated, stats.from_cache, stats.missing, list(stats.errors))),
-            on_text_processed=statuses.append, review_segments=review, **factories)
+            on_text_processed=statuses.append, **factories)
     output = zip_members(destination.read_bytes()) if report.output_written else None
-    return observed(report, translator, statuses, starts, done, review, output, cache_path)
+    return observed(report, translator, statuses, starts, done, output, cache_path)
 
 
 def run_engine(source: Path, directory: Path, options: TranslationOptions, formats, *, change=None, glossary=None, seed=False, parallel=False):
     directory.mkdir()
-    translator, statuses, starts, done, review = Prefix(change), [], [], [], []
+    translator, statuses, starts, done = Prefix(change), [], [], []
     translator.parallel = parallel
     cache_path = directory / "cache.sqlite"
     env = FormatEnv(directory / "env")
     publication = env.publication()
     factories = {"translator_factory": lambda: translator, "cache_factory": lambda: TranslationCache(cache_path)} if parallel else {}
-    # The current flow's file name goes in the review rows, so both must name the same one.
     destination = directory.parent / "current" / "out.epub"
     with TranslationCache(cache_path) as cache:
         if seed:
@@ -148,10 +146,10 @@ def run_engine(source: Path, directory: Path, options: TranslationOptions, forma
             project_id=PROJECT, glossary=glossary, on_chapter_start=lambda *item: starts.append(item),
             on_chapter_done=lambda index, total, name, stats: done.append(
                 (index, total, name, stats.translated, stats.from_cache, stats.missing, list(stats.errors))),
-            on_text_processed=statuses.append, review_segments=review, **factories)
+            on_text_processed=statuses.append, **factories)
     assert result.failure is None, result.failure
     output = zip_members(env.read(publication)) if result.output_written else None
-    return observed(report, translator, statuses, starts, done, review, output, cache_path)
+    return observed(report, translator, statuses, starts, done, output, cache_path)
 
 
 PARITY = {
@@ -454,5 +452,5 @@ def test_memory_and_workers_are_refused_as_in_the_current_flow(tmp_path, formats
 
 def test_results_omit_book_text_from_their_repr(tmp_path, formats):
     _, result, _, _ = engine_only(tmp_path, formats, epub_bytes(), translate_metadata=True)
-    shown = repr(result) + repr(result.stats) + repr(result.review[0])
+    shown = repr(result) + repr(result.stats)
     assert "Title" not in shown and "Hello" not in shown

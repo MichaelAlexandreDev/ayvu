@@ -232,27 +232,42 @@ uv run ayvu translate livro.epub \
   --review-output livro-review.csv
 ```
 
-O arquivo de revisão v1 só é criado quando `--review-output` é informado. Ele
-registra segmentos e textos para inspeção local; seu identificador posicional e
-seus campos de origem não provam a revisão do projeto nem a identidade do artefato.
-Se o CSV já existir, use `--overwrite` ou escolha outro caminho. A opção não
-funciona com `--dry-run`, porque o dry-run não gera texto traduzido revisável.
+`--review-output` gera um pacote CSV v2 vinculado ao projeto, à fonte exata, ao
+artefato da tradução automática e às unidades estáveis. O pacote contém texto
+sensível do livro e deve ficar em armazenamento local protegido. Se o CSV já
+existir, use `--overwrite` ou escolha outro caminho. A opção não funciona com
+`--dry-run`, porque o dry-run não gera texto traduzido revisável.
 
-O leitor v1 é limitado e serve apenas para inspeção e diagnóstico. O comando de
-aplicação recusa o arquivo antes de abrir o EPUB ou criar saída:
+Para revisar, abra o CSV em um editor ou planilha e altere só duas colunas:
+`reviewed_text`, que já vem com a tradução automática, e `review_status`, que
+começa como `pending` e precisa ser `reviewed` em **todas** as linhas, inclusive
+nas que você não mudou. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
+mantenha cada um, na mesma ordem. As demais colunas ligam a linha ao livro e não
+podem mudar. Salvar pela planilha é aceito, com vírgula ou ponto e vírgula.
+
+Pacotes v1 antigos continuam disponíveis apenas para inspeção; `apply-review`
+recusa sua aplicação e pede uma nova exportação v2. Para verificar um pacote v2
+sem criar job, artefato ou EPUB, use `--validate-only`:
+
+```bash
+uv run ayvu apply-review livro.epub livro-review.csv --validate-only
+```
+
+Para aplicar, use o EPUB original e o pacote revisado. O padrão grava
+`<nome>-reviewed.epub`; se esse destino existir, a aplicação falha sem alterá-lo.
+`--overwrite` permite substituir um EPUB revisado anterior, nunca a fonte ou o
+artefato traduzido automaticamente. Repetir o mesmo pacote com o mesmo destino
+confirma o resultado já gravado; se esse arquivo foi apagado ou alterado, a
+aplicação roda de novo e segue as mesmas regras de destino:
 
 ```bash
 uv run ayvu apply-review livro.epub livro-review.csv
 ```
 
-O contrato de pacote v2 está disponível na API `ayvu.review_exchange`: ele liga
-linhas a unidades estáveis, à revisão do projeto, ao artefato de tradução e às
-partes protegidas de markup. A importação v2 mapeia apenas texto simples e
-placeholders emitidos para o próprio pacote/unidade; o reconstrutor estrutural
-restaura os nós originais. A orquestração CLI ainda não exporta nem aplica v2.
-Até essa integração, `apply-review` termina com `legacy_reexport_required` para
-CSV v1 e orienta usar um pacote v2 ligado aos mesmos artefatos. Veja
-[`docs/architecture/review-exchange.md`](docs/architecture/review-exchange.md).
+O mapeamento v2 aceita texto simples e placeholders emitidos para o próprio
+pacote/unidade; o adaptador estrutural restaura os nós originais do EPUB. Veja
+[`docs/architecture/review-exchange.md`](docs/architecture/review-exchange.md)
+e [`docs/architecture/review-application.md`](docs/architecture/review-application.md).
 
 Gerar um preview traduzido:
 

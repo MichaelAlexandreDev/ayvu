@@ -31,7 +31,7 @@ from .job import JobError
 from .job_events import JobFailure, JobFailureFamily
 from .job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from .job_recovery_store import LocalRecoveryEvidence
-from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report, to_review_segment
+from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
 from .project import ProjectError
 from .project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from .project_store import ProjectJsonRepository
@@ -43,7 +43,6 @@ from .resume import (  # noqa: F401 - the CLI still keeps this file while it run
     TranslationResumeState,
     default_processing_dir,
 )
-from .review_export import ReviewSegment
 from .translate_project import (
     ContinuationTicket,
     OutputValidation,
@@ -154,10 +153,6 @@ class LegacyTranslationRuntime:
         """The result in the current report's terms, which the current presentation already knows how to show."""
         glossary = None if self._prepared is None else self._prepared.glossary
         return to_report(result.engine, self._source_path, destination, read_package(self._source_path), self._options, glossary)
-
-    def review_segments(self, result: TranslateProjectResult, destination: Path) -> list[ReviewSegment]:
-        return [to_review_segment(entry, self._source_path, destination, self._options) for entry in result.engine.review]
-
 
 class LegacyOutputValidator:
     """The current validator, reading the staged file. A warning names the output, never the temporary name."""
@@ -305,7 +300,6 @@ class ProjectTranslationRun:
 
     result: TranslateProjectResult
     report: TranslationReport | None
-    review_segments: list[ReviewSegment]
     preflight_error: Exception | None
 
     def __repr__(self) -> str:
@@ -330,4 +324,4 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
     engine = result.engine
     ended_with_a_report = engine.failure is None and result.raised is None and result.job_id is not None and runtime.preflight_error is None
     report = runtime.report(result, destination) if ended_with_a_report else None
-    return ProjectTranslationRun(result, report, runtime.review_segments(result, destination), runtime.preflight_error)
+    return ProjectTranslationRun(result, report, runtime.preflight_error)

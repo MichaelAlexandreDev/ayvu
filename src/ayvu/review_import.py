@@ -77,6 +77,13 @@ def read_review_csv(path: str | Path) -> LegacyReviewInspection:
         raise ReviewImportError("review_file_not_found") from None
     except OSError:
         raise ReviewImportError("review_file_unreadable") from None
+    return read_review_csv_bytes(raw)
+
+
+def read_review_csv_bytes(raw: bytes) -> LegacyReviewInspection:
+    """Inspect bounded v1 bytes without a filesystem write or path-backed temporary file."""
+    if type(raw) is not bytes:
+        raise ReviewImportError("invalid_input")
     if len(raw) > MAX_REVIEW_BYTES:
         raise ReviewImportError("review_file_too_large")
     if raw.startswith(b"\xef\xbb\xbf"):

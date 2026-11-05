@@ -103,21 +103,6 @@ class EngineRequest:
         return f"EngineRequest(adapter_id={self.adapter_id!r}, workers={self.workers})"
 
 
-@dataclass(frozen=True, repr=False)
-class ReviewEntry:
-    chapter_index: int
-    segment_index: int
-    chapter_name: str
-    logical_key: str
-    kind: str
-    original: str
-    translated: str
-    from_cache: bool
-
-    def __repr__(self) -> str:
-        return f"ReviewEntry(chapter_index={self.chapter_index}, segment_index={self.segment_index})"
-
-
 @dataclass(repr=False)
 class TextStats:
     translated: int = 0
@@ -167,7 +152,10 @@ class TextStats:
 class EngineResult:
     stats: TextStats = field(default_factory=TextStats)
     chapters_processed: int = 0
-    review: list[ReviewEntry] = field(default_factory=list)
+    # These values are the identity-bearing evidence used by shared review export.
+    documents: tuple[ContentDocument, ...] = field(default=(), repr=False)
+    translations: tuple[UnitTranslation, ...] = field(default=(), repr=False)
+    unit_sources: tuple[tuple[str, str], ...] = field(default=(), repr=False)
     output_written: bool = False
     artifact: Artifact | None = None
     failure: JobFailure | None = None
@@ -194,7 +182,7 @@ class _Chapter:
 class _ChapterOutcome:
     stats: TextStats = field(default_factory=TextStats)
     translations: list[UnitTranslation] = field(default_factory=list)
-    review: list[ReviewEntry] = field(default_factory=list)
+    unit_sources: list[tuple[str, str]] = field(default_factory=list)
     statuses: list[str] = field(default_factory=list)
 
 
@@ -226,17 +214,16 @@ def _translate_chapter(executor: UnitExecutor, chapter: _Chapter, *, fail_fast: 
             outcome.stats.errors.append(str(error))
             on_status(STATUS_ERROR)
             outcome.translations.append(UnitTranslation(unit.unit_id, executor.untranslated(unit)))
+            outcome.unit_sources.append((unit.unit_id, STATUS_ERROR))
             if fail_fast:
                 raise
             continue
         outcome.translations.append(UnitTranslation(unit.unit_id, execution.reconstruction_text))
+        outcome.unit_sources.append((unit.unit_id, execution.status))
         outcome.stats.record(execution)
         kind = unit.content.kind.name
         if kind == ALT_TEXT_KIND and execution.status != STATUS_MISSING:
             outcome.stats.alt_translated += 1
-        outcome.review.append(ReviewEntry(
-            chapter.index, len(outcome.review) + 1, chapter.name, chapter.document.logical_key, kind,
-            execution.original, execution.translated, execution.status == STATUS_CACHE))
         on_status(execution.status)
     return outcome
 
@@ -285,18 +272,23 @@ class TranslationEngine:
             return
         materialized: list[ContentDocument] = []
         translations: list[UnitTranslation] = []
+        unit_sources: list[tuple[str, str]] = []
         if request.translate_metadata:
             self._checkpoint(ENGINE_BEFORE_UNIT)
-            self._translate_title(request, title, result, materialized, translations)
+            self._translate_title(request, title, result, materialized, translations, unit_sources)
         run_chapters = self._run_parallel if request.workers > 1 else self._run_sequential
         for chapter, outcome in run_chapters(request, chapters, result):
             materialized.append(chapter.document)
             translations.extend(outcome.translations)
+            unit_sources.extend(outcome.unit_sources)
         if request.require_full_cache and result.stats.missing > 0:
             return
         if not materialized:
             result.failure = JobFailure(JobFailureFamily.INPUT, "nothing_to_materialize")
             return
+        result.documents = tuple(materialized)
+        result.translations = tuple(translations)
+        result.unit_sources = tuple(unit_sources)
         materialization = self._formats.reconstruct(
             request.adapter_id, request.source, ReconstructionRequest(tuple(materialized), tuple(translations)),
             request.publication, cancellation=self._cancellation)
@@ -323,7 +315,8 @@ class TranslationEngine:
         return [_Chapter(index, name, document) for index, (_, name, document) in enumerate(numbered, start=1)]
 
     def _translate_title(self, request: EngineRequest, title: ContentDocument | None, result: EngineResult,
-                         materialized: list[ContentDocument], translations: list[UnitTranslation]) -> None:
+                         materialized: list[ContentDocument], translations: list[UnitTranslation],
+                         unit_sources: list[tuple[str, str]]) -> None:
         def failed(error: Exception) -> None:
             result.stats.errors.append(f"metadata title: {error}")
             self._status(STATUS_ERROR)
@@ -341,8 +334,7 @@ class TranslationEngine:
         except Exception as error:
             failed(error)
             return
-        result.review.append(ReviewEntry(0, 0, "", title.logical_key, METADATA_KIND, execution.original, execution.translated,
-                                         execution.status == STATUS_CACHE))
+        unit_sources.append((unit.unit_id, execution.status))
         result.stats.record(execution)
         self._status(execution.status)
         # A title that does not change leaves the package out, so it keeps its bytes.
@@ -352,7 +344,6 @@ class TranslationEngine:
 
     def _finished(self, chapter: _Chapter, outcome: _ChapterOutcome, total: int, result: EngineResult) -> None:
         result.stats.merge(outcome.stats)
-        result.review.extend(outcome.review)
         result.chapters_processed += 1
         if self._observer.on_chapter_done:
             self._observer.on_chapter_done(chapter.index, total, chapter.name, outcome.stats)

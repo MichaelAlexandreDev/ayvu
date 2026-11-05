@@ -16,6 +16,7 @@ from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from pathlib import Path
 from threading import Event, Thread
 from typing import Protocol
 from uuid import uuid4
@@ -36,10 +37,11 @@ from .job_execution import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMem
 from .job_service import JobRepository
 from .project import ProjectError, ProjectManifest
 from .provenance import (
-    UNKNOWN, ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind,
+    UNKNOWN, ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef,
 )
 from .translation_engine import (
-    ENGINE_SAFE_POINTS, BookFacts, EngineObserver, EngineRequest, EngineResult, TextStats, TranslationEngine,
+    ENGINE_SAFE_POINTS, STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, EngineObserver, EngineRequest,
+    EngineResult, TextStats, TranslationEngine,
     TranslationResources,
 )
 
@@ -246,6 +248,8 @@ class TranslateProjectResult:
     events: tuple[JobEvent, ...] = ()
     recorded: bool = True
     raised: Exception | None = None
+    artifact_destination: object | None = field(default=None, repr=False, compare=False)
+    project_revision: int | None = field(default=None, repr=False)
 
     def __repr__(self) -> str:
         state = None if self.state is None else self.state.value
@@ -357,6 +361,47 @@ class TranslateProject:
                 correlation_id=operation_id, idempotency_key=f"job:{job_id}:outcome"))
         except ProvenanceError:
             return False
+        return True
+
+    def _append_unit_provenance(self, project_id: str, job_id: str, artifact: Artifact,
+                                engine: EngineResult, destination: object) -> bool:
+        """Record machine origins by stable unit, without retaining any source or translated text."""
+        sources = {
+            STATUS_CACHE: SourceKind.CACHE,
+            STATUS_MEMORY: SourceKind.TRANSLATION_MEMORY,
+            STATUS_TRANSLATED: SourceKind.PROVIDER,
+            STATUS_MISSING: SourceKind.PIPELINE,
+            STATUS_ERROR: SourceKind.PIPELINE,
+            # A replay is a machine artifact restored from a prior durable result.
+            "replay": SourceKind.PIPELINE,
+        }
+        destination_path = Path(destination).expanduser().resolve(strict=False)
+        destination_digest = hashlib.sha256(str(destination_path).encode("utf-8")).hexdigest()
+        try:
+            self._ports.provenance.append(ProvenanceRequest(
+                project_id, job_id, "translate_output", ActorKind.SYSTEM, SourceKind.PIPELINE, _UNKNOWN_PRODUCER,
+                subject=SubjectRef("artifact_destination", 1, f"sha256:{destination_digest}"),
+                outcome_code="machine_translation_output", artifacts=(artifact.artifact_id,),
+                idempotency_key=f"destination:{job_id}"))
+        except ProvenanceError:
+            return False
+        seen: set[str] = set()
+        for unit_id, status in engine.unit_sources:
+            if unit_id in seen:
+                return False
+            seen.add(unit_id)
+            source_kind = sources.get(status)
+            if source_kind is None:
+                return False
+            outcome = ("translation_missing" if status == STATUS_MISSING else
+                       "translation_failed" if status == STATUS_ERROR else "machine_translation")
+            try:
+                self._ports.provenance.append(ProvenanceRequest(
+                    project_id, job_id, "translate_unit", ActorKind.SYSTEM, source_kind, _UNKNOWN_PRODUCER,
+                    subject=SubjectRef("translation_unit", 1, unit_id), outcome_code=outcome,
+                    artifacts=(artifact.artifact_id,), idempotency_key=f"machine:{job_id}:{unit_id}"))
+            except ProvenanceError:
+                return False
         return True
 
     def execute(self, command: TranslateProjectCommand, *, cancellation: CancellationSource | None = None,
@@ -672,8 +717,13 @@ class _Run:
     def _terminal(self, state: JobState, reason: str, failure: JobFailure | None = None) -> None:
         recorded = self._use_case._append_provenance(self._command.project_id, self._job.job_id, reason, self._artifact,
                                                      self._project.configuration_ref, self._command.operation_id)
-        if not recorded and state is JobState.VALIDATED:
-            # The output is real and the lineage is not there, so it cannot be called fully done.
+        if self._artifact is not None and state in (JobState.VALIDATED, JobState.PARTIALLY_COMPLETED):
+            recorded = self._use_case._append_unit_provenance(self._command.project_id, self._job.job_id,
+                                                               self._artifact, self._engine,
+                                                               self._command.output.path) and recorded
+        self._recorded = self._recorded and recorded
+        if not recorded and state in (JobState.VALIDATED, JobState.PARTIALLY_COMPLETED):
+            # Review export requires complete machine lineage, including for partial output.
             state, reason = JobState.PARTIALLY_COMPLETED, "provenance_failed"
         summary = JobTerminalSummary(reason, _counters(self._engine.stats, self._engine.chapters_processed, self._validation))
         outcome = JobOutcome(state, summary, failure)
@@ -722,4 +772,5 @@ class _Run:
         artifact = self._artifact if self._recorded and self._job.terminal else None
         return TranslateProjectResult(
             self._command.project_id, self._job.job_id, self._job.state, self._outcome, self._failure or self._engine.failure, artifact,
-            self._engine, self._validation, self._log.replay(), self._recorded and self._job.terminal, self._raised)
+            self._engine, self._validation, self._log.replay(), self._recorded and self._job.terminal, self._raised,
+            self._command.output.path, self._project.revision)
