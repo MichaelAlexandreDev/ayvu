@@ -2100,7 +2100,8 @@ def test_translate_command_batch_rejects_existing_output_without_overwrite(tmp_p
 
     assert result.exit_code == 1
     assert "existing output was not changed." in result.output
-    assert "Batch translation summary" in result.output
+    assert "Batch translation summary" not in result.output
+    assert "Batch item 1/2" not in result.output
     assert existing_output.read_text(encoding="utf-8") == "already here"
     assert "Traceback" not in result.output
 

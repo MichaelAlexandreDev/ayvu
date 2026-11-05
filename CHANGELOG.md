@@ -9,6 +9,15 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- O comando `translate` aceita no máximo 100 EPUBs e recusa `--missing-output`
+  com múltiplos arquivos; em cache-only, o nome dos textos ausentes continua
+  automático por livro. Destinos duplicados são recusados antes do lote, e as
+  decisões de conflito do modo comum são coletadas antes do primeiro item.
+  A exaustão dos nomes automáticos falha apenas o item. Uma interrupção retorna
+  os resultados dos itens iniciados e não inicia o próximo; uma recusa anterior
+  à execução não exibe resumo vazio. Falha ao salvar o relatório falha o item,
+  preservando a informação de EPUB já publicado. Ainda há uma janela entre a
+  última verificação e a substituição ou criação exclusiva do arquivo.
 - A abertura de um EPUB da biblioteca revalida o arquivo antes de iniciar o leitor; um arquivo
   substituído pede para abrir a biblioteca de novo. Itens ignorados, como pasta sem permissão ou
   link para fora da pasta de livros, geram um aviso em vez de sumir em silêncio.

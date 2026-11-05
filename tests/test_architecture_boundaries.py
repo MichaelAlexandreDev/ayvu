@@ -46,7 +46,10 @@ OWNERS = {
     "ayvu.legacy_translation": Owner("format", "EPUB"),
     "ayvu.translation_engine": Owner("application", "Translation"),
     "ayvu.translate_project": Owner("application", "Translation"),
+    "ayvu.translate_batch": Owner("application", "Translation"),
+    "ayvu.batch_output_policy": Owner("infrastructure", "Translation"),
     "ayvu.translate_project_composition": Owner("composition", "Translation"),
+    "ayvu.translate_batch_composition": Owner("composition", "Translation"),
     "ayvu.artifact_destination": Owner("infrastructure", "Artifacts"),
     "ayvu.epub_archive": Owner("format", "EPUB"),
     "ayvu.epub_format": Owner("format", "EPUB"),
@@ -293,6 +296,17 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.translate_batch_composition", "ayvu.batch_output_policy"),
+    ("ayvu.translate_batch_composition", "ayvu.translate_batch"),
+    ("ayvu.translate_batch_composition", "ayvu.translate_project"),
+    ("ayvu.translate_batch_composition", "ayvu.job"),
+    ("ayvu.translate_batch_composition", "ayvu.job_events"),
+    ("ayvu.translate_batch_composition", "ayvu.job_execution"),
+    ("ayvu.translate_project_composition", "ayvu.job_execution"),
+    ("ayvu.batch_output_policy", "ayvu.artifact"),
+    ("ayvu.batch_output_policy", "ayvu.domain"),
+    ("ayvu.cli", "ayvu.translate_batch"),
+    ("ayvu.cli", "ayvu.job"),
     ("ayvu.cache_admin", "ayvu.job_events"),
     ("ayvu.cache_admin_store", "ayvu.cache_admin"),
     ("ayvu.cache_admin_store", "ayvu.cache"),
@@ -588,6 +602,8 @@ ALLOWED_INTERNAL_EDGES = {
 
 
 EXCEPTIONS = {
+    ("ayvu.cli", "ayvu.translate_batch_composition"): Exemption("Translation", 158, "batch service composed at the CLI root"),
+    ("ayvu.cli", "ayvu.batch_output_policy"): Exemption("Translation", 158, "batch output policy composed at CLI root"),
     ("ayvu.cli", "ayvu.cache_admin_composition"): Exemption("Cache administration", 158, "cache administration composed at the root"),
     ("ayvu.cli", "ayvu.project_store"): Exemption(
         "Projects", 158, "project repository constructed in the shared composition root"),

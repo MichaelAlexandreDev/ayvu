@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Protocol
 
 from .artifact import ArtifactError
 from .artifact_destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
@@ -27,8 +29,9 @@ from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB p
 )
 from .format_local import LocalFormatSource
 from .format_service import FormatRegistry, FormatService
-from .job import JobError
+from .job import JobError, JobState
 from .job_events import JobFailure, JobFailureFamily
+from .job_execution import CancellationSource
 from .job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from .job_recovery_store import LocalRecoveryEvidence
 from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
@@ -44,6 +47,7 @@ from .resume import (  # noqa: F401 - the CLI still keeps this file while it run
     default_processing_dir,
 )
 from .translate_project import (
+    AcceptedOutputPlan,
     ContinuationTicket,
     OutputValidation,
     TranslateObserver,
@@ -51,6 +55,7 @@ from .translate_project import (
     TranslateProjectCommand,
     TranslateProjectPorts,
     TranslateProjectResult,
+    TranslateCommandError,
 )
 from .translation_engine import BookFacts, TranslationResources
 from .translation_memory import TranslationMemory
@@ -242,12 +247,14 @@ def interrupted_translations(recovery: JobRecovery) -> InterruptedTranslations:
 
 def open_translate_project(processing_dir: Path, project_id: str, source_path: Path, destination: Path, *, overwrite: bool,
                            runtime: LegacyTranslationRuntime, clock: Callable[[], datetime] = _utc_now,
-                           ops: DestinationFileOps | None = None, **tuning: object) -> TranslateProject:
+                           ops: DestinationFileOps | None = None, before_publish: Callable[[], None] | None = None,
+                           **tuning: object) -> TranslateProject:
     """``tuning`` is the optional new_id and lease timing of the use case. ``ops`` lets a test break the file system."""
     projects = ProjectJsonRepository(processing_dir)
     paths = projects.resolve_database_paths(project_id)
     root = projects.resolve_artifact_root(project_id)
-    payloads = LocalDestinationPayloads(root, destination=destination, replace_existing=overwrite, ops=ops)
+    payloads = LocalDestinationPayloads(root, destination=destination, replace_existing=overwrite, ops=ops,
+                                        before_publish=before_publish)
     jobs = open_job_repository(paths.database, paths.backups, project_id, clock=clock)
     artifacts = open_artifact_service(paths.database, paths.backups, root, project_id, payloads=payloads, clock=clock)
     provenance = open_provenance_repository(paths.database, paths.backups, project_id, clock=clock)
@@ -267,11 +274,39 @@ def translate_without_project(source_path: Path, destination_path: Path, **argum
     Dry run and preview create no project on purpose, and a resume file that recomputes to no job is not given one.
     Everything else goes through ``translate_in_project``.
     """
-    return translate_epub(source_path, destination_path, **arguments)
+    cancellation = arguments.pop("cancellation", None)
+    if cancellation is None:
+        return translate_epub(source_path, destination_path, **arguments)
+
+    def checkpoint() -> None:
+        if cancellation.checkpoint("dry_run_safe_point") is not None:
+            raise TranslationDryRunCancelled("cancelled")
+
+    def watching(callback):
+        def notify(*args):
+            checkpoint()
+            if callback is not None:
+                callback(*args)
+        return notify
+
+    checkpoint()
+    for name in ("on_chapter_start", "on_chapter_done", "on_text_processed"):
+        arguments[name] = watching(arguments.get(name))
+    report = translate_epub(source_path, destination_path, **arguments)
+    checkpoint()
+    return report
+
+
+class TranslationDryRunCancelled(KeyboardInterrupt):
+    """The no-project path observed a request at a callback safe point."""
 
 
 class ProjectTranslationUnavailable(RuntimeError):
     """The project's storage could not be opened. Nothing was started, and the message is a bounded code."""
+
+
+class CancellationBinding(Protocol):
+    def bind(self, source: CancellationSource) -> AbstractContextManager[CancellationSource]: ...
 
 
 @dataclass(frozen=True, repr=False)
@@ -289,6 +324,8 @@ class ProjectTranslation:
     cache_factory: Callable[[], object]
     continuation: ContinuationTicket | None = None
     operation_id: str | None = None
+    before_publish: Callable[[], None] | None = None
+    accepted_output: AcceptedOutputPlan | None = None
 
     def __repr__(self) -> str:
         return f"ProjectTranslation(project_id={self.project_id!r})"
@@ -306,22 +343,34 @@ class ProjectTranslationRun:
         return f"ProjectTranslationRun(result={self.result!r})"
 
 
-def translate_in_project(translation: ProjectTranslation, observer: TranslateObserver) -> ProjectTranslationRun:
+def translate_in_project(translation: ProjectTranslation, observer: TranslateObserver, *,
+                         cancellation: CancellationSource | CancellationBinding | None = None) -> ProjectTranslationRun:
+    if translation.accepted_output is not None and translation.output != translation.accepted_output.output:
+        raise TranslateCommandError("output_plan_mismatch")
     runtime = LegacyTranslationRuntime(translation.source_path, translation.options, translation.prepare, translation.cache_factory)
     destination = translation.output.path
+    overwrite = translation.accepted_output.overwrite if translation.accepted_output is not None else translation.replace_existing
     try:
+        guard = translation.accepted_output.publication_guard if translation.accepted_output is not None else translation.before_publish
+        publication_options = {} if guard is None else {"before_publish": guard}
         use_case = open_translate_project(translation.processing_dir, translation.project_id, translation.source_path, destination,
-                                          overwrite=translation.replace_existing, runtime=runtime)
+                                          overwrite=overwrite, runtime=runtime, **publication_options)
     except (ProjectError, JobError, ArtifactError, ProvenanceError, OSError, sqlite3.Error) as error:
         code = str(error) if isinstance(error, (ProjectError, JobError, ArtifactError, ProvenanceError)) else "project_storage_unavailable"
         raise ProjectTranslationUnavailable(code) from None
     # The plan holds the canonical path, the form a resume file records. The destination stays as given, so a link stays a link.
-    planned = replace(translation.output, path=destination.expanduser().resolve())
-    result = use_case.execute(TranslateProjectCommand(translation.project_id, translation.source_sha256, translation.options, planned,
-                                                      overwrite=translation.replace_existing, operation_id=translation.operation_id),
+    planned = (translation.accepted_output.execution_output if translation.accepted_output is not None
+               else replace(translation.output, path=destination.expanduser().resolve()))
+    binding = (cancellation.bind(use_case.cancellation()) if cancellation is not None and not isinstance(cancellation, CancellationSource)
+               else nullcontext(cancellation))
+    with binding as source:
+        result = use_case.execute(TranslateProjectCommand(translation.project_id, translation.source_sha256, translation.options, planned,
+                                                      overwrite=overwrite, operation_id=translation.operation_id,
+                                                      accepted_output=translation.accepted_output),
                               observer=observer,
-                              continuation=translation.continuation)
+                              continuation=translation.continuation, cancellation=source)
     engine = result.engine
-    ended_with_a_report = engine.failure is None and result.raised is None and result.job_id is not None and runtime.preflight_error is None
+    ended_with_a_report = (engine.failure is None and result.raised is None and result.job_id is not None
+                           and runtime.preflight_error is None and result.state not in (JobState.FAILED, JobState.CANCELLED))
     report = runtime.report(result, destination) if ended_with_a_report else None
     return ProjectTranslationRun(result, report, runtime.preflight_error)

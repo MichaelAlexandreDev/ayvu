@@ -84,7 +84,7 @@ class LocalDestinationPayloads:
     """Bound to one destination when publishing. Without one it can only settle what a past run left."""
 
     def __init__(self, root: Path, *, destination: Path | None = None, replace_existing: bool = False,
-                 ops: DestinationFileOps | None = None) -> None:
+                 ops: DestinationFileOps | None = None, before_publish: Callable[[], None] | None = None) -> None:
         self._journals = Path(os.path.abspath(root)) / "publications"
         # A link stays a link and the file it points at receives the output, as a plain write would do.
         self._destination = None if destination is None else Path(os.path.realpath(destination))
@@ -92,6 +92,7 @@ class LocalDestinationPayloads:
         self.on_staged: Callable[[Path], None] | None = None
         self._ops = ops or DestinationFileOps()
         self._publishing = False
+        self._before_publish = before_publish
 
     def __repr__(self) -> str:
         return "LocalDestinationPayloads()"
@@ -203,10 +204,14 @@ class LocalDestinationPayloads:
         if mode is not None:
             # The old file is the user's, and so is what it allowed.
             self._ops.chmod(staged, mode)
+        if self._before_publish is not None:
+            self._before_publish()
         self._ops.replace(staged, destination)
 
     def _link(self, staged: Path, destination: Path) -> None:
         try:
+            if self._before_publish is not None:
+                self._before_publish()
             self._ops.link(staged, destination)
             return
         except FileExistsError:
@@ -218,7 +223,10 @@ class LocalDestinationPayloads:
         # an empty file is visible for a moment, and a crash in that moment leaves it there: Ayvu never
         # removes a file at the destination, because it cannot tell it from one the user put there.
         try:
-            self._ops.reserve_name(destination, stat.S_IMODE(os.lstat(staged).st_mode))
+            mode = stat.S_IMODE(os.lstat(staged).st_mode)
+            if self._before_publish is not None:
+                self._before_publish()
+            self._ops.reserve_name(destination, mode)
         except FileExistsError:
             raise ArtifactConflictError("output_exists") from None
         self._ops.replace(staged, destination)
