@@ -121,10 +121,14 @@ lancadas e secoes versionadas quando uma release for publicada.
   saída informa o número concluído e o restante. No modo desenvolvedor, o detalhe
   que antes mostrava a exceção do parser agora mostra um código de motivo
   normalizado, sem conteúdo do livro ou caminhos originados pelo parser.
-  `inspect` e `extract` agora recusam livro protegido por DRM, como `translate` já
-  fazia, e explicam o motivo. `extract` também recusa capítulo cujo nome é inválido
-  ou reservado em algum sistema (`con`, `c:h`, `c*h`), que antes virava arquivo no
-  Linux. Pasta de saída inválida gera mensagem própria em vez de falha não tratada.
+  `inspect` de livro protegido por DRM mostra só um aviso, sem os dados do livro, e
+  `extract` o recusa, como `translate` já fazia. Em `extract`, caracteres de nome de
+  capítulo inválidos em algum sistema (`c:h`, `c*h`) viram `_`, e nomes longos demais
+  são encurtados, para o texto de todo capítulo ser exportado. Pasta de saída
+  inválida gera mensagem própria em vez de falha não tratada.
+- `apply-review` aplica só as linhas marcadas como `reviewed`; as demais mantêm a
+  tradução automática e não são registradas como revisão humana. Editar uma linha sem
+  marcá-la, ou marcar uma como `rejected`, recusa o pacote.
 - O contrato de revisão ganhou o pacote v2 `ayvu.review_exchange`, limitado e
   ligado a projeto, fonte, artefato de tradução, formato, locator e unidades
   estáveis. CSV v1 agora é apenas para inspeção: `apply-review` recusa antes de
