@@ -16,7 +16,8 @@ from .format_adapter import (
     FORMAT_CONTRACT_VERSION, MATERIALIZING_OPERATIONS, MAX_DETECTION_BYTES, AliasVerdict, DetectionEvidence, DetectionOutcome,
     DetectionResult, ExtractionRequest, ExtractionResult, FormatCancelledError, FormatDescriptor, FormatError, FormatInventory,
     FormatOperation, FormatOperationError, FormatRequirements, InspectionResult, MaterializationResult, PreviewRequest,
-    ReconstructionRequest, ValidationFinding, ValidationResult, negotiate_format, valid_source_fingerprint,
+    ReconstructionRequest, ValidationFinding, ValidationResult, VisibleContentDocument, VisibleContentExtractionResult,
+    negotiate_format, valid_source_fingerprint,
 )
 from .job import is_slug
 from .job_events import JobFailure, JobFailureFamily
@@ -85,6 +86,11 @@ class FormatExtractor(Protocol):
 
 
 @runtime_checkable
+class FormatVisibleContentExtractor(Protocol):
+    def extract_visible_content(self, context: FormatContext) -> tuple[VisibleContentDocument, ...]: ...
+
+
+@runtime_checkable
 class FormatPreviewer(Protocol):
     def preview(self, context: FormatContext, request: PreviewRequest) -> Iterable[bytes]: ...
 
@@ -102,6 +108,7 @@ class FormatValidator(Protocol):
 _PORTS = {
     FormatOperation.INSPECT: ("inspector", FormatInspector),
     FormatOperation.EXTRACT: ("extractor", FormatExtractor),
+    FormatOperation.EXPORT_VISIBLE_CONTENT: ("visible_content_extractor", FormatVisibleContentExtractor),
     FormatOperation.PREVIEW: ("previewer", FormatPreviewer),
     FormatOperation.RECONSTRUCT: ("reconstructor", FormatReconstructor),
     FormatOperation.VALIDATE: ("validator", FormatValidator),
@@ -115,6 +122,7 @@ class FormatAdapter:
     descriptor: FormatDescriptor
     inspector: FormatInspector | None = None
     extractor: FormatExtractor | None = None
+    visible_content_extractor: FormatVisibleContentExtractor | None = None
     previewer: FormatPreviewer | None = None
     reconstructor: FormatReconstructor | None = None
     validator: FormatValidator | None = None
@@ -199,7 +207,7 @@ class FormatRegistry:
         if weak:
             return DetectionResult(DetectionOutcome.MATCH, "extension_match", _ids(weak))
         if named:
-            return DetectionResult(DetectionOutcome.NO_MATCH, "signature_conflict")
+            return DetectionResult(DetectionOutcome.NO_MATCH, "signature_conflict", _ids(named))
         return DetectionResult(DetectionOutcome.NO_MATCH, "no_candidate")
 
 
@@ -270,6 +278,10 @@ class FormatService:
         """What a ``CancellationSource`` must declare to run this adapter. An unknown adapter raises."""
         return format_safe_points(self._registry.get(adapter_id).descriptor)
 
+    def descriptor(self, adapter_id: object) -> FormatDescriptor:
+        """Returns the registered contract, never an adapter implementation detail."""
+        return self._registry.get(adapter_id).descriptor
+
     def detect(self, source: FormatSource) -> DetectionResult:
         try:
             evidence = DetectionEvidence(source.head(MAX_DETECTION_BYTES), source.extension)
@@ -320,8 +332,25 @@ class FormatService:
                     inventory.format_version is not None and inventory.format_version not in adapter.descriptor.format_versions):
                 raise _failure(JobFailureFamily.INTERNAL, "descriptor_mismatch")
             self._finish(context)
-            return InspectionResult(inventory=inventory)
+            return InspectionResult(inventory=inventory, source_fingerprint=context.source_fingerprint)
         return _run(body, InspectionResult)
+
+    def export_visible_content(self, adapter_id: str, source: FormatSource, *, allow_experimental: bool = False,
+                               cancellation: CancellationToken | None = None) -> VisibleContentExtractionResult:
+        def body() -> VisibleContentExtractionResult:
+            adapter = self._negotiated(adapter_id, FormatOperation.EXPORT_VISIBLE_CONTENT,
+                                       FormatRequirements(allow_experimental=allow_experimental))
+            context = self._context(adapter, FormatOperation.EXPORT_VISIBLE_CONTENT, source, cancellation)
+            documents = adapter.visible_content_extractor.extract_visible_content(context)
+            if (type(documents) is not tuple or any(type(item) is not VisibleContentDocument for item in documents)
+                    or len({item.logical_key for item in documents}) != len(documents)):
+                raise _failure(JobFailureFamily.INTERNAL, "descriptor_mismatch")
+            limit = adapter.descriptor.limits.max_documents
+            if limit is not None and len(documents) > limit:
+                raise _failure(JobFailureFamily.RESOURCE, "too_many_documents")
+            self._finish(context)
+            return VisibleContentExtractionResult(documents=documents, source_fingerprint=context.source_fingerprint)
+        return _run(body, VisibleContentExtractionResult)
 
     def extract(self, adapter_id: str, source: FormatSource, request: ExtractionRequest, *,
                 cancellation: CancellationToken | None = None) -> ExtractionResult:

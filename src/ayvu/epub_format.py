@@ -22,12 +22,12 @@ from .epub_archive import (
 from .format_adapter import (
     ContentScope, ExtractionRequest, FidelityAspect, FidelityClaim, FidelityLevel, FindingSeverity, FormatDescriptor, FormatInventory,
     FormatLimits, FormatMaturity, FormatOperation, FormatOperationError, FormatSignature, InventoryDocument, OperationClaim, OperationSupport,
-    PreviewRequest, ReconstructionRequest, UnitTranslation, ValidationFinding,
+    PreviewRequest, ReconstructionRequest, UnitTranslation, ValidationFinding, VisibleContentDocument,
 )
 from .format_service import FormatAdapter, FormatContext, FormatRegistration
 from .html_structure import (
-    HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, HTML_SEGMENTER_VERSION, HtmlStructureError, extract_html_document, extract_visible_text,
-    plain_text_content, reconstruct_html, restore_plain_text,
+    HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, HTML_SEGMENTER_VERSION, HtmlStructureError, extract_body_visible_text,
+    extract_html_document, extract_visible_text, plain_text_content, reconstruct_html, restore_plain_text,
 )
 from .job_events import JobFailure, JobFailureFamily
 
@@ -178,7 +178,8 @@ class _EpubPorts:
                 listed.insert(0, InventoryDocument(package.archive_path, package.title))
             version = package.version if package.version in _epub_descriptor().format_versions else None
             return FormatInventory(document_count=len(listed), resource_count=len(package.items), format_version=version, title=package.title,
-                                   authors=package.creators, language=package.language, documents=tuple(listed))
+                                   authors=package.creators, language=package.language, documents=tuple(listed),
+                                   source_document_count=len(package.documents))
 
     def extract(self, context: FormatContext, request: ExtractionRequest) -> tuple[ContentDocument, ...]:
         if ContentScope.IMAGE_ALT_TEXT in request.scopes and not request.scopes & {ContentScope.BODY, ContentScope.NAVIGATION}:
@@ -198,6 +199,18 @@ class _EpubPorts:
                         archive.read_document(item.archive_path), request.project_id, item.archive_path, adapter=EPUB_ADAPTER,
                         source_locale=request.source_locale, include_alt_text=ContentScope.IMAGE_ALT_TEXT in request.scopes,
                         source_fingerprint=context.source_fingerprint))
+        return tuple(documents)
+
+    def extract_visible_content(self, context: FormatContext) -> tuple[VisibleContentDocument, ...]:
+        """Returns text in manifest order; HTML visibility remains owned by html_structure."""
+        documents: list[VisibleContentDocument] = []
+        with _opened(context) as archive:
+            for item in archive.package.documents:
+                context.checkpoint(BETWEEN_DOCUMENTS)
+                name = posixpath.basename(item.archive_path)
+                stem = posixpath.splitext(name)[0]
+                fragments = tuple(extract_body_visible_text(archive.read_document(item.archive_path)))
+                documents.append(VisibleContentDocument(item.archive_path, stem, fragments))
         return tuple(documents)
 
     def preview(self, context: FormatContext, request: PreviewRequest) -> Iterable[bytes]:
@@ -240,6 +253,7 @@ def _epub_descriptor() -> FormatDescriptor:
         operations=(
             supported(FormatOperation.INSPECT, BETWEEN_MEMBERS),
             supported(FormatOperation.EXTRACT, BETWEEN_MEMBERS, BETWEEN_DOCUMENTS),
+            supported(FormatOperation.EXPORT_VISIBLE_CONTENT, BETWEEN_MEMBERS, BETWEEN_DOCUMENTS),
             supported(FormatOperation.PREVIEW, BETWEEN_MEMBERS, BETWEEN_DOCUMENTS, BEFORE_OUTPUT),
             supported(FormatOperation.RECONSTRUCT, BETWEEN_MEMBERS, BETWEEN_DOCUMENTS, BEFORE_OUTPUT),
             supported(FormatOperation.VALIDATE, BETWEEN_MEMBERS, BETWEEN_DOCUMENTS),
@@ -260,4 +274,5 @@ EPUB_REGISTRATION = FormatRegistration(EPUB_ADAPTER.namespace, EPUB_ADAPTER.adap
 
 def epub_format_adapter() -> FormatAdapter:
     ports = _EpubPorts()
-    return FormatAdapter(_epub_descriptor(), inspector=ports, extractor=ports, previewer=ports, reconstructor=ports, validator=ports)
+    return FormatAdapter(_epub_descriptor(), inspector=ports, extractor=ports, visible_content_extractor=ports,
+                         previewer=ports, reconstructor=ports, validator=ports)

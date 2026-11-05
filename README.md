@@ -120,6 +120,12 @@ Inspecionar um EPUB:
 uv run ayvu inspect livro.epub
 ```
 
+O comando é somente de leitura: mostra caminho, título, autores, idioma e as
+contagens de documentos e itens, sem criar cache ou projeto. Livro protegido por
+DRM é recusado, como em `translate`. Em erros de leitura,
+o modo desenvolvedor mostra um código de motivo seguro em vez do texto interno
+do parser.
+
 Traduzir um EPUB:
 
 ```bash
@@ -470,6 +476,12 @@ Extrair texto visível para Markdown:
 uv run ayvu extract livro.epub \
   --output livro-extraido/
 ```
+
+Sem `--overwrite`, um diretório de saída não vazio é recusado. Com a opção, o
+Ayvu substitui apenas os Markdown planejados e preserva os demais arquivos. Cada
+Markdown é publicado atomicamente; se uma falha ocorrer depois de algum arquivo
+ser publicado, a mensagem informa quantos foram concluídos e quantos não foram.
+Essa publicação é independente por arquivo, sem transação para o diretório todo.
 
 ## Glossário
 

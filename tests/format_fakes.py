@@ -31,7 +31,8 @@ def notes_descriptor(**changes):
         adapter=AdapterIdentity("fake_notes", 1, 1), locators=(("fake_line", 1),),
         operations=(OperationClaim(FormatOperation.INSPECT, OperationSupport.SUPPORTED, EVIDENCE),
                     OperationClaim(FormatOperation.EXTRACT, OperationSupport.SUPPORTED, EVIDENCE, ("notes_between_lines",)),
-                    *unsupported(FormatOperation.PREVIEW, FormatOperation.RECONSTRUCT, FormatOperation.VALIDATE)),
+                    *unsupported(FormatOperation.EXPORT_VISIBLE_CONTENT, FormatOperation.PREVIEW,
+                                FormatOperation.RECONSTRUCT, FormatOperation.VALIDATE)),
         fidelity=all_fidelity(FidelityLevel.NOT_APPLICABLE), extensions=(".notes",), media_types=("text/x-notes",),
         format_versions=("1",), content_scopes=frozenset({ContentScope.BODY}), limits=FormatLimits(max_source_bytes=1024 * 1024),
         maturity=FormatMaturity.EXPERIMENTAL)
@@ -81,7 +82,8 @@ def cards_descriptor(**changes):
                     OperationClaim(FormatOperation.EXTRACT, OperationSupport.SUPPORTED, EVIDENCE, ("cards_between_documents",)),
                     OperationClaim(FormatOperation.PREVIEW, OperationSupport.EXPERIMENTAL, (), ("cards_before_render",)),
                     OperationClaim(FormatOperation.RECONSTRUCT, OperationSupport.SUPPORTED, EVIDENCE, ("cards_before_render", "cards_after_render")),
-                    OperationClaim(FormatOperation.VALIDATE, OperationSupport.SUPPORTED, EVIDENCE, ("cards_before_validate",))),
+                    OperationClaim(FormatOperation.VALIDATE, OperationSupport.SUPPORTED, EVIDENCE, ("cards_before_validate",)),
+                    *unsupported(FormatOperation.EXPORT_VISIBLE_CONTENT)),
         fidelity=tuple(fidelity.values()), extensions=(".cards",), signatures=(FormatSignature(((0, CARDS_HEADER),)),),
         format_versions=("1", "2"), content_scopes=frozenset({ContentScope.BODY, ContentScope.METADATA}), maturity=FormatMaturity.STABLE)
     return FormatDescriptor(**{**values, **changes})

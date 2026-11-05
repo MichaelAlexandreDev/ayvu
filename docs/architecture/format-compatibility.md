@@ -1,8 +1,9 @@
 # Format compatibility map
 
 This map lists where each current EPUB behavior lives today and what owns it under the
-[format adapter contract](format-adapter.md). **Nothing has moved yet.** Every function in the
-"Today" column keeps working unchanged until an issue migrates it explicitly.
+[format adapter contract](format-adapter.md). #147 moved the CLI `inspect` and `extract`
+flows to shared use cases; legacy functions remain callable where other compatibility
+paths still use them.
 
 The production adapter is in `ayvu.epub_format`, documented in [EPUB format](epub-format.md).
 
@@ -11,9 +12,9 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 
 | Behavior | Today | Owner | Note |
 | --- | --- | --- | --- |
-| inspect | `ayvu.epub_io.inspect_epub` | `ayvu.epub_format.epub_format_adapter` | `FormatInventory` has the same counts, title, authors and language |
+| inspect | `ayvu.content_use_cases.InspectContent` via `ayvu.content_composition` | `ayvu.format_service` and `ayvu.epub_format.epub_format_adapter` | The typed result preserves path at presentation, title, authors, language, physical document/item counts and missing-value semantics; inspection creates no output |
 | language detection | `ayvu.epub_io.detect_epub_language` | `ayvu.format_adapter.FormatInventory` | The inventory reports what the file declares. Falling back to `en` stays with the caller |
-| extract | `ayvu.epub_io.extract_markdown` | `ayvu.epub_format.epub_format_adapter` | It returns units. Writing Markdown files belongs to the caller |
+| extract | `ayvu.content_use_cases.ExportVisibleContent` via `ayvu.content_composition` | `ayvu.epub_format.epub_format_adapter` plus `ayvu.markdown_writer.MarkdownDirectoryWriter` | The adapter returns ordered visible-body records; the writer preserves current filenames/text and atomically publishes each planned Markdown file |
 | preview | `ayvu.cli._run_preview` | `ayvu.epub_format.epub_format_adapter` | It renders results it is given. Choosing and translating them stays with the application |
 | chapter selection | `ayvu.epub_io.resolve_chapter_selection` | `ayvu.format_adapter.ExtractionRequest` | The application resolves the selection and hands over logical keys |
 | metadata | `ayvu.epub_io._translate_opf_title` | `ayvu.format_adapter.ContentScope` | A scope to extract and a fidelity aspect. Translating stays out of the adapter |
@@ -26,7 +27,7 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 | validation | `ayvu.validation.validate_output_epub` | `ayvu.epub_format.epub_format_adapter` | Warnings as text become `ayvu.format_adapter.ValidationFinding` codes |
 | archive preservation | `ayvu.epub_io._copy_epub_with_replacements` | `ayvu.epub_archive.EpubArchive` | Member order, names and untouched members stay inside the adapter, as a fidelity claim |
 | mimetype storage | `ayvu.epub_io._copy_epub_with_replacements` | `ayvu.epub_archive.EpubArchive` | `mimetype` stays uncompressed, which the adapter must test |
-| visible text selection | `ayvu.html_translate.extract_visible_text` | `ayvu.html_structure.extract_html_document` | #144 delegates to it |
+| visible text selection | `ayvu.html_translate.extract_visible_text` for translation; `ayvu.html_structure.extract_body_visible_text` for Markdown export | `ayvu.html_structure` | #144 owns XHTML parsing and visibility selection; the Markdown writer does not parse markup |
 | html reconstruction | `ayvu.html_translate.translate_html` | `ayvu.html_structure.reconstruct_html` | #144 delegates to it, with no second segmenter |
 | jobs | `ayvu.job_service.JobRepository` | `ayvu.job_service.JobRepository` | Not a format concern |
 | resume | `ayvu.resume.ResumeStateStore` | [`ayvu.job_recovery`](job-recovery.md) | Not a format concern |

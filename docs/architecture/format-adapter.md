@@ -22,16 +22,20 @@ a composition root.
 | `ayvu.format_adapter` | Domain | Descriptor, claims, negotiation, requests and results |
 | `ayvu.format_service` | Application | Operation ports, registry and the checks before any work |
 | `ayvu.format_local` | Infrastructure | Local files as sources, and the check that a destination is not the source |
+| `ayvu.content_use_cases` | Application | Typed inspect and visible-content export orchestration |
+| `ayvu.markdown_writer` | Infrastructure | Safe Markdown planning and atomic publication of each local file |
+| `ayvu.content_composition` | Composition | Registers the EPUB adapter and supplies local content use cases |
 
-Failures reuse `JobFailure`, content reuses `ContentDocument`, cancellation reuses `CancellationToken`, and
-output goes through `ArtifactService`, so there is one taxonomy of each.
+Failures reuse `JobFailure`, content extraction for translation reuses `ContentDocument`, and cancellation reuses
+`CancellationToken`. Durable translation artifacts still go through `ArtifactService`; visible Markdown exports
+use a local writer port and return non-durable `PublishedFileRef` values.
 
 [The compatibility map](format-compatibility.md) lists where each current behavior goes.
 
 ## One port per operation
 
-`FormatAdapter` is a descriptor plus up to five ports: inspector, extractor, previewer, reconstructor and
-validator. A read-only format has no reconstructor. Building an adapter fails with `descriptor_mismatch` when
+`FormatAdapter` is a descriptor plus up to six ports: inspector, structured extractor, visible-content extractor,
+previewer, reconstructor and validator. A read-only format has no reconstructor. Building an adapter fails with `descriptor_mismatch` when
 a claim has no port, a port has no claim, or a port has the wrong shape.
 
 So no consumer needs `hasattr` or a condition on a format's name. A test scans the contract for both.
@@ -81,7 +85,7 @@ Detection looks only at declared signatures, the extension and the media type. N
 | One signature matches | `match` |
 | Two signatures match | `ambiguous` |
 | A signature matches, and the extension belongs to a format with no signature | `ambiguous`, unless the extension is also the signed format's |
-| No signature matches, and the extension belongs to a format with a signature | `no_match`, with `signature_conflict` |
+| No signature matches, and the extension belongs to a format with a signature | `no_match`, with `signature_conflict`, naming that format as a candidate |
 | Only an extension, of one format with no signature | `match` |
 | Only an extension, of two formats with no signature | `ambiguous` |
 | Nothing | `no_match`, with `no_candidate` |
@@ -93,7 +97,7 @@ decision back to the caller.
 
 Checks run cheapest first, and everything above "The adapter runs" happens with no adapter code running.
 
-| Inspect, extract, validate | Preview, reconstruct |
+| Inspect, extract, visible-content export, validate | Preview, reconstruct |
 | --- | --- |
 | Adapter is known | Adapter is known |
 | Negotiation | Negotiation, including required fidelity |
@@ -119,8 +123,8 @@ There are two layers.
    symlinks, linked directories and hard links.
 
 **Limits of the check.** It is a moment in time, and a destination replaced afterwards is not noticed. A bind
-mount can show a different device for the same file. The second layer has no production consumer until output
-publication migrates: the CLI keeps its current protection until then.
+mount can show a different device for the same file. `ExportVisibleContent` uses `LocalOutputGuard` while planning
+and checks it again before publication; this does not provide a filesystem-wide lock against an adversarial race.
 
 **A changed source** is caught by comparing fingerprints before work and again before publication, so reconstruction
 reads the whole file at least twice. A change between the second fingerprint and the publication is not caught,
@@ -132,7 +136,9 @@ A claim declares its safe points per operation, and the suite cancels at each on
 reached. `format_safe_points` lists what a `CancellationSource` must declare. An adapter calls `context.checkpoint`,
 which raises. An adapter that catches this still returns nothing, because the context remembers.
 
-A cancelled publication stays unpublished, because the record is abandoned by the artifact service.
+A cancelled EPUB artifact stays unpublished because the record is abandoned by `ArtifactService`. A cancelled
+Markdown publication removes its staged file before returning the per-document failure; already published files
+remain completed outcomes.
 
 ## Contract suite
 
@@ -148,8 +154,8 @@ their message, and `FormatOperationError` is how an adapter reports a sanitized 
 
 ## Consequences and limits
 
-- The contract has no production consumer until #144, which is its first real test, and may force changes to it.
-- Extraction returns all documents at once. A very large book may later need them one at a time.
+- #144 supplies the production EPUB adapter; #147 adds inspect and visible-content export as read-only consumers.
+- Structured and visible-content extraction return all documents at once. A very large book may later need them one at a time.
 - `FormatSource` is synchronous, and a safe point cannot interrupt a blocking read.
 - `ContentScope` is checked against the descriptor, but nothing verifies that an adapter limits its units to the
   scopes requested.
