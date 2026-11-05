@@ -17,6 +17,35 @@ from uuid import uuid4
 
 from .artifact import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactPathError, ArtifactRequest
 from .artifact_service import ARTIFACT_SAFE_POINTS, ArtifactService
+from .cache_identity import (
+    MAX_CACHE_ONLY_CANDIDATES,
+    AuthorizedCacheScope,
+    CacheAuthorizationPolicy,
+    CacheCompatibilityIdentity,
+    CacheEligibility,
+    CacheIdentityError,
+    CacheIdentityResolutionState,
+    CacheLookupState,
+    CacheMissReason,
+    CacheOnlyMode,
+    CacheOnlyRequest,
+    CacheProvenanceMetadata,
+    CacheValueKind,
+    CacheIdentityConflict,
+    CompatibleMemoryCandidate,
+    CompatibleMemoryQuery,
+    ExactCacheEntry,
+    ExactCacheLookup,
+    ExactEntryKey,
+    PinnedExecutionIdentityReference,
+    PutIfAbsentResult,
+    PutIfAbsentState,
+    ResolvedCacheExecutionIdentity,
+    TRANSLATION_STAGE_AGGREGATE,
+    candidate_matches_query,
+    exact_entry_key,
+    resolve_compatible_identities,
+)
 from .content import ContentDocument, TranslationUnit
 from .domain import LanguagePair
 from .job import JobState, TranslationJob
@@ -66,19 +95,20 @@ class _ProviderStopped(Exception):
 
 
 class ExactCachePort(Protocol):
-    """Keys on the plan, so entries cannot cross provider or pipeline identity.
+    """V2 local repository; identity resolution and cache-only operations must never use transport."""
 
-    The legacy v1 cache has no such key and does not satisfy this port.
-    """
-
-    def get(self, plan_fingerprint: str, text: str, language_pair: LanguagePair) -> str | None: ...
-    def set(self, plan_fingerprint: str, text: str, language_pair: LanguagePair, translated: str) -> None: ...
+    def resolve_pinned(self, reference: PinnedExecutionIdentityReference,
+                       scope: AuthorizedCacheScope) -> ResolvedCacheExecutionIdentity | None: ...
+    def lookup(self, key: ExactEntryKey) -> ExactCacheLookup: ...
+    def resolve_compatible(self, scope: AuthorizedCacheScope, value_kind: CacheValueKind,
+                           source_digest: str, *, limit: int) -> tuple[ExactEntryKey, ...]: ...
+    def put_if_absent(self, entry: ExactCacheEntry) -> PutIfAbsentResult: ...
 
 
 class MemoryPort(Protocol):
-    """Keys on the plan as well. The cache-backed legacy memory does not satisfy this port."""
+    """Returns local candidates in the authorized compatible namespace; v1 memory cannot satisfy it."""
 
-    def lookup(self, plan_fingerprint: str, text: str, language_pair: LanguagePair) -> TranslationMemoryMatch | None: ...
+    def lookup(self, query: CompatibleMemoryQuery) -> CompatibleMemoryCandidate | None: ...
 
 
 class UnitSource(StrEnum):
@@ -116,6 +146,8 @@ class UnitTranslationResult:
     # ``text`` with tokens instead of the markup they stand for. Only this form tells original
     # markup from whatever a provider wrote, so reconstruction must use this one.
     tokenized_text: str | None = None
+    cache_lookup_state: CacheLookupState | None = None
+    cache_miss_reason: CacheMissReason | None = None
 
     def __repr__(self) -> str:
         return f"UnitTranslationResult(unit_id={self.unit_id!r}, source={self.source.value!r})"
@@ -128,6 +160,7 @@ class DocumentTranslationResult:
     units: tuple[UnitTranslationResult, ...]
     artifact_id: str | None
     next_sequence: int
+    cache_eligibility: CacheEligibility | None = None
 
     def __repr__(self) -> str:
         return f"DocumentTranslationResult(document_id={self.document_id!r}, units={len(self.units)})"
@@ -147,6 +180,7 @@ class ExecutionContext:
     first_sequence: int = 1
     # A phase cannot return, so a job translating several documents gives each its own.
     progress_phase: str = "translate"
+    cache_scope: AuthorizedCacheScope | None = None
 
     def __repr__(self) -> str:
         return f"ExecutionContext(job_id={self.job.job_id!r})"
@@ -210,9 +244,34 @@ class DocumentTranslator:
         return "DocumentTranslator()"
 
     def translate(self, document: ContentDocument, context: ExecutionContext, *, dry_run: bool = False,
-                  cache_only: bool = False) -> DocumentTranslationResult:
+                  cache_only: CacheOnlyRequest | None = None) -> DocumentTranslationResult:
+        if cache_only is not None and type(cache_only) is not CacheOnlyRequest:
+            raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "cache_only_mode_required"))
         self._check_identity(document, context)
-        run = _DocumentRun(self, document, context)
+        scope = context.cache_scope
+        if scope is None:
+            scope = CacheAuthorizationPolicy(document.project_id).resolve()
+        elif scope.project_id != document.project_id:
+            raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "cache_scope_denied"))
+        resolved_pin = None
+        if cache_only is not None and cache_only.mode is CacheOnlyMode.PINNED and self._exact_cache is not None:
+            pin = cache_only.pin
+            if pin is None:
+                raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "invalid_cache_only_request"))
+            try:
+                resolved_pin = self._exact_cache.resolve_pinned(pin, scope)
+                if resolved_pin is not None and type(resolved_pin) is not ResolvedCacheExecutionIdentity:
+                    raise CacheIdentityError("invalid_resolved_identity")
+                if resolved_pin is not None and resolved_pin.scope != scope:
+                    raise CacheIdentityError("cache_scope_denied")
+            except CacheIdentityError as error:
+                raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, error.code)) from None
+            except Exception:
+                raise TranslationExecutionError(JobFailure(JobFailureFamily.INTERNAL, "cache_repository_failed")) from None
+        run = _DocumentRun(self, document, context, scope, cache_only, resolved_pin)
+        if cache_only is not None:
+            # Cache-only is an exact cache operation; an artifact replay is another source.
+            return self._execute(run, dry_run=dry_run, cache_only=cache_only)
         replayed = self._replay(run)
         if replayed is not None:
             return replayed
@@ -238,15 +297,27 @@ class DocumentTranslator:
                 raise refuse("locale_conflicts_with_plan")
         if document.source_locale.value is not None and document.source_locale.value != route.source:
             raise refuse("locale_conflicts_with_plan")
+        scope = context.cache_scope
+        if scope is not None and (type(scope) is not AuthorizedCacheScope or scope.project_id != document.project_id):
+            raise refuse("cache_scope_denied")
 
-    def _artifact_request(self, document: ContentDocument, job: TranslationJob) -> ArtifactRequest:
+    def _artifact_request(self, document: ContentDocument, job: TranslationJob,
+                          execution_nonce: str | None = None) -> ArtifactRequest:
         version = next(item.version for item in self._plan.stages if item.stage_id == RAW_RESULTS_STAGE)
-        identity = json.dumps([document.document_id, document.revision_id, self._plan.raw_fingerprint], separators=(",", ":"))
+        semantic_fingerprint = self._plan.semantic_fingerprint
+        if semantic_fingerprint is None:
+            # An unidentified producer cannot reuse even a job-local raw artifact.
+            identity = json.dumps([document.document_id, document.revision_id, job.job_id, execution_nonce],
+                                  separators=(",", ":"))
+        else:
+            identity = json.dumps([document.document_id, document.revision_id, semantic_fingerprint], separators=(",", ":"))
         return ArtifactRequest(document.project_id, job.job_id, RAW_RESULTS_ROLE, RAW_RESULTS_STAGE, version,
                                f"sha256:{hashlib.sha256(identity.encode('ascii')).hexdigest()}", RAW_RESULTS_MEDIA_TYPE)
 
     def _replay(self, run: _DocumentRun) -> DocumentTranslationResult | None:
         """Reuse raw results only when every identity and integrity check passes."""
+        if self._plan.semantic_fingerprint is None:
+            return None
         request = self._artifact_request(run.document, run.context.job)
         found = self._artifacts.find_reusable(request)
         if found.artifact is None:
@@ -299,7 +370,8 @@ class DocumentTranslator:
                 raise
             raise invalid from None
 
-    def _execute(self, run: _DocumentRun, *, dry_run: bool, cache_only: bool) -> DocumentTranslationResult:
+    def _execute(self, run: _DocumentRun, *, dry_run: bool,
+                 cache_only: CacheOnlyRequest | None) -> DocumentTranslationResult:
         results = []
         raw: list[tuple[str, UnitSource, str | None]] = []
         complete = True
@@ -322,7 +394,8 @@ class DocumentTranslator:
         return tuple(ConfigurationRef(kind, reference) for kind, reference in pairs if reference is not None)
 
     def _idempotency_key(self, run: _DocumentRun, operation: str, extra: str = "") -> str:
-        identity = json.dumps([run.context.job.job_id, run.document.revision_id, self._plan.raw_fingerprint, operation, extra],
+        identity = json.dumps([run.context.job.job_id, run.document.revision_id,
+                               self._plan.semantic_fingerprint or run.execution_nonce, operation, extra],
                               separators=(",", ":"))
         return hashlib.sha256(identity.encode("ascii")).hexdigest()
 
@@ -387,32 +460,131 @@ class _ContractProvider:
 
 
 class _PlanBoundCache:
-    def __init__(self, cache: ExactCachePort | None, fingerprint: str) -> None:
+    def __init__(self, cache: ExactCachePort | None, plan: ResolvedTranslationPlan, scope: AuthorizedCacheScope,
+                 cache_only: CacheOnlyRequest | None, resolved_pin: ResolvedCacheExecutionIdentity | None,
+                 source_text: str) -> None:
         self._cache = cache
-        self._fingerprint = fingerprint
+        self._plan = plan
+        self._scope = scope
+        self._cache_only = cache_only
+        self._resolved_pin = resolved_pin
+        self._source_text = source_text
+        self._fingerprint = plan.semantic_fingerprint
+        self.eligibility = plan.cache_eligibility
+        self._value_kind = TRANSLATION_STAGE_AGGREGATE
 
-    def get(self, text: str, language_pair: LanguagePair) -> str | None:
-        return None if self._cache is None else self._cache.get(self._fingerprint, text, language_pair)
+    def _miss(self, reason: CacheMissReason) -> ExactCacheLookup:
+        return ExactCacheLookup(CacheLookupState.MISS, reason=reason)
+
+    def get(self, text: str, language_pair: LanguagePair) -> ExactCacheLookup:
+        if self._fingerprint is None:
+            return self._miss(CacheMissReason.CACHE_INELIGIBLE)
+        if self._cache is None:
+            return self._miss(CacheMissReason.ENTRY_NOT_FOUND)
+        key = exact_entry_key(self._scope, self._value_kind, self._fingerprint, self._source_text)
+        if self._cache_only is not None and self._cache_only.mode is CacheOnlyMode.PINNED:
+            pin = self._resolved_pin
+            if pin is None:
+                return self._miss(CacheMissReason.ENTRY_NOT_FOUND)
+            if pin.value_kind != self._value_kind:
+                return self._miss(CacheMissReason.IDENTITY_MISMATCH)
+            if pin.semantic_fingerprint != self._fingerprint:
+                return self._miss(CacheMissReason.IDENTITY_MISMATCH)
+            key = exact_entry_key(pin.scope, pin.value_kind, pin.semantic_fingerprint, self._source_text)
+        elif self._cache_only is not None and self._cache_only.mode is CacheOnlyMode.RESOLVE_COMPATIBLE:
+            try:
+                candidates = self._cache.resolve_compatible(
+                    self._scope, self._value_kind, key.source_content_digest, limit=MAX_CACHE_ONLY_CANDIDATES,
+                )
+            except CacheIdentityError:
+                raise
+            except Exception:
+                raise CacheIdentityError("cache_repository_failed") from None
+            if type(candidates) is not tuple:
+                raise CacheIdentityError("invalid_identity_resolution")
+            resolution = resolve_compatible_identities(
+                candidates, scope=self._scope, value_kind=self._value_kind,
+                source_digest=key.source_content_digest,
+            )
+            if resolution.state is CacheIdentityResolutionState.MISS:
+                return self._miss(CacheMissReason.ENTRY_NOT_FOUND)
+            if resolution.state is CacheIdentityResolutionState.AMBIGUOUS:
+                return ExactCacheLookup(CacheLookupState.AMBIGUOUS, reason=CacheMissReason.AMBIGUOUS_CANDIDATES)
+            if resolution.state is CacheIdentityResolutionState.CORRUPT:
+                raise CacheIdentityError("duplicate_exact_key")
+            if resolution.key is None:
+                raise CacheIdentityError("invalid_identity_resolution")
+            if resolution.key.semantic_fingerprint != self._fingerprint:
+                return self._miss(CacheMissReason.IDENTITY_MISMATCH)
+            key = resolution.key
+        try:
+            result = self._cache.lookup(key)
+        except CacheIdentityError:
+            raise
+        except Exception:
+            raise CacheIdentityError("cache_repository_failed") from None
+        if type(result) is not ExactCacheLookup:
+            raise CacheIdentityError("invalid_cache_lookup")
+        if result.state is CacheLookupState.CORRUPT:
+            raise CacheIdentityError("duplicate_exact_key")
+        return result
 
     def set(self, text: str, language_pair: LanguagePair, translated: str) -> None:
-        if self._cache is not None:
-            self._cache.set(self._fingerprint, text, language_pair, translated)
+        if self._cache is None or self._fingerprint is None or self._cache_only is not None:
+            return
+        key = exact_entry_key(self._scope, self._value_kind, self._fingerprint, self._source_text)
+        operation = self._plan.semantic_operation
+        if operation is None:
+            return
+        try:
+            result = self._cache.put_if_absent(ExactCacheEntry(
+                key, translated, CacheProvenanceMetadata("translate", self._plan.producer, operation.pipeline_revision),
+            ))
+        except CacheIdentityError:
+            raise
+        except Exception:
+            raise CacheIdentityError("cache_repository_failed") from None
+        if type(result) is not PutIfAbsentResult:
+            raise CacheIdentityError("invalid_put_result")
+        if result.state is PutIfAbsentState.CONFLICT:
+            raise CacheIdentityConflict("cache_write_conflict")
 
 
 class _PlanBoundMemory:
-    def __init__(self, memory: MemoryPort, fingerprint: str) -> None:
+    def __init__(self, memory: MemoryPort, plan: ResolvedTranslationPlan, scope: AuthorizedCacheScope) -> None:
         self._memory = memory
-        self._fingerprint = fingerprint
+        self._plan = plan
+        self._scope = scope
 
     def lookup(self, text: str, language_pair: LanguagePair) -> TranslationMemoryMatch | None:
-        return self._memory.lookup(self._fingerprint, text, language_pair)
+        fingerprint = self._plan.semantic_fingerprint
+        if fingerprint is None:
+            return None
+        query = CompatibleMemoryQuery(
+            self._scope, TRANSLATION_STAGE_AGGREGATE, fingerprint, text, MAX_CACHE_ONLY_CANDIDATES,
+        )
+        try:
+            candidate = self._memory.lookup(query)
+        except CacheIdentityError:
+            raise
+        except Exception:
+            raise CacheIdentityError("memory_repository_failed") from None
+        if candidate is None or not candidate_matches_query(candidate, query):
+            return None
+        return TranslationMemoryMatch(candidate.original, candidate.translated, candidate.score, candidate.applied)
 
 
 class _DocumentRun:
-    def __init__(self, translator: DocumentTranslator, document: ContentDocument, context: ExecutionContext) -> None:
+    def __init__(self, translator: DocumentTranslator, document: ContentDocument, context: ExecutionContext,
+                 cache_scope: AuthorizedCacheScope, cache_only: CacheOnlyRequest | None,
+                 resolved_pin: ResolvedCacheExecutionIdentity | None) -> None:
         self.translator = translator
         self.document = document
         self.context = context
+        self.cache_scope = cache_scope
+        self.cache_only = cache_only
+        self.resolved_pin = resolved_pin
+        self.execution_nonce = str(uuid4())
         self.sequence = context.first_sequence
         self.correlation = JobCorrelation(document.project_id)
 
@@ -442,27 +614,33 @@ class _DocumentRun:
         if stage_id != "unit_whitespace":
             self.checkpoint("pipeline_between_stages")
 
-    def translate_unit(self, unit: TranslationUnit, *, dry_run: bool, cache_only: bool) -> tuple[UnitTranslationResult, LinguisticOutcome]:
+    def translate_unit(self, unit: TranslationUnit, *, dry_run: bool,
+                       cache_only: CacheOnlyRequest | None) -> tuple[UnitTranslationResult, LinguisticOutcome]:
         translator = self.translator
         plan = translator._plan
         template, originals = _template(unit)
         stages = LinguisticStages(
-            _ContractProvider(translator, self, unit), _PlanBoundCache(translator._exact_cache, plan.raw_fingerprint),
+            _ContractProvider(translator, self, unit),
+            _PlanBoundCache(translator._exact_cache, plan, self.cache_scope, self.cache_only, self.resolved_pin,
+                            unit.source_text),
             translator._apply_glossary,
-            memory=None if translator._memory is None else _PlanBoundMemory(translator._memory, plan.raw_fingerprint),
+            memory=None if translator._memory is None else _PlanBoundMemory(translator._memory, plan, self.cache_scope),
             on_stage=self._stage_entered)
         try:
             outcome = stages.run(template, LanguagePair(source=plan.route.source, target=plan.route.target),
-                                 dry_run=dry_run, cache_only=cache_only, chunk_limit=plan.chunk_limit)
+                                 dry_run=dry_run, cache_only=self.cache_only or False, chunk_limit=plan.chunk_limit)
         except _ProviderStopped as stopped:
             raise TranslationExecutionError(stopped.failure) from None
         except ProtectedContentError:
             # Stage messages are for the current CLI; this path reports a code and no text.
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "protected_content_not_preserved")) from None
+        except CacheIdentityError as error:
+            raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, error.code)) from None
         source = _FROM_LINGUISTIC[outcome.source]
         # An untranslated unit expands back to its exact source text.
         return UnitTranslationResult(unit.unit_id, source, _expand(outcome.text, originals), outcome.memory_suggestion is not None,
-                                     outcome.glossary_usage, outcome.text), outcome
+                                     outcome.glossary_usage, outcome.text, outcome.cache_lookup_state,
+                                     outcome.cache_miss_reason), outcome
 
     def apply_raw(self, unit: TranslationUnit, entry: tuple[UnitSource, str | None]) -> UnitTranslationResult:
         """Only post-processing runs again: no cache lookup and no provider."""
@@ -481,7 +659,8 @@ class _DocumentRun:
         source = self.context.cancellation
         try:
             return translator._artifacts.publish(
-                translator._artifact_request(self.document, self.context.job), (_raw_payload(self.document, translator._plan, raw),),
+                translator._artifact_request(self.document, self.context.job, self.execution_nonce),
+                (_raw_payload(self.document, translator._plan, raw),),
                 owner_token=self.context.owner_token, cancellation=None if source is None else source.token)
         except ArtifactCancelledError:
             self._stop(source.acknowledgement)
@@ -489,4 +668,5 @@ class _DocumentRun:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTERNAL, str(error))) from None
 
     def result(self, units: tuple[UnitTranslationResult, ...], artifact_id: str | None) -> DocumentTranslationResult:
-        return DocumentTranslationResult(self.document.document_id, self.document.revision_id, units, artifact_id, self.sequence)
+        return DocumentTranslationResult(self.document.document_id, self.document.revision_id, units, artifact_id, self.sequence,
+                                         self.translator._plan.cache_eligibility)

@@ -3,7 +3,7 @@
 The adapter owns the structure and the executor owns the language work, so nothing here parses
 markup or calls a provider. It keeps the current flow's rules: a failed text stays in the source
 language and the run goes on, unless the run is fail-fast. It is not ``DocumentTranslator``, which
-stops at the first failure and has no production cache until #153.
+stops at the first failure and has a v2 cache port but no durable repository yet.
 
 Nothing in the current translation uses it yet. #145 migrates callers. ``ayvu.translate_project``
 wraps it in a durable job.

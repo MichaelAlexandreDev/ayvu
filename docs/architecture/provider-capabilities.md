@@ -22,9 +22,9 @@ Facts about a provider have different lifetimes, so they are separate values:
 
 Consumers decide only from these values, never from a provider name or a URL.
 
-**Nothing uses this yet.** Cache keys and storage, the CLI, preflight and performance
-profiles are unchanged, and snapshots are not persisted. Ranking, routing preference and
-automatic tuning are not accepted here, and network policy enforcement belongs to
+The v2 translation plan consumes `capability_fingerprint` for semantic cache identity.
+The CLI's v1 cache and storage remain unchanged, and snapshots are not persisted. Ranking,
+routing preference and automatic tuning are not accepted here, and network policy enforcement belongs to
 [#159](https://github.com/MichaelAlexandreDev/ayvu/issues/159). The shared discovery use
 cases belong to [#128](https://github.com/MichaelAlexandreDev/ayvu/issues/128).
 
@@ -88,9 +88,9 @@ the provider is reachable.
 
 ## Fingerprint
 
-`capability_fingerprint` is a deterministic projection for later planning and cache work.
-**Nothing uses it yet.** It covers adapter and protocol identity, the configuration
-reference, server limits and the capabilities in `FINGERPRINT_CAPABILITIES`, which can
+`capability_fingerprint` is a deterministic input to the v2 semantic cache identity. It
+covers adapter and protocol identity, the configuration reference, server limits and the
+capabilities in `FINGERPRINT_CAPABILITIES`, which can
 change a translation or what it exposes. Time, availability, client policy and operational
 capabilities are excluded, so changing a rate limit would not change it.
 

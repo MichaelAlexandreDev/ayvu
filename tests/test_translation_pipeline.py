@@ -8,6 +8,7 @@ import sys
 
 import pytest
 
+from ayvu.cache_identity import CacheOnlyRequest
 from ayvu.domain import LanguagePair
 from ayvu.translation_memory import TranslationMemoryMatch
 from ayvu.translation_pipeline import (
@@ -110,6 +111,12 @@ def test_gates_stop_before_the_provider_and_write_nothing(options, source):
     outcome = subject.run(' Hello ', PAIR, **options)
     assert stages == ALL[:4] and provider.calls == [] and cache.stored == {}
     assert (outcome.text, outcome.source, outcome.glossary_usage) == (' Hello ', source, None)
+
+
+def test_legacy_facade_rejects_versioned_cache_only_requests():
+    subject, _ = facade()
+    with pytest.raises(ValueError, match='^legacy_cache_only_requires_boolean$'):
+        subject.run('Hello', PAIR, cache_only=CacheOnlyRequest.resolve_compatible())
 
 
 def test_the_provider_receives_the_language_pair_and_the_cache_is_keyed_by_it():
