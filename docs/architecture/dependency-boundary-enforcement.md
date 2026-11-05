@@ -113,10 +113,10 @@ imports, syntax/read errors, cycles or missing ownership.
 The existing CLI edges expire as application use cases are extracted in #128,
 #147, #149, #150, #152, #157 and composition is consolidated in #158.
 #145 removed the CLI's edge to the validator and its use of `translate_epub`.
-The CLI still imports `epub_io` inspection/extraction helpers and separately
-uses the v1 review exporter/inspection reader. `apply-review` now rejects v1
-before calling `epub_io.apply_reviewed_epub`; the v2 mapper is not connected to
-the command. Remaining legacy edges expire under #147 and #149.
+The CLI still imports `epub_io` inspection/extraction helpers. Review export,
+validation and apply now use `review_application` through
+`review_composition`; `apply-review` rejects v1 before source inspection.
+Remaining legacy format edges expire under #147.
 The compatibility CLI-to-config edge now expires in #158: first-use/Settings
 already call shared preference use cases, while legacy config conversion and
 construction stay at this transitional composition boundary.
@@ -127,7 +127,7 @@ edges to the CLI and to the provider composition expire in #158. The coupling of
 `html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
 EPUB pipeline coupling expires in #144, after #141 separates the
 provider contract from its HTTP adapter. `html_structure` has no such coupling.
-Review coupling expires in #149. Fuzzy memory's exact-cache and vendor coupling
+Legacy review projection coupling expires in #158. Fuzzy memory's exact-cache and vendor coupling
 expires in #161. Library configuration/process coupling expires in #151.
 The exact edge and condition for each of these are recorded individually in
 the test data; these references do not imply that those issues are completed.

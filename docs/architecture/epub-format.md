@@ -14,9 +14,9 @@ Related issue: [#144 — Implement the production EPUB FormatAdapter](https://gi
 
 EPUB is the first real format behind the [format contract](format-adapter.md). **`translate` and the guided
 translation use it**, through [the use case](translate-project.md). Dry run, preview and a resume with no job keep `translate_epub`,
-and `inspect_epub` keeps its own code until #147. `apply_reviewed_epub` now
-rejects legacy v1 review data before EPUB access; the v2 mapper is a separate
-library contract until CLI orchestration is delivered.
+and `inspect_epub` keeps its own code until #147. `apply_reviewed_epub` rejects
+legacy v1 review data before EPUB access; v2 apply is orchestrated by the shared
+review use case and delegates reconstruction and validation to this adapter.
 
 | Module | Responsibility |
 | --- | --- |

@@ -243,10 +243,11 @@ class World:
         assert [event.sequence for event in events] == list(range(1, len(events) + 1))
         assert events[-1].payload == result.outcome and [e.kind for e in events].count(JobEventKind.OUTCOME) == 1
         records = self.records(result.job_id)
-        assert len(records) == 1 and records[0].outcome_code == job.terminal_summary.reason_code
-        assert not records[0].producer.fully_identified
+        terminal = [record for record in records if record.operation == "translate_project"
+                    and record.outcome_code == job.terminal_summary.reason_code]
+        assert len(terminal) == 1 and not terminal[0].producer.fully_identified
         expected = () if result.artifact is None else (result.artifact.artifact_id,)
-        assert records[0].artifacts == expected
+        assert terminal[0].artifacts == expected
         if result.state in (JobState.FAILED, JobState.CANCELLED):
             assert result.artifact is None and not result.output_ready
         assert self.source.read_bytes() == self.source_bytes
@@ -1239,7 +1240,7 @@ def test_the_glossary_and_the_cache_order_are_the_current_ones(tmp_path):
     second = world.run()
     # The second run answers from the cache, and the glossary still applies over it.
     assert world.translator.calls == calls and second.engine.stats.from_cache > 0
-    assert any("Segundo" in entry.translated for entry in second.engine.review)
+    assert any("Segundo" in item.text for item in second.engine.translations)
 
 
 def test_a_framework_free_consumer_can_use_the_same_case_with_its_own_ports(world):

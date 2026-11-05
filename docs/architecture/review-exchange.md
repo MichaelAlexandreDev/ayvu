@@ -1,6 +1,6 @@
 # Review exchange package and codec
 
-Status: `Implemented library contract`; CLI orchestration is not connected.
+Status: `Implemented`; shared application use cases and CLI orchestration are connected.
 
 Related issue: [#148 — Define a markup-safe versioned review exchange contract](https://github.com/DevStarrk1137/ayvu/issues/148)
 
@@ -127,10 +127,13 @@ publish an EPUB.
 returns `LegacyReviewInspection` with redacted rows and duplicate-ID warnings;
 it never creates stable identity. `epub_io.apply_reviewed_epub` rejects this
 type with `legacy_reexport_required` before opening EPUB input or output. The
-CLI `apply-review` command does the same and asks for a fresh v2 package bound
-to the exact durable source and machine artifact. It currently does not invoke
-the v2 mapper, and `translate --review-output` still writes legacy v1. CLI
-export/apply orchestration and final publication remain outside #148.
+CLI `apply-review` command applies the same rule and asks for a fresh v2 package
+bound to the exact durable source and machine artifact. `translate --review-output`
+now delegates from its `TranslateProjectResult` to the shared review application
+use case. The CLI can run side-effect-free validation with `--validate-only`, or
+reconstruct and publish a new reviewed artifact. The use cases and their D106
+publication protocol are documented in
+[`review-application.md`](review-application.md).
 
 ## Verification
 

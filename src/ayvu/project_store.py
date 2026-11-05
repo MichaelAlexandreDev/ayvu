@@ -368,6 +368,10 @@ class ProjectJsonRepository:
         with self._transaction():
             return self._load(project_id)
 
+    def load_read_only(self, project_id: str) -> ProjectManifest:
+        """Read one manifest without creating the workspace lock or migrating storage."""
+        return self._load(project_id)
+
     def read_catalog(self) -> ProjectCatalog:
         """Every project that can be read, with nothing created, locked or changed.
 
@@ -422,6 +426,17 @@ class ProjectJsonRepository:
     def read_database_paths(self, project_id: str) -> ProjectDatabasePaths:
         """The same checks as ``resolve_database_paths``, for a reader: no lock, and nothing is created."""
         return self._database_paths(project_id)
+
+    def read_artifact_root(self, project_id: str) -> Path:
+        """Return the checked artifact directory without creating it."""
+        project = self._load(project_id)
+        directory = self._manifest_path(project.project_id).parent
+        root = _safe_components(directory / 'artifacts')
+        if not root.is_relative_to(directory):
+            raise ProjectStoreError('invalid_project_storage_path')
+        if root.exists() and not root.is_dir():
+            raise ProjectStoreError('invalid_project_artifact_directory')
+        return root
 
     def resolve_artifact_root(self, project_id: str) -> Path:
         """The project's artifact directory. It is validated here and created on first use."""

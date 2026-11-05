@@ -1,6 +1,8 @@
 """The real ``translate`` command through the use case, watched from the job record and the files it leaves."""
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import signal
@@ -8,25 +10,34 @@ import sqlite3
 import subprocess
 import sys
 import textwrap
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from threading import Event
 from zipfile import ZipFile, ZipInfo
 
 import pytest
 import requests
 from typer.testing import CliRunner
 
+import ayvu.artifact_destination as artifact_destination
 import ayvu.cli as cli_module
+import ayvu.job_store as job_store
+import ayvu.review_composition as review_composition
 import ayvu.translate_project_composition as composition
 from ayvu.cli import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_failure, app
 from ayvu.domain import LanguagePair, OutputPlan, TranslationOptions, UserMode
-from ayvu.project_schema import open_job_repository
+from ayvu.project_schema import open_job_repository, open_provenance_repository
 from ayvu.preflight import PreflightError
 from ayvu.project_store import ProjectJsonRepository, build_project_request
 from ayvu.resume import ResumeStateStore
+from ayvu.review_exchange import decode_review_package, encode_review_package
 from ayvu.epub_io import TranslationReport
 from ayvu.job import JobError, JobState, JobTerminalSummary
 from ayvu.job_events import JobFailure, JobFailureFamily, JobOutcome
+from ayvu.provenance import SourceKind
+from ayvu.review_application import ReviewApplyCommand, ReviewOutcome
 from ayvu.translate_project import TRANSLATE_COMMAND_TYPE, OutputValidation, TranslateObserver, TranslateProjectResult
 from ayvu.translate_project_composition import ProjectTranslationRun
 
@@ -134,6 +145,21 @@ def _leftovers(directory: Path) -> list[str]:
     return [path.name for path in directory.iterdir() if path.name.startswith(".ayvu-")]
 
 
+def _tree_snapshot(root: Path) -> dict[str, tuple[bytes, int]]:
+    return {
+        str(path.relative_to(root)): (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in root.rglob("*") if path.is_file()
+    }
+
+
+def _mark_reviewed(path: Path, prefix: str = "HUMAN:") -> None:
+    package = decode_review_package(path.read_bytes())
+    reviewed = replace(package, rows=tuple(
+        replace(row, reviewed_text=row.machine_translation.replace("PT:", prefix), review_status="reviewed")
+        for row in package.rows))
+    path.write_bytes(encode_review_package(reviewed))
+
+
 def test_a_translation_ends_as_a_validated_job_with_the_output_in_place(tmp_path, monkeypatch):
     result, session = _run(tmp_path, monkeypatch)
 
@@ -144,6 +170,584 @@ def test_a_translation_ends_as_a_validated_job_with_the_output_in_place(tmp_path
     with ZipFile(tmp_path / "out.epub") as archive:
         assert b"PT:Hello title" in archive.read("OEBPS/c1.xhtml")
     assert not _leftovers(tmp_path)
+
+
+def test_review_export_validate_apply_and_overwrite_use_shared_application(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    output = tmp_path / "machine.epub"
+    review_path = tmp_path / "book-review.csv"
+    reviewed_output = tmp_path / "reviewed.epub"
+    original_bytes = source.read_bytes()
+
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path), source=source, output=output)
+
+    assert translated.exit_code == 0, translated.output
+    assert "Review file saved to:" in translated.output
+    package_raw = review_path.read_bytes()
+    assert package_raw.startswith(b"AYVU-REVIEW-PACKAGE,2,")
+    package = decode_review_package(package_raw)
+    edited = replace(package, rows=tuple(
+        replace(row,
+                reviewed_text=("PRIVATE_REVIEW_TEXT_CANARY_149 " if index == 0 else "")
+                + row.machine_translation.replace("PT:", "HUMAN:"),
+                reviewer_note="PRIVATE_REVIEW_NOTE_CANARY_149" if index == 0 else row.reviewer_note,
+                review_status="reviewed")
+        for index, row in enumerate(package.rows)))
+    review_path.write_bytes(encode_review_package(edited))
+    machine_bytes = output.read_bytes()
+    processing = tmp_path / "processing"
+    before_validation = _tree_snapshot(processing)
+
+    checked = runner.invoke(app, ["apply-review", str(source), str(review_path), "--validate-only"])
+
+    assert checked.exit_code == 0, checked.output
+    assert "Review package validation" in " ".join(checked.output.split())
+    assert not reviewed_output.exists()
+    assert _tree_snapshot(processing) == before_validation
+
+    machine_alias = runner.invoke(
+        app, ["apply-review", str(source), str(review_path), "--output", str(output), "--overwrite"])
+    assert machine_alias.exit_code == 1
+    assert "output_is_machine_artifact" in machine_alias.output
+    assert output.read_bytes() == machine_bytes
+
+    applied = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
+    assert applied.exit_code == 0, applied.output
+    assert "Review application report" in applied.output
+    assert "Reviewed EPUB saved to:" in applied.output
+    assert "PRIVATE_REVIEW_TEXT_CANARY_149" not in applied.output
+    assert "PRIVATE_REVIEW_NOTE_CANARY_149" not in applied.output
+    with ZipFile(reviewed_output) as archive:
+        assert b"HUMAN:Hello reader." in archive.read("OEBPS/c1.xhtml")
+    apply_job = next(job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package")
+    project_store = ProjectJsonRepository(processing)
+    apply_paths = project_store.resolve_database_paths(apply_job.request.project_id)
+    review_provenance = open_provenance_repository(apply_paths.database, apply_paths.backups,
+                                                   apply_job.request.project_id,
+                                                   clock=lambda: datetime.now(UTC))
+    review_records = [node.record for node in review_provenance.list_by_job(apply_job.job_id, limit=1024).nodes]
+    package_records = [record for record in review_records if record.request.outcome_code == "review_package_validated"]
+    unit_records = [record for record in review_records if record.request.operation == "review_unit"]
+    commit_records = [record for record in review_records if record.request.outcome_code == "review_applied"]
+    assert len(package_records) == len(commit_records) == 1 and unit_records
+    assert all(record.request.source_kind is SourceKind.HUMAN
+               and record.request.outcome_code == "human_edit_validated" for record in unit_records)
+    assert all(package_records[0].record_id in record.request.parents for record in unit_records)
+    assert {package_records[0].record_id, next(record.record_id for record in review_records
+                                               if record.request.outcome_code == "source_verified")} <= set(commit_records[0].request.parents)
+    assert not any(record.request.outcome_code == "human_edit_applied" for record in review_records)
+    persistent_projection = apply_paths.database.read_bytes() + repr(review_records).encode()
+    assert b"PRIVATE_REVIEW_TEXT_CANARY_149" not in persistent_projection
+    assert b"PRIVATE_REVIEW_NOTE_CANARY_149" not in persistent_projection
+    assert str(review_path).encode() not in persistent_projection
+    assert source.read_bytes() == original_bytes
+    assert output.read_bytes() == machine_bytes
+
+
+def test_apply_rechecks_project_revision_after_side_effect_free_preview(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    package = decode_review_package(review_path.read_bytes())
+    reviewed = replace(package, rows=tuple(
+        replace(row, review_status="reviewed") for row in package.rows))
+    review_path.write_bytes(encode_review_package(reviewed))
+
+    preview = runner.invoke(app, ["apply-review", str(source), str(review_path), "--validate-only"])
+    assert preview.exit_code == 0, preview.output
+    projects = ProjectJsonRepository(tmp_path / "processing")
+    project_id = _jobs(tmp_path)[0].request.project_id
+    current = projects.load_read_only(project_id)
+    projects.save(current, expected_revision=current.revision)
+    output = tmp_path / "stale-reviewed.epub"
+
+    applied = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(output)])
+
+    assert applied.exit_code == 1
+    assert "stale_project_revision" in applied.output
+    assert not output.exists()
+
+
+def _translated_and_reviewed(tmp_path, monkeypatch) -> tuple[Path, Path, Path]:
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=tmp_path / "machine.epub")
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    return source, review_path, tmp_path / "reviewed.epub"
+
+
+def _apply(source: Path, review_path: Path, output: Path, *more: str):
+    return runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(output), *more])
+
+
+def test_an_identical_apply_with_its_result_intact_changes_nothing(tmp_path, monkeypatch):
+    source, review_path, output = _translated_and_reviewed(tmp_path, monkeypatch)
+    assert _apply(source, review_path, output).exit_code == 0
+    first, modified = output.read_bytes(), output.stat().st_mtime_ns
+
+    again = _apply(source, review_path, output)
+
+    assert again.exit_code == 0, again.output
+    assert (output.read_bytes(), output.stat().st_mtime_ns) == (first, modified)
+
+
+def test_apply_runs_again_when_the_person_removed_the_reviewed_file(tmp_path, monkeypatch):
+    source, review_path, output = _translated_and_reviewed(tmp_path, monkeypatch)
+    assert _apply(source, review_path, output).exit_code == 0
+    first = output.read_bytes()
+    output.unlink()
+
+    again = _apply(source, review_path, output)
+
+    assert again.exit_code == 0, again.output
+    assert output.read_bytes() == first
+    # Twice, because the second run must itself be replayable and not collide with the first one's lineage.
+    assert _apply(source, review_path, output).exit_code == 0
+
+
+def test_a_changed_reviewed_file_is_not_replaced_without_overwrite(tmp_path, monkeypatch):
+    source, review_path, output = _translated_and_reviewed(tmp_path, monkeypatch)
+    assert _apply(source, review_path, output).exit_code == 0
+    first = output.read_bytes()
+    output.write_bytes(b"my own notes")
+
+    refused = _apply(source, review_path, output)
+
+    assert refused.exit_code == 1
+    assert "output_exists" in refused.output
+    assert output.read_bytes() == b"my own notes"
+
+    replaced = _apply(source, review_path, output, "--overwrite")
+
+    assert replaced.exit_code == 0, replaced.output
+    assert output.read_bytes() == first
+
+
+@pytest.mark.parametrize("safe_point", ["review_before_validation", "review_before_reconstruction"])
+def test_cancelling_an_apply_against_real_repositories_is_recorded_and_frees_the_next_one(tmp_path, monkeypatch, safe_point):
+    source, review_path, output = _translated_and_reviewed(tmp_path, monkeypatch)
+    raw = review_composition.read_review_input(review_path)
+    uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
+    cancellation = uses.cancellation()
+
+    class CancelAt:
+        """Requests at one declared safe point, so everything before it really ran."""
+
+        def checkpoint(self, point):
+            if point == safe_point:
+                cancellation.request("user_requested", datetime.now(UTC))
+            return cancellation.token.checkpoint(point)
+
+    cancelled = uses.apply.execute(ReviewApplyCommand(
+        raw, None, output, review_composition.destination_fingerprint(output), cancellation=CancelAt()))
+
+    assert (cancelled.outcome, cancelled.code, cancelled.success) == (ReviewOutcome.CANCELLED, "cancelled", False)
+    assert not output.exists()
+    job = next(job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package")
+    assert job.state is JobState.CANCELLED
+    assert [type(event.payload).__name__ for event in cancelled.events][-3:] == [
+        "CancellationRequest", "CancellationAcknowledgement", "JobOutcome"]
+
+    # The guard is released and the attempt left nothing that blocks a new one.
+    again = _apply(source, review_path, output)
+    assert again.exit_code == 0, again.output
+
+
+def test_a_lost_failure_event_does_not_keep_the_destination_locked(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=tmp_path / "machine.epub")
+    assert translated.exit_code == 0, translated.output
+    output = tmp_path / "reviewed.epub"
+    original_emit = review_composition.LocalReviewOperations._emit
+
+    def lose_the_outcome(self, state, payload):
+        if type(payload) is JobOutcome:
+            raise RuntimeError("event store unavailable")
+        return original_emit(self, state, payload)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(review_composition.LocalReviewOperations, "_emit", lose_the_outcome)
+        failed = _apply(source, review_path, output)
+    assert failed.exit_code == 1
+    assert not output.exists()
+
+    _mark_reviewed(review_path)
+    again = _apply(source, review_path, output)
+
+    assert again.exit_code == 0, again.output
+
+
+def test_a_package_nobody_approved_says_what_to_mark(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=tmp_path / "machine.epub")
+    assert translated.exit_code == 0, translated.output
+    output = tmp_path / "reviewed.epub"
+
+    refused = _apply(source, review_path, output)
+
+    assert refused.exit_code == 1
+    assert "review_not_approved" in refused.output
+    assert "review_status" in refused.output
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("prefix,delimiter", [(b"\xef\xbb\xbf", ","), (b"", ";")], ids=["bom", "semicolon"])
+def test_a_package_saved_by_a_spreadsheet_applies_through_the_command(tmp_path, monkeypatch, prefix, delimiter):
+    source, review_path, output = _translated_and_reviewed(tmp_path, monkeypatch)
+    rows = list(csv.reader(io.StringIO(review_path.read_bytes().decode("utf-8"), newline="")))
+    resaved = io.StringIO(newline="")
+    csv.writer(resaved, delimiter=delimiter, lineterminator="\n").writerows(rows)
+    review_path.write_bytes(prefix + resaved.getvalue().encode("utf-8"))
+
+    applied = _apply(source, review_path, output)
+
+    assert applied.exit_code == 0, applied.output
+    assert output.exists()
+
+
+def test_concurrent_apply_of_the_same_request_is_serialized(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    raw = review_composition.read_review_input(review_path)
+    output = tmp_path / "reviewed.epub"
+    uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
+    command = ReviewApplyCommand(raw, None, output, review_composition.destination_fingerprint(output))
+    entered_reconstruction, release_reconstruction = Event(), Event()
+    original_reconstruct = review_composition.LocalReviewOperations.reconstruct
+
+    def pause_first(self, *args, **kwargs):
+        entered_reconstruction.set()
+        if not release_reconstruction.wait(5):
+            raise RuntimeError("concurrent test synchronization timed out")
+        return original_reconstruct(self, *args, **kwargs)
+
+    monkeypatch.setattr(review_composition.LocalReviewOperations, "reconstruct", pause_first)
+    with ThreadPoolExecutor(max_workers=1) as workers:
+        first_future = workers.submit(uses.apply.execute, command)
+        try:
+            assert entered_reconstruction.wait(5)
+            second = uses.apply.execute(command)
+        finally:
+            release_reconstruction.set()
+        first = first_future.result(timeout=10)
+
+    assert second.outcome is ReviewOutcome.CONFLICT and second.code == "job_in_progress"
+    assert first.success and output.exists()
+
+
+def test_destination_race_after_staging_preserves_the_competing_file(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    raw = review_composition.read_review_input(review_path)
+    output = tmp_path / "reviewed.epub"
+    uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
+    command = ReviewApplyCommand(raw, None, output, review_composition.destination_fingerprint(output))
+    staged, race_complete = Event(), Event()
+    original_publication = review_composition.DestinationPublications.publication
+
+    def pause_after_validation(self, request, owner_token, on_staged):
+        def synchronized(staged_path):
+            on_staged(staged_path)
+            staged.set()
+            if not race_complete.wait(5):
+                raise RuntimeError("destination race synchronization timed out")
+
+        return original_publication(self, request, owner_token, synchronized)
+
+    monkeypatch.setattr(review_composition.DestinationPublications, "publication", pause_after_validation)
+    competitor = b"COMPETING_DESTINATION_CANARY"
+    with ThreadPoolExecutor(max_workers=1) as workers:
+        future = workers.submit(uses.apply.execute, command)
+        try:
+            assert staged.wait(5)
+            output.write_bytes(competitor)
+        finally:
+            race_complete.set()
+        result = future.result(timeout=10)
+
+    assert not result.success and result.outcome is ReviewOutcome.CONFLICT
+    assert output.read_bytes() == competitor
+
+
+def test_repository_revision_race_after_staging_prevents_publication(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    raw = review_composition.read_review_input(review_path)
+    output = tmp_path / "reviewed.epub"
+    uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
+    command = ReviewApplyCommand(raw, None, output, review_composition.destination_fingerprint(output))
+    staged, revision_updated = Event(), Event()
+    original_publication = review_composition.DestinationPublications.publication
+
+    def pause_after_staging(self, request, owner_token, on_staged):
+        def synchronized(staged_path):
+            staged.set()
+            if not revision_updated.wait(5):
+                raise RuntimeError("revision race synchronization timed out")
+            on_staged(staged_path)
+
+        return original_publication(self, request, owner_token, synchronized)
+
+    monkeypatch.setattr(review_composition.DestinationPublications, "publication", pause_after_staging)
+    with ThreadPoolExecutor(max_workers=1) as workers:
+        future = workers.submit(uses.apply.execute, command)
+        try:
+            assert staged.wait(5)
+            projects = ProjectJsonRepository(tmp_path / "processing")
+            project_id = decode_review_package(raw).header.project_id
+            current = projects.load_read_only(project_id)
+            projects.save(current, expected_revision=current.revision)
+        finally:
+            revision_updated.set()
+        result = future.result(timeout=10)
+
+    assert not result.success and result.code == "stale_review_identity"
+    assert not output.exists()
+
+
+def test_lineage_failure_after_publication_is_partial_without_human_success(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    reviewed_output = tmp_path / "reviewed.epub"
+    original_bytes = source.read_bytes()
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    machine_bytes = translated_output.read_bytes()
+
+    def fail_lineage(*_args, **_kwargs):
+        raise RuntimeError("PRIVATE_TRANSLATION_CANARY")
+
+    monkeypatch.setattr(review_composition.LocalReviewOperations, "_write_lineage", fail_lineage)
+    applied = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
+
+    assert applied.exit_code == 1
+    assert "provenance_failed" in applied.output
+    assert "PRIVATE_TRANSLATION_CANARY" not in applied.output
+    assert "Reviewed EPUB saved to:" not in applied.output
+    assert reviewed_output.exists()  # D106 committed the file, but the use case did not report success.
+    assert source.read_bytes() == original_bytes and translated_output.read_bytes() == machine_bytes
+    apply_job = next(job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package")
+    assert apply_job.state.value == "partially_completed"
+    paths = ProjectJsonRepository(tmp_path / "processing").resolve_database_paths(apply_job.request.project_id)
+    provenance = open_provenance_repository(paths.database, paths.backups, apply_job.request.project_id,
+                                            clock=lambda: datetime.now(UTC))
+    outcomes = [node.record.request.outcome_code
+                for node in provenance.list_by_job(apply_job.job_id, limit=1024).nodes]
+    assert "review_applied" not in outcomes and "human_edit_validated" not in outcomes
+
+
+@pytest.mark.parametrize("event_committed", [False, True], ids=["before-event-commit", "after-event-commit"])
+def test_terminal_event_commit_failure_never_invents_a_missing_success_event(
+        tmp_path, monkeypatch, event_committed):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    reviewed_output = tmp_path / "reviewed.epub"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+
+    original_emit = review_composition.LocalReviewOperations._emit
+    captured_events = []
+    interrupt = [True]
+
+    def interrupt_terminal_event(self, state, payload):
+        is_apply_outcome = (isinstance(payload, JobOutcome) and payload.state is JobState.VALIDATED
+                            and payload.summary.reason_code == "review_applied")
+        if interrupt[0] and is_apply_outcome:
+            interrupt[0] = False
+            if event_committed:
+                original_emit(self, state, payload)
+            captured_events.extend(state.events.replay())
+            raise RuntimeError("simulated event acknowledgement failure")
+        return original_emit(self, state, payload)
+
+    monkeypatch.setattr(review_composition.LocalReviewOperations, "_emit", interrupt_terminal_event)
+    applied = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
+
+    assert reviewed_output.exists()
+    assert "PRIVATE_REVIEW" not in applied.output
+    if event_committed:
+        assert applied.exit_code == 0, applied.output
+        assert "Reviewed EPUB saved to:" in applied.output
+        assert captured_events[-1].payload.state is JobState.VALIDATED
+    else:
+        assert applied.exit_code == 1
+        assert "job_reconciliation_required" in applied.output
+        assert "Reviewed EPUB saved to:" not in applied.output
+        assert not any(isinstance(event.payload, JobOutcome) for event in captured_events)
+
+
+def test_final_lineage_marker_reconciles_job_commit_after_restart(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    reviewed_output = tmp_path / "reviewed.epub"
+    original_bytes = source.read_bytes()
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    machine_bytes = translated_output.read_bytes()
+    original_finish = review_composition.LocalReviewOperations._finish
+    interrupt = [True]
+
+    def fail_job_commit(self, state, target, code, failure, counts, **kwargs):
+        if interrupt[0] and target is JobState.VALIDATED and code == "review_applied":
+            interrupt[0] = False
+            raise RuntimeError("simulated repository commit interruption")
+        return original_finish(self, state, target, code, failure, counts, **kwargs)
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(review_composition.LocalReviewOperations, "_finish", fail_job_commit)
+        interrupted = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output",
+                                          str(reviewed_output)])
+
+    assert interrupted.exit_code == 1
+    assert "job_reconciliation_required" in interrupted.output
+    assert reviewed_output.exists()
+    pending_job = next(job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package")
+    assert pending_job.state is JobState.VALIDATING
+
+    recovered = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output",
+                                    str(reviewed_output)])
+
+    assert recovered.exit_code == 0, recovered.output
+    assert "Reviewed EPUB saved to:" in recovered.output
+    recovered_job = next(job for job in _jobs(tmp_path) if job.job_id == pending_job.job_id)
+    assert recovered_job.state is JobState.VALIDATED
+
+    # An identical request is idempotent even though its output now exists.
+    first_reviewed_bytes = reviewed_output.read_bytes()
+    replay = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
+    assert replay.exit_code == 0, replay.output
+    assert reviewed_output.read_bytes() == first_reviewed_bytes
+
+    old_reviewed_bytes = reviewed_output.read_bytes()
+    edited = decode_review_package(review_path.read_bytes())
+    edited_again = replace(edited, rows=tuple(
+        replace(row, reviewed_text=row.reviewed_text.replace("HUMAN:", "HUMAN-2:")) for row in edited.rows))
+    review_path.write_bytes(encode_review_package(edited_again))
+    conflict = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
+    assert conflict.exit_code == 1
+    assert "output_exists" in conflict.output
+    assert reviewed_output.read_bytes() == old_reviewed_bytes
+
+    overwritten = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output",
+                                      str(reviewed_output), "--overwrite"])
+    assert overwritten.exit_code == 0, overwritten.output
+    with ZipFile(reviewed_output) as archive:
+        assert b"HUMAN-2:Hello reader." in archive.read("OEBPS/c1.xhtml")
+    assert source.read_bytes() == original_bytes
+    assert translated_output.read_bytes() == machine_bytes
+
+
+def test_terminal_job_repository_commit_ack_loss_reconciles_without_false_success(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    reviewed_output = tmp_path / "reviewed.epub"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    original_transition = job_store.SqliteJobRepository.transition
+    interrupt = [True]
+
+    def commit_then_interrupt(self, job_id, target, *, expected_revision, summary=None):
+        committed = original_transition(self, job_id, target, expected_revision=expected_revision, summary=summary)
+        if interrupt[0] and target is JobState.VALIDATED:
+            interrupt[0] = False
+            raise RuntimeError("simulated lost repository commit acknowledgement")
+        return committed
+
+    monkeypatch.setattr(job_store.SqliteJobRepository, "transition", commit_then_interrupt)
+    first = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
+
+    assert first.exit_code == 1
+    assert "job_reconciliation_required" in first.output
+    assert "Reviewed EPUB saved to:" not in first.output
+    assert reviewed_output.exists()
+    apply_job = next(job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package")
+    assert apply_job.state is JobState.VALIDATED
+
+    recovered = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
+
+    assert recovered.exit_code == 0, recovered.output
+    assert "Reviewed EPUB saved to:" in recovered.output
+
+
+def test_rename_before_artifact_commit_is_reconciled_without_a_false_review_success(tmp_path, monkeypatch):
+    source = _book(tmp_path / "book.epub")
+    review_path = tmp_path / "review.csv"
+    translated_output = tmp_path / "machine.epub"
+    reviewed_output = tmp_path / "reviewed.epub"
+    translated, _ = _run(tmp_path, monkeypatch, "--review-output", str(review_path),
+                         source=source, output=translated_output)
+    assert translated.exit_code == 0, translated.output
+    _mark_reviewed(review_path)
+    reviewed_output.write_bytes(b"prior-reviewed-artifact")
+    original_replace = artifact_destination.DestinationFileOps.replace
+    interrupt = [True]
+
+    def rename_then_interrupt(self, staged, target):
+        original_replace(self, staged, target)
+        if interrupt[0]:
+            interrupt[0] = False
+            raise RuntimeError("simulated crash after rename")
+
+    monkeypatch.setattr(artifact_destination.DestinationFileOps, "replace", rename_then_interrupt)
+    first = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output",
+                                str(reviewed_output), "--overwrite"])
+
+    assert first.exit_code == 1
+    assert "Reviewed EPUB saved to:" not in first.output
+    with ZipFile(reviewed_output) as archive:
+        assert b"HUMAN:Hello reader." in archive.read("OEBPS/c1.xhtml")
+    apply_jobs = [job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package"]
+    assert len(apply_jobs) == 1 and apply_jobs[0].state is not JobState.VALIDATED
+    paths = ProjectJsonRepository(tmp_path / "processing").resolve_database_paths(apply_jobs[0].request.project_id)
+    provenance = open_provenance_repository(paths.database, paths.backups, apply_jobs[0].request.project_id,
+                                            clock=lambda: datetime.now(UTC))
+    outcomes = [node.record.request.outcome_code
+                for node in provenance.list_by_job(apply_jobs[0].job_id, limit=1024).nodes]
+    assert "review_applied" not in outcomes and "human_edit_validated" not in outcomes
+
+    second = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output",
+                                 str(reviewed_output), "--overwrite"])
+
+    assert second.exit_code == 0, second.output
+    assert "Reviewed EPUB saved to:" in second.output
+    apply_jobs = [job for job in _jobs(tmp_path) if job.request.command_type == "apply_review_package"]
+    assert any(job.state is JobState.VALIDATED for job in apply_jobs)
 
 
 def test_validation_warnings_keep_the_output_and_end_partially_completed(tmp_path, monkeypatch):
@@ -412,10 +1016,22 @@ def test_a_full_run_stores_no_text_no_address_and_no_translation_in_the_job_stor
     for canary in (b"Hello title", b"PT:Hello", b"translator.test", str(tmp_path / "out.epub").encode()):
         assert canary not in raw
 
+    job = _only_job(tmp_path)
+    project_store = ProjectJsonRepository(tmp_path / "processing")
+    paths = project_store.resolve_database_paths(job.request.project_id)
+    provenance = open_provenance_repository(paths.database, paths.backups, job.request.project_id,
+                                            clock=lambda: datetime.now(UTC))
+    records = provenance.list_by_job(job.job_id, limit=1024).nodes
+    destination_records = [node.record.request for node in records if node.record.request.operation == "translate_output"]
+    assert len(destination_records) == 1
+    assert destination_records[0].subject is not None
+    assert destination_records[0].subject.namespace == "artifact_destination"
+    assert str(tmp_path / "out.epub") not in destination_records[0].subject.value
+
 
 def _canned(tmp_path, monkeypatch, result, report=None):
     output = tmp_path / "out.epub"
-    run = ProjectTranslationRun(result, report(output) if report else None, [], None)
+    run = ProjectTranslationRun(result, report(output) if report else None, None)
     monkeypatch.setattr("ayvu.cli.translate_in_project", lambda _translation, _observer: run)
     invocation, _ = _run(tmp_path, monkeypatch)
     return invocation

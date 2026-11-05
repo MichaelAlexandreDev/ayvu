@@ -77,13 +77,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 - Opcao `--translate-alt-text` para traduzir o texto alternativo (`alt`) das
   imagens, preservando a imagem e demais atributos e contando os textos no
   relatorio. Leitura de texto dentro da imagem (OCR) fica fora do escopo.
-- Opcao `--review-output` para gerar CSV opcional com textos originais e
-  traduzidos lado a lado, IDs de capitulo/segmento e metadados de rastreio do
-  EPUB para revisao humana externa.
-- Comando `apply-review` para reconstruir um EPUB a partir de um CSV revisado,
-  validando que cada segmento ainda corresponde ao EPUB original, aplicando as
-  traducoes revisadas sem alterar o original e relatando trechos sem revisao,
-  ausentes, inconsistentes, duplicados ou de documentos desconhecidos.
+- Opcao `--review-output` para exportar um pacote v2 vinculado ao projeto,
+  à fonte, ao artefato traduzido e às unidades estáveis.
+- Comando `apply-review` com validação opcional `--validate-only` e publicação
+  reconciliável de um novo EPUB revisado, preservando a fonte e a tradução
+  automática.
 - Traducao em batch no comando `translate`, aceitando multiplos EPUBs,
   `--output-dir`, relatorios Markdown por livro e `--continue-on-error` para
   seguir processando apos falhas.
@@ -96,9 +94,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 - O contrato de revisão ganhou o pacote v2 `ayvu.review_exchange`, limitado e
   ligado a projeto, fonte, artefato de tradução, formato, locator e unidades
   estáveis. CSV v1 agora é apenas para inspeção: `apply-review` recusa antes de
-  abrir o EPUB ou criar saída e informa `legacy_reexport_required`. A API de
-  mapeamento v2 preserva partes estruturais, mas ainda não está conectada à CLI.
-  Veja `docs/architecture/review-exchange.md`.
+  abrir o EPUB ou criar saída e informa `legacy_reexport_required`. O caso de uso
+  de aplicação agora exporta pacotes v2 de `TranslateProject`, valida sem efeitos
+  colaterais e aplica pelo protocolo de publicação/reconciliação D106. `apply-review`
+  aceita `--validate-only`; v1 continua exigindo reexportação. Veja
+  `docs/architecture/review-exchange.md` e `docs/architecture/review-application.md`.
 - `translate`, a tradução guiada e cada livro de um lote agora rodam pelo caso de
   uso `TranslateProject`, como um job durável com um único resultado final. Prompts,
   relatórios, nomes de saída e códigos de saída não mudam, salvo o que está abaixo.

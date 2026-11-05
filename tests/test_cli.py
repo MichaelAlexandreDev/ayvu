@@ -1,5 +1,7 @@
 import csv
+import hashlib
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,6 +13,7 @@ from ayvu.cache import CacheKey, TranslationCache
 import typer
 
 import ayvu.cli as cli_module
+from ayvu.artifact import Artifact, ArtifactRequest, ArtifactState
 from ayvu.cli import (
     DEFAULT_PREVIEW_DOCUMENT_LIMIT,
     _BookOutcome,
@@ -28,12 +31,16 @@ from ayvu.domain import (
     UserMode,
 )
 from ayvu.epub_io import TranslationReport
+from ayvu.job import JobState
 from ayvu.glossary import GlossaryUsage
 from ayvu.html_translate import HtmlTranslationStats
 from ayvu.library import LibraryOpenError
 from ayvu.preflight import PreflightError
 from ayvu.resume import COMPLETED_STATUS, ResumeStateStore, TranslationResumeState
+from ayvu.review_application import ReviewExportResult, ReviewOutcome, ReviewPackageIdentity
 from ayvu.review_export import ReviewSegment, write_review_csv
+from ayvu.translation_engine import EngineResult
+from ayvu.translate_project import OutputValidation, TranslateProjectResult
 from ayvu.translator import TranslatorError, TranslatorLanguage
 from ayvu.validation import ValidationResult
 
@@ -48,13 +55,12 @@ def _fake_translation(monkeypatch, fake_translate) -> None:
     """
     def run(book, hooks):
         preflight = book.prepare()
-        review = [] if book.wants_review else None
         report = fake_translate(
             book.epub_path, book.output_plan.path, translator=preflight.translator, options=book.options, glossary=preflight.glossary,
             on_chapter_start=hooks.on_chapter_start, on_chapter_done=hooks.on_chapter_done, on_text_processed=hooks.on_text_processed,
-            review_segments=review, translator_factory=getattr(preflight, "translator_factory", None))
+            translator_factory=getattr(preflight, "translator_factory", None))
         validation = cli_module.validate_output(book.output_plan.path, on_progress=hooks.on_validation) if report.output_written else None
-        return _BookOutcome(report=report, validation=validation, review_segments=review)
+        return _BookOutcome(report=report, validation=validation)
 
     monkeypatch.setattr("ayvu.cli._translate_in_project", run)
     monkeypatch.setattr("ayvu.cli.translate_without_project", fake_translate)
@@ -157,7 +163,9 @@ def isolated_config(tmp_path, monkeypatch):
     delete the returned path before invoking the CLI.
     """
     config_home = tmp_path / "xdg"
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(config_home))
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "Processando")
     config_path = config_home / "ayvu" / "config.json"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2084,47 +2092,60 @@ def test_translate_command_continues_when_existing_output_is_confirmed(tmp_path)
     assert "Traceback" not in result.output
 
 
-def test_translate_command_writes_review_output_when_requested(tmp_path, monkeypatch):
+def test_translate_command_delegates_v2_review_export_from_exact_project_result(tmp_path, monkeypatch):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     review_path = tmp_path / "book-review.csv"
     processing_dir = tmp_path / "processing"
     epub_path.write_bytes(b"fake epub")
+    project_id = "00000000-0000-4000-8000-000000000148"
+    job_id = "00000000-0000-4000-8000-000000000149"
+    machine_id = "00000000-0000-4000-8000-000000000150"
+    review_job_id = "00000000-0000-4000-8000-000000000151"
+    review_artifact_id = "00000000-0000-4000-8000-000000000152"
+    now = datetime(2026, 11, 5, tzinfo=UTC)
+    digest = "sha256:" + "a" * 64
+    machine = Artifact(machine_id, ArtifactRequest(project_id, job_id, "translated_output", "reconstruct", 1,
+                                                   digest, "application/epub+zip"),
+                       ArtifactState.READY, 2, now, now, 10, digest)
+    translation = TranslateProjectResult(
+        project_id, job_id, JobState.VALIDATED, artifact=machine,
+        engine=EngineResult(documents=(object(),), translations=(object(),)),
+        artifact_destination=output_path, project_revision=1)
+    report = TranslationReport(output_path=output_path, input_path=epub_path, output_written=True,
+                               detected_language="en", target_language="pt")
+    monkeypatch.setattr("ayvu.cli._processing_dir", lambda _config: processing_dir)
+    monkeypatch.setattr("ayvu.cli.build_project_request", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr("ayvu.cli.resolve_project", lambda *_args, **_kwargs: SimpleNamespace(
+        project=SimpleNamespace(project_id=project_id, source_sha256="b" * 64)))
+    monkeypatch.setattr("ayvu.cli._translate_in_project", lambda *_args, **_kwargs:
+                        _BookOutcome(report=report, validation=OutputValidation(True, (), 1), job_result=translation))
 
-    def fake_translate(input_path: Path, output_path: Path, **kwargs: object) -> TranslationReport:
-        review_segments = kwargs["review_segments"]
-        assert isinstance(review_segments, list)
-        review_segments.append(
-            ReviewSegment(
-                segment_id="c0001-s0001",
-                source_epub=str(input_path),
-                output_epub=str(output_path),
-                chapter_index=1,
-                chapter_name="text/chapter.xhtml",
-                document_name="text/chapter.xhtml",
-                document_path="OEBPS/text/chapter.xhtml",
-                segment_kind="text",
-                source_language=kwargs["options"].source,
-                target_language=kwargs["options"].target,
-                original="Hello reader.",
-                translated="Ola leitor.",
-            )
-        )
-        return TranslationReport(
-            output_path=output_path,
-            input_path=input_path,
-            detected_language=kwargs["options"].source,
-            target_language=kwargs["options"].target,
-        )
+    package_bytes = b"AYVU-REVIEW-PACKAGE,2,{}\r\n"
+    package_fingerprint = "sha256:" + hashlib.sha256(package_bytes).hexdigest()
+    identity = ReviewPackageIdentity(2, "rpk:v1:" + "c" * 64, package_fingerprint, project_id, 1,
+                                     "b" * 64, 10, machine_id, 2, digest, 1, 1)
+    review_artifact = Artifact(
+        review_artifact_id, ArtifactRequest(project_id, review_job_id, "review_package", "review_export", 1,
+                                           digest, "text/csv"), ArtifactState.READY, 2, now, now,
+        len(package_bytes), package_fingerprint)
+    captured = {}
 
-    monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: processing_dir)
-    monkeypatch.setattr(
-        "ayvu.cli.run_translation_preflight",
-        lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
-    )
-    monkeypatch.setattr("ayvu.cli.TranslationCache", lambda _path: FakeCache())
-    _fake_translation(monkeypatch, fake_translate)
-    monkeypatch.setattr("ayvu.cli.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
+    class FakeExport:
+        def execute(self, command):
+            captured["command"] = command
+            review_path.write_bytes(package_bytes)
+            return ReviewExportResult(ReviewOutcome.READY, "review_package_exported", identity,
+                                      review_artifact, review_job_id)
+
+    class FakeUseCases:
+        export = FakeExport()
+
+        @staticmethod
+        def cancellation():
+            return SimpleNamespace(token=None)
+
+    monkeypatch.setattr("ayvu.cli.open_review_use_cases", lambda *_args, **_kwargs: FakeUseCases())
     monkeypatch.setattr("ayvu.cli._offer_markdown_report", lambda *_args, **_kwargs: None)
 
     result = runner.invoke(
@@ -2139,16 +2160,13 @@ def test_translate_command_writes_review_output_when_requested(tmp_path, monkeyp
         ],
     )
 
-    with review_path.open(encoding="utf-8", newline="") as input_file:
-        rows = list(csv.DictReader(input_file))
-
     assert result.exit_code == 0
     assert "Review file saved to:" in result.output
     assert "Review file" in result.output
-    assert rows[0]["segment_id"] == "c0001-s0001"
-    assert rows[0]["document_path"] == "OEBPS/text/chapter.xhtml"
-    assert rows[0]["original"] == "Hello reader."
-    assert rows[0]["translated"] == "Ola leitor."
+    assert review_path.read_bytes().startswith(b"AYVU-REVIEW-PACKAGE,2,")
+    assert captured["command"].translation is translation
+    assert captured["command"].destination == review_path
+    assert captured["command"].overwrite is False
 
 
 def test_translate_command_rejects_existing_review_output_without_overwrite(tmp_path, monkeypatch):
@@ -2183,22 +2201,12 @@ def test_translate_command_rejects_existing_review_output_without_overwrite(tmp_
     assert "Traceback" not in result.output
 
 
-def test_review_output_write_errors_redact_destination_path(tmp_path, monkeypatch, capsys):
+def test_review_output_conflicts_redact_destination_path(tmp_path, capsys):
     review_path = tmp_path / "PRIVATE_REVIEW_PATH_CANARY_148.csv"
     review_path.write_text("exists", encoding="utf-8")
     with pytest.raises(typer.Exit):
         cli_module._resolve_review_output_path(review_path, False, False, UserMode.DEVELOPER)
     assert "PRIVATE_REVIEW_PATH_CANARY_148" not in capsys.readouterr().out
-
-    def fail_write(path, *_args, **_kwargs):
-        raise OSError(f"cannot write {path}")
-
-    monkeypatch.setattr(cli_module, "write_review_csv", fail_write)
-    with pytest.raises(typer.Exit):
-        cli_module._write_review_output(review_path, [], False, UserMode.DEVELOPER)
-    output = capsys.readouterr().out
-    assert "review_output_unwritable" in output
-    assert "PRIVATE_REVIEW_PATH_CANARY_148" not in output
 
 
 def test_translate_command_rejects_review_output_with_dry_run(tmp_path, monkeypatch):
@@ -3379,12 +3387,10 @@ def test_apply_review_command_requires_a_v2_mapper_for_nonlegacy_input(tmp_path,
     epub_path.write_bytes(b"fake epub")
     review_path = tmp_path / "package.csv"
     review_path.write_text("placeholder", encoding="utf-8")
-    monkeypatch.setattr(cli_module, "read_review_csv", lambda _path: object())
-
     result = runner.invoke(app, ["apply-review", str(epub_path), str(review_path)])
 
     assert result.exit_code == 1
-    assert "review_v2_mapper_required" in result.output
+    assert "invalid_preamble" in result.output
     assert "Traceback" not in result.output
 
 

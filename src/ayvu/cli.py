@@ -56,8 +56,10 @@ from .project import ProjectError
 from .project_service import resolve_project
 from .project_store import ProjectJsonRepository, build_project_request, translation_selections
 from .job_recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
-from .review_export import ReviewSegment, write_review_csv
-from .review_import import LegacyReviewInspection, ReviewImportError, read_review_csv
+from .review_application import (
+    ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
+)
+from .review_composition import destination_fingerprint, open_review_use_cases, read_review_input
 from .provider_composition import ProviderSetupError, cli_provider_session
 from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
 from .translate_project import ContinuationTicket, TranslateObserver, TranslateProjectResult
@@ -296,7 +298,6 @@ class _BookRequest:
     options: TranslationOptions
     cache_path: Path
     prepare: Callable[[], object]
-    wants_review: bool
     project_id: str | None = None
     source_sha256: str | None = None
     processing_dir: Path | None = None
@@ -310,7 +311,6 @@ class _BookOutcome:
 
     report: TranslationReport | None = None
     validation: object | None = None
-    review_segments: list[ReviewSegment] | None = None
     failure: str | None = None
     raised: Exception | None = None
     warning: str | None = None
@@ -675,7 +675,7 @@ def translate(
     review_output: Optional[Path] = typer.Option(
         None,
         "--review-output",
-        help="Optional legacy v1 inspection CSV; this file cannot be applied.",
+        help="Optional v2 review package for the completed project translation.",
     ),
     source: Optional[str] = typer.Option(
         None,
@@ -1689,7 +1689,6 @@ def _run_translation(
         options=translation_options,
         cache_path=cache_path,
         prepare=prepare,
-        wants_review=review_output_path is not None,
         project_id=project_id,
         source_sha256=source_sha256,
         processing_dir=_processing_dir(config) if project_id is not None else None,
@@ -1737,10 +1736,19 @@ def _run_translation(
         _print_translation_failure(outcome, output_path, mode)
         raise typer.Exit(code=1)
     report = outcome.report
-    review_segments = outcome.review_segments
-
-    if review_output_path is not None and review_segments is not None:
-        _write_review_output(review_output_path, review_segments, overwrite=overwrite, mode=mode)
+    if review_output_path is not None:
+        if outcome.job_result is None:
+            _print_review_export_failure("translation_identity_unavailable", mode)
+            raise typer.Exit(code=1)
+        use_cases = open_review_use_cases(_processing_dir(config))
+        cancellation = use_cases.cancellation()
+        exported = use_cases.export.execute(ReviewExportCommand(
+            outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
+            cancellation=cancellation.token))
+        if exported.outcome is not ReviewOutcome.READY or exported.artifact is None:
+            _print_review_export_failure(exported.code, mode)
+            raise typer.Exit(code=1)
+        console.print(f"[green]Review file saved to:[/green] {review_output_path}")
         report.review_output_path = review_output_path
 
     if cache_only and report.missing_texts:
@@ -1810,7 +1818,6 @@ def _translation_progress_display() -> Progress:
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
     """Dry run, and a resume file that recomputes to no job. See ``translate_without_project``."""
     preflight = book.prepare()
-    review_segments: list[ReviewSegment] | None = [] if book.wants_review else None
     with TranslationCache(book.cache_path) as cache:
         report = translate_without_project(
             book.epub_path,
@@ -1822,14 +1829,13 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks) -> _BookOu
             on_chapter_start=hooks.on_chapter_start,
             on_chapter_done=hooks.on_chapter_done,
             on_text_processed=hooks.on_text_processed,
-            review_segments=review_segments,
             translator_factory=getattr(preflight, "translator_factory", None),
             cache_factory=lambda: TranslationCache(book.cache_path),
         )
     validation = None
     if report.output_written and not book.options.dry_run:
         validation = validate_output(book.output_plan.path, on_progress=hooks.on_validation)
-    return _BookOutcome(report=report, validation=validation, review_segments=review_segments)
+    return _BookOutcome(report=report, validation=validation)
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
@@ -1867,7 +1873,6 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
     return _BookOutcome(
         report=run.report,
         validation=result.validation,
-        review_segments=run.review_segments if book.wants_review else None,
         warning=warning,
         job_result=result,
     )
@@ -2194,53 +2199,109 @@ def apply_review(
         exists=True,
         dir_okay=False,
         readable=True,
-        help="Original EPUB path; v1 apply is rejected before the EPUB is opened.",
+        help="Original EPUB path used to verify the source revision.",
     ),
     review_csv: Path = typer.Argument(
         ...,
         exists=True,
         dir_okay=False,
         readable=True,
-        help="Legacy v1 review CSV for inspection; v1 apply is rejected.",
+        help="Edited v2 review package. Legacy v1 files are inspection-only.",
     ),
     output: Optional[Path] = typer.Option(
         None,
         "--output",
         "-o",
-        help="Legacy option retained for compatibility; apply-review currently writes no output.",
+        help="Output EPUB path. Defaults to <input-stem>-reviewed.epub.",
     ),
-    overwrite: bool = typer.Option(False, "--overwrite", help="Legacy option; no output is written by this command."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Allow replacing an existing output EPUB."),
+    validate_only: bool = typer.Option(False, "--validate-only", help="Validate the package without reconstructing an EPUB."),
 ) -> None:
-    """Reject positional v1 apply until the command is connected to v2 review packages."""
+    """Validate and apply one identity-bound v2 review package."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        review = read_review_csv(review_csv)
-    except ReviewImportError as exc:
+        package_bytes = read_review_input(review_csv)
+    except Exception as exc:
+        code = getattr(exc, "code", "review_file_unreadable")
         _print_expected_error(
             "Não foi possível ler o arquivo de revisão.",
-            "Confirme que é um CSV de revisão gerado pelo Ayvu e tente novamente.",
+            "Confirme que o arquivo é um pacote de revisão local válido e tente novamente.",
             mode,
-            detail=str(exc),
+            detail=code,
         )
-        raise typer.Exit(code=1) from exc
+        raise typer.Exit(code=1) from None
 
-    if isinstance(review, LegacyReviewInspection):
+    use_cases = open_review_use_cases(_processing_dir(_load_existing_config_or_default()), source_path=epub_path)
+    if validate_only:
+        cancellation = use_cases.cancellation()
+        validated = use_cases.validate.execute(
+            ReviewValidationCommand(package_bytes, cancellation=cancellation.token))
+        if validated.valid:
+            table = Table(title="Review package validation")
+            table.add_column("Metric")
+            table.add_column("Value")
+            table.add_row("Documents", str(validated.counts.documents))
+            table.add_row("Units", str(validated.counts.units))
+            table.add_row("Reviewed", str(validated.counts.reviewed))
+            console.print(table)
+            raise typer.Exit(code=0)
+        _print_review_apply_failure(validated.code, mode)
+        raise typer.Exit(code=1)
+
+    output_path = output or epub_path.with_name(f"{epub_path.stem}-reviewed{epub_path.suffix or '.epub'}")
+    cancellation = use_cases.cancellation()
+    applied = use_cases.apply.execute(ReviewApplyCommand(
+        package_bytes, None, output_path, destination_fingerprint(output_path), overwrite,
+        cancellation=cancellation.token))
+    if not applied.success:
+        _print_review_apply_failure(applied.code, mode)
+        raise typer.Exit(code=1)
+
+    table = Table(title="Review application report")
+    table.add_column("Metric")
+    table.add_column("Value")
+    table.add_row("Output", _display_optional_path(output_path))
+    table.add_row("Documents", str(applied.counts.documents))
+    table.add_row("Units applied", str(applied.counts.reviewed))
+    console.print(table)
+    console.print(f"[green]Reviewed EPUB saved to:[/green] {output_path}")
+
+
+def _print_review_apply_failure(code: str, mode: UserMode) -> None:
+    if code == "legacy_reexport_required":
         _print_expected_error(
             "CSV v1 serve apenas para inspeção e não pode reconstruir o EPUB.",
-            "É necessário exportar um pacote v2 ligado à mesma revisão do projeto, à fonte e ao artefato de tradução. "
-            "A aplicação v2 ainda não está conectada a este comando CLI.",
+            "Exporte novamente usando --review-output depois de gerar uma tradução da mesma fonte e aplique o novo pacote v2.",
             mode,
             detail="legacy_reexport_required",
         )
-        raise typer.Exit(code=1)
-
+        return
+    if code in {"invalid_preamble", "invalid_encoding", "malformed_csv", "invalid_newline", "invalid_column_count"}:
+        _print_expected_error(
+            "Não foi possível ler o arquivo de revisão.",
+            "Confirme que o arquivo é um pacote de revisão local válido e tente novamente.",
+            mode,
+            detail=code,
+        )
+        return
+    if code in {"output_exists", "review_file_exists"}:
+        _print_expected_error("O arquivo de saída já existe.", "Use --overwrite ou escolha outro caminho com --output.",
+                              mode, detail="output_exists")
+        return
+    if code == "review_not_approved":
+        _print_expected_error(
+            "O pacote ainda tem linhas sem aprovação.",
+            "Edite reviewed_text onde quiser e marque review_status como reviewed em todas as linhas, inclusive nas que ficaram iguais.",
+            mode,
+            detail=code,
+        )
+        return
     _print_expected_error(
-        "Este formato de revisão ainda não pode ser aplicado por este comando.",
-        "Use um pacote v2 validado contra a mesma revisão do projeto, a fonte e o artefato de tradução.",
+        "Não foi possível validar ou aplicar o pacote de revisão.",
+        "Confirme que o pacote v2 pertence à mesma revisão do projeto, à fonte e ao artefato de tradução; corrija os conflitos e tente novamente.",
         mode,
-        detail="review_v2_mapper_required",
+        detail=code,
     )
-    raise typer.Exit(code=1)
 
 def _validate_with_progress(output_path: Path) -> ValidationResult:
     with Progress(
@@ -2366,24 +2427,21 @@ def _resolve_review_output_path(
     return path
 
 
-def _write_review_output(
-    path: Path,
-    segments: list[ReviewSegment],
-    overwrite: bool,
-    mode: UserMode,
-) -> None:
-    try:
-        write_review_csv(path, segments, overwrite=overwrite)
-    except OSError:
+def _print_review_export_failure(code: str, mode: UserMode) -> None:
+    if code in {"output_exists", "review_file_exists"}:
         _print_expected_error(
-            "Não foi possível salvar o arquivo de revisão.",
-            "Escolha um caminho gravável para --review-output e tente novamente.",
+            "Arquivo de revisão já existe.",
+            "Use --overwrite para substituí-lo ou escolha outro caminho em --review-output.",
             mode,
-            detail="review_output_unwritable",
+            detail="review_output_exists",
         )
-        raise typer.Exit(code=1) from None
-
-    console.print(f"[green]Review file saved to:[/green] {path}")
+        return
+    _print_expected_error(
+        "Não foi possível salvar o pacote de revisão.",
+        "Confirme que a tradução terminou com um artefato íntegro e escolha um caminho gravável para --review-output.",
+        mode,
+        detail=code,
+    )
 
 
 def _print_interrupted_translation(
