@@ -21,10 +21,9 @@ from .format_local import LocalFormatSource, LocalOutputGuard
 from .format_service import FormatSource
 from .job_events import JobFailure, JobFailureFamily
 
-_INVALID_NAME_CHARS = frozenset('<>:"/\\|?*')
-_WINDOWS_RESERVED = frozenset({"CON", "PRN", "AUX", "NUL", *(f"COM{index}" for index in range(1, 10)),
-                               *(f"LPT{index}" for index in range(1, 10))})
-_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+# Not accepted in a file name on some system. A real chapter with one still exports, under a portable name.
+_NOT_PORTABLE = re.compile(r'[<>:"\\|?*\x00-\x1f\x7f]')
+_MAX_NAME_BYTES = 255
 # What a filesystem without hard links answers, such as a FAT or exFAT pen drive.
 _NO_HARD_LINKS = frozenset({errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.ENOSYS, errno.EMLINK})
 
@@ -251,21 +250,14 @@ class MarkdownDirectoryWriter:
 
     @staticmethod
     def _name(ordinal: int, stem: str) -> tuple[str | None, JobFailure | None]:
-        if (not stem or stem in {".", ".."} or stem.startswith(("/", "\\"))
-                or "/" in stem or "\\" in stem or _CONTROL.search(stem)
-                or any(character in _INVALID_NAME_CHARS for character in stem)
-                or stem.endswith((".", " "))):
+        """The ordinal keeps names unique and keeps ``con`` from being the reserved device name."""
+        # A file's own name holds neither of these, so only a hostile adapter gets here.
+        if not stem or stem in {".", ".."} or "/" in stem:
             return None, _failure(JobFailureFamily.POLICY, "unsafe_output_name")
-        reserved_base = stem.split(".", 1)[0].upper()
-        if reserved_base in _WINDOWS_RESERVED:
-            return None, _failure(JobFailureFamily.POLICY, "reserved_output_name")
-        name = f"{ordinal:03d}-{stem}.md"
-        try:
-            if len(name.encode("utf-8")) > 255:
-                return None, _failure(JobFailureFamily.RESOURCE, "output_name_too_long")
-        except UnicodeEncodeError:
-            return None, _failure(JobFailureFamily.POLICY, "unsafe_output_name")
-        return name, None
+        prefix, suffix = f"{ordinal:03d}-", ".md"
+        room = _MAX_NAME_BYTES - len(prefix) - len(suffix)
+        safe = _NOT_PORTABLE.sub("_", stem).encode("utf-8", "ignore")[:room].decode("utf-8", "ignore")
+        return f"{prefix}{safe}{suffix}", None
 
     @staticmethod
     def _render(document: VisibleContentDocument) -> bytes:
