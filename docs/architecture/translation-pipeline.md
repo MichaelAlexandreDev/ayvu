@@ -95,7 +95,7 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 
 The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
-The standalone SQLite cache remains v1 until #123. The CLI stays on the characterized adapter until that
+The standalone SQLite cache remains v1 until #154. The CLI stays on the characterized adapter until that
 migration. [`html_structure`](html-structure.md) has neither cache nor glossary.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.html_translate`, passed on each call.
@@ -184,7 +184,7 @@ artifact for an incomplete document. The CLI keeps its current partial EPUB and 
 behavior behind the legacy adapter.
 
 The port has no SQLite implementation here. Contract and integration tests use in-memory fakes; the
-standalone cache storage migration belongs to #123. The current CLI still selects `_LegacyV1Cache`, which
+standalone cache storage migration belongs to #154. The current CLI still selects `_LegacyV1Cache`, which
 cannot return a v2 hit or populate v2 provenance.
 
 ## Replay
