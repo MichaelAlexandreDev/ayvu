@@ -19,8 +19,9 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 | metadata | `ayvu.epub_io._translate_opf_title` | `ayvu.format_adapter.ContentScope` | A scope to extract and a fidelity aspect. Translating stays out of the adapter |
 | navigation | `ayvu.epub_io._navigation_document_entries` | `ayvu.format_adapter.ContentScope` | Also a fidelity aspect |
 | image alt text | `ayvu.html_translate._translate_image_alt_text` | `ayvu.html_structure.extract_html_document` | A scope for #144 to expose. Translating stays out of the adapter |
-| review export | `ayvu.review_export.write_review_csv` | #149 | Maps units to review rows, and is not a format operation |
-| review apply | `ayvu.epub_io.apply_reviewed_epub` | `ayvu.format_service.FormatReconstructor`, through #149 | Reading the CSV stays in `ayvu.review_import.read_review_csv` |
+| review export | `ayvu.review_export.write_review_csv` | #149 | The CLI still writes positional v1 CSV; this is inspection-only and is not a format operation |
+| v2 review package | `ayvu.review_exchange.export_review_package`, `map_review_package` | Review contract / `ayvu.format_adapter.UnitTranslation` | Produces validated stable-unit inputs; CLI export/apply orchestration and final EPUB publication are not connected |
+| review apply | `ayvu.epub_io.apply_reviewed_epub` | `ayvu.review_exchange.map_review_package` plus `FormatReconstructor` for staged callers | The v1 inspection object is refused with `legacy_reexport_required`; CSV parsing stays in `ayvu.review_import.read_review_csv` |
 | rebuild | `ayvu.epub_io._copy_epub_with_replacements` | `ayvu.epub_archive.EpubArchive` | The adapter returns bytes and `ayvu.artifact_service.ArtifactService` publishes them |
 | validation | `ayvu.validation.validate_output_epub` | `ayvu.epub_format.epub_format_adapter` | Warnings as text become `ayvu.format_adapter.ValidationFinding` codes |
 | archive preservation | `ayvu.epub_io._copy_epub_with_replacements` | `ayvu.epub_archive.EpubArchive` | Member order, names and untouched members stay inside the adapter, as a fidelity claim |

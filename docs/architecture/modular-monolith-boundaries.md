@@ -337,6 +337,7 @@ issue.
 | `src/ayvu/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
 | `src/ayvu/review_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
 | `src/ayvu/review_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
+| `src/ayvu/review_exchange.py` | Versioned bounded v2 codec, identity validation, and mapping to stable unit reconstruction inputs | Review-package semantics belong to **Review**; EPUB structure remains in **Formats/EPUB**; no application orchestration or publication |
 | `src/ayvu/library.py` | Library discovery and launching a reader process | Discovery/open coordination moves to **Application**; filesystem scanning and process launch are separate **Infrastructure** adapters with explicit authorization |
 | `src/ayvu/validation.py` | EPUB output validation and warnings using ebooklib/Beautiful Soup | Finding semantics belong to **Quality**; EPUB-specific inspection remains in the **Formats/EPUB** adapter |
 
@@ -348,7 +349,7 @@ These traces keep the accepted boundaries anchored in production behavior.
 | --- | --- | --- |
 | Translate EPUB | `cli.py` → `preflight.py` → `epub_io.py` → `html_translate.py` → cache/TM/glossary/translator → `validation.py` | CLI invokes one application service; the service coordinates independent format, provider, knowledge, checkpoint, policy, progress, and artifact ports |
 | Export review | `cli.py` → `epub_io.translate_epub` → `html_translate.py` collects ordered review segments → `review_export.write_review_csv` | Application/Review owns the export command and review-unit result; EPUB traversal and CSV serialization remain separate adapters |
-| Apply review | `cli.py` → `review_import.read_review_csv` → `epub_io.apply_reviewed_epub` → `html_translate.apply_reviewed_html` | Application/Review validates revisions and coordinates format reconstruction; CSV parsing and EPUB/HTML rewriting remain separate adapters |
+| Apply review | CLI inspects/rejects v1 via `review_import`; v2 callers use `review_exchange.map_review_package` → `UnitTranslation` → `FormatReconstructor` | Application/Review validates revisions and coordinates format reconstruction; CLI v2 orchestration and final publication remain future work |
 | Inspect, clean, export, or import cache | `cli.py` → `cache.py` → SQLite/JSON | Application/Knowledge exposes explicit query and mutation use cases; SQLite and JSON implement separate ports |
 | Resume interrupted translation | `cli.py` → `resume.py` → translation workflow and cache | Application/Jobs validates checkpoint and source identity, then invokes the same translation service rather than a second orchestration path |
 

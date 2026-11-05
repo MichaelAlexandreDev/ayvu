@@ -39,12 +39,7 @@ from .domain import (
     default_preview_books_dir,
     default_translated_books_dir,
 )
-from .epub_io import (
-    ReviewApplyReport,
-    apply_reviewed_epub,
-    extract_markdown,
-    inspect_epub,
-)
+from .epub_io import extract_markdown, inspect_epub
 from .glossary import (
     GLOSSARY_RULE_PRESERVE,
     GLOSSARY_RULE_TRANSLATE,
@@ -62,7 +57,7 @@ from .project_service import resolve_project
 from .project_store import ProjectJsonRepository, build_project_request, translation_selections
 from .job_recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
 from .review_export import ReviewSegment, write_review_csv
-from .review_import import ReviewImportError, read_review_csv
+from .review_import import LegacyReviewInspection, ReviewImportError, read_review_csv
 from .provider_composition import ProviderSetupError, cli_provider_session
 from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
 from .translate_project import ContinuationTicket, TranslateObserver, TranslateProjectResult
@@ -680,7 +675,7 @@ def translate(
     review_output: Optional[Path] = typer.Option(
         None,
         "--review-output",
-        help="Optional CSV path with original and translated segments for external review.",
+        help="Optional legacy v1 inspection CSV; this file cannot be applied.",
     ),
     source: Optional[str] = typer.Option(
         None,
@@ -2199,24 +2194,24 @@ def apply_review(
         exists=True,
         dir_okay=False,
         readable=True,
-        help="Original EPUB to rebuild from.",
+        help="Original EPUB path; v1 apply is rejected before the EPUB is opened.",
     ),
     review_csv: Path = typer.Argument(
         ...,
         exists=True,
         dir_okay=False,
         readable=True,
-        help="Reviewed CSV exported by Ayvu.",
+        help="Legacy v1 review CSV for inspection; v1 apply is rejected.",
     ),
     output: Optional[Path] = typer.Option(
         None,
         "--output",
         "-o",
-        help="Output EPUB path. Defaults to <input-stem>-<target>-reviewed.epub.",
+        help="Legacy option retained for compatibility; apply-review currently writes no output.",
     ),
-    overwrite: bool = typer.Option(False, "--overwrite", help="Allow replacing an existing output file."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Legacy option; no output is written by this command."),
 ) -> None:
-    """Rebuild a translated EPUB from a reviewed CSV, preserving the original file."""
+    """Reject positional v1 apply until the command is connected to v2 review packages."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
         review = read_review_csv(review_csv)
@@ -2229,85 +2224,23 @@ def apply_review(
         )
         raise typer.Exit(code=1) from exc
 
-    if not review.rows:
+    if isinstance(review, LegacyReviewInspection):
         _print_expected_error(
-            "O arquivo de revisão não tem segmentos.",
-            "Gere o CSV com `ayvu translate --review-output` e revise antes de importar.",
+            "CSV v1 serve apenas para inspeção e não pode reconstruir o EPUB.",
+            "É necessário exportar um pacote v2 ligado à mesma revisão do projeto, à fonte e ao artefato de tradução. "
+            "A aplicação v2 ainda não está conectada a este comando CLI.",
             mode,
+            detail="legacy_reexport_required",
         )
         raise typer.Exit(code=1)
 
-    output_path = _resolve_apply_review_output(epub_path, output, review.target_language)
-    if output_path.exists() and not overwrite:
-        _print_expected_error(
-            "Arquivo de saída já existe.",
-            "Use --overwrite para substituí-lo ou escolha outro caminho em --output.",
-            mode,
-            detail=f"Output: {output_path}",
-        )
-        raise typer.Exit(code=1)
-
-    try:
-        report = apply_reviewed_epub(epub_path, output_path, review)
-    except Exception as exc:
-        _print_epub_read_error(str(exc), mode)
-        raise typer.Exit(code=1) from exc
-
-    validation = _validate_with_progress(output_path)
-    _print_apply_review_report(report, validation.warnings)
-
-
-def _resolve_apply_review_output(epub_path: Path, output: Path | None, target_language: str) -> Path:
-    if output is not None:
-        return output.expanduser()
-    suffix = f"-{target_language}" if target_language else ""
-    return epub_path.with_name(f"{epub_path.stem}{suffix}-reviewed.epub")
-
-
-def _print_apply_review_report(report: ReviewApplyReport, validation_warnings: list[str]) -> None:
-    table = Table(title="Importação de revisão", show_header=False)
-    table.add_column("Campo", style="bold")
-    table.add_column("Valor")
-    table.add_row("Input", str(report.input_path) if report.input_path else "-")
-    table.add_row("Output", str(report.output_path) if report.output_path else "-")
-    table.add_row("Languages", f"{report.source_language or '-'} → {report.target_language or '-'}")
-    table.add_row("Segments applied", str(report.applied))
-    table.add_row("Without review", str(report.untranslated))
-    table.add_row("Missing in EPUB", str(len(report.missing_in_epub)))
-    table.add_row("Inconsistent", str(len(report.inconsistent)))
-    table.add_row("Duplicated ids", str(len(report.duplicated)))
-    table.add_row("Unknown documents", str(len(report.unknown_documents)))
-    table.add_row("Invalid ids", str(len(report.invalid_ids)))
-    console.print(table)
-
-    _print_apply_review_warnings(report)
-    if validation_warnings:
-        _print_validation_warnings(validation_warnings)
-    console.print(f"[green]Reviewed EPUB saved to:[/green] {report.output_path}")
-
-
-def _print_apply_review_warnings(report: ReviewApplyReport) -> None:
-    sections = (
-        ("Segments missing in the EPUB", report.missing_in_epub),
-        ("Inconsistent segments (original changed)", report.inconsistent),
-        ("Duplicated segment ids", report.duplicated),
-        ("Unknown documents", report.unknown_documents),
-        ("Invalid segment ids", report.invalid_ids),
+    _print_expected_error(
+        "Este formato de revisão ainda não pode ser aplicado por este comando.",
+        "Use um pacote v2 validado contra a mesma revisão do projeto, a fonte e o artefato de tradução.",
+        mode,
+        detail="review_v2_mapper_required",
     )
-    for title, items in sections:
-        if not items:
-            continue
-        console.print(f"[yellow]{title}:[/yellow]")
-        for item in items[:10]:
-            console.print(f"  - {item}")
-        if len(items) > 10:
-            console.print(f"  - ... (+{len(items) - 10})")
-    if report.untranslated:
-        console.print(
-            f"[yellow]{report.untranslated} segment(s) had no reviewed translation "
-            "and stayed in the source language.[/yellow]"
-        )
-
+    raise typer.Exit(code=1)
 
 def _validate_with_progress(output_path: Path) -> ValidationResult:
     with Progress(
@@ -2426,7 +2359,7 @@ def _resolve_review_output_path(
             "Arquivo de revisão já existe.",
             "Use --overwrite para substituí-lo ou escolha outro caminho em --review-output.",
             mode,
-            detail=f"Review output: {path}",
+            detail="review_output_exists",
         )
         raise typer.Exit(code=1)
 
@@ -2441,14 +2374,14 @@ def _write_review_output(
 ) -> None:
     try:
         write_review_csv(path, segments, overwrite=overwrite)
-    except OSError as exc:
+    except OSError:
         _print_expected_error(
             "Não foi possível salvar o arquivo de revisão.",
             "Escolha um caminho gravável para --review-output e tente novamente.",
             mode,
-            detail=str(exc),
+            detail="review_output_unwritable",
         )
-        raise typer.Exit(code=1) from exc
+        raise typer.Exit(code=1) from None
 
     console.print(f"[green]Review file saved to:[/green] {path}")
 

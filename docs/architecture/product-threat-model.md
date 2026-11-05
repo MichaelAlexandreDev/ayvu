@@ -17,7 +17,8 @@ other proposed architecture decision.
 The delivered product is the local Python CLI described in the
 [product scope](../product-scope.md). It reads EPUBs, translates through an HTTP
 service, maintains SQLite cache and JSON settings/checkpoints, exports Markdown
-and CSV, applies reviewed text, and can launch an external reader. The
+and CSV, inspects legacy review files, validates v2 review packages, and can
+launch an external reader. The CLI no longer applies positional v1 review text. The
 [accepted module boundaries](modular-monolith-boundaries.md) supply ownership;
 the [shared use-case matrix](shared-use-case-matrix.md) describes future seams.
 
@@ -113,7 +114,7 @@ flowchart LR
 | B02 / Formats + Content | [epub_io.py](../../src/ayvu/epub_io.py): `inspect_epub`, `translate_epub`, `extract_markdown`, ZIP/container/OPF/spine lookup; [html_translate.py](../../src/ayvu/html_translate.py): `translate_html` | ZIP members are read and repackaged, not extracted wholesale to host paths; no intake budget or complete canonical-name/duplicate policy precedes parser reads |
 | B03 / Translation + Providers + Policies | [preflight.py](../../src/ayvu/preflight.py) resolves routes; [translator.py](../../src/ayvu/translator.py) performs GET languages and POST text/languages; routed translation may make two hops | Timeout, retry/backoff, rate limiting and response-shape checks exist; destination/proxy/redirect authorization and response-size budgets do not |
 | B04 / Knowledge | [cache.py](../../src/ayvu/cache.py) stores and imports/exports text; [translation_memory.py](../../src/ayvu/translation_memory.py) retrieves fuzzy candidates; [glossary.py](../../src/ayvu/glossary.py) loads/edits terms | SQL values are parameterized and import hashes validated; JSON import materializes the full payload without size or entry limits; hashes do not authenticate translations; cache has no provider identity or approved-TM lifecycle |
-| B05 / Review + Formats | [review_export.py](../../src/ayvu/review_export.py): `write_review_csv`; [review_import.py](../../src/ayvu/review_import.py): `read_review_csv`; `apply_reviewed_epub` reconstructs a derived EPUB | Required columns, duplicate IDs and source-text consistency have checks; row materialization is not bounded by an Ayvu budget; CSV spreadsheet formulas and full source-bound identity are not controlled |
+| B05 / Review + Formats | Legacy [review_export.py](../../src/ayvu/review_export.py) v1 writer; bounded [review_import.py](../../src/ayvu/review_import.py) v1 inspection; v2 [review_exchange.py](../../src/ayvu/review_exchange.py) codec and mapper | V2 has byte/row/column/cell/content/metadata limits, reversible formula escaping, opaque revision-bound identities and protected-part validation. V1 apply is rejected. The CLI still emits v1 CSV, which may contain internal document paths and does not use v2 formula escaping; CLI v2 export/apply is not connected |
 | B06 / Jobs + Infrastructure | [resume.py](../../src/ayvu/resume.py): `ResumeStateStore.save/load`; [cli.py](../../src/ayvu/cli.py): `_resume_translation` restores paths, URL and execution parameters | Version/field validation exists; write is direct and resume uses `overwrite=True`; no durable job identity, lease or source fingerprint authenticates that state |
 | B07 / current writers: Formats + Infrastructure + Policies; future artifact state: Artifacts + Provenance (lineage) | `epub_io._copy_epub_with_replacements`, Markdown extraction and CLI review/report/missing-text writers publish files | Normal output conflicts are checked; ZIP output opens in `w` mode; canonical aliases, race-safe handles and validate-before-publication staging are not enforced |
 | B08 / Library + Infrastructure | [library.py](../../src/ayvu/library.py): `scan_library`, `open_library_epub`, `_reader_command` | Selected path must be a file; launch uses argument vector, not a shell string; configured executable, inherited environment and reader behavior remain outside containment |
@@ -122,10 +123,11 @@ flowchart LR
 
 HTML skips scripts/styles/code and other excluded nodes for translation; this
 is not active-content removal. Existing book markup/assets are preserved and a
-reader can interpret them. `html_translate` escapes translated/reviewed text
-before fragment reconstruction, but robust placeholder topology validation is
-future work. Treat malicious returned text as an integrity input, not as proof
-of code execution in Ayvu.
+reader can interpret them. The v2 review mapper treats edited cells as plain
+text and restores only issued protected parts after placeholder validation. The
+legacy v1 CLI exporter remains separate and is not formula-neutralized. Treat
+malicious imported or returned text as an integrity input, not as proof of code
+execution in Ayvu.
 
 ## Storage, recipients, retention, and deletion
 
@@ -142,7 +144,7 @@ upload, telemetry collector or model updater exists in the delivered code.
 | Glossary JSON | C1/C2; selected glossary/profile path or guided glossary directory | Terms/replacements retained until edited/removed; no corpus consent follows from glossary use |
 | Config JSON | C2/C4; `ConfigStore` chooses XDG config or home fallback | Folders, reader command and named profiles persist until changed/removed; contains paths, not implemented secret-store references |
 | Resume JSON | C2/C4 and possibly C3 in URL; configured processing folder | Absolute source/output/cache/glossary paths, endpoint and counters persist, including completed state; no lifecycle purge or cryptographic authority binding |
-| Review CSV | C1/C2; explicit review output | Original/translated text, file/document names and paths can be read by spreadsheet software or shared by operator; no automatic deletion or recipient revocation |
+| Review CSV | C1/C2; explicit review output | Legacy v1 includes original/translated text and internal document paths; v2 contains text but uses opaque document/locator identities. Both are local sensitive copies that may be opened/shared by the operator; no automatic deletion or recipient revocation |
 | Markdown, missing-text file, terminal | C1/C2, potentially reflected C3; configured/selected output and terminal | Reports include paths/errors; missing exports include untranslated content; scrollback, shell redirection, backups and copied files have independent retention |
 | HTTP service and intermediaries | C1 for submitted chunks, C2 for language/endpoint/request metadata, possible ambient C3 | Provider receives text on cache misses/probes; proxies/redirects may add recipients; server logging, training, backup and deletion are not controlled or attested by Ayvu |
 | Process memory / external reader | C1–C5; Python heap, worker threads and reader process | May enter OS swap/core dumps or reader state; stopping the process is not proof of erasure |
@@ -217,10 +219,11 @@ Legacy exposure remains until caller migrations
 ### T02 — Hostile archives, imports and parser resource exhaustion (High)
 
 **B02/B05/B07; Formats + Content + Policies.** Crafted ZIP expansion, member
-counts, duplicate/canonical names, malformed XML/HTML, giant review documents or
-oversized cache-interchange JSON can exhaust RAM/CPU/disk or make references
-ambiguous. Cache import currently reads, parses and materializes the whole payload
-before applying rows. The current ZIP path reads members and repackages them; this
+counts, duplicate/canonical names, malformed XML/HTML, oversized review files or
+cache-interchange JSON can exhaust RAM/CPU/disk or make references ambiguous.
+Legacy review and v2 package readers enforce raw-byte, row, column, cell and
+decoded-content budgets; cache import still reads, parses and materializes its
+payload before applying rows. The current ZIP path reads members and repackages them; this
 is not evidence of host-path Zip Slip. A future extractor must nevertheless
 reject traversal before writing any member.
 
@@ -288,20 +291,19 @@ No present-day cache operation is an automatic contribution to corpus.
 
 ### T06 — Review tampering, spreadsheet formulas and active content (High)
 
-**B02/B05/B08; Review + Formats + Interfaces.** A modified CSV may target the
-wrong source/revision or contain formula-like cells; CSV quoting alone does not
-make a spreadsheet treat a formula as inert. Provider text can corrupt
-placeholder topology. Existing EPUB active markup/assets may still execute or
-fetch resources in a reader even when Ayvu skipped them for translation.
-P: bind review identity/revision, validate constrained markup reconstruction and
-provide explicit spreadsheet-safe interchange without changing editorial text
-silently. D: reject foreign IDs, unknown placeholders, structural changes and
-oversized rows. R: preserve input and prior output, return conflicts instead of
-partial success claims. V: adversarial formula cells, foreign revisions,
-placeholder loss/duplication and original-byte survival under
-[#148](https://github.com/MichaelAlexandreDev/ayvu/issues/148), #149 and #143.
-Current escaping of replacements is useful; it is not a sanitizer for the whole
-book or a sandbox for an external reader.
+**B02/B05/B08; Review + Formats + Interfaces.** A modified legacy CSV may target
+the wrong source/revision or contain spreadsheet formulas. The v2 codec now
+binds identity/revision, applies reversible formula escaping, and validates
+constrained protected-part reconstruction before returning a plan. V1 apply is
+rejected. Existing EPUB active markup/assets may still execute or fetch
+resources in a reader even when Ayvu skipped them for translation. P: integrate
+the v2 package with application export/apply and publication policy. D: v2
+rejects foreign IDs, unknown placeholders, structural changes and oversized
+rows. R: parsing/mapping return no partial plan; current CLI creates no output
+for v1. V: adversarial codec, identity, placeholder, redaction, production
+extraction and staged reconstruction tests are in #148; final CLI export/apply
+and output preservation remain outside that issue's scope. This is not a
+sanitizer for the whole book or a sandbox for an external reader.
 
 ### T07 — Forged/stale checkpoints and interrupted state (High)
 
@@ -457,7 +459,8 @@ well as books.
 The current [workflow tests](../../tests/test_workflow_characterization.py)
 exercise the real CLI through fake HTTP and temporary EPUB/cache/checkpoint
 files: normal source preservation, archive/visible-text filtering, cache then
-glossary, interrupted resume, intermediate routing and review round-trip.
+glossary, interrupted resume, intermediate routing, v2 review mapping with
+staged reconstruction, and legacy v1 apply refusal.
 [EPUB tests](../../tests/test_epub_io.py),
 [HTML tests](../../tests/test_html_translate.py),
 [preflight tests](../../tests/test_preflight.py),

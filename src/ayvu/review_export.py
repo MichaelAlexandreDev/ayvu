@@ -55,7 +55,7 @@ REVIEW_CSV_COLUMNS = (
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class ReviewSegment:
     segment_id: str
     source_epub: str
@@ -70,6 +70,9 @@ class ReviewSegment:
     original: str
     translated: str
     from_cache: bool = False
+
+    def __repr__(self) -> str:
+        return "ReviewSegment(<sensitive review fields redacted>)"
 
 
 def write_review_csv(

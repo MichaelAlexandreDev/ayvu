@@ -133,7 +133,8 @@ as it would have. A worker that commits to cancelling wins over a failure in ano
 - **It does not decide what to resume.** A job that ended stays ended, and `execute` only links a new job to it when
   given a ticket. [Job recovery](job-recovery.md) decides. The resume file is still kept by the CLI, chapter by chapter,
   around the use case, because it is the only record of the address, the cache and the output.
-- **It does not write the review CSV.** The CLI writes it from the result until #149.
+- **It does not write the review package.** The CLI still writes positional v1
+  CSV for inspection; v2 package export/apply orchestration is not connected.
 
 ## What the CLI adds
 
