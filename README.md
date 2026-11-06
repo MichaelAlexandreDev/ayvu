@@ -602,13 +602,7 @@ Trechos já traduzidos serão reaproveitados automaticamente.
 O checkpoint de retomada preserva as opções de execução do tradutor, como
 timeout, workers, retries, limite de requisições por segundo e backoff.
 
-A CLI usa o cache legado v1. O caminho rico dispõe de cache v2 independente;
-a migração preserva os dados v1 sem transformá-los em acertos exatos v2. Os
-comandos de administração abaixo são para v1: em v2, limpeza, importação e
-exportação retornam `v2-admin-required`, e a inspeção pode recusar o namespace.
-Conserve o v1 somente para leitura e escolha um arquivo distinto para um novo
-v2 pela API `prepare_cache`; aguarde DESKTOP-127 para administração v2. Veja
-[cache standalone v2](docs/architecture/standalone-cache-v2.md).
+A tradução pela CLI usa o cache legado v1; o caminho rico dispõe de cache v2 independente. A migração preserva os dados v1 sem transformá-los em acertos exatos v2. A administração aceita namespaces explícitos; sem seleção, mantém o comportamento legado. Veja [cache standalone v2](docs/architecture/standalone-cache-v2.md).
 
 O cache pode ser inspecionado, limpo, exportado e importado separadamente dos
 comandos de tradução:
@@ -634,11 +628,21 @@ um JSON vazio sem criar o cache nem sua pasta. A limpeza rejeita uma seleção
 que mudou entre a prévia e a remoção; nesse caso, execute o comando novamente.
 Erros detalhados usam códigos curtos, sem incluir conteúdo das entradas.
 O destino da exportação deve ser um arquivo diferente do próprio cache SQLite.
-Exportação e importação têm limite de 512 MiB e 1.000.000 de entradas; acima
-disso, exporte em partes com `--source`, `--target` ou `--before`.
+No formato legado v1, exportação e importação têm limite de 512 MiB e 1.000.000
+de entradas; acima disso, exporte em partes com `--source`, `--target` ou
+`--before`. O formato v2 tem limites e filtros próprios descritos em
+[administração de cache](docs/architecture/cache-administration.md).
 
 O arquivo exportado inclui texto original e texto traduzido. Trate esse JSON
 como conteúdo privado do livro, da mesma forma que o EPUB e o cache SQLite.
+
+`cache import` prepara as entradas num arquivo temporário ao lado do cache,
+`.ayvu-cache-import-legacy-*.sqlite`, e só depois altera o cache. Um Ctrl+C
+apaga esse arquivo. Se o processo for morto à força ou o computador desligar no
+meio, o cache fica como estava, mas o arquivo temporário sobra: ele contém
+textos do livro e pode ser apagado quando nenhum import estiver rodando.
+
+A administração de cache v2 aceita seleção explícita de namespace e importação com mapa externo e previsão. Veja [administração de cache](docs/architecture/cache-administration.md) para exemplos, autorização de escopos e limites. Arquivos de exportação e recuperação podem conter textos sensíveis.
 
 Traduções diretas, guiadas e em lote criam ou reutilizam automaticamente um
 projeto local em `<pasta de processamento>/projects/<UUID>/project.json`.

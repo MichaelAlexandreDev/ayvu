@@ -1,18 +1,18 @@
-"""Framework-independent administration of the standalone v1 cache.
+"""Framework-independent administration of legacy and semantic cache namespaces.
 
 References and payloads are deliberately excluded from representations. Ports own
 transaction boundaries and atomic publication; services never open local files.
 """
 from __future__ import annotations
 
-import hashlib
-import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Generic, Protocol, TypeVar
 
+from .cache_legacy_format import validate as _validate_legacy, LegacyFormatError
 from .job_events import JobFailure, JobFailureFamily, JobWarning
+from .cache_identity import AuthorizedCacheScope, CACHE_ENTRY_V2_LIMITS, CacheEntryV2Limits
 
 MAX_FILE_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 1_000_000
@@ -34,7 +34,109 @@ class CacheAdminError(Exception):
 
 
 def _invalid(code: str) -> None:
-    raise CacheAdminError(code, JobFailureFamily.INPUT)
+    raise CacheAdminError(code, JobFailureFamily.INPUT) from None
+
+
+@dataclass(frozen=True)
+class CacheInterchangeLimits:
+    """Envelope ceilings; row ceilings belong to DESKTOP-123 and are unchanged."""
+    raw_input: int = 1024 ** 3
+    serialized_export: int = 1024 ** 3
+    entries: int = 5_000_000
+    namespaces: int = 10_000
+    scope_map_entries: int = 10_000
+    scope_map_bytes: int = 1024 ** 2
+    scope_reference: int = 1024
+    depth: int = 8
+    row_limits: CacheEntryV2Limits = CACHE_ENTRY_V2_LIMITS
+
+    def __post_init__(self):
+        for name, ceiling in (("raw_input", 1024 ** 3), ("serialized_export", 1024 ** 3),
+                              ("entries", 5_000_000), ("namespaces", 10_000),
+                              ("scope_map_entries", 10_000), ("scope_map_bytes", 1024 ** 2),
+                              ("scope_reference", 1024), ("depth", 8)):
+            value = getattr(self, name)
+            if type(value) is not int or not 0 < value <= ceiling:
+                _invalid("invalid_limits")
+        if type(self.row_limits) is not CacheEntryV2Limits or self.row_limits != CACHE_ENTRY_V2_LIMITS:
+            _invalid("invalid_limits")
+
+
+@dataclass(frozen=True, repr=False)
+class CacheNamespace:
+    """Caller selection. Payload descriptors cannot construct destination authority."""
+    kind: str
+    scope: AuthorizedCacheScope | None = None
+
+    def __post_init__(self):
+        if (self.kind not in ("legacy-v1", "v2", "all") or
+                (self.kind == "v2" and type(self.scope) is not AuthorizedCacheScope) or
+                (self.kind != "v2" and self.scope is not None)):
+            _invalid("invalid_namespace")
+        if self.scope is not None:
+            try:
+                if len(self.scope.scope.scope_id.encode("utf-8")) > 1024:
+                    _invalid("scope_reference_limit")
+            except UnicodeError:
+                _invalid("invalid_namespace")
+
+    @classmethod
+    def legacy(cls): return cls("legacy-v1")
+    @classmethod
+    def v2(cls, scope): return cls("v2", scope)
+    @classmethod
+    def all(cls): return cls("all")
+    def __repr__(self): return f"CacheNamespace(kind={self.kind!r})"
+
+
+def namespace_reference(namespace: CacheNamespace) -> tuple[str, ...]:
+    if namespace.kind == "v2":
+        return ("v2", namespace.scope.scope.kind.value, namespace.scope.scope.scope_id)
+    return (namespace.kind,)
+
+
+@dataclass(frozen=True, repr=False)
+class CacheScopeMapping:
+    source: CacheNamespace
+    destination: CacheNamespace
+
+    def __post_init__(self):
+        if type(self.source) is not CacheNamespace or type(self.destination) is not CacheNamespace:
+            _invalid("invalid_scope_map")
+        if self.source.kind == "all" or self.destination.kind == "all":
+            _invalid("invalid_scope_map")
+        if (self.source.kind == "legacy-v1") != (self.destination.kind == "legacy-v1"):
+            _invalid("legacy_scope_isolated")
+    def __repr__(self): return "CacheScopeMapping()"
+
+
+@dataclass(frozen=True, repr=False)
+class ImportScopeMap:
+    entries: tuple[CacheScopeMapping, ...]
+
+    def __post_init__(self):
+        if (type(self.entries) is not tuple or not 1 <= len(self.entries) <= 10_000 or
+                any(type(entry) is not CacheScopeMapping for entry in self.entries)):
+            _invalid("invalid_scope_map")
+        sources = tuple(namespace_reference(item.source) for item in self.entries)
+        if len(set(sources)) != len(sources):
+            _invalid("duplicate_source_scope")
+    def __repr__(self): return f"ImportScopeMap(count={len(self.entries)})"
+
+
+@dataclass(frozen=True, repr=False)
+class CacheNamespaceCount:
+    kind: str
+    count: int
+    scope_kind: str | None = None
+    scope_id: str | None = None
+
+    def __post_init__(self):
+        if (self.kind not in ("legacy-v1", "v2") or type(self.count) is not int or self.count < 0 or
+                (self.kind == "v2" and (self.scope_kind not in ("project", "local_user", "work") or not isinstance(self.scope_id, str))) or
+                (self.kind == "legacy-v1" and (self.scope_kind is not None or self.scope_id is not None))):
+            _invalid("invalid_summary")
+    def __repr__(self): return f"CacheNamespaceCount(kind={self.kind!r}, count={self.count})"
 
 
 @dataclass(frozen=True, repr=False)
@@ -102,13 +204,19 @@ class CacheSummary:
     pairs: tuple[CachePair, ...]
     adapter: str = "legacy_v1"
     layout: str = "sqlite_translations"
+    namespace: CacheNamespace | None = field(default=None, repr=False)
+    namespaces: tuple[CacheNamespaceCount, ...] = ()
     def __post_init__(self):
         if (type(self.exists) is not bool or type(self.count) is not int or self.count < 0 or
                 type(self.size_bytes) is not int or self.size_bytes < 0 or type(self.pairs) is not tuple or
                 len(self.pairs) > MAX_ENTRIES or any(type(p) is not CachePair for p in self.pairs) or
-                sum(p.count for p in self.pairs) != self.count or
+                (sum(p.count for p in self.pairs) != self.count and self.adapter == "legacy_v1") or
                 (not self.exists and (self.count or self.size_bytes or self.pairs)) or
-                self.adapter != "legacy_v1" or self.layout != "sqlite_translations"):
+                (self.adapter, self.layout) not in (("legacy_v1", "sqlite_translations"), ("semantic_v2", "sqlite_cache_v2")) or
+                type(self.namespaces) is not tuple or len(self.namespaces) > 10_000 or
+                any(type(item) is not CacheNamespaceCount for item in self.namespaces) or
+                (self.namespace is not None and type(self.namespace) is not CacheNamespace) or
+                (self.namespaces and sum(item.count for item in self.namespaces) != self.count)):
             _invalid("invalid_summary")
 
 
@@ -118,12 +226,21 @@ class CleanSelection:
     filters: CacheFilter
     count: int
     digest: str
+    namespace: CacheNamespace | None = None
+    namespaces: tuple[CacheNamespaceCount, ...] = ()
     def __post_init__(self):
         if (type(self.cache) is not CacheRef or type(self.filters) is not CacheFilter or
             type(self.count) is not int or self.count < 0 or not isinstance(self.digest, str) or
             re.fullmatch(r"[0-9a-f]{64}", self.digest) is None):
             _invalid("invalid_selection")
-        _validate_clean_scope(self.filters)
+        if self.namespace is not None and type(self.namespace) is not CacheNamespace:
+            _invalid("invalid_namespace")
+        if (type(self.namespaces) is not tuple or len(self.namespaces) > 10_000 or
+                any(type(item) is not CacheNamespaceCount for item in self.namespaces) or
+                (self.namespaces and sum(item.count for item in self.namespaces) != self.count)):
+            _invalid("invalid_selection")
+        if self.namespace is None:
+            _validate_clean_scope(self.filters)
     def __repr__(self):
         return f"CleanSelection(count={self.count})"
 
@@ -160,8 +277,11 @@ class InspectRequest:
     filters: CacheFilter = field(default_factory=CacheFilter)
     cancellation: Cancellation | None = None
     progress: ProgressSink | None = None
+    namespace: CacheNamespace | None = None
+    limits: CacheInterchangeLimits = field(default_factory=CacheInterchangeLimits)
     def __post_init__(self):
         _request(self.cache, self.filters)
+        _namespace_request(self.namespace, self.limits)
     def __repr__(self): return "InspectRequest()"
 
 
@@ -169,7 +289,8 @@ class InspectRequest:
 class PreviewCleanRequest(InspectRequest):
     def __post_init__(self):
         super().__post_init__()
-        _validate_clean_scope(self.filters)
+        if self.namespace is None:
+            _validate_clean_scope(self.filters)
     def __repr__(self): return "PreviewCleanRequest()"
 
 
@@ -191,8 +312,14 @@ class ExportRequest:
     overwrite: bool = False
     cancellation: Cancellation | None = None
     progress: ProgressSink | None = None
+    namespace: CacheNamespace | None = None
+    limits: CacheInterchangeLimits = field(default_factory=CacheInterchangeLimits)
+    format_version: int | None = None
     def __post_init__(self):
         _request(self.cache, self.filters)
+        _namespace_request(self.namespace, self.limits)
+        if self.format_version is not None and (type(self.format_version) is not int or self.format_version not in (1, 2)):
+            _invalid("unsupported_version")
         if type(self.destination) is not FileRef or type(self.overwrite) is not bool: _invalid("invalid_request")
     def __repr__(self): return "ExportRequest()"
 
@@ -204,13 +331,67 @@ class ImportRequest:
     replace: bool = False
     cancellation: Cancellation | None = None
     progress: ProgressSink | None = None
+    scope_map: ImportScopeMap | None = None
+    limits: CacheInterchangeLimits = field(default_factory=CacheInterchangeLimits)
+    preview_revision: ImportPreview | None = None
     def __post_init__(self):
         if type(self.cache) is not CacheRef or type(self.source) is not FileRef or type(self.replace) is not bool: _invalid("invalid_request")
+        if self.scope_map is not None and type(self.scope_map) is not ImportScopeMap:
+            _invalid("invalid_scope_map")
+        _namespace_request(None, self.limits)
     def __repr__(self): return "ImportRequest()"
 
 
 def _request(cache, filters):
     if type(cache) is not CacheRef or type(filters) is not CacheFilter: _invalid("invalid_request")
+
+
+def _namespace_request(namespace, limits):
+    if namespace is not None and type(namespace) is not CacheNamespace:
+        _invalid("invalid_namespace")
+    if type(limits) is not CacheInterchangeLimits:
+        _invalid("invalid_limits")
+
+
+@dataclass(frozen=True, repr=False)
+class ImportPreview:
+    cache: CacheRef
+    source: FileRef
+    scope_map: ImportScopeMap
+    replace: bool
+    revision: str
+    count: int
+    imported: int
+    skipped: int
+    replaced: int
+    conflicts: int
+    duplicates: int
+    stage: FileRef
+    limits: CacheInterchangeLimits = field(default_factory=CacheInterchangeLimits)
+
+    def __post_init__(self):
+        if (type(self.cache) is not CacheRef or type(self.source) is not FileRef or
+                type(self.stage) is not FileRef or type(self.scope_map) is not ImportScopeMap or
+                type(self.replace) is not bool or not isinstance(self.revision, str) or
+                not re.fullmatch(r"[0-9a-f]{64}", self.revision) or
+                any(type(value) is not int or value < 0 for value in
+                    (self.count, self.imported, self.skipped, self.replaced, self.conflicts, self.duplicates))):
+            _invalid("invalid_preview")
+        _namespace_request(None, self.limits)
+    def __repr__(self):
+        return f"ImportPreview(count={self.count}, conflicts={self.conflicts}, duplicates={self.duplicates})"
+
+
+@dataclass(frozen=True, repr=False)
+class ExecuteImportRequest:
+    preview: ImportPreview
+    cancellation: Cancellation | None = None
+    progress: ProgressSink | None = None
+
+    def __post_init__(self):
+        if type(self.preview) is not ImportPreview:
+            _invalid("invalid_preview")
+    def __repr__(self): return "ExecuteImportRequest()"
 
 
 T = TypeVar("T")
@@ -221,11 +402,17 @@ class CacheResult(Generic[T]):
     value: T | None = None
     failure: JobFailure | None = None
     warnings: tuple[JobWarning, ...] = ()
+    namespace: CacheNamespace | None = field(default=None, repr=False)
+    format_version: int | None = None
+    scope_map: ImportScopeMap | None = field(default=None, repr=False)
     def __post_init__(self):
         if ((self.value is None) == (self.failure is None) or
                 (self.failure is not None and type(self.failure) is not JobFailure) or
                 type(self.warnings) is not tuple or len(self.warnings) > 16 or
-                any(type(warning) is not JobWarning for warning in self.warnings)):
+                any(type(warning) is not JobWarning for warning in self.warnings) or
+                (self.namespace is not None and type(self.namespace) is not CacheNamespace) or
+                (self.scope_map is not None and type(self.scope_map) is not ImportScopeMap) or
+                (self.format_version is not None and (type(self.format_version) is not int or self.format_version not in (1, 2)))):
             _invalid("invalid_result")
     def __repr__(self):
         return f"CacheResult(failure={self.failure!r})" if self.failure else "CacheResult(success)"
@@ -237,11 +424,30 @@ class CacheRepository(Protocol):
     def execute_clean(self, request: ExecuteCleanRequest) -> int: ...
     def export_payload(self, request: ExportRequest) -> bytes: ...
     def import_payload(self, request: ImportRequest, payload: bytes) -> ImportCounts: ...
+    def export_interchange(self, request: ExportRequest) -> ExportReceipt: ...
+    def preview_import(self, request: ImportRequest) -> ImportPreview: ...
+    def execute_import(self, request: ExecuteImportRequest) -> ImportCounts: ...
+    def discard_import(self, preview: ImportPreview) -> int: ...
+
+
+@dataclass(frozen=True)
+class ExportReceipt:
+    count: int
+    format_version: int
+    def __post_init__(self):
+        if type(self.count) is not int or self.count < 0 or type(self.format_version) is not int or self.format_version not in (1, 2):
+            _invalid("invalid_port_result")
 
 
 class CacheFiles(Protocol):
     def read(self, request: ImportRequest) -> bytes: ...
     def publish(self, request: ExportRequest, payload: bytes) -> None: ...
+
+
+class LegacyCacheAdministration(Protocol):
+    """Streaming production implementation of the unchanged JSON-v1 behavior."""
+    def export_cache(self, request: ExportRequest) -> ExportReceipt: ...
+    def import_cache(self, request: ImportRequest) -> ImportCounts: ...
 
 
 def checkpoint(request, safe_point):
@@ -278,76 +484,31 @@ class CacheProgress:
 
 
 def validate_payload(payload: bytes, request=None) -> int:
-    if not isinstance(payload, bytes): _invalid("invalid_payload")
-    if len(payload) > MAX_FILE_BYTES: _invalid("file_too_large")
-    # Bound the parser's nesting and object/list structure before it allocates
-    # the decoded tree. Brackets and separators inside strings do not count.
-    depth = tokens = 0
-    quoted = escaped = False
-    for byte in payload:
-        if quoted:
-            if escaped: escaped = False
-            elif byte == 92: escaped = True
-            elif byte == 34: quoted = False
-        elif byte == 34:
-            quoted = True
-        elif byte in (123, 91):
-            depth += 1
-            tokens += 1
-            if depth > MAX_STRUCTURE_DEPTH: _invalid("structure_too_deep")
-        elif byte in (125, 93):
-            depth -= 1
-        elif byte in (44, 58):
-            tokens += 1
-        if tokens > MAX_STRUCTURE_TOKENS: _invalid("structure_too_large")
-    def pairs(items):
-        result = {}
-        for key, value in items:
-            if key in result: _invalid("malformed_json")
-            result[key] = value
-        return result
     try:
-        data = json.loads(payload, object_pairs_hook=pairs, parse_constant=lambda _: _invalid("malformed_json"))
-    except (ValueError, UnicodeError, RecursionError):
-        _invalid("malformed_json")
-    if not isinstance(data, dict): _invalid("malformed_payload")
-    if type(data.get("version")) is not int or data["version"] != 1: _invalid("unsupported_version")
-    entries = data.get("entries")
-    if not isinstance(entries, list): _invalid("malformed_payload")
-    if len(entries) > MAX_ENTRIES: _invalid("too_many_entries")
-    fields = ("source_lang", "target_lang", "original_text_hash", "original_text", "translated_text", "created_at")
-    for entry in entries:
-        if request is not None:
-            checkpoint(request, "cache_between_entries")
-        if not isinstance(entry, dict) or any(not isinstance(entry.get(k), str) for k in fields): _invalid("malformed_entry")
-        for key in fields:
-            if len(entry[key]) > (MAX_TEXT_LENGTH if key in ("original_text", "translated_text") else MAX_METADATA_LENGTH): _invalid("text_too_large")
-        try:
-            digest = hashlib.sha256(entry["original_text"].encode("utf-8")).hexdigest()
-            for key in fields:
-                entry[key].encode("utf-8")
-        except UnicodeEncodeError:
-            _invalid("malformed_entry")
-        if digest != entry["original_text_hash"]: _invalid("invalid_text_hash")
-    return len(entries)
+        return _validate_legacy(payload, file_bytes=MAX_FILE_BYTES, entries_limit=MAX_ENTRIES,
+            text_length=MAX_TEXT_LENGTH, metadata_length=MAX_METADATA_LENGTH,
+            structure_depth=MAX_STRUCTURE_DEPTH, structure_tokens=MAX_STRUCTURE_TOKENS,
+            check=(lambda: checkpoint(request, "cache_between_entries")) if request is not None else None)
+    except LegacyFormatError as exc:
+        _invalid(str(exc))
 
 
-def _run(fn, expected):
+def _run(fn, expected, *, namespace=None, scope_map=None, format_version=None):
     try:
         value = fn()
         if type(value) is not expected or (expected is int and value < 0):
             raise CacheAdminError("invalid_port_result", JobFailureFamily.INTERNAL)
-        return CacheResult(value=value)
+        return CacheResult(value=value, namespace=namespace, scope_map=scope_map, format_version=format_version)
     except CacheAdminError as exc:
-        return CacheResult(failure=JobFailure(exc.family, exc.code))
+        return CacheResult(failure=JobFailure(exc.family, exc.code), namespace=namespace, scope_map=scope_map)
     except Exception:
-        return CacheResult(failure=JobFailure(JobFailureFamily.INTERNAL, "unexpected_error"))
+        return CacheResult(failure=JobFailure(JobFailureFamily.INTERNAL, "unexpected_error"), namespace=namespace, scope_map=scope_map)
 
 
 class InspectCache:
     def __init__(self, repository: CacheRepository): self.repository = repository
     def execute(self, request: InspectRequest) -> CacheResult[CacheSummary]:
-        return _run(lambda: self.repository.inspect(request), CacheSummary)
+        return _run(lambda: self.repository.inspect(request), CacheSummary, namespace=request.namespace or CacheNamespace.legacy())
 
 
 class PreviewClean:
@@ -356,37 +517,89 @@ class PreviewClean:
         def run():
             selection = self.repository.preview_clean(request)
             if (type(selection) is not CleanSelection or selection.cache != request.cache or
-                    selection.filters != request.filters):
+                    selection.filters != request.filters or selection.namespace != request.namespace):
                 raise CacheAdminError("invalid_port_result", JobFailureFamily.INTERNAL)
             return selection
-        return _run(run, CleanSelection)
+        return _run(run, CleanSelection, namespace=request.namespace or CacheNamespace.legacy())
 
 
 class ExecuteClean:
     def __init__(self, repository: CacheRepository): self.repository = repository
     def execute(self, request: ExecuteCleanRequest) -> CacheResult[int]:
-        return _run(lambda: self.repository.execute_clean(request), int)
+        return _run(lambda: self.repository.execute_clean(request), int, namespace=request.selection.namespace or CacheNamespace.legacy())
 
 
 class ExportCache:
-    def __init__(self, repository: CacheRepository, files: CacheFiles): self.repository, self.files = repository, files
+    def __init__(self, repository: CacheRepository, files: CacheFiles, legacy: LegacyCacheAdministration | None = None):
+        self.repository, self.files, self.legacy = repository, files, legacy
     def execute(self, request: ExportRequest) -> CacheResult[int]:
+        if request.namespace is not None or self.legacy is not None:
+            receipt = _run(lambda: (self.repository.export_interchange(request) if request.namespace is not None
+                                   else self.legacy.export_cache(request)), ExportReceipt)
+            if receipt.failure:
+                return CacheResult(failure=receipt.failure, namespace=request.namespace or CacheNamespace.legacy())
+            return CacheResult(value=receipt.value.count, namespace=request.namespace or CacheNamespace.legacy(),
+                               format_version=receipt.value.format_version)
         def run():
+            if request.format_version not in (None, 1):
+                _invalid("unsupported_version")
             checkpoint(request, "cache_before_read")
             payload = self.repository.export_payload(request)
             count = validate_payload(payload, request)
             self.files.publish(request, payload)
             return count
-        return _run(run, int)
+        return _run(run, int, namespace=CacheNamespace.legacy(), format_version=1)
 
 
 class ImportCache:
-    def __init__(self, repository: CacheRepository, files: CacheFiles): self.repository, self.files = repository, files
+    def __init__(self, repository: CacheRepository, files: CacheFiles, legacy: LegacyCacheAdministration | None = None):
+        self.repository, self.files, self.legacy = repository, files, legacy
     def execute(self, request: ImportRequest) -> CacheResult[ImportCounts]:
         def run():
+            if request.scope_map is None and self.legacy is not None:
+                return self.legacy.import_cache(request)
             checkpoint(request, "cache_before_read")
+            if request.scope_map is not None:
+                if request.preview_revision is None:
+                    _invalid("preview_required")
+                preview = request.preview_revision
+                if (preview.cache != request.cache or preview.source != request.source or
+                        preview.scope_map != request.scope_map or preview.replace != request.replace or
+                        preview.limits != request.limits):
+                    _invalid("stale_preview")
+                return self.repository.execute_import(ExecuteImportRequest(preview, request.cancellation, request.progress))
             payload = self.files.read(request)
             validate_payload(payload, request)
             checkpoint(request, "cache_before_mutation")
             return self.repository.import_payload(request, payload)
-        return _run(run, ImportCounts)
+        return _run(run, ImportCounts, scope_map=request.scope_map,
+                    namespace=CacheNamespace.legacy() if request.scope_map is None else None)
+
+
+class PreviewImport:
+    def __init__(self, repository: CacheRepository): self.repository = repository
+    def execute(self, request: ImportRequest) -> CacheResult[ImportPreview]:
+        def run():
+            if request.scope_map is None:
+                _invalid("missing_scope_map")
+            checkpoint(request, "cache_before_read")
+            preview = self.repository.preview_import(request)
+            if (type(preview) is not ImportPreview or preview.cache != request.cache or
+                    preview.source != request.source or preview.scope_map != request.scope_map or
+                    preview.replace != request.replace or preview.limits != request.limits):
+                raise CacheAdminError("invalid_port_result", JobFailureFamily.INTERNAL)
+            return preview
+        return _run(run, ImportPreview, scope_map=request.scope_map)
+
+
+class ExecuteImport:
+    def __init__(self, repository: CacheRepository): self.repository = repository
+    def execute(self, request: ExecuteImportRequest) -> CacheResult[ImportCounts]:
+        return _run(lambda: self.repository.execute_import(request), ImportCounts, scope_map=request.preview.scope_map)
+
+
+class DiscardImport:
+    """Release only a preview artifact owned by the local administration adapter."""
+    def __init__(self, repository: CacheRepository): self.repository = repository
+    def execute(self, preview: ImportPreview) -> CacheResult[int]:
+        return _run(lambda: self.repository.discard_import(preview), int)

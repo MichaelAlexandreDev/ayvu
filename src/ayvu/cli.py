@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
+import json
 from typing import NoReturn, Optional, Protocol
 from uuid import uuid4
 
@@ -22,8 +23,10 @@ from .cache import CacheError, CacheImportReport, CacheSummaryRow, TranslationCa
 from .cache_admin import (
     CacheAdminError, CacheFilter, CacheRef, FileRef, InspectRequest,
     PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest,
+    CacheNamespace, CacheScopeMapping, ImportScopeMap, ExecuteImportRequest,
 )
-from .cache_admin_composition import cache_admin_services
+from .cache_admin_composition import cache_admin_services, read_scope_map_payload
+from .cache_identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind, CacheIdentityError
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
 from .content_composition import open_content_use_cases
 from .config import (
@@ -534,6 +537,71 @@ def languages(
     _print_languages(result.languages)
 
 
+def _cache_namespace(namespace: str | None, scope_kind: str | None, scope_id: str | None,
+                     project_id: str | None, all_namespaces: bool = False):
+    if all_namespaces:
+        if namespace is not None or any((scope_kind, scope_id, project_id)):
+            raise CacheAdminError("invalid_scope")
+        return CacheNamespace.all()
+    if namespace is None:
+        if any((scope_kind, scope_id, project_id)):
+            raise CacheAdminError("invalid_scope")
+        return None
+    if namespace == "legacy-v1":
+        if any((scope_kind, scope_id, project_id)):
+            raise CacheAdminError("invalid_scope")
+        return CacheNamespace.legacy()
+    if namespace != "v2" or not all((scope_kind, scope_id, project_id)):
+        raise CacheAdminError("invalid_scope")
+    try:
+        kind = CacheScopeKind(scope_kind)
+        if kind not in (CacheScopeKind.PROJECT, CacheScopeKind.LOCAL_USER, CacheScopeKind.WORK):
+            raise ValueError()
+        scope = CacheScope(kind, scope_id)
+        policy = CacheAuthorizationPolicy(project_id, () if kind is CacheScopeKind.PROJECT else (scope,))
+        return CacheNamespace.v2(policy.resolve(scope))
+    except (ValueError, CacheIdentityError):
+        raise CacheAdminError("invalid_scope") from None
+
+
+def _cache_scope_map(path: Path):
+    try:
+        raw = read_scope_map_payload(FileRef(str(path)))
+        def unique_object(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError()
+                result[key] = value
+            return result
+        data = json.loads(raw, object_pairs_hook=unique_object)
+        if not isinstance(data, list) or len(data) > 10000:
+            raise ValueError()
+        def namespace(value, source=False):
+            if not isinstance(value, dict):
+                raise ValueError()
+            if value == {"kind": "legacy-v1"}:
+                return CacheNamespace.legacy()
+            expected = {"kind", "scope_kind", "scope_id"} | (set() if source else {"project_id"})
+            if set(value) != expected or value["kind"] != "v2":
+                raise ValueError()
+            source_project = (value["scope_id"] if value["scope_kind"] == "project" else
+                              "00000000-0000-0000-0000-000000000001")
+            return _cache_namespace("v2", value["scope_kind"], value["scope_id"],
+                                    source_project if source else value["project_id"])
+        if any(not isinstance(row, dict) or set(row) != {"source", "destination"} for row in data):
+            raise ValueError()
+        return ImportScopeMap(tuple(CacheScopeMapping(namespace(row["source"], True),
+                                                       namespace(row["destination"])) for row in data))
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError, RecursionError, CacheAdminError):
+        raise CacheAdminError("invalid_scope_map") from None
+
+
+def _cache_warnings(result):
+    for warning in result.warnings:
+        console.print(f"[yellow]Cache warning:[/yellow] {warning.code}")
+
+
 @cache_app.command("inspect")
 def cache_inspect(
     ctx: typer.Context,
@@ -545,16 +613,22 @@ def cache_inspect(
         "--before",
         help="Only include entries created before this date (YYYY-MM-DD or ISO datetime).",
     ),
+    namespace: Optional[str] = typer.Option(None, "--namespace", help="Select legacy-v1 or v2."),
+    scope_kind: Optional[str] = typer.Option(None, "--scope-kind", help="V2 scope: project, local_user or work."),
+    scope_id: Optional[str] = typer.Option(None, "--scope-id"),
+    project_id: Optional[str] = typer.Option(None, "--project-id"),
+    all_namespaces: bool = typer.Option(False, "--all", help="Select all cache namespaces."),
 ) -> None:
     """Show cached translations grouped by language pair."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    before_value = _normalize_cache_before(before, mode)
+    before_value = _normalize_cache_before(before, mode, preserve_fraction=namespace == "v2" or all_namespaces)
     try:
         services = cache_admin_services()
-        result = services.inspect.execute(InspectRequest(CacheRef(str(cache_path)), CacheFilter(source, target, before_value)))
+        result = services.inspect.execute(InspectRequest(CacheRef(str(cache_path)), CacheFilter(source, target, before_value), namespace=_cache_namespace(namespace, scope_kind, scope_id, project_id, all_namespaces)))
+        _cache_warnings(result)
         if result.failure:
             raise CacheAdminError(result.failure.code, result.failure.family)
-        rows = result.value.pairs
+        summary = result.value
     except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível inspecionar o cache.",
@@ -564,7 +638,17 @@ def cache_inspect(
         )
         raise typer.Exit(code=1) from exc
 
-    _print_cache_summary(rows, cache_path)
+    if summary.adapter == "semantic_v2":
+        console.print(f"[dim]Cache path:[/dim] {cache_path}")
+        counts = Counter()
+        for item in summary.namespaces:
+            counts[(item.kind, item.scope_kind)] += item.count
+        for (kind, scope_kind), count in sorted(counts.items(), key=lambda row: (row[0][0], row[0][1] or "")):
+            label = kind if scope_kind is None else f"{kind} / {scope_kind}"
+            console.print(f"{label}: {_plural_cache_entries(count)}")
+        console.print(f"Total: {_plural_cache_entries(summary.count)}")
+    else:
+        _print_cache_summary(summary.pairs, cache_path)
 
 
 @cache_app.command("clean")
@@ -581,10 +665,14 @@ def cache_clean(
     all_entries: bool = typer.Option(False, "--all", help="Allow cleaning the whole cache."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show how many entries would be removed."),
     yes: bool = typer.Option(False, "--yes", help="Confirm destructive cleanup."),
+    namespace: Optional[str] = typer.Option(None, "--namespace", help="Select legacy-v1 or v2."),
+    scope_kind: Optional[str] = typer.Option(None, "--scope-kind", help="V2 scope: project, local_user or work."),
+    scope_id: Optional[str] = typer.Option(None, "--scope-id"),
+    project_id: Optional[str] = typer.Option(None, "--project-id"),
 ) -> None:
     """Remove cache entries by filter or clear the whole cache."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    before_value = _normalize_cache_before(before, mode)
+    before_value = _normalize_cache_before(before, mode, preserve_fraction=namespace in ("v2", "all"))
     _validate_cache_clean_options(
         source=source,
         target=target,
@@ -596,15 +684,19 @@ def cache_clean(
     )
 
     try:
+        if namespace == "all" and not all_entries:
+            raise CacheAdminError("invalid_scope")
         services = cache_admin_services()
         selection = services.preview.execute(PreviewCleanRequest(
-            CacheRef(str(cache_path)), CacheFilter(source, target, before_value, all_entries)))
+            CacheRef(str(cache_path)), CacheFilter(source, target, before_value, all_entries), namespace=_cache_namespace(None if namespace == "all" else namespace, scope_kind, scope_id, project_id, namespace == "all" and all_entries)))
+        _cache_warnings(selection)
         if selection.failure:
             raise CacheAdminError(selection.failure.code, selection.failure.family)
         if dry_run:
             console.print(f"[yellow]Dry run:[/yellow] {_plural_cache_entries(selection.value.count)} would be removed.")
             return
         report = services.clean.execute(ExecuteCleanRequest(selection.value))
+        _cache_warnings(report)
         if report.failure:
             raise CacheAdminError(report.failure.code, report.failure.family)
     except CacheAdminError as exc:
@@ -623,13 +715,26 @@ _CACHE_LIMIT_CODES = frozenset({"limit_exceeded", "file_too_large", "too_many_en
                                 "structure_too_deep", "structure_too_large"})
 
 
-def _cache_failure_hint(code: str, default: str, too_large: str | None = None) -> str:
+def _cache_failure_hint(code: str, default: str, too_large: str | None = None, *, v2: bool = False) -> str:
     if code == "v2-admin-required":
         return "Este cache requer administração compatível com v2."
+    if code == "stale_preview":
+        return "A previsão ficou desatualizada. Execute o comando novamente para gerar uma nova previsão."
+    if code == "import_conflict":
+        return "Revise os conflitos na previsão. Para substituir essas entradas, execute novamente com --replace e confirme a nova previsão."
+    if code == "duplicate_conflict":
+        return "O arquivo contém entradas divergentes para a mesma chave de destino. Corrija o arquivo ou o mapa; --replace não resolve essa colisão."
+    if code in {"invalid_scope_map", "unmapped_scope", "scope_map_limit", "scope_reference_limit"}:
+        return "Confira --scope-map: ele deve cobrir exatamente as origens do arquivo e autorizar cada destino, dentro dos limites documentados."
+    if code == "unsupported_audit_mode":
+        return "A importação mapeada exige journal delete, truncate ou persist. Prepare outro cache suportado; não altere o modo automaticamente."
+    if code == "too_many_namespaces":
+        return "Selecione menos namespaces por arquivo; o limite é de 10.000 seções."
     if code == "cache_busy":
         return "Outro processo está usando o cache. Espere ele terminar e tente novamente."
     if too_large is not None and code in _CACHE_LIMIT_CODES:
-        return f"O limite é de 512 MiB por arquivo e 1.000.000 de entradas. {too_large}"
+        limits = "1 GiB e 5.000.000 de entradas para v2; seleções somente legadas mantêm 512 MiB e 1.000.000 de entradas" if v2 else "512 MiB por arquivo e 1.000.000 de entradas"
+        return f"O limite é de {limits}. {too_large}"
     return default
 
 
@@ -646,21 +751,28 @@ def cache_export(
         help="Export only entries created before this date (YYYY-MM-DD or ISO datetime).",
     ),
     overwrite: bool = typer.Option(False, "--overwrite", help="Allow replacing an existing JSON file."),
+    namespace: Optional[str] = typer.Option(None, "--namespace", help="Select legacy-v1 or v2."),
+    scope_kind: Optional[str] = typer.Option(None, "--scope-kind", help="V2 scope: project, local_user or work."),
+    scope_id: Optional[str] = typer.Option(None, "--scope-id"),
+    project_id: Optional[str] = typer.Option(None, "--project-id"),
+    all_namespaces: bool = typer.Option(False, "--all", help="Select all cache namespaces."),
 ) -> None:
     """Export cached translations to readable JSON."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    before_value = _normalize_cache_before(before, mode)
+    before_value = _normalize_cache_before(before, mode, preserve_fraction=namespace == "v2" or all_namespaces)
     try:
         services = cache_admin_services()
         report = services.export.execute(ExportRequest(
-            CacheRef(str(cache_path)), FileRef(str(output)), CacheFilter(source, target, before_value), overwrite))
+            CacheRef(str(cache_path)), FileRef(str(output)), CacheFilter(source, target, before_value), overwrite, namespace=_cache_namespace(namespace, scope_kind, scope_id, project_id, all_namespaces)))
+        _cache_warnings(report)
         if report.failure:
             raise CacheAdminError(report.failure.code, report.failure.family)
     except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível exportar o cache.",
             _cache_failure_hint(exc.code, "Verifique --cache, o caminho de saída e tente novamente.",
-                                "Exporte em partes com --source, --target ou --before."),
+                                "Exporte um namespace explícito menor ou reduza --before." if namespace == "v2" or all_namespaces else
+                                "Exporte em partes com --source, --target ou --before.", v2=namespace == "v2" or all_namespaces),
             mode,
             detail=str(exc),
         )
@@ -668,6 +780,8 @@ def cache_export(
 
     console.print(f"[green]Cache export saved to:[/green] {output}")
     console.print(f"Entries exported: {report.value}")
+    if namespace is not None or all_namespaces:
+        console.print(f"JSON format: v{report.format_version}")
 
 
 @cache_app.command("import")
@@ -682,19 +796,53 @@ def cache_import(
     ),
     cache_path: Path = typer.Option(DEFAULT_CACHE_PATH, "--cache", help="SQLite cache path."),
     replace: bool = typer.Option(False, "--replace", help="Replace existing cache entries."),
+    scope_map: Optional[Path] = typer.Option(None, "--scope-map", help="External JSON namespace mapping."),
+    all_namespaces: bool = typer.Option(False, "--all", help="Not allowed for import."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview a mapped import."),
+    yes: bool = typer.Option(False, "--yes", help="Confirm a mapped import."),
 ) -> None:
     """Import cached translations from an Ayvu JSON export."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
+        if all_namespaces:
+            raise CacheAdminError("invalid_scope")
+        if scope_map is None and (dry_run or yes):
+            raise CacheAdminError("invalid_scope_map")
+        mapping = _cache_scope_map(scope_map) if scope_map is not None else None
         services = cache_admin_services()
-        report = services.import_cache.execute(ImportRequest(CacheRef(str(cache_path)), FileRef(str(input_path)), replace))
+        request = ImportRequest(CacheRef(str(cache_path)), FileRef(str(input_path)), replace, scope_map=mapping)
+        if mapping is None:
+            report = services.import_cache.execute(request)
+        else:
+            preview = services.preview_import.execute(request)
+            _cache_warnings(preview)
+            if preview.failure:
+                raise CacheAdminError(preview.failure.code, preview.failure.family)
+            completed = False
+            try:
+                console.print(f"Import preview: {preview.value.count} entries; {preview.value.imported} imported; "
+                              f"{preview.value.skipped} skipped; {preview.value.replaced} replacements; "
+                              f"{preview.value.conflicts} conflicts; {preview.value.duplicates} duplicates.")
+                if dry_run:
+                    return
+                if not yes and not typer.confirm("Import these cache entries?"):
+                    raise typer.Exit(code=1)
+                report = services.execute_import.execute(ExecuteImportRequest(preview.value))
+                completed = report.failure is None
+            finally:
+                if not completed:
+                    discarded = services.discard_import.execute(preview.value)
+                    _cache_warnings(discarded)
+                    if discarded.failure:
+                        console.print(f"[yellow]Cache warning:[/yellow] {discarded.failure.code}")
+        _cache_warnings(report)
         if report.failure:
             raise CacheAdminError(report.failure.code, report.failure.family)
     except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível importar o cache.",
             _cache_failure_hint(exc.code, "Confirme que o arquivo foi exportado pelo Ayvu e tente novamente.",
-                                "Exporte em partes menores com --source, --target ou --before e importe cada uma."),
+                                "Exporte em partes menores com --source, --target ou --before e importe cada uma.", v2=scope_map is not None),
             mode,
             detail=str(exc),
         )
@@ -1002,7 +1150,7 @@ def _print_expected_error(summary: str, next_step: str, mode: UserMode, detail: 
     console.print(next_step)
 
 
-def _normalize_cache_before(value: str | None, mode: UserMode) -> str | None:
+def _normalize_cache_before(value: str | None, mode: UserMode, *, preserve_fraction: bool = False) -> str | None:
     if value is None:
         return None
 
@@ -1025,13 +1173,15 @@ def _normalize_cache_before(value: str | None, mode: UserMode) -> str | None:
             "Data de cache inválida.",
             "Use --before no formato YYYY-MM-DD ou em formato ISO, como 2026-01-31T10:30:00.",
             mode,
-            detail=str(exc),
+            detail="invalid_before",
         )
-        raise typer.Exit(code=1) from exc
+        raise typer.Exit(code=1) from None
 
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
 
+    if preserve_fraction and parsed.microsecond:
+        return parsed.isoformat(sep=" ", timespec="microseconds")
     return parsed.strftime("%Y-%m-%d %H:%M:%S")
 
 

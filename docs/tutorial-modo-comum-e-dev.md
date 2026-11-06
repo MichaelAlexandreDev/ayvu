@@ -243,12 +243,7 @@ LibreTranslate ele ainda é apenas informativo.
 
 ### Usar cache de forma consistente
 
-A CLI usa o cache legado v1. Os comandos de administração neste tutorial são
-para v1; em v2, limpeza, importação e exportação retornam `v2-admin-required`,
-e a inspeção pode recusar o namespace. Conserve o v1 somente para leitura e
-escolha outro arquivo para um novo v2 pela API `prepare_cache`; acompanhe
-DESKTOP-127 para administração v2. A migração não transforma entradas legadas
-em acertos exatos v2. Veja [cache standalone v2](architecture/standalone-cache-v2.md).
+A tradução pela CLI usa o cache legado v1. A administração também aceita namespaces v2 explícitos. A migração não transforma entradas legadas em acertos exatos v2. Veja [cache standalone v2](architecture/standalone-cache-v2.md).
 
 Para retomar com segurança, repita o mesmo cache entre execuções:
 
@@ -297,8 +292,11 @@ gera um JSON vazio sem criar o cache ou sua pasta. Se a limpeza informar que a
 seleção mudou, rode novamente a prévia e depois o comando com `--yes`.
 Escolha para a exportação um arquivo diferente do cache SQLite; detalhes de
 erros usam códigos curtos sem o conteúdo das entradas.
-Exportação e importação têm limite de 512 MiB e 1.000.000 de entradas; acima
-disso, exporte em partes com `--source`, `--target` ou `--before`.
+No formato legado v1, exportação e importação têm limite de 512 MiB e 1.000.000
+de entradas; acima disso, exporte em partes com `--source`, `--target` ou
+`--before`. Para os limites e filtros v2, veja a [administração de cache](architecture/cache-administration.md).
+
+Para administrar um escopo v2, especifique o projeto e o escopo, por exemplo `ayvu cache inspect --namespace v2 --scope-kind project --scope-id 00000000-0000-0000-0000-000000004321 --project-id 00000000-0000-0000-0000-000000004321`. Use `ayvu cache import arquivo.json --scope-map mapa.json --dry-run` para prever uma importação mapeada. O formato do mapa, a confirmação e os limites estão na [documentação de administração](architecture/cache-administration.md). Exportações e arquivos de recuperação podem conter textos sensíveis.
 
 ### Reaproveitar trechos parecidos com a memória de tradução
 
