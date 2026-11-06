@@ -1,0 +1,432 @@
+{
+  "fixture": "synthetic_only",
+  "platform": "linux_x86_64",
+  "python": "3.12.12",
+  "samples": [
+    {
+      "case": "success",
+      "elapsed_ms": 33.342,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 25.498,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 32.537,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 24.681,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 32.83,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 24.91,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 33.024,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 24.761,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 32.639,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 24.451,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 34.291,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 24.918,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 42.48,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 34.744,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "cancel_ms": 0.478,
+      "case": "cooperative",
+      "elapsed_ms": 33.101,
+      "max_frame_buffer": 660,
+      "observation": "clean_exit",
+      "startup_ms": 24.535,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "hang",
+      "cleanup_ms": 253.351,
+      "elapsed_ms": 529.515,
+      "max_frame_buffer": 643,
+      "observation": "timeout",
+      "startup_ms": 25.321,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "ignore",
+      "cleanup_ms": 253.283,
+      "elapsed_ms": 532.804,
+      "max_frame_buffer": 643,
+      "observation": "timeout",
+      "startup_ms": 28.76,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "crash",
+      "cleanup_ms": 0.064,
+      "elapsed_ms": 26.847,
+      "max_frame_buffer": 207,
+      "observation": "worker_crashed",
+      "startup_ms": 25.706,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "malformed",
+      "cleanup_ms": 1.144,
+      "elapsed_ms": 27.997,
+      "max_frame_buffer": 207,
+      "observation": "invalid_frame",
+      "startup_ms": 26.571,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "oversized",
+      "cleanup_ms": 1.131,
+      "elapsed_ms": 28.176,
+      "max_frame_buffer": 207,
+      "observation": "oversized_frame",
+      "startup_ms": 26.807,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "truncated",
+      "cleanup_ms": 0.057,
+      "elapsed_ms": 49.842,
+      "max_frame_buffer": 207,
+      "observation": "worker_crashed",
+      "startup_ms": 29.125,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "incompatible",
+      "cleanup_ms": 1.13,
+      "elapsed_ms": 27.461,
+      "max_frame_buffer": 207,
+      "observation": "incompatible_version",
+      "startup_ms": 26.031,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "wrong_peer",
+      "cleanup_ms": 1.124,
+      "elapsed_ms": 27.348,
+      "max_frame_buffer": 207,
+      "observation": "invalid_peer",
+      "startup_ms": 25.919,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "noise",
+      "cleanup_ms": 0.017,
+      "elapsed_ms": 34.019,
+      "max_frame_buffer": 207,
+      "observation": "output_limit",
+      "startup_ms": 26.312,
+      "stderr_bytes": 16385,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "partial",
+      "cleanup_ms": 0.058,
+      "elapsed_ms": 27.106,
+      "max_frame_buffer": 643,
+      "observation": "worker_crashed",
+      "startup_ms": 25.792,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "memory",
+      "elapsed_ms": 34.301,
+      "max_frame_buffer": 207,
+      "observation": "clean_exit",
+      "startup_ms": 26.718,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "pipes"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 36.992,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 29.344,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 45.15,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 37.573,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 34.937,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 27.204,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 35.175,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 27.349,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 34.626,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 26.858,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 35.15,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 26.826,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "success",
+      "elapsed_ms": 34.316,
+      "max_frame_buffer": 643,
+      "observation": "clean_exit",
+      "startup_ms": 26.561,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "cancel_ms": 0.511,
+      "case": "cooperative",
+      "elapsed_ms": 35.701,
+      "max_frame_buffer": 660,
+      "observation": "clean_exit",
+      "startup_ms": 26.924,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "hang",
+      "cleanup_ms": 251.338,
+      "elapsed_ms": 541.786,
+      "max_frame_buffer": 643,
+      "observation": "timeout",
+      "startup_ms": 39.605,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "ignore",
+      "cleanup_ms": 253.31,
+      "elapsed_ms": 530.323,
+      "max_frame_buffer": 643,
+      "observation": "timeout",
+      "startup_ms": 26.301,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "crash",
+      "cleanup_ms": 0.153,
+      "elapsed_ms": 27.185,
+      "max_frame_buffer": 207,
+      "observation": "worker_crashed",
+      "startup_ms": 25.622,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "malformed",
+      "cleanup_ms": 1.128,
+      "elapsed_ms": 27.384,
+      "max_frame_buffer": 207,
+      "observation": "invalid_frame",
+      "startup_ms": 25.986,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "oversized",
+      "cleanup_ms": 1.115,
+      "elapsed_ms": 26.752,
+      "max_frame_buffer": 207,
+      "observation": "oversized_frame",
+      "startup_ms": 25.431,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "truncated",
+      "cleanup_ms": 0.06,
+      "elapsed_ms": 28.95,
+      "max_frame_buffer": 207,
+      "observation": "worker_crashed",
+      "startup_ms": 24.814,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "incompatible",
+      "cleanup_ms": 1.132,
+      "elapsed_ms": 26.589,
+      "max_frame_buffer": 207,
+      "observation": "incompatible_version",
+      "startup_ms": 25.105,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "wrong_peer",
+      "cleanup_ms": 1.123,
+      "elapsed_ms": 26.357,
+      "max_frame_buffer": 207,
+      "observation": "invalid_peer",
+      "startup_ms": 24.926,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "noise",
+      "cleanup_ms": 0.019,
+      "elapsed_ms": 50.66,
+      "max_frame_buffer": 207,
+      "observation": "output_limit",
+      "startup_ms": 43.098,
+      "stderr_bytes": 16385,
+      "stdout_bytes": 16385,
+      "transport": "socketpair"
+    },
+    {
+      "case": "partial",
+      "cleanup_ms": 0.089,
+      "elapsed_ms": 27.043,
+      "max_frame_buffer": 643,
+      "observation": "worker_crashed",
+      "startup_ms": 25.872,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    },
+    {
+      "case": "memory",
+      "elapsed_ms": 32.87,
+      "max_frame_buffer": 207,
+      "observation": "clean_exit",
+      "startup_ms": 25.306,
+      "stderr_bytes": 0,
+      "stdout_bytes": 0,
+      "transport": "socketpair"
+    }
+  ],
+  "schema_version": 1,
+  "startup_median_ms": {
+    "pipes": 24.91,
+    "socketpair": 27.204
+  },
+  "throughput": [
+    {
+      "bytes_received": 83177,
+      "elapsed_ms": 8.306,
+      "frames": 128,
+      "frames_per_second": 15410.1,
+      "max_frame_buffer": 645,
+      "transport": "pipes"
+    },
+    {
+      "bytes_received": 83177,
+      "elapsed_ms": 7.631,
+      "frames": 128,
+      "frames_per_second": 16773.9,
+      "max_frame_buffer": 645,
+      "transport": "socketpair"
+    }
+  ]
+}

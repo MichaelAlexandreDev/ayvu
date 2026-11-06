@@ -1144,3 +1144,24 @@ def test_cli_composition_cannot_hide_a_cached_graph_in_a_factory(tmp_path, code)
     root = make_tree(tmp_path, 'ayvu.cli_composition', code, owners)
     with pytest.raises(BoundaryError, match='singleton|eager CLI construction'):
         check_tree(root, owners)
+
+
+# Pesquisa #167: registro separado, removível, nunca um módulo de produção.
+LOCAL_WORKER_RESEARCH = frozenset({'probe.py', 'measure.py'})
+
+
+def test_local_worker_research_is_registered_stdlib_only_and_unreachable_from_production():
+    directory = ROOT / 'spikes' / 'local-worker'
+    assert {path.name for path in directory.glob('*.py')} == LOCAL_WORKER_RESEARCH
+    for name in LOCAL_WORKER_RESEARCH:
+        tree = ast.parse((directory / name).read_text(encoding='utf-8'))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                assert all(alias.name.split('.')[0] in sys.stdlib_module_names for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                assert node.level == 0 and node.module.split('.')[0] in sys.stdlib_module_names
+    for path in (ROOT / 'src' / 'ayvu').rglob('*.py'):
+        tree = ast.parse(path.read_text(encoding='utf-8'))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                assert 'local-worker' not in node.value and 'local_worker_spike' not in node.value
