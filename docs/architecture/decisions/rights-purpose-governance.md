@@ -51,7 +51,7 @@ Verificação local sem rede: os três artefatos obrigatórios estão em `main`
 
 | Dependência / evidência | O que este registro consome e o que não presume |
 | --- | --- |
-| [#129](https://github.com/MichaelAlexandreDev/ayvu/issues/129), [modelo de ameaças](../product-threat-model.md) | Proposed; T03 (destinos), T05 (cache/corpus), T09 (AI/MCP), T11 (retenção/revogação), F06 e G04. Seu status não aceita esta política. |
+| [#129](https://github.com/MichaelAlexandreDev/ayvu/issues/129), [modelo de ameaças](../product-threat-model.md) | Accepted em 2026-11-05; T03 (destinos), T05 (cache/corpus), T09 (AI/MCP), T11 (retenção/revogação), F06 e G04. Esse aceite não aceita esta política. |
 | [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134), [manifesto](../project-manifest.md) | `project_id`, revisão e identidade exata da fonte/configuração. Caminho, título e hash isolado não são escopo nem autoridade. `policy_ref` não é uma concessão. |
 | [#138](https://github.com/MichaelAlexandreDev/ayvu/issues/138), [DEC-014/proveniência](../provenance.md) | Referências opacas, revisões e linhagem; atores são tipos, sem nomes de pessoas. Sujeito opaco não prova identidade nem direitos; histórico copiado não autoriza. |
 | [Limites de módulos](../modular-monolith-boundaries.md), [artefatos](../job-artifacts.md), [escopo oficial do produto](../../product-scope.md) | Policies decide; cache, TM e corpus são independentes. Um artefato existente não prova permissão. Conteúdo para corpus/treino não é contribuição automática. |
