@@ -104,6 +104,7 @@ infrastructure primitives.
 | Capability module | Owns | Does not own |
 | --- | --- | --- |
 | **Projects** | Future project identity, manifest semantics, source identity, and project lifecycle | Durable job scheduling, UI state, or parser details |
+| **Project profiles** | Closed project translation profiles, immutable revisions/snapshots, explicit legacy migration and stage-aware semantic projections; see [contract](project-translation-profiles.md) | Global preferences, glossary identity/content, provider requests or cache execution |
 | **Jobs** | Future execution lifecycle, checkpoints, cancellation semantics, progress events, retry state, and artifact references | Widgets, terminal progress, provider payloads, or EPUB internals |
 | **Content** | Minimal content documents, translation-unit identity, constraints, relationships, and opaque structural references produced by a format adapter | Concrete DOM nodes, archive paths as global identity, provider requests, or rendering |
 | **Translation** | Language routing, the inward-owned provider port, format-neutral chunking and linguistic stage execution, translation requests/results, and stage policy | Structural HTML segmentation, EPUB representation, HTTP sessions, UI, or persistence engines |

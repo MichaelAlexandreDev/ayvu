@@ -241,6 +241,11 @@ em `glossary` são resolvidos dentro de `$XDG_CONFIG_HOME/ayvu/glossaries` ou
 perfil. O campo `style` aceita `neutral`, `technical`, `literary` ou `academic`, mas com
 LibreTranslate ele ainda é apenas informativo.
 
+A CLI mantém esses perfis globais v1 durante a janela de compatibilidade. A
+[migração para perfis versionados de projeto](architecture/project-translation-profiles.md)
+é uma API explícita da aplicação, sem comando de terminal nesta versão. Ela exige
+um glossário gerenciado, preserva o perfil global e mantém `style` inerte.
+
 ### Usar cache de forma consistente
 
 A tradução pela CLI usa o cache legado v1. A administração também aceita namespaces v2 explícitos. A migração não transforma entradas legadas em acertos exatos v2. Veja [cache standalone v2](architecture/standalone-cache-v2.md).

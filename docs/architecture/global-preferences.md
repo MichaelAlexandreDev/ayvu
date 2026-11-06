@@ -18,7 +18,9 @@ The [field classification](global-preferences-fields.json) is executable contrac
 data: tests compare every serialized field, including all five folder names and
 all optional profile fields, with its owner, validation, sensitivity, default,
 compatibility rule and consumer. Legacy named profiles remain a separate category
-inside the same v1 file; no versioned profile snapshot is introduced.
+inside the same v1 file. [Project profiles](project-translation-profiles.md)
+offer explicit migration into independent, versioned project snapshots; reading
+preferences never performs that migration.
 Project identity/settings, window state, provider connections, credentials and
 network-policy values cannot become fields of these DTOs. Unknown fields never
 enter a known-field serialization payload.

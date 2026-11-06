@@ -7,6 +7,14 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ## Nao publicado
 
+### Adicionado
+
+- Contrato de perfis de tradução v1 por projeto, migração explícita dos perfis
+  globais, revisões imutáveis e snapshots persistentes. A projeção separa efeitos
+  no provedor bruto, pós-processamento, operação e metadados inertes para futuros
+  consumidores. A CLI, o pedido LibreTranslate e o cache de produção continuam
+  usando seus contratos atuais; `style` permanece informativo.
+
 ### Alterado
 
 - O cache standalone dispõe de preparação e repositório exato v2 para o caminho
