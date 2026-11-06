@@ -1,9 +1,11 @@
-"""Assembles the current LibreTranslate provider for the CLI, until #158 consolidates composition.
+"""Provider wiring selected by the explicit CLI composition boundary (#158).
 
 The decision made here says plainly that no network policy ran: the CLI has none yet, and
 it allows what the user asked for, as it always has. It looks at no URL to claim otherwise.
 """
 from __future__ import annotations
+
+from .cli_contracts import ProviderSetupError
 
 from datetime import UTC, datetime, timedelta
 from typing import Callable
@@ -20,10 +22,6 @@ _ISSUER = "cli_composition"
 _POLICY_REVISION = 0
 _DECISION_LIFETIME = timedelta(minutes=5)
 _PREFLIGHT_REQUIREMENTS = ProviderRequirements((Capability.PLAIN_TEXT_INPUT, Capability.ROUTE_DISCOVERY))
-
-
-class ProviderSetupError(ValueError):
-    """A bounded error: the settings could not build a provider."""
 
 
 def _utc_now() -> datetime:

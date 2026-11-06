@@ -145,7 +145,7 @@ def test_preflight_cache_only_skips_route_resolution(monkeypatch, tmp_path):
     translator = TranslatorWithLanguages(
         (TranslatorLanguage(code="en", name="English", targets=("pt",)),)
     )
-    monkeypatch.setattr("ayvu.preflight.create_translator", lambda *_args, **_kwargs: translator)
+    monkeypatch.setattr("ayvu.preflight.create_translator", lambda *_args, **_kwargs: pytest.fail("cache-only constructed a provider"))
     monkeypatch.setattr("ayvu.preflight.inspect_epub", lambda _path: object())
 
     result = run_translation_preflight(
@@ -162,7 +162,8 @@ def test_preflight_cache_only_skips_route_resolution(monkeypatch, tmp_path):
     )
 
     assert result.route is None
-    assert result.translator is translator
+    assert result.translator is None
+    assert result.translator_factory is None
     assert translator.translate_calls == []
     assert translator.list_calls == 0
 

@@ -5,6 +5,8 @@ No directories are created until an auxiliary file is actually written.
 """
 from __future__ import annotations
 
+from .cli_contracts import BatchOutputError
+
 import os
 import stat
 from dataclasses import dataclass, field, replace
@@ -17,8 +19,6 @@ from .domain import OutputPlan, automatic_output_candidate
 MAX_CANDIDATES = 10_000
 
 
-class BatchOutputError(ValueError):
-    """A stable code, never a path or a system exception."""
 
 
 @dataclass(frozen=True, repr=False)

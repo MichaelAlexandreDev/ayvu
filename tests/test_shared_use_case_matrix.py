@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import ast
 import re
 from pathlib import Path
 from typing import Any
@@ -290,3 +291,62 @@ def test_matrix_local_links_resolve_inside_repository() -> None:
         assert resolved.is_relative_to(ROOT), f"link escapes repository: {raw_target}"
         assert resolved in PUBLIC_LINK_TARGETS, f"local link is not allowlisted: {raw_target}"
         assert resolved.exists(), f"broken local link: {raw_target}"
+
+
+def normalized_cli_contract():
+    """Effective Click/Typer metadata, including generated options and defaults (#132/#158)."""
+    from enum import Enum
+    def value(item):
+        if isinstance(item, Enum):
+            return item.value
+        if isinstance(item, Path):
+            return str(item)
+        if isinstance(item, (tuple, list)):
+            return [value(part) for part in item]
+        return item
+    def command_record(command):
+        parameters = []
+        for parameter in command.get_params(typer.Context(command)):
+            parameter_type = parameter.type
+            parameters.append({
+                'name': parameter.name, 'kind': parameter.param_type_name,
+                'opts': list(parameter.opts), 'secondary_opts': list(getattr(parameter, 'secondary_opts', ())),
+                'required': parameter.required, 'default': value(parameter.default),
+                'nargs': parameter.nargs, 'multiple': getattr(parameter, 'multiple', False),
+                'envvar': parameter.envvar, 'type': parameter_type.name,
+                'choices': value(getattr(parameter_type, 'choices', None)),
+                'is_flag': getattr(parameter, 'is_flag', False),
+                'help': getattr(parameter, 'help', None),
+            })
+        return {'parameters': parameters, 'help': command.help,
+                'commands': {name: command_record(child) for name, child in sorted((_subcommands(command) or {}).items())}}
+    return command_record(get_command(app))
+
+
+def test_frozen_post_predecessor_cli_contract():
+    baseline = json.loads((ROOT / 'tests/fixtures/cli-post-predecessor.json').read_text())
+    assert baseline['base_sha'] == '3edd2c2813c592418189670dbef1866c3026780e'
+    assert normalized_cli_contract() == baseline['contract']
+
+
+def test_matrix_covers_every_current_presentation_helper_and_compatibility_delegate():
+    text, _ = _load_matrix()
+    inventory = text.split('## CLI helper and facade inventory', 1)[1]
+    declared = set(_declared_mappings(text))
+    symbols = []
+    for line in inventory.splitlines():
+        if not line.startswith('| `AYVU-'):
+            continue
+        _, mappings, helpers, _ = line.split('|')
+        assert set(re.findall(r'`([^`]+)`', mappings)) <= declared
+        symbols.extend(re.findall(r'`([^`]+)`', helpers))
+    tree = ast.parse((ROOT / 'src/ayvu/cli.py').read_text())
+    actual = {node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
+    assert len(symbols) == len(set(symbols)), 'helper classified more than once'
+    assert set(symbols) == actual, 'unmapped or stale presentation helper'
+
+
+def test_installed_cli_entrypoint_still_targets_the_presenter():
+    import tomllib
+    project = tomllib.loads((ROOT / 'pyproject.toml').read_text())
+    assert project['project']['scripts']['ayvu'] == 'ayvu.cli:app'

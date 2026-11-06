@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .cli_contracts import ResumeStateError
+
 import json
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
@@ -15,8 +17,6 @@ COMPLETED_STATUS = "completed"
 STATE_FILE_PATTERN = "*.ayvu-state.json"
 
 
-class ResumeStateError(ValueError):
-    pass
 
 
 @dataclass(frozen=True)

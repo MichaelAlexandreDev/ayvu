@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .cli_contracts import PreflightError
+
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -13,25 +15,19 @@ from .provider_composition import CliProviderSession
 from .provider_discovery import DiscoveryOutcome
 from .translator import (
     RequestRateLimiter,
+    RetryPolicy,
     RoutedTranslator,
     TranslationRoute,
     Translator,
     TranslatorError,
     create_translator,
+    validate_translator_name,
 )
-
-
-class PreflightError(RuntimeError):
-    def __init__(self, summary: str, next_step: str, detail: str = "") -> None:
-        super().__init__(summary)
-        self.summary = summary
-        self.next_step = next_step
-        self.detail = detail
 
 
 @dataclass(frozen=True)
 class TranslationPreflightResult:
-    translator: Translator
+    translator: Translator | None
     glossary: Glossary
     route: TranslationRoute | None = None
     translator_factory: Callable[[], Translator] | None = None
@@ -54,18 +50,26 @@ def run_translation_preflight(
 ) -> TranslationPreflightResult:
     _check_language_pair(language_pair)
     glossary = _load_checked_glossary(glossary_path)
+    translator = None
+    translator_factory = None
     rate_limiter = RequestRateLimiter(requests_per_second) if requests_per_second is not None else None
-    translator_factory = _create_checked_translator_factory(
-        translator_name,
-        url,
-        timeout,
-        retries,
-        requests_per_second=requests_per_second,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-        rate_limiter=rate_limiter,
-    )
-    translator = translator_factory()
+    if cache_only:
+        # Retain the old configuration refusals without acquiring a provider or session.
+        try:
+            validate_translator_name(translator_name)
+            RetryPolicy(retries, retry_backoff, retry_backoff_max)
+        except TranslatorError as exc:
+            raise PreflightError(
+                "Não foi possível preparar o tradutor.",
+                "Use --translator libretranslate.",
+                detail=str(exc),
+            ) from exc
+    if not cache_only:
+        translator_factory = _create_checked_translator_factory(
+            translator_name, url, timeout, retries, requests_per_second=requests_per_second,
+            retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max, rate_limiter=rate_limiter,
+        )
+        translator = translator_factory()
     _check_cache(cache_path)
     _check_epub(epub_path)
     route: TranslationRoute | None = None
