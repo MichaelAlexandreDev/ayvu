@@ -1,0 +1,1995 @@
+{
+  "base_sha": "3edd2c2813c592418189670dbef1866c3026780e",
+  "contract": {
+    "parameters": [
+      {
+        "name": "mode",
+        "kind": "option",
+        "opts": [
+          "--mode"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": null,
+        "nargs": 1,
+        "multiple": false,
+        "envvar": null,
+        "type": "choice",
+        "choices": [
+          "common",
+          "developer"
+        ],
+        "is_flag": false,
+        "help": "Execution mode (common or developer). If not specified, it's inferred from usage."
+      },
+      {
+        "name": "preview",
+        "kind": "option",
+        "opts": [
+          "--preview"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": null,
+        "nargs": 1,
+        "multiple": false,
+        "envvar": null,
+        "type": "path",
+        "choices": null,
+        "is_flag": false,
+        "help": "Generate a translated EPUB preview with default settings."
+      },
+      {
+        "name": "install_completion",
+        "kind": "option",
+        "opts": [
+          "--install-completion"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": null,
+        "nargs": 1,
+        "multiple": false,
+        "envvar": null,
+        "type": "boolean",
+        "choices": null,
+        "is_flag": true,
+        "help": "Install completion for the current shell."
+      },
+      {
+        "name": "show_completion",
+        "kind": "option",
+        "opts": [
+          "--show-completion"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": null,
+        "nargs": 1,
+        "multiple": false,
+        "envvar": null,
+        "type": "boolean",
+        "choices": null,
+        "is_flag": true,
+        "help": "Show completion for the current shell, to copy it or customize the installation."
+      },
+      {
+        "name": "help",
+        "kind": "option",
+        "opts": [
+          "--help"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": null,
+        "nargs": 1,
+        "multiple": false,
+        "envvar": null,
+        "type": "boolean",
+        "choices": null,
+        "is_flag": true,
+        "help": "Show this message and exit."
+      }
+    ],
+    "help": "Translate local EPUB files with a local HTTP translator.",
+    "commands": {
+      "apply-review": {
+        "parameters": [
+          {
+            "name": "epub_path",
+            "kind": "argument",
+            "opts": [
+              "epub_path"
+            ],
+            "secondary_opts": [],
+            "required": true,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "file",
+            "choices": null,
+            "is_flag": false,
+            "help": "Original EPUB path used to verify the source revision."
+          },
+          {
+            "name": "review_csv",
+            "kind": "argument",
+            "opts": [
+              "review_csv"
+            ],
+            "secondary_opts": [],
+            "required": true,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "file",
+            "choices": null,
+            "is_flag": false,
+            "help": "Edited v2 review package. Legacy v1 files are inspection-only."
+          },
+          {
+            "name": "output",
+            "kind": "option",
+            "opts": [
+              "--output",
+              "-o"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "Output EPUB path. Defaults to <input-stem>-reviewed.epub."
+          },
+          {
+            "name": "overwrite",
+            "kind": "option",
+            "opts": [
+              "--overwrite"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Allow replacing an existing output EPUB."
+          },
+          {
+            "name": "validate_only",
+            "kind": "option",
+            "opts": [
+              "--validate-only"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Validate the package without reconstructing an EPUB."
+          },
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "Validate and apply one identity-bound v2 review package.",
+        "commands": {}
+      },
+      "cache": {
+        "parameters": [
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "Inspect, clean, export, and import the translation cache.",
+        "commands": {
+          "clean": {
+            "parameters": [
+              {
+                "name": "cache_path",
+                "kind": "option",
+                "opts": [
+                  "--cache"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": ".cache/traducoes.sqlite",
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "path",
+                "choices": null,
+                "is_flag": false,
+                "help": "SQLite cache path."
+              },
+              {
+                "name": "source",
+                "kind": "option",
+                "opts": [
+                  "--source"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Remove only this source language."
+              },
+              {
+                "name": "target",
+                "kind": "option",
+                "opts": [
+                  "--target"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Remove only this target language."
+              },
+              {
+                "name": "before",
+                "kind": "option",
+                "opts": [
+                  "--before"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Remove only entries created before this date (YYYY-MM-DD or ISO datetime)."
+              },
+              {
+                "name": "all_entries",
+                "kind": "option",
+                "opts": [
+                  "--all"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Allow cleaning the whole cache."
+              },
+              {
+                "name": "dry_run",
+                "kind": "option",
+                "opts": [
+                  "--dry-run"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Show how many entries would be removed."
+              },
+              {
+                "name": "yes",
+                "kind": "option",
+                "opts": [
+                  "--yes"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Confirm destructive cleanup."
+              },
+              {
+                "name": "namespace",
+                "kind": "option",
+                "opts": [
+                  "--namespace"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Select legacy-v1 or v2."
+              },
+              {
+                "name": "scope_kind",
+                "kind": "option",
+                "opts": [
+                  "--scope-kind"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "V2 scope: project, local_user or work."
+              },
+              {
+                "name": "scope_id",
+                "kind": "option",
+                "opts": [
+                  "--scope-id"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": null
+              },
+              {
+                "name": "project_id",
+                "kind": "option",
+                "opts": [
+                  "--project-id"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": null
+              },
+              {
+                "name": "help",
+                "kind": "option",
+                "opts": [
+                  "--help"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Show this message and exit."
+              }
+            ],
+            "help": "Remove cache entries by filter or clear the whole cache.",
+            "commands": {}
+          },
+          "export": {
+            "parameters": [
+              {
+                "name": "output",
+                "kind": "argument",
+                "opts": [
+                  "output"
+                ],
+                "secondary_opts": [],
+                "required": true,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "file",
+                "choices": null,
+                "is_flag": false,
+                "help": "JSON file to write."
+              },
+              {
+                "name": "cache_path",
+                "kind": "option",
+                "opts": [
+                  "--cache"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": ".cache/traducoes.sqlite",
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "path",
+                "choices": null,
+                "is_flag": false,
+                "help": "SQLite cache path."
+              },
+              {
+                "name": "source",
+                "kind": "option",
+                "opts": [
+                  "--source"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Export only this source language."
+              },
+              {
+                "name": "target",
+                "kind": "option",
+                "opts": [
+                  "--target"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Export only this target language."
+              },
+              {
+                "name": "before",
+                "kind": "option",
+                "opts": [
+                  "--before"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Export only entries created before this date (YYYY-MM-DD or ISO datetime)."
+              },
+              {
+                "name": "overwrite",
+                "kind": "option",
+                "opts": [
+                  "--overwrite"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Allow replacing an existing JSON file."
+              },
+              {
+                "name": "namespace",
+                "kind": "option",
+                "opts": [
+                  "--namespace"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Select legacy-v1 or v2."
+              },
+              {
+                "name": "scope_kind",
+                "kind": "option",
+                "opts": [
+                  "--scope-kind"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "V2 scope: project, local_user or work."
+              },
+              {
+                "name": "scope_id",
+                "kind": "option",
+                "opts": [
+                  "--scope-id"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": null
+              },
+              {
+                "name": "project_id",
+                "kind": "option",
+                "opts": [
+                  "--project-id"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": null
+              },
+              {
+                "name": "all_namespaces",
+                "kind": "option",
+                "opts": [
+                  "--all"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Select all cache namespaces."
+              },
+              {
+                "name": "help",
+                "kind": "option",
+                "opts": [
+                  "--help"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Show this message and exit."
+              }
+            ],
+            "help": "Export cached translations to readable JSON.",
+            "commands": {}
+          },
+          "import": {
+            "parameters": [
+              {
+                "name": "input_path",
+                "kind": "argument",
+                "opts": [
+                  "input_path"
+                ],
+                "secondary_opts": [],
+                "required": true,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "file",
+                "choices": null,
+                "is_flag": false,
+                "help": "JSON export to import."
+              },
+              {
+                "name": "cache_path",
+                "kind": "option",
+                "opts": [
+                  "--cache"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": ".cache/traducoes.sqlite",
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "path",
+                "choices": null,
+                "is_flag": false,
+                "help": "SQLite cache path."
+              },
+              {
+                "name": "replace",
+                "kind": "option",
+                "opts": [
+                  "--replace"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Replace existing cache entries."
+              },
+              {
+                "name": "scope_map",
+                "kind": "option",
+                "opts": [
+                  "--scope-map"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "path",
+                "choices": null,
+                "is_flag": false,
+                "help": "External JSON namespace mapping."
+              },
+              {
+                "name": "all_namespaces",
+                "kind": "option",
+                "opts": [
+                  "--all"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Not allowed for import."
+              },
+              {
+                "name": "dry_run",
+                "kind": "option",
+                "opts": [
+                  "--dry-run"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Preview a mapped import."
+              },
+              {
+                "name": "yes",
+                "kind": "option",
+                "opts": [
+                  "--yes"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Confirm a mapped import."
+              },
+              {
+                "name": "help",
+                "kind": "option",
+                "opts": [
+                  "--help"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Show this message and exit."
+              }
+            ],
+            "help": "Import cached translations from an Ayvu JSON export.",
+            "commands": {}
+          },
+          "inspect": {
+            "parameters": [
+              {
+                "name": "cache_path",
+                "kind": "option",
+                "opts": [
+                  "--cache"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": ".cache/traducoes.sqlite",
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "path",
+                "choices": null,
+                "is_flag": false,
+                "help": "SQLite cache path."
+              },
+              {
+                "name": "source",
+                "kind": "option",
+                "opts": [
+                  "--source"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Filter by source language."
+              },
+              {
+                "name": "target",
+                "kind": "option",
+                "opts": [
+                  "--target"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Filter by target language."
+              },
+              {
+                "name": "before",
+                "kind": "option",
+                "opts": [
+                  "--before"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Only include entries created before this date (YYYY-MM-DD or ISO datetime)."
+              },
+              {
+                "name": "namespace",
+                "kind": "option",
+                "opts": [
+                  "--namespace"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "Select legacy-v1 or v2."
+              },
+              {
+                "name": "scope_kind",
+                "kind": "option",
+                "opts": [
+                  "--scope-kind"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": "V2 scope: project, local_user or work."
+              },
+              {
+                "name": "scope_id",
+                "kind": "option",
+                "opts": [
+                  "--scope-id"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": null
+              },
+              {
+                "name": "project_id",
+                "kind": "option",
+                "opts": [
+                  "--project-id"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "str",
+                "choices": null,
+                "is_flag": false,
+                "help": null
+              },
+              {
+                "name": "all_namespaces",
+                "kind": "option",
+                "opts": [
+                  "--all"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": false,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Select all cache namespaces."
+              },
+              {
+                "name": "help",
+                "kind": "option",
+                "opts": [
+                  "--help"
+                ],
+                "secondary_opts": [],
+                "required": false,
+                "default": null,
+                "nargs": 1,
+                "multiple": false,
+                "envvar": null,
+                "type": "boolean",
+                "choices": null,
+                "is_flag": true,
+                "help": "Show this message and exit."
+              }
+            ],
+            "help": "Show cached translations grouped by language pair.",
+            "commands": {}
+          }
+        }
+      },
+      "extract": {
+        "parameters": [
+          {
+            "name": "epub_path",
+            "kind": "argument",
+            "opts": [
+              "epub_path"
+            ],
+            "secondary_opts": [],
+            "required": true,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "file",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "output",
+            "kind": "option",
+            "opts": [
+              "--output",
+              "-o"
+            ],
+            "secondary_opts": [],
+            "required": true,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "Directory where Markdown files will be written."
+          },
+          {
+            "name": "overwrite",
+            "kind": "option",
+            "opts": [
+              "--overwrite"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Allow writing into an existing non-empty directory."
+          },
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "Extract visible text from EPUB documents to Markdown files without translating.",
+        "commands": {}
+      },
+      "inspect": {
+        "parameters": [
+          {
+            "name": "epub_path",
+            "kind": "argument",
+            "opts": [
+              "epub_path"
+            ],
+            "secondary_opts": [],
+            "required": true,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "file",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "Show basic information about an EPUB.",
+        "commands": {}
+      },
+      "languages": {
+        "parameters": [
+          {
+            "name": "url",
+            "kind": "option",
+            "opts": [
+              "--url"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": "http://localhost:5000",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "LibreTranslate base URL or /translate endpoint."
+          },
+          {
+            "name": "timeout",
+            "kind": "option",
+            "opts": [
+              "--timeout"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 10.0,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "retries",
+            "kind": "option",
+            "opts": [
+              "--retries"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 1,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "int",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "requests_per_second",
+            "kind": "option",
+            "opts": [
+              "--requests-per-second"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Maximum translator HTTP requests per second. Omit for no rate limit."
+          },
+          {
+            "name": "retry_backoff",
+            "kind": "option",
+            "opts": [
+              "--retry-backoff"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 0.5,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Initial retry backoff delay in seconds."
+          },
+          {
+            "name": "retry_backoff_max",
+            "kind": "option",
+            "opts": [
+              "--retry-backoff-max"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 8.0,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Maximum retry backoff delay in seconds."
+          },
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "List languages reported by the local LibreTranslate server.",
+        "commands": {}
+      },
+      "resume": {
+        "parameters": [
+          {
+            "name": "epub_path",
+            "kind": "argument",
+            "opts": [
+              "epub_path"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "EPUB to resume. If omitted, resumes the only translation in progress."
+          },
+          {
+            "name": "target",
+            "kind": "option",
+            "opts": [
+              "--target"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Target language, to choose when several translations are in progress."
+          },
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "Resume a translation in progress from its saved checkpoint.",
+        "commands": {}
+      },
+      "test-translator": {
+        "parameters": [
+          {
+            "name": "url",
+            "kind": "option",
+            "opts": [
+              "--url"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": "http://localhost:5000",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "LibreTranslate base URL or /translate endpoint."
+          },
+          {
+            "name": "source",
+            "kind": "option",
+            "opts": [
+              "--source"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": "en",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "target",
+            "kind": "option",
+            "opts": [
+              "--target"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": "pt",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "timeout",
+            "kind": "option",
+            "opts": [
+              "--timeout"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 10.0,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "retries",
+            "kind": "option",
+            "opts": [
+              "--retries"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 1,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "int",
+            "choices": null,
+            "is_flag": false,
+            "help": null
+          },
+          {
+            "name": "requests_per_second",
+            "kind": "option",
+            "opts": [
+              "--requests-per-second"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Maximum translator HTTP requests per second. Omit for no rate limit."
+          },
+          {
+            "name": "retry_backoff",
+            "kind": "option",
+            "opts": [
+              "--retry-backoff"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 0.5,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Initial retry backoff delay in seconds."
+          },
+          {
+            "name": "retry_backoff_max",
+            "kind": "option",
+            "opts": [
+              "--retry-backoff-max"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 8.0,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Maximum retry backoff delay in seconds."
+          },
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "Test connectivity with the local translator by sending the text \"Hello world\".",
+        "commands": {}
+      },
+      "translate": {
+        "parameters": [
+          {
+            "name": "epub_paths",
+            "kind": "argument",
+            "opts": [
+              "epub_paths"
+            ],
+            "secondary_opts": [],
+            "required": true,
+            "default": null,
+            "nargs": -1,
+            "multiple": false,
+            "envvar": null,
+            "type": "file",
+            "choices": null,
+            "is_flag": false,
+            "help": "One or more input EPUB files."
+          },
+          {
+            "name": "output",
+            "kind": "option",
+            "opts": [
+              "--output",
+              "-o"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "Output EPUB path. Defaults to <input-stem>-<target>.epub."
+          },
+          {
+            "name": "output_dir",
+            "kind": "option",
+            "opts": [
+              "--output-dir"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "directory",
+            "choices": null,
+            "is_flag": false,
+            "help": "Directory for translated EPUBs. Defaults to the translated books folder."
+          },
+          {
+            "name": "review_output",
+            "kind": "option",
+            "opts": [
+              "--review-output"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "Optional v2 review package for the completed project translation."
+          },
+          {
+            "name": "source",
+            "kind": "option",
+            "opts": [
+              "--source"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Source language. If omitted, Ayvu reads the language metadata from the EPUB."
+          },
+          {
+            "name": "target",
+            "kind": "option",
+            "opts": [
+              "--target"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Target language. Defaults to the profile target or pt."
+          },
+          {
+            "name": "translator_name",
+            "kind": "option",
+            "opts": [
+              "--translator"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": "libretranslate",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Translator backend."
+          },
+          {
+            "name": "url",
+            "kind": "option",
+            "opts": [
+              "--url"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": "http://localhost:5000",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Translator base URL."
+          },
+          {
+            "name": "cache_path",
+            "kind": "option",
+            "opts": [
+              "--cache"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": ".cache/traducoes.sqlite",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "SQLite cache path."
+          },
+          {
+            "name": "glossary_path",
+            "kind": "option",
+            "opts": [
+              "--glossary"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "Optional JSON glossary."
+          },
+          {
+            "name": "profile_name",
+            "kind": "option",
+            "opts": [
+              "--profile"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Translation profile from the Ayvu config."
+          },
+          {
+            "name": "performance_profile_name",
+            "kind": "option",
+            "opts": [
+              "--performance-profile"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": "standard",
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Performance profile: low, standard, high, or custom."
+          },
+          {
+            "name": "dry_run",
+            "kind": "option",
+            "opts": [
+              "--dry-run"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Process without writing translated EPUB."
+          },
+          {
+            "name": "fail_fast",
+            "kind": "option",
+            "opts": [
+              "--fail-fast"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Stop at the first chapter/text error."
+          },
+          {
+            "name": "chapters",
+            "kind": "option",
+            "opts": [
+              "--chapters"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "str",
+            "choices": null,
+            "is_flag": false,
+            "help": "Translate only selected chapters, e.g. '1-3,5,*chapter2*'."
+          },
+          {
+            "name": "continue_on_error",
+            "kind": "option",
+            "opts": [
+              "--continue-on-error"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Continue translating remaining EPUBs after a batch item fails."
+          },
+          {
+            "name": "overwrite",
+            "kind": "option",
+            "opts": [
+              "--overwrite"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Allow replacing an existing output file."
+          },
+          {
+            "name": "timeout",
+            "kind": "option",
+            "opts": [
+              "--timeout"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 30.0,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Translator HTTP timeout in seconds."
+          },
+          {
+            "name": "retries",
+            "kind": "option",
+            "opts": [
+              "--retries"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "int",
+            "choices": null,
+            "is_flag": false,
+            "help": "Override the performance profile HTTP retry count."
+          },
+          {
+            "name": "requests_per_second",
+            "kind": "option",
+            "opts": [
+              "--requests-per-second"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Override the performance profile maximum translator HTTP requests per second."
+          },
+          {
+            "name": "retry_backoff",
+            "kind": "option",
+            "opts": [
+              "--retry-backoff"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Override the performance profile initial retry backoff delay in seconds."
+          },
+          {
+            "name": "retry_backoff_max",
+            "kind": "option",
+            "opts": [
+              "--retry-backoff-max"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "Override the performance profile maximum retry backoff delay in seconds."
+          },
+          {
+            "name": "translate_metadata",
+            "kind": "option",
+            "opts": [
+              "--translate-metadata"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Also translate the EPUB title metadata and navigation text."
+          },
+          {
+            "name": "translate_alt_text",
+            "kind": "option",
+            "opts": [
+              "--translate-alt-text"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Also translate the alt text of images. Text inside images (OCR) is out of scope."
+          },
+          {
+            "name": "chunk_limit",
+            "kind": "option",
+            "opts": [
+              "--chunk-limit"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "int",
+            "choices": null,
+            "is_flag": false,
+            "help": "Override the performance profile maximum characters sent per request."
+          },
+          {
+            "name": "workers",
+            "kind": "option",
+            "opts": [
+              "--workers"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "int",
+            "choices": null,
+            "is_flag": false,
+            "help": "Override the performance profile number of parallel document workers."
+          },
+          {
+            "name": "cache_only",
+            "kind": "option",
+            "opts": [
+              "--cache-only"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Rebuild the EPUB using only cached translations; never call the translator."
+          },
+          {
+            "name": "require_full_cache",
+            "kind": "option",
+            "opts": [
+              "--require-full-cache"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "With --cache-only, only write the EPUB when every text is in the cache."
+          },
+          {
+            "name": "missing_output",
+            "kind": "option",
+            "opts": [
+              "--missing-output"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "path",
+            "choices": null,
+            "is_flag": false,
+            "help": "With --cache-only, path to save the original texts missing from the cache."
+          },
+          {
+            "name": "translation_memory",
+            "kind": "option",
+            "opts": [
+              "--translation-memory"
+            ],
+            "secondary_opts": [
+              "--no-translation-memory"
+            ],
+            "required": false,
+            "default": false,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Reuse translations of similar text (fuzzy translation memory). Off by default."
+          },
+          {
+            "name": "tm_apply_threshold",
+            "kind": "option",
+            "opts": [
+              "--tm-apply-threshold"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 0.95,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "With --translation-memory, reuse a stored translation when similarity is at or above this (0-1)."
+          },
+          {
+            "name": "tm_suggest_threshold",
+            "kind": "option",
+            "opts": [
+              "--tm-suggest-threshold"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": 0.8,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "float",
+            "choices": null,
+            "is_flag": false,
+            "help": "With --translation-memory, record a review suggestion when similarity is in [suggest, apply)."
+          },
+          {
+            "name": "help",
+            "kind": "option",
+            "opts": [
+              "--help"
+            ],
+            "secondary_opts": [],
+            "required": false,
+            "default": null,
+            "nargs": 1,
+            "multiple": false,
+            "envvar": null,
+            "type": "boolean",
+            "choices": null,
+            "is_flag": true,
+            "help": "Show this message and exit."
+          }
+        ],
+        "help": "Translate EPUB visible text while preserving EPUB structure.",
+        "commands": {}
+      }
+    }
+  }
+}

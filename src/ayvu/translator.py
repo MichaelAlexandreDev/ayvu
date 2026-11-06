@@ -389,6 +389,13 @@ class LibreTranslateTranslator(Translator):
         return clean
 
 
+def validate_translator_name(name: str) -> None:
+    """Validate the configured backend without constructing transport resources."""
+    if name != "libretranslate":
+        supported = ", ".join(SUPPORTED_TRANSLATORS)
+        raise UnsupportedTranslatorError(f"Unsupported translator: {name}. Supported translators: {supported}.")
+
+
 def create_translator(
     name: str,
     url: str,
@@ -399,9 +406,7 @@ def create_translator(
     retry_backoff_max: float = 8.0,
     rate_limiter: RequestRateLimiter | None = None,
 ) -> Translator:
-    if name != "libretranslate":
-        supported = ", ".join(SUPPORTED_TRANSLATORS)
-        raise UnsupportedTranslatorError(f"Unsupported translator: {name}. Supported translators: {supported}.")
+    validate_translator_name(name)
     return LibreTranslateTranslator(
         url=url,
         timeout=timeout,

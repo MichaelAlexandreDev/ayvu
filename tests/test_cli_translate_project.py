@@ -1093,7 +1093,7 @@ def test_a_full_run_stores_no_text_no_address_and_no_translation_in_the_job_stor
 def _canned(tmp_path, monkeypatch, result, report=None):
     output = tmp_path / "out.epub"
     run = ProjectTranslationRun(result, report(output) if report else None, None)
-    monkeypatch.setattr("ayvu.cli.translate_in_project", lambda _translation, _observer: run)
+    monkeypatch.setattr("ayvu.translate_project_composition.translate_in_project", lambda _translation, _observer: run)
     invocation, _ = _run(tmp_path, monkeypatch)
     return invocation
 
