@@ -138,6 +138,14 @@ class PreflightError(RuntimeError):
         self.detail = detail
 
 
+class PreflightPolicyError(PreflightError):
+    """A policy refusal remains distinguishable without parsing presentation text."""
+
+    def __init__(self, code: str, next_step: str, detail: str) -> None:
+        super().__init__("O acesso HTTP ao tradutor foi bloqueado.", next_step, detail)
+        self.code = code
+
+
 class BookRefused(RuntimeError):
     """The book is refused before anything starts. The message is the code, never a name from the book."""
 

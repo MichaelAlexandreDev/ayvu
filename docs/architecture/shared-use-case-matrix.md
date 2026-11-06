@@ -114,6 +114,10 @@ remain presentation concerns.
     }
   },
   "root_options": {
+    "--network-policy": {
+      "kind": "application-policy",
+      "mappings": ["AYVU-UC-002", "AYVU-UC-003", "AYVU-UC-004", "AYVU-UC-005", "AYVU-UC-006", "AYVU-UC-007"]
+    },
     "--install-completion": {
       "kind": "presentation-only",
       "mappings": ["AYVU-UI-001"]
@@ -219,6 +223,7 @@ remain presentation concerns.
     "languages": {
       "use_cases": ["AYVU-UC-003"],
       "options": {
+        "--network-policy": "application-policy",
         "--requests-per-second": "application-policy",
         "--retries": "application-policy",
         "--retry-backoff": "application-policy",
@@ -231,6 +236,7 @@ remain presentation concerns.
     "resume": {
       "use_cases": ["AYVU-UC-007"],
       "options": {
+        "--network-policy": "application-policy",
         "--target": "domain-input"
       },
       "subcommands": {}
@@ -238,6 +244,7 @@ remain presentation concerns.
     "test-translator": {
       "use_cases": ["AYVU-UC-002"],
       "options": {
+        "--network-policy": "application-policy",
         "--requests-per-second": "application-policy",
         "--retries": "application-policy",
         "--retry-backoff": "application-policy",
@@ -255,6 +262,7 @@ remain presentation concerns.
         "AYVU-UC-005": ["--missing-output", "--output", "--review-output"]
       },
       "options": {
+        "--network-policy": "application-policy",
         "--cache": "artifact-destination",
         "--cache-only": "application-policy",
         "--chapters": "domain-input",
@@ -318,9 +326,10 @@ coverage is explicit:
    EPUB/HTML transformation, cache SQL, glossary rules, configuration storage,
    translation HTTP, checkpoint semantics, and output safety stay in reusable
    modules.
-3. Network access is explicit per row. “Local-first” currently means a configured
-   LibreTranslate-compatible HTTP endpoint, not an enforced loopback-only or
-   offline boundary. Only cache-only translation guarantees no translator call.
+3. A [política HTTP](network-policy.md) de #159 é por execução: `none` bloqueia
+   antes de DNS/socket/payload; `loopback` só permite HTTP loopback validado.
+   Ela cobre todos os usos atuais de GET `/languages` e POST `/translate`.
+   Leitores externos e a rede do servidor local têm autoridade independente.
 4. Jobs e casos de uso fornecem resultados e eventos estruturados. A tradução
    mantém também os callbacks entregues de capítulo/texto/validação para o
    progresso Rich legado; esses callbacks não inventam estado de job ou artefato.
@@ -387,10 +396,11 @@ O cache selecionado e, numa tradução durável, o projeto selecionado continuam
 necessários; nenhum armazenamento alheio é aberto ou migrado. Um checkpoint
 novo permanece vazio até o ponto seguro de preflight de uma tradução online.
 
-A política de rede legada continua explicitamente `UNCLASSIFIED`; nenhuma URL
-é usada para inferir autoridade. A remoção da sondagem de tradução oculta por
-#128 permanece a correção de segurança já aprovada. #158 não adiciona exceção
-observável. Publicação segura, imutabilidade da origem e regras de cache/glossário
+A composição agora recebe a seleção por pedido de #159 e compartilha seu
+snapshot com a autorização de transporte e os casos de uso de #128. O padrão
+ausente registra `loopback`, nunca autoridade remota. A remoção da sondagem de
+tradução oculta por #128 permanece. #159 adiciona somente as opções e mensagens
+documentadas em `network-policy.md`. Publicação segura, imutabilidade da origem e regras de cache/glossário
 continuam nos serviços/adaptadores entregues. Relatórios CLI conservam escrita,
 modo de arquivo e nomes anteriores, sem introduzir lock, hard link ou novo limite.
 
@@ -400,9 +410,15 @@ Inclui árvore, aliases, parâmetros, requiredness, defaults, tipos, ambiente e 
 A caracterização de #132, `test_workflow_characterization.py`, permanece intacta;
 os testes CLI antigos conservam suas asserções e apenas apontam canários para
 os novos donos. Alterar simultaneamente o comportamento e esse baseline exige
-decisão de compatibilidade documentada e revisão separada.
+decisão de compatibilidade documentada e revisão separada. O teste conserva o
+baseline de #158 e verifica separadamente as cinco adições `--network-policy`
+pedidas por #159; não regrava o fixture histórico.
 
 ## CLI helper and facade inventory
+
+| Use case | Helpers |
+| --- | --- |
+| `AYVU-UC-002`, `AYVU-UC-003`, `AYVU-UC-004`, `AYVU-UC-005`, `AYVU-UC-006`, `AYVU-UC-007` | `_selected_network_policy`, `_print_network_selection` |
 
 Inventário de todos os símbolos definidos pela apresentação, verificado pelo
 mesmo teste da matriz de #123. Cada grupo abaixo referencia as linhas de serviço

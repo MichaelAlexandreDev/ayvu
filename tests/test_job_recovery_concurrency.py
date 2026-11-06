@@ -31,15 +31,19 @@ CHILD = textwrap.dedent('''
     import ayvu.translator
     from ayvu import cli
     class Session:
+        def mount(self, prefix, adapter):
+            assert prefix == "http://"
         def _response(self, payload):
             response = requests.Response()
             response.status_code = 200
             response.url = "http://translator.test"
             response._content = json.dumps(payload).encode()
             return response
-        def get(self, url, *, timeout):
+        def get(self, url, *, timeout, allow_redirects=False):
+            assert allow_redirects is False
             return self._response([{"code": "en", "name": "E", "targets": ["pt"]}, {"code": "pt", "name": "P", "targets": []}])
-        def post(self, url, *, json, timeout):
+        def post(self, url, *, json, timeout, allow_redirects=False):
+            assert allow_redirects is False
             if "Goodbye" in json["q"]:
                 os.write(1, b"blocked\\n")
                 while True:

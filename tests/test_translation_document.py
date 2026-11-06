@@ -857,12 +857,23 @@ def test_the_production_libretranslate_adapter_runs_the_rich_path_over_fake_http
 
 
 def test_the_production_adapter_failure_reaches_the_caller_without_its_message(env):
-    base = LibreTranslateTranslator(url='http://user:hunter2@private.example.test', retries=0)
+    # A permitted destination is necessary to reach the protocol failure under #159.
+    base = LibreTranslateTranslator(url='http://localhost:5000', retries=0)
     base.session = FakeSession([http_response(500, 'Call me Ishmael.')])
     subject_plan = resolve_plan(libretranslate_snapshot(base, NOW), ProviderRequirements(()), LIBRETRANSLATE_PRODUCER, ROUTE, chunk_limit=3000)
     with pytest.raises(TranslationExecutionError, match='^provider_server_error$') as caught:
         env.translate(provider=LibreTranslateProvider(base, clock=env.clock), subject_plan=subject_plan)
     assert 'hunter2' not in repr(caught.value) and 'Ishmael' not in repr(caught.value.failure)
+
+
+def test_the_production_adapter_refuses_url_credentials_before_translation(env):
+    base = LibreTranslateTranslator(url='http://user:hunter2@private.example.test', retries=0)
+    base.session = FakeSession([])
+    subject_plan = resolve_plan(libretranslate_snapshot(base, NOW), ProviderRequirements(()), LIBRETRANSLATE_PRODUCER, ROUTE, chunk_limit=3000)
+    with pytest.raises(TranslationExecutionError, match='^userinfo_unsupported$') as caught:
+        env.translate(provider=LibreTranslateProvider(base, clock=env.clock), subject_plan=subject_plan)
+    assert base.session.posts == [] and base.session.gets == []
+    assert 'hunter2' not in repr(caught.value)
 
 
 def test_a_bridge_route_must_match_the_plan_through_the_production_adapter(env):

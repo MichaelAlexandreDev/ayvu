@@ -7,6 +7,48 @@ Este tutorial mostra os fluxos principais do Ayvu para dois públicos:
 
 O Ayvu traduz arquivos EPUB locais usando um servidor HTTP compatível com LibreTranslate. Ele não altera o EPUB original; a tradução sempre é gravada em um novo arquivo `.epub`.
 
+### Política de rede e diagnóstico
+
+Cada execução aceita `--network-policy none|loopback`, sem salvar a escolha.
+O padrão é `loopback`, exibido como padrão de compatibilidade: somente HTTP com
+`localhost`, `localhost.`, IPv4 decimal em `127.0.0.0/8` ou IPv6 `[::1]` (forma
+completa também aceita). Use porta 1–65535; omitida usa 80.
+
+```bash
+uv run ayvu languages --network-policy loopback --url http://127.0.0.1:5000
+uv run ayvu test-translator --network-policy loopback --url http://localhost:5000
+uv run ayvu translate livro.epub --network-policy none --cache-only
+uv run ayvu translate livro.epub --network-policy none --dry-run
+uv run ayvu resume --network-policy none
+uv run ayvu --network-policy none --preview livro.epub
+uv run ayvu --network-policy none
+```
+
+`none` garante que o adaptador HTTP do Ayvu recuse antes de DNS, sockets, sessão,
+envio e construção/serialização do texto como payload HTTP. Teste, idiomas,
+preflight e qualquer tradução que precise do servidor são recusados;
+cache-only/dry-run mantêm seu comportamento. A opção na raiz acompanha os menus,
+idiomas guiados, preview e retomada oferecida; a opção no subcomando prevalece.
+Ela não é herdada de um checkpoint: escolha novamente ao retomar.
+
+Ao receber `strict_offline`, mantenha `none` com `--cache-only`/`--dry-run` ou
+escolha explicitamente `--network-policy loopback` para usar o servidor local.
+Ao receber `unsupported_destination`, `unsupported_scheme` ou erro de authority,
+troque `--url` por `http://127.0.0.1:5000` (ajustando a porta do seu servidor), sem
+usuário/senha, consulta ou fragmento. LAN, VPN, IP privado/público e HTTPS exigem
+uma futura política explícita; nenhuma URL antiga é migrada silenciosamente.
+`unsafe_resolution` significa que algum resultado de localhost não era um
+sockaddr loopback válido; corrija a resolução local ou use um literal permitido.
+
+Proxies e credenciais do ambiente e `.netrc` são ignorados; não há entrada para
+proxy, token ou senha. Todo 3xx vira `provider_redirect_refused`, mesmo local:
+configure diretamente a URL final HTTP loopback. Falhas de conexão/timeout
+continuam distintas das recusas de política e do protocolo do servidor.
+
+Abrir EPUB pela biblioteca inicia um leitor externo, **fora da garantia offline**,
+inclusive com `none`; o terminal avisa antes de abrir. A política não isola
+processos terceiros nem a rede/retencão do servidor LibreTranslate local.
+
 ## Antes de começar
 
 Com Python 3.11 ou mais recente e `uv`, instale a CLI no diretório do projeto:

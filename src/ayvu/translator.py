@@ -8,6 +8,9 @@ from typing import Protocol
 
 import requests
 
+from .network_policy import NetworkPolicy, NetworkPolicyError, resolve_network_policy
+from .network_http import NetworkAuthorization, create_http_session
+
 
 SUPPORTED_TRANSLATORS = ("libretranslate",)
 
@@ -28,6 +31,13 @@ class UnsupportedTranslatorError(TranslatorError):
 
 class RouteResolutionError(TranslatorError):
     pass
+
+
+class TranslatorPolicyError(TranslatorError):
+    def __init__(self, error: NetworkPolicyError) -> None:
+        super().__init__(str(error), reason="policy")
+        self.code = error.code
+        self.diagnostic = str(error)
 
 
 @dataclass(frozen=True)
@@ -113,14 +123,17 @@ class RoutedTranslator(Translator):
 
 
 class HttpSession(Protocol):
-    def get(self, url: str, *, timeout: float) -> requests.Response:
+    def close(self) -> None:
         pass
 
-    def post(self, url: str, *, json: dict[str, str], timeout: float) -> requests.Response:
+    def get(self, url: str, *, timeout: float, allow_redirects: bool) -> requests.Response:
+        pass
+
+    def post(self, url: str, *, json: dict[str, str], timeout: float, allow_redirects: bool) -> requests.Response:
         pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class LibreTranslatePayload:
     text: str
     source: str
@@ -241,7 +254,7 @@ class LibreTranslateLanguagesParser:
         return TranslatorLanguage(code=code, name=name, targets=target_codes)
 
 
-@dataclass
+@dataclass(repr=False)
 class LibreTranslateTranslator(Translator):
     url: str = "http://localhost:5000"
     timeout: float = 30.0
@@ -250,10 +263,14 @@ class LibreTranslateTranslator(Translator):
     retry_backoff: float = 0.5
     retry_backoff_max: float = 8.0
     rate_limiter: RequestRateLimiter | None = None
+    network_policy: NetworkPolicy | str | None = None
+    network_authorization: NetworkAuthorization | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
-        self.endpoint = self._normalize_endpoint(self.url)
-        self.session: HttpSession = requests.Session()
+        self.network_authorization = self.network_authorization or NetworkAuthorization(resolve_network_policy(self.network_policy, self.url))
+        self.network_decision = self.network_authorization.decision
+        self.endpoint = self.network_decision.base_url + "/translate"
+        self._session: HttpSession | None = None
         self.retry_policy = RetryPolicy(
             self.retries,
             backoff=self.retry_backoff,
@@ -262,16 +279,48 @@ class LibreTranslateTranslator(Translator):
         self.rate_limiter = self.rate_limiter or RequestRateLimiter(self.requests_per_second)
         self.response_parser = LibreTranslateResponseParser()
 
+    def __repr__(self) -> str:
+        return f"LibreTranslateTranslator({self.network_decision!r})"
+
+    @property
+    def session(self) -> HttpSession:
+        if self._session is None:
+            address = self.network_authorization.authorize("provider")
+            self._session = create_http_session(self.network_decision, address)
+        return self._session
+
+    @session.setter
+    def session(self, value: HttpSession) -> None:
+        self._session = value
+
+    def close(self) -> None:
+        if self._session is not None:
+            self._session.close()
+
+    def _authorize(self, operation: str) -> None:
+        try:
+            self.network_authorization.authorize(operation)
+        except NetworkPolicyError as error:
+            raise TranslatorPolicyError(error) from None
+        except requests.exceptions.ConnectionError:
+            raise TranslatorError("Could not resolve the local translator", reason="connection") from None
+
     def translate(self, text: str, source: str, target: str) -> str:
         if not text:
+            try:
+                self.network_decision.require("translate")
+            except NetworkPolicyError as error:
+                raise TranslatorPolicyError(error) from None
             return text
 
+        self._authorize("translate")
         payload = LibreTranslatePayload(text=text, source=source, target=target)
         last_error: Exception | None = None
 
         for attempt in self.retry_policy.attempts():
             try:
                 response = self._post(payload)
+                self._reject_redirect(response)
                 if self._should_retry_response(response, attempt):
                     self._wait_before_retry(attempt)
                     continue
@@ -282,34 +331,38 @@ class LibreTranslateTranslator(Translator):
                 if self._retry_after_exception(attempt):
                     continue
                 raise TranslatorError(
-                    f"Could not connect to LibreTranslate at {self.endpoint}. "
+                    "Could not connect to LibreTranslate. "
                     "Is the local translation server running?",
                     reason="connection",
-                ) from exc
+                ) from None
             except requests.exceptions.Timeout as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
                 raise TranslatorError(
                     f"LibreTranslate request timed out after {self.timeout} seconds", reason="timeout"
-                ) from exc
+                ) from None
             except requests.exceptions.HTTPError as exc:
-                raise self._http_error(exc) from exc
+                raise self._http_error(exc) from None
+            except NetworkPolicyError as error:
+                raise TranslatorPolicyError(error) from None
             except requests.exceptions.RequestException as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
-                raise TranslatorError(f"LibreTranslate request failed: {exc}", reason="request") from exc
+                raise TranslatorError("LibreTranslate request failed", reason="request") from None
 
-        raise TranslatorError(f"LibreTranslate request failed: {last_error}", reason="request")
+        raise TranslatorError("LibreTranslate request failed", reason="request")
 
     def list_languages(self) -> tuple[TranslatorLanguage, ...]:
-        endpoint = self._normalize_languages_endpoint(self.url)
+        self._authorize("languages")
+        endpoint = self.network_decision.base_url + "/languages"
         last_error: Exception | None = None
 
         for attempt in self.retry_policy.attempts():
             try:
                 response = self._get_languages(endpoint)
+                self._reject_redirect(response)
                 if self._should_retry_response(response, attempt):
                     self._wait_before_retry(attempt)
                     continue
@@ -320,34 +373,41 @@ class LibreTranslateTranslator(Translator):
                 if self._retry_after_exception(attempt):
                     continue
                 raise TranslatorError(
-                    f"Could not connect to LibreTranslate at {endpoint}. "
+                    "Could not connect to LibreTranslate. "
                     "Is the local translation server running?",
                     reason="connection",
-                ) from exc
+                ) from None
             except requests.exceptions.Timeout as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
                 raise TranslatorError(
                     f"LibreTranslate languages request timed out after {self.timeout} seconds", reason="timeout"
-                ) from exc
+                ) from None
             except requests.exceptions.HTTPError as exc:
-                raise self._http_error(exc) from exc
+                raise self._http_error(exc) from None
+            except NetworkPolicyError as error:
+                raise TranslatorPolicyError(error) from None
             except requests.exceptions.RequestException as exc:
                 last_error = exc
                 if self._retry_after_exception(attempt):
                     continue
-                raise TranslatorError(f"LibreTranslate languages request failed: {exc}", reason="request") from exc
+                raise TranslatorError("LibreTranslate languages request failed", reason="request") from None
 
-        raise TranslatorError(f"LibreTranslate languages request failed: {last_error}", reason="request")
+        raise TranslatorError("LibreTranslate languages request failed", reason="request")
 
     def _post(self, payload: LibreTranslatePayload) -> requests.Response:
         self.rate_limiter.wait()
-        return self.session.post(self.endpoint, json=payload.as_json(), timeout=self.timeout)
+        return self.session.post(self.endpoint, json=payload.as_json(), timeout=self.timeout, allow_redirects=False)
 
     def _get_languages(self, endpoint: str) -> requests.Response:
         self.rate_limiter.wait()
-        return self.session.get(endpoint, timeout=self.timeout)
+        return self.session.get(endpoint, timeout=self.timeout, allow_redirects=False)
+
+    @staticmethod
+    def _reject_redirect(response: requests.Response) -> None:
+        if 300 <= response.status_code < 400:
+            raise TranslatorError("LibreTranslate redirect refused", reason="redirect", status_code=response.status_code)
 
     def _should_retry_response(self, response: requests.Response, attempt: int) -> bool:
         return self.retry_policy.should_retry_status(response.status_code, attempt)
@@ -366,9 +426,9 @@ class LibreTranslateTranslator(Translator):
     def _http_error(exc: requests.exceptions.HTTPError) -> TranslatorError:
         response = exc.response
         if response is None:
-            return TranslatorError(f"LibreTranslate HTTP error: {exc}", reason="http")
+            return TranslatorError("LibreTranslate HTTP error", reason="http")
         return TranslatorError(
-            f"LibreTranslate HTTP error {response.status_code}: {response.text[:300]}",
+            f"LibreTranslate HTTP error {response.status_code}",
             reason="http",
             status_code=response.status_code,
         )
@@ -405,6 +465,8 @@ def create_translator(
     retry_backoff: float = 0.5,
     retry_backoff_max: float = 8.0,
     rate_limiter: RequestRateLimiter | None = None,
+    network_authorization: NetworkAuthorization | None = None,
+    network_policy: NetworkPolicy | str | None = None,
 ) -> Translator:
     validate_translator_name(name)
     return LibreTranslateTranslator(
@@ -415,4 +477,6 @@ def create_translator(
         retry_backoff=retry_backoff,
         retry_backoff_max=retry_backoff_max,
         rate_limiter=rate_limiter,
+        network_authorization=network_authorization,
+        network_policy=network_policy,
     )

@@ -192,7 +192,7 @@ def test_real_project_batch_resolves_each_source_language(tmp_path, monkeypatch)
     output = tmp_path / "out"
 
     result = _run(first, second, output, "--cache", str(tmp_path / "cache.sqlite"),
-                  "--url", "http://translator.test", "--retries", "0")
+                  "--url", "http://localhost:5000", "--retries", "0")
 
     assert result.exit_code == 0, result.output
     manifests = [json.loads(path.read_text()) for path in processing.glob("projects/*/project.json")]
@@ -218,7 +218,7 @@ def test_common_rename_and_overwrite_are_decided_before_translation(tmp_path, mo
 
     result = CliRunner().invoke(cli.app, [
         "--mode", "common", "translate", str(first), str(second), "--output-dir", str(output),
-        "--source", "en", "--cache", str(tmp_path / "cache.sqlite"), "--url", "http://translator.test", "--retries", "0",
+        "--source", "en", "--cache", str(tmp_path / "cache.sqlite"), "--url", "http://localhost:5000", "--retries", "0",
     ], input=f"2\n{renamed}\n1\n")
 
     assert result.output.count("Choose an option") == 2
@@ -255,7 +255,7 @@ def test_real_validation_warning_keeps_artifact_and_continues_batch(tmp_path, mo
     output = tmp_path / "out"
 
     result = _run(first, second, output, "--continue-on-error", "--cache", str(tmp_path / "cache.sqlite"),
-                  "--url", "http://translator.test", "--retries", "0")
+                  "--url", "http://localhost:5000", "--retries", "0")
 
     assert result.exit_code == 1, result.output
     assert "gone.xhtml" in result.output
@@ -277,7 +277,7 @@ def test_real_cache_only_batch_writes_outputs_and_missing_reports_without_provid
     original = [first.read_bytes(), second.read_bytes()]
 
     result = _run(first, second, output, "--cache-only", "--cache", str(tmp_path / "cache.sqlite"),
-                  "--url", "http://translator.test", "--retries", "0")
+                  "--url", "http://localhost:5000", "--retries", "0")
 
     assert result.exit_code == 0, result.output
     assert not session.posts
@@ -301,7 +301,7 @@ def test_interrupted_active_batch_item_can_resume_without_starting_next(tmp_path
     processing = _install_cli_environment(monkeypatch, tmp_path, session)
 
     interrupted = _run(first, second, output, "--cache", str(tmp_path / "cache.sqlite"),
-                       "--url", "http://translator.test", "--retries", "0")
+                       "--url", "http://localhost:5000", "--retries", "0")
 
     assert interrupted.exit_code == 1
     assert "Batch item 2/2" not in interrupted.output
@@ -329,7 +329,8 @@ def test_batch_workers_bound_provider_concurrency_and_do_not_overlap_books(tmp_p
             self.seen = []
             self.barriers = {name: threading.Barrier(2) for name in ("First book", "Second book")}
 
-        def post(self, url, *, json, timeout):
+        def post(self, url, *, json, timeout, allow_redirects=False):
+            assert allow_redirects is False
             with self.lock:
                 self.active += 1
                 self.maximum = max(self.maximum, self.active)
@@ -339,7 +340,7 @@ def test_batch_workers_bound_provider_concurrency_and_do_not_overlap_books(tmp_p
                     if name in json["q"]:
                         barrier.wait(timeout=5)
                         break
-                return super().post(url, json=json, timeout=timeout)
+                return super().post(url, json=json, timeout=timeout, allow_redirects=allow_redirects)
             finally:
                 with self.lock:
                     self.active -= 1
@@ -352,7 +353,7 @@ def test_batch_workers_bound_provider_concurrency_and_do_not_overlap_books(tmp_p
     _install_cli_environment(monkeypatch, tmp_path, session)
 
     result = _run(first, second, tmp_path / "out", "--workers", "2", "--cache", str(tmp_path / "cache.sqlite"),
-                  "--url", "http://translator.test", "--retries", "0")
+                  "--url", "http://localhost:5000", "--retries", "0")
 
     assert result.exit_code == 0, result.output
     assert session.maximum == 2
@@ -374,7 +375,7 @@ def test_real_failed_text_is_partial_and_batch_continues(tmp_path, monkeypatch):
     output = tmp_path / "out"
 
     result = _run(first, second, output, "--cache", str(tmp_path / "cache.sqlite"),
-                  "--url", "http://translator.test", "--retries", "0")
+                  "--url", "http://localhost:5000", "--retries", "0")
 
     assert result.exit_code == 0, result.output
     assert "Fail only this text." in _read_member(output / "first-pt.epub", "OEBPS/text/chapter2.xhtml")
@@ -420,7 +421,7 @@ def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_
     monkeypatch.setattr(cli, "_save_markdown_report", fail_first_report)
     monkeypatch.setattr(composition, "LocalTranslateBatch", capture_factory)
     result = _run(first, second, output, "--continue-on-error", "--cache", str(tmp_path / "cache.sqlite"),
-                  "--url", "http://translator.test", "--retries", "0")
+                  "--url", "http://localhost:5000", "--retries", "0")
 
     assert result.exit_code == 1, result.output
     assert save_calls == [first, second], result.output

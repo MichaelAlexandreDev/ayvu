@@ -269,9 +269,10 @@ def test_a_request_during_a_blocking_call_does_not_claim_cancellation():
     source = CancellationSource(LIBRETRANSLATE_SAFE_POINTS)
 
     class Requesting(FakeSession):
-        def post(self, url, *, json, timeout):
+        def post(self, url, *, json, timeout, allow_redirects=False):
+            assert allow_redirects is False
             source.request('user_requested', NOW)
-            return super().post(url, json=json, timeout=timeout)
+            return super().post(url, json=json, timeout=timeout, allow_redirects=allow_redirects)
 
     base = translator()
     base.session = Requesting([ok()])
@@ -353,20 +354,20 @@ def test_canaries_never_reach_results_diagnostics_or_logs(body, caplog):
 def test_connection_error_with_credentials_in_the_url_does_not_leak():
     base = translator([requests.exceptions.ConnectionError(f'cannot reach {SECRET_URL}')], url=SECRET_URL)
     result = provider(base).execute(request())
-    assert result.failure.code == 'provider_unavailable'
+    assert result.failure.code == 'userinfo_unsupported'
     assert 'hunter2' not in repr(result) and 'hunter2' not in str(result_diagnostics(result))
 
 
 @pytest.mark.parametrize('response,message,reason,status', [
     (requests.exceptions.ConnectionError('x'),
-     'Could not connect to LibreTranslate at http://localhost:5000/translate. Is the local translation server running?', 'connection', None),
+     'Could not connect to LibreTranslate. Is the local translation server running?', 'connection', None),
     (requests.exceptions.Timeout('x'), 'LibreTranslate request timed out after 3.0 seconds', 'timeout', None),
-    (requests.exceptions.RequestException('boom'), 'LibreTranslate request failed: boom', 'request', None),
-    (http_response(400, 'b' * 400), 'LibreTranslate HTTP error 400: ' + 'b' * 300, 'http', 400),
+    (requests.exceptions.RequestException('boom'), 'LibreTranslate request failed', 'request', None),
+    (http_response(400, 'b' * 400), 'LibreTranslate HTTP error 400', 'http', 400),
     (http_response(200, 'not json'), 'LibreTranslate response was not valid JSON', 'malformed', None),
     (http_response(200, '{}'), 'LibreTranslate response did not include translatedText', 'malformed', None),
 ], ids=['connection', 'timeout', 'request', 'http', 'json', 'field'])
-def test_existing_error_messages_are_byte_identical(response, message, reason, status):
+def test_error_messages_are_sanitized_and_keep_typed_contracts(response, message, reason, status):
     with pytest.raises(TranslatorError) as caught:
         translator([response]).translate('Hello', 'en', 'pt')
     assert str(caught.value) == message

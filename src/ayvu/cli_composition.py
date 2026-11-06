@@ -239,13 +239,14 @@ def translation_checkpoint():
 def prepare_translation(*, epub_path, options, cache_path, glossary_path, translator_name,
                         url, timeout, retries, requests_per_second, retry_backoff, retry_backoff_max,
                         output_path, overwrite, processing_dir, profile_name,
-                        preflight, save_checkpoint, on_route, on_ready):
+                        preflight, save_checkpoint, on_route, on_ready, network_policy=None):
     """Wire predecessor preparation and the compatibility checkpoint at its original safe point."""
     check_book(epub_path)
     prepared = preflight(epub_path=epub_path, cache_path=cache_path, glossary_path=glossary_path,
         translator_name=translator_name, url=url, timeout=timeout, retries=retries,
         requests_per_second=requests_per_second, retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
-        language_pair=options.language_pair, dry_run=options.dry_run, cache_only=options.cache_only)
+        language_pair=options.language_pair, dry_run=options.dry_run, cache_only=options.cache_only,
+        network_policy=network_policy)
     on_route(prepared.route)
     if not options.dry_run and not options.cache_only:
         save_checkpoint(epub_path=epub_path, output_path=output_path, cache_path=cache_path,
