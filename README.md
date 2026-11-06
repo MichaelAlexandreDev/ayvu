@@ -887,6 +887,11 @@ Perfis podem ser adicionados manualmente em `profiles`:
 aceita `neutral`, `technical`, `literary` ou `academic`, mas no backend LibreTranslate atual
 serve apenas como metadado do perfil; ele não muda o prompt nem o comportamento do tradutor.
 
+O contrato de [perfis versionados do projeto](docs/architecture/project-translation-profiles.md)
+permite migração explícita por chamadores da aplicação. A CLI continua usando os perfis
+globais v1 nesta janela de compatibilidade; não existe comando novo de migração nem
+migração automática. A migração exige glossário do catálogo gerenciado e preserva o perfil global.
+
 A precedência para campos cobertos por perfis de tradução é:
 
 ```text
