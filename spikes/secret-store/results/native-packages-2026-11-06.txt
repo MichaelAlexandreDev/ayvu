@@ -1,0 +1,206 @@
+Name            : gnome-keyring
+Version         : 1:51.1-1
+Description     : Stores passwords and encryption keys
+Architecture    : x86_64
+URL             : https://gitlab.gnome.org/GNOME/gnome-keyring
+Licenses        : GPL-2.0-or-later  LGPL-2.1-or-later
+Groups          : gnome
+Provides        : org.freedesktop.secrets
+Depends On      : dconf  gcr  gcr-4  glib2  glibc  libcap-ng  libgcc  libgcrypt  pam  systemd-libs
+Optional Deps   : None
+Required By     : jetbrains-toolbox  python-proton-keyring-linux
+Optional For    : git  github-cli  gnome-session  libsecret  visual-studio-code-bin
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 3.31 MiB
+Packager        : Fabian Bornschein <fabiscafe@archlinux.org>
+Build Date      : Thu Sep 17 18:41:42 2026
+Install Date    : Thu Oct  8 19:10:36 2026
+Install Reason  : Explicitly installed
+Install Script  : Yes
+Validated By    : Signature
+
+Name            : glib2
+Version         : 2.90.1-1
+Description     : Low level core library
+Architecture    : x86_64
+URL             : https://gitlab.gnome.org/GNOME/glib
+Licenses        : LGPL-2.1-or-later
+Groups          : None
+Provides        : libglib-2.0.so=0-64  libgio-2.0.so=0-64  libgirepository-2.0.so=0-64  libgmodule-2.0.so=0-64  libgobject-2.0.so=0-64  libgthread-2.0.so=0-64
+Depends On      : bash  glibc  libffi  libsysprof-capture  pcre2  util-linux-libs  zlib  libffi.so=8-64  libmount.so=1-64
+Optional Deps   : dconf: GSettings storage backend [installed]
+                  glib2-devel: development tools
+                  gvfs: most gio functionality [installed]
+Required By     : accerciser  accountsservice  appstream  at-spi2-core  atkmm  avahi  blueprint-compiler  bluez  bluez-obex  bluez-utils  brltty  cairo  colord  colord-gtk4  cups-pk-helper  dconf  desktop-file-utils  enchant  ffmpeg  firefox  flatpak  gcr  gcr-4  gdk-pixbuf2  gdm  gegl  geoclue  geocode-glib  gexiv2  ghostscript  gimp  gjs  glib-networking  glibmm  glibmm-2.68  glycin  glycin-gtk4  gnome-autoar  gnome-bluetooth-3.0  gnome-clocks  gnome-color-manager  gnome-control-center  gnome-desktop-4  gnome-keyring  gnome-online-accounts  gnome-session  gnome-settings-daemon  gnome-shell  gnome-tweaks  graphene  gsound  gspell  gssdp  gst-libav  gst-plugin-pipewire  gst-plugins-bad  gst-plugins-bad-libs  gst-plugins-base  gst-plugins-base-libs  gst-plugins-good  gst-plugins-ugly  gstreamer  gtk-update-icon-cache  gtk3  gtk4  gtkmm-4.0  gtkmm3  gtksourceview5  gts  gupnp  gupnp-dlna  gupnp-igd  gvfs  gvfs-mtp  harfbuzz  ibus  iio-sensor-proxy  imagemagick  inkscape  jetbrains-toolbox  json-glib  kwallet  lensfun  lib2geom  lib32-glib2  libaccounts-glib  libaccounts-qt  libadwaita  libblockdev  libblockdev-crypto  libblockdev-fs  libblockdev-loop  libblockdev-mdraid  libblockdev-nvme  libblockdev-part  libblockdev-smart  libblockdev-swap  libcloudproviders  libcolord  libdbusmenu-glib  libdbusmenu-gtk3  libgdm  libgexiv2  libgirepository  libgoa  libgsf  libgtop  libgudev  libgusb  libgweather-4  libgxps  libibus  libical  liblangtag  liblqr  libmalcontent  libmanette  libmbim  libmediainfo  libmm-glib  libmypaint  libnautilus-extension  libnice  libnm  libnotify  libosinfo  libpipewire  libportal  libportal-gtk4  libproxy  libpulse  libqmi  libqrtr-glib  libreoffice-fresh  librest  librsvg  libsecret  libsixel  libsoup3  libspeechd  libspelling  libssc  libvips  libwacom  libwireplumber  libwnck3  libxmlb  localsearch  loupe  ministream  mutter  nautilus  networkmanager  networkmanager-openvpn  networkmanager-vpn-plugin-openvpn  opencv  orca  ostree  pango  pangomm  pangomm-2.48  papers  pavucontrol  perf  pinentry  pipewire-audio  pipewire-pulse  polkit  poppler-glib  postman-bin  power-profiles-daemon  proton-vpn-gtk-app  ptyxis  python-atspi  python-dasbus  python-dbus  python-dbus-fast  python-gobject  python-urwid  qt6-base  qt6-webengine  shared-mime-info  signon-ui  tecla  telegram-desktop  tinysparql  totem-pl-parser  udisks2  upower  volume_key  vte4  webkitgtk-6.0  wine  wireplumber  xdg-dbus-proxy  xdg-desktop-portal  xdg-desktop-portal-gnome  xdg-desktop-portal-gtk  xdg-user-dirs-gtk  zenity
+Optional For    : fastfetch  mlt  visual-studio-code-bin
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 38.39 MiB
+Packager        : Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+Build Date      : Tue Oct  6 13:19:12 2026
+Install Date    : Thu Oct  8 19:10:21 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+
+Name            : dbus
+Version         : 1.16.2-2
+Description     : Freedesktop.org message bus system
+Architecture    : x86_64
+URL             : https://www.freedesktop.org/wiki/Software/dbus/
+Licenses        : AFL-2.1 OR GPL-2.0-or-later
+Groups          : None
+Provides        : libdbus  libdbus-1.so=3-64
+Depends On      : audit  expat  glibc  libcap-ng  systemd-libs  libaudit.so=1-64  libcap-ng.so=0-64  libexpat.so=1-64  libsystemd.so=0-64
+Optional Deps   : None
+Required By     : at-spi2-core  avahi  bluez  bluez-obex  bluez-utils  brltty  colord  dbus-broker-units  deno  firefox  flatpak  fluidsynth  gnome-online-accounts  jack2  lib32-dbus  libdecor  libnvme  libpcap  libpipewire  libpulse  libreoffice-fresh  libteam  libvlc  pipewire  pipewire-audio  pipewire-pulse  postman-bin  python-dasbus  python-dbus  python-dbus-fast  qt6-base  qt6-webengine  retroarch  snapper  steam  systemd  udisks2  vlc-plugin-dbus  vlc-plugin-dbus-screensaver  wpa_supplicant  zbar
+Optional For    : alsa-plugins  fastfetch
+Conflicts With  : libdbus
+Replaces        : libdbus
+Installed Size  : 1034.48 KiB
+Packager        : Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+Build Date      : Sun Oct 18 02:56:36 2026
+Install Date    : Sun Oct 25 10:08:18 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+
+Name            : dbus-broker
+Version         : 37-3
+Description     : Linux D-Bus Message Broker
+Architecture    : x86_64
+URL             : https://github.com/bus1/dbus-broker/wiki
+Licenses        : Apache-2.0
+Groups          : None
+Provides        : None
+Depends On      : audit  expat  glibc  libcap-ng  libgcc  systemd-libs  libaudit.so=1-64  libcap-ng.so=0-64  libexpat.so=1-64  libsystemd.so=0-64
+Optional Deps   : None
+Required By     : dbus-broker-units
+Optional For    : None
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 357.64 KiB
+Packager        : Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+Build Date      : Sat Feb 14 11:59:16 2026
+Install Date    : Sat Aug 22 15:24:05 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : Yes
+Validated By    : Signature
+
+Name            : openssl
+Version         : 3.6.5-1
+Description     : The Open Source toolkit for cryptography and Transport Layer Security
+Architecture    : x86_64
+URL             : https://www.openssl.org
+Licenses        : Apache-2.0
+Groups          : None
+Provides        : libcrypto.so=3-64  libssl.so=3-64
+Depends On      : brotli  glibc  zlib  zstd
+Optional Deps   : ca-certificates [installed]
+                  perl [installed]
+Required By     : bind  calibre  composefs  coreutils  cryptsetup  curl  dotnet-runtime  git  gst-plugins-bad  karchive  kmod  krb5  lib32-openssl  libarchive  libevent  libfido2  libgit2  libimobiledevice  libldap  libngtcp2  libnvme  libsasl  libshout  libssh  libssh2  libzip  linux-headers  linux-lts-headers  minizip-ng  neon  openssh  openvpn  ostree  pacman  perf  pkcs11-helper  podofo  python  python-cryptography  qt6-base  retroarch  rsync  rust  srt  sudo  systemd  telegram-desktop  tpm2-tss  valkey  wpa_supplicant  xmlsec
+Optional For    : qca-qt6
+Conflicts With  : None
+Replaces        : openssl-perl  openssl-doc
+Installed Size  : 12.26 MiB
+Packager        : Pierre Schmitz <pierre@archlinux.org>
+Build Date      : Tue Sep 29 12:51:51 2026
+Install Date    : Thu Oct  8 19:10:22 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+
+Name            : libffi
+Version         : 3.8.0-1
+Description     : Portable foreign function interface library
+Architecture    : x86_64
+URL             : https://sourceware.org/libffi/
+Licenses        : MIT
+Groups          : None
+Provides        : libffi.so=8-64
+Depends On      : glibc
+Optional Deps   : None
+Required By     : deno  electron43  ghc-libs  gjs  glib2  guile  intel-oneapi-openmp  lib32-libffi  libgirepository  libp11-kit  llvm-libs  python  python-gobject  wayland
+Optional For    : None
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 115.03 KiB
+Packager        : David Runge <dvzrv@archlinux.org>
+Build Date      : Sun Aug  9 05:28:58 2026
+Install Date    : Sat Aug 22 15:24:04 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+
+Name            : glibc
+Version         : 2.44+r50+g1848099f063e-1
+Description     : GNU C Library
+Architecture    : x86_64
+URL             : https://www.gnu.org/software/libc
+Licenses        : GPL-2.0-or-later  LGPL-2.1-or-later
+Groups          : None
+Provides        : None
+Depends On      : linux-api-headers>=4.10  tzdata  filesystem
+Optional Deps   : gd: for memusagestat [installed]
+                  perl: for mtrace [installed]
+Required By     : 7zip  a52dec  aalib  abseil-cpp  accountsservice  acl  ada  alembic  alsa-lib  alsa-plugins  aom  appstream  argon2  at-spi2-core  atkmm  attica  attr  audit  avahi  babl  base  bash  bat  bcc  bind  binutils  bison  blas  blender  blosc  bluez  bluez-libs  bluez-obex  bluez-utils  boost-libs  breeze-icons  brltty  brotli  btop  btrfs-progs  bubblewrap  bun  bzip2  c-ares  cairo  cairomm  cairomm-1.16  cblas  ccache  cdparanoia  ceres-solver  cfitsio  chmlib  chromaprint  cjson  clucene  cmake  cmark-gfm  colord  colord-gtk4  compiler-rt  composefs  convertlit  coreutils  cpio  cppdap  cracklib  cryptsetup  cups-pk-helper  cython  dav1d  dbus  dbus-broker  dconf  debugedit  debuginfod  desktop-file-utils  device-mapper  diffutils  direnv  djvulibre  docker  docker-buildx  dolphin-emu  dos2unix  dotconf  dotnet-host  dotnet-runtime  dotnet-sdk  double-conversion  doxygen  draco  duktape  ebook-tools  efibootmgr  efivar  egl-wayland  electron43  elfutils  embree  enchant  enet  exempi  exiv2  expat  faac  faad2  fakeroot  fastfetch  fd  ffmpeg  fftw  file  findutils  firefox  flac  flatpak  flex  fluidsynth  fmt  fnm  fontconfig  freeglut  freetype2  frei0r-plugins  fribidi  fuse2  fuse3  fzf  gamescope  gavl  gawk  gcc  gcc-libs  gcr  gcr-4  gdb  gdbm  gdk-pixbuf2  gdm  gegl  geoclue  geocode-glib  gettext  gexiv2  gflags  ghidra  ghostscript  giflib  gimp  github-cli  gjs  glew  glib-networking  glib2  glibmm  glibmm-2.68  glslang  glu  glycin  glycin-gtk4  gmp  gnome-autoar  gnome-bluetooth-3.0  gnome-clocks  gnome-color-manager  gnome-control-center  gnome-desktop-4  gnome-keyring  gnome-online-accounts  gnome-session  gnome-settings-daemon  gnome-shell  gnupg  gnutls  google-glog  gperftools  gpgme  gpgmepp  graphene  graphite  grep  groff  gsl  gsm  gsound  gspell  gssdp  gst-libav  gst-plugin-pipewire  gst-plugins-bad  gst-plugins-bad-libs  gst-plugins-base  gst-plugins-base-libs  gst-plugins-good  gst-plugins-ugly  gstreamer  gtest  gtk-update-icon-cache  gtk3  gtk4  gtkmm-4.0  gtkmm3  gtksourceview5  gupnp  gupnp-dlna  gupnp-igd  gvfs  gvfs-mtp  gzip  harfbuzz  harfbuzz-icu  hdf5  highway  hiredis  hunspell  hwloc  hyphen  icu  iio-sensor-proxy  ijs  imagemagick  imath  inetutils  inkscape  intel-oneapi-compiler-shared-runtime-libs  intel-oneapi-openmp  intel-oneapi-tbb  intel-oneapi-tcm  intel-oneapi-umf  iproute2  iptables  jack2  jansson  jasper  jbig2dec  jbigkit  jdk-openjdk  jdk21-openjdk  jemalloc  jq  jre25-openjdk-headless  js140  json-c  json-glib  jsoncpp  jxrlib  kaccounts-integration  karchive  kbd  kbookmarks  kcmutils  kcodecs  kcolorscheme  kcompletion  kconfig  kconfigwidgets  kcoreaddons  kcrash  kdbusaddons  kddockwidgets  kdenlive  keyutils  kfilemetadata  kglobalaccel  kguiaddons  ki18n  kiconthemes  kio  kirigami  kitemmodels  kitemviews  kjobwidgets  kmod  knewstuff  knotifications  knotifyconfig  kpackage  krb5  kservice  ktextwidgets  kwallet  kwidgetsaddons  kwindowsystem  kxmlgui  l-smash  lame  lapack  lcms2  leancrypto  less  level-zero-loader  lib32-glibc  libabw  libaccounts-glib  libaccounts-qt  libadwaita  libaec  libao  libarchive  libasan  libass  libassuan  libasyncns  libatasmart  libatomic  libatomic_ops  libavc1394  libavif  libb2  libblake3  libblockdev  libblockdev-crypto  libblockdev-fs  libblockdev-loop  libblockdev-mdraid  libblockdev-nvme  libblockdev-part  libblockdev-smart  libblockdev-swap  libbluray  libbpf  libbs2b  libbsd  libbytesize  libcaca  libcap  libcap-ng  libcbor  libcdio  libcdio-paranoia  libcdr  libcgif  libcloudproviders  libcmis  libcolord  libcue  libcups  libdaemon  libdatrie  libdbusmenu-glib  libdbusmenu-gtk3  libdc1394  libdca  libde265  libdeflate  libdisplay-info  libdovi  libdrm  libdv  libdvdnav  libdvdread  libe-book  libebml  libebur128  libedit  libei  libelf  libepoxy  libepubgen  libetonyek  libevdev  libevent  libexif  libexttextcat  libfdk-aac  libffi  libfido2  libfontenc  libfreeaptx  libfreehand  libfyaml  libgcc  libgcrypt  libgdm  libgexiv2  libgfortran  libgirepository  libgit2  libgme  libgoa  libgomp  libgpg-error  libgsf  libgtop  libgudev  libgweather-4  libheif  libhwasan  libical  libice  libidn  libimobiledevice  libimobiledevice-glue  libinih  libinput  libiptcdata  libixion  libjpeg-turbo  libjxl  libksba  liblangtag  liblc3  libldac  libldap  liblouis  liblqr  liblsan  libltc  libmalcontent  libmanette  libmatio  libmaxminddb  libmbim  libmd  libmediainfo  libmicrodns  libmicrohttpd  libmm-glib  libmms  libmng  libmnl  libmodplug  libmpc  libmpcdec  libmpeg2  libmspub  libmtp  libmwaw  libmypaint  libmysofa  libnautilus-extension  libndp  libnet  libnetfilter_conntrack  libnewt  libnfnetlink  libnftnl  libnghttp2  libnghttp3  libngtcp2  libnice  libnl  libnm  libnotify  libnsl  libnumbertext  libnvme  libobjc  libodfgen  libogg  libopenmpt  liborcus  libosinfo  libp11-kit  libpagemaker  libpaper  libpathrs  libpcap  libpciaccess  libpfm  libpgm  libpipeline  libpipewire  libplacebo  libplist  libportal  libportal-gtk4  libproxy  libpulse  libpwquality  libqmi  libqrtr-glib  libquadmath  libqxp  libraqm  libraw  libraw1394  libreoffice-fresh  librest  librevenge  librist  librsvg  libsamplerate  libsasl  libseccomp  libsecret  libsigc++  libsigc++-3.0  libsixel  libsm  libsndfile  libsodium  libsoup3  libsoxr  libspelling  libspiro  libspnav  libspng  libsrtp  libssc  libssh  libssh2  libstaroffice  libstdc++  libstemmer  libtasn1  libtatsu  libteam  libthai  libtheora  libtiff  libtirpc  libtommath  libtool  libtraceevent  libtsan  libubsan  libunibreak  libunistring  libunrar  libunwind  liburcu  libusb  libusbmuxd  libutempter  libuv  libva  libvdpau  libverto  libvips  libvisio  libvlc  libvorbis  libvpl  libvpx  libwacom  libwebp  libwireplumber  libwmf  libwnck3  libwpd  libwpg  libwps  libx11  libxau  libxaw  libxcb  libxcomposite  libxcrypt  libxcursor  libxcvt  libxdamage  libxdmcp  libxext  libxfixes  libxfont2  libxft  libxi  libxinerama  libxkbcommon  libxkbcommon-x11  libxkbfile  libxml2  libxmlb  libxmu  libxpm  libxpresent  libxrandr  libxrender  libxres  libxshmfence  libxslt  libxss  libxt  libxtst  libxv  libxxf86vm  libyaml  libzen  libzmf  lilv  linux-headers  linux-lts-headers  lld  llhttp  llvm  llvm-libs  lm_sensors  lmdb  localsearch  log4cplus  loupe  lpsolve  lsof  ltrace  luajit  lz4  lzo  m4  make  man-db  manifold  materialx  mbedtls3  md4c  mdadm  mesa  mingw-w64-binutils  ministream  miniupnpc  minizip  minizip-ng  mjpegtools  mkinitcpio-busybox  mlt  mold  mpdecimal  mpfr  mpg123  mpv  mtdev  mujs  mutter  nano  nautilus  ncdu  ncurses  neon  netpbm  nettle  networkmanager  networkmanager-openvpn  networkmanager-vpn-plugin-openvpn  nftables  ninja  npth  nspr  nss  numactl  nvme-cli  ocl-icd  ollama  ollama-vulkan  onetbb  openal  openbsd-netcat  opencolorio  opencore-amr  opencv  openexr  openh264  openimagedenoise  openimageio  openjpeg2  openjph  openshadinglanguage  openssh  openssl  opentimelineio  openvdb  openxr  optipng  opus  orc  orca  ostree  p11-kit  pacman  pahole  pam  pango  pangomm  pangomm-2.48  papers  parabolic  parted  patch  pavucontrol  pciutils  pcre  pcre2  perf  perl  pinentry  pipewire  pipewire-audio  pipewire-pulse  pixman  pkgconf  polkit  poppler  poppler-glib  poppler-qt6  popt  portaudio  postman-bin  potrace  power-profiles-daemon  procps-ng  protobuf  ptex  ptyxis  pugixml  purpose  pyside6  python-aiohttp  python-brltty  python-brotlicffi  python-cryptography  python-dbus  python-dbus-fast  python-faust-cchardet  python-frozenlist  python-gobject  python-lxml  python-markupsafe  python-multidict  python-pdftotext  python-pillow  python-propcache  python-proton-vpn-api-core  python-psutil  python-pychm  python-pycryptodome  python-pynacl  python-pyqt6  python-pyqt6-sip  python-pyqt6-webengine  python-wcwidth  python-xxhash  python-yarl  python-zstandard  qca-qt6  qqc2-desktop-style  qt6-5compat  qt6-base  qt6-declarative  qt6-imageformats  qt6-multimedia  qt6-multimedia-ffmpeg  qt6-networkauth  qt6-positioning  qt6-shadertools  qt6-speech  qt6-svg  qt6-wayland  qt6-webchannel  qt6-webengine  raptor  rasqal  rav1e  re2  readline  redland  retroarch  rhash  ripgrep  rnnoise  rtmpdump  rubberband  rust  sbc  sdl2-compat  sdl3  sed  serd  sfml  shaderc  shadow  shared-mime-info  shiboken6  signon-kwallet-extension  signon-plugin-oauth2  signon-ui  signond  slang  smartmontools  snappy  solid  sonnet  sord  spandsp  spdlog  speex  speexdsp  spirv-tools  sqlite  squashfuse  sratom  srt  startup-notification  steam  strace  stress  sudo  suitesparse  svt-av1  svt-hevc  syndication  systemd  systemd-libs  taglib  talloc  tar  tdb  tecla  telegram-desktop  tinysparql  tinyxml2  tlottie  totem-pl-parser  tpm2-tss  tree  tslib  twolame  uchardet  udisks2  upower  usbutils  usd  util-linux  util-linux-libs  uv  valgrind  valkey  vapoursynth  verdict  vid.stab  vim  visual-studio-code-bin  vlc-cli  vlc-gui-qt  vlc-plugin-a52dec  vlc-plugin-alsa  vlc-plugin-archive  vlc-plugin-dav1d  vlc-plugin-dbus  vlc-plugin-dbus-screensaver  vlc-plugin-faad2  vlc-plugin-flac  vlc-plugin-gnutls  vlc-plugin-inflate  vlc-plugin-journal  vlc-plugin-jpeg  vlc-plugin-lua  vlc-plugin-matroska  vlc-plugin-mpg123  vlc-plugin-ogg  vlc-plugin-opus  vlc-plugin-png  vlc-plugin-pulse  vlc-plugin-shout  vlc-plugin-speex  vlc-plugin-tag  vlc-plugin-theora  vlc-plugin-twolame  vlc-plugin-vorbis  vlc-plugin-vpx  vlc-plugin-xml  vlc-plugins-base  vlc-plugins-video-output  vmaf  volume_key  vte-common  vte4  vulkan-icd-loader  vulkan-mesa-implicit-layers  vulkan-radeon  vulkan-tools  wavpack  wayland  webkitgtk-6.0  webrtc-audio-processing-1  wget  which  wildmidi  wine  wireplumber  woff2  wpa_supplicant  x264  x265  xcb-util  xcb-util-cursor  xcb-util-image  xcb-util-keysyms  xcb-util-renderutil  xcb-util-wm  xdg-dbus-proxy  xdg-desktop-portal  xdg-desktop-portal-gnome  xdg-desktop-portal-gtk  xdg-user-dirs  xdg-user-dirs-gtk  xmlsec  xorg-setxkbmap  xorg-xkbcomp  xorg-xmodmap  xorg-xprop  xorg-xrandr  xorg-xwayland  xvidcore  xxhash  xz  yaml-cpp  yyjson  zenity  zeromq  zimg  zint  zix  zlib  zlib-ng  zstd  zxing-cpp
+Optional For    : tzdata
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 50.66 MiB
+Packager        : Frederik Schwan <freswa@archlinux.org>
+Build Date      : Sun Sep 27 13:35:47 2026
+Install Date    : Mon Sep 28 21:38:08 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+
+Name            : python
+Version         : 3.14.9-1
+Description     : The Python programming language
+Architecture    : x86_64
+URL             : https://www.python.org/
+Licenses        : PSF-2.0
+Groups          : None
+Provides        : python3  python-externally-managed
+Depends On      : bzip2  expat  gdbm  libffi  libnsl  libxcrypt  openssl  zlib  tzdata  mpdecimal  zstd
+Optional Deps   : python-setuptools: for building Python packages using tooling that is usually bundled with Python [installed]
+                  python-pip: for installing Python packages using tooling that is usually bundled with Python [installed]
+                  python-pipx: for installing Python software not packaged on Arch Linux [installed]
+                  sqlite: for a default database integration [installed]
+                  xz: for lzma [installed]
+                  tk: for tkinter
+Required By     : accerciser  blender  blueprint-compiler  calibre  cython  flatpak  gdb  gdb-common  ghidra  gnome-tweaks  ibus  inkscape  ipython  libixion  liborcus  libreoffice-fresh  lldb  llvm-lit  materialx  meson  mutter  nanobind  opentimelineio  orca  parabolic  perf  proton-vpn-daemon  proton-vpn-gtk-app  pybind11  pyside6  python-aaf2  python-aiohappyeyeballs  python-aiohttp  python-aiosignal  python-appdirs  python-apsw  python-argcomplete  python-asttokens  python-atspi  python-attrs  python-autocommand  python-bcc  python-bcrypt  python-beautifulsoup4  python-brltty  python-brotli  python-brotlicffi  python-cachecontrol  python-cairo  python-cattrs  python-certifi  python-chardet  python-charset-normalizer  python-click  python-cryptography  python-css-parser  python-cssselect  python-dasbus  python-dbus  python-dbus-fast  python-deprecated  python-distlib  python-distro  python-dnspython  python-executing  python-faust-cchardet  python-feedparser  python-feedparser-sgmllib  python-fido2  python-filelock  python-frozenlist  python-gnupg  python-gobject  python-html2text  python-idna  python-ifaddr  python-importlib-metadata  python-inflate64  python-jaconv  python-jaraco.classes  python-jaraco.collections  python-jaraco.context  python-jaraco.functools  python-jaraco.text  python-jedi  python-jeepney  python-jinja  python-keyring  python-lxml  python-lxml-html-clean  python-markdown  python-markupsafe  python-more-itertools  python-msgpack  python-multidict  python-multivolumefile  python-netifaces  python-numpy  python-opengl  python-packaging  python-parso  python-pdftotext  python-pexpect  python-pillow  python-pip  python-pipx  python-platformdirs  python-prompt_toolkit  python-propcache  python-proton-keyring-linux  python-proton-vpn-api-core  python-psutil  python-ptyprocess  python-pure-eval  python-py7zr  python-pybcj  python-pychm  python-pycparser  python-pycryptodome  python-pycryptodomex  python-pygments  python-pykakasi  python-pynacl  python-pyopenssl  python-pyppmd  python-pyqt6  python-pyqt6-sip  python-pyqt6-webengine  python-pyserial  python-python-discovery  python-pyxdg  python-regex  python-requests  python-setproctitle  python-setuptools  python-six  python-soupsieve  python-texttable  python-tqdm  python-traitlets  python-typing_extensions  python-tzdata  python-tzlocal  python-unrardll  python-urllib3  python-urwid  python-userpath  python-virtualenv  python-wcwidth  python-webencodings  python-wheel  python-wrapt  python-xxhash  python-yarl  python-zeroconf  python-zipp  python-zstandard  s-tui  scour  shiboken6  smbclient  snap-pac  steam  usd  vapoursynth  yt-dlp  yt-dlp-ejs
+Optional For    : boost  btrfs-progs  cifs-utils  clang  clang-libs  fastfetch  git  graphviz  gstreamer  gtest  gupnp  imath  iproute2  ki18n  ldb  lensfun  libbytesize  libcaca  libevent  libimobiledevice  libiptcdata  liblc3  liblouis  libnewt  libplist  libpwquality  libvips  libxml2  libxslt  mlt  nftables  onetbb  opencolorio  openexr  openimageio  openshadinglanguage  pcsclite  retroarch  rsync  talloc  tdb  tevent  usbutils  util-linux-libs  valgrind  vim  vim-runtime  zbar
+Conflicts With  : None
+Replaces        : python3  python-externally-managed
+Installed Size  : 73.88 MiB
+Packager        : Jelle van der Waa <jelle@archlinux.org>
+Build Date      : Sun Oct 25 11:52:47 2026
+Install Date    : Tue Nov  3 12:38:13 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+
+Name            : python-cryptography
+Version         : 50.0.2-1
+Description     : A package designed to expose cryptographic recipes and primitives to Python developers
+Architecture    : x86_64
+URL             : https://github.com/pyca/cryptography
+Licenses        : Apache-2.0  BSD-3-Clause
+Groups          : None
+Provides        : None
+Depends On      : glibc  libgcc  openssl  python  python-cffi
+Optional Deps   : None
+Required By     : python-pip  python-proton-vpn-api-core  python-pyopenssl  python-secretstorage
+Optional For    : python-dnspython
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 6.38 MiB
+Packager        : Felix Yan <felixonmars@archlinux.org>
+Build Date      : Wed Sep 30 11:34:55 2026
+Install Date    : Thu Oct  8 19:14:25 2026
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
