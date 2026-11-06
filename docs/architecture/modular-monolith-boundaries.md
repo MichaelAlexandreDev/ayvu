@@ -333,6 +333,9 @@ issue.
 | `src/ayvu/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
 | `src/ayvu/cache.py` | Exact-cache identity, SQLite schema, querying, mutation, and JSON interchange | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
 | `src/ayvu/translation_memory.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
+| `src/ayvu/approved_memory.py` | Governed TM identity, scope, value semantics and closed lifecycle | **Domain/Approved translation memory**; independent of operational cache and dataset consent |
+| `src/ayvu/approved_memory_service.py` | Governed TM commands, queries, use cases and repository port | **Application/Approved translation memory**; no SQLite or pipeline bridge |
+| `src/ayvu/approved_memory_store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](approved-translation-memory.md) |
 | `src/ayvu/glossary.py` | Glossary rules, matching, validation, and JSON persistence | Glossary semantics belong to **Knowledge**; JSON/filesystem persistence implements an **Infrastructure** port |
 | `src/ayvu/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
 | `src/ayvu/review_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
