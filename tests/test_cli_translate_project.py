@@ -61,6 +61,9 @@ def _isolated_from_the_user(tmp_path, monkeypatch):
 class Session:
     """An in-process LibreTranslate. ``on_post`` runs before each answer, and may raise or change the world."""
 
+    def mount(self, prefix, adapter):
+        assert prefix == "http://"
+
     def __init__(self, failing: str | None = None, on_post=None) -> None:
         self.posts: list[str] = []
         self.failing = failing
@@ -74,10 +77,12 @@ class Session:
         response._content = json.dumps(payload).encode()
         return response
 
-    def get(self, _url: str, *, timeout: float) -> requests.Response:
+    def get(self, _url: str, *, timeout: float, allow_redirects: bool = False) -> requests.Response:
+        assert allow_redirects is False
         return self._response(LANGUAGES)
 
-    def post(self, _url: str, *, json: dict[str, str], timeout: float) -> requests.Response:
+    def post(self, _url: str, *, json: dict[str, str], timeout: float, allow_redirects: bool = False) -> requests.Response:
+        assert allow_redirects is False
         self.posts.append(json["q"])
         if self.on_post is not None:
             self.on_post(json["q"])
@@ -113,7 +118,7 @@ def _book(path: Path, *, chapter_two: str = "<p>Goodbye reader.</p>", extra: tup
 
 
 def _args(tmp_path: Path, source: Path, *more: str, output: Path | None = None) -> list[str]:
-    return ["--mode", "developer", "translate", str(source), "--source", "en", "--target", "pt", "--url", "http://translator.test",
+    return ["--mode", "developer", "translate", str(source), "--source", "en", "--target", "pt", "--url", "http://localhost:5000",
             "--retries", "0", "--cache", str(tmp_path / "cache.sqlite"), "--output", str(output or tmp_path / "out.epub"), *more]
 
 
@@ -1021,15 +1026,19 @@ CHILD = textwrap.dedent('''\
     import ayvu.translator
     from ayvu import cli
     class Session:
+        def mount(self, prefix, adapter):
+            assert prefix == "http://"
         def _response(self, payload):
             response = requests.Response()
             response.status_code = 200
             response.url = "http://translator.test"
             response._content = json.dumps(payload).encode()
             return response
-        def get(self, url, *, timeout):
+        def get(self, url, *, timeout, allow_redirects=False):
+            assert allow_redirects is False
             return self._response([{"code": "en", "name": "E", "targets": ["pt"]}, {"code": "pt", "name": "P", "targets": []}])
-        def post(self, url, *, json, timeout):
+        def post(self, url, *, json, timeout, allow_redirects=False):
+            assert allow_redirects is False
             if "Goodbye" in json["q"]:
                 os.write(1, b"blocked\\n")
                 while True:

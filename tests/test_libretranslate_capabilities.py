@@ -271,16 +271,16 @@ def test_server_names_and_odd_entries_are_not_kept():
 
 @pytest.mark.parametrize('response,message,reason,status', [
     (requests.exceptions.ConnectionError('x'),
-     'Could not connect to LibreTranslate at http://localhost:5000/languages. Is the local translation server running?', 'connection', None),
+     'Could not connect to LibreTranslate. Is the local translation server running?', 'connection', None),
     (requests.exceptions.Timeout('x'), 'LibreTranslate languages request timed out after 3.0 seconds', 'timeout', None),
-    (requests.exceptions.RequestException('boom'), 'LibreTranslate languages request failed: boom', 'request', None),
-    (http_response(400, 'b' * 400), 'LibreTranslate HTTP error 400: ' + 'b' * 300, 'http', 400),
+    (requests.exceptions.RequestException('boom'), 'LibreTranslate languages request failed', 'request', None),
+    (http_response(400, 'b' * 400), 'LibreTranslate HTTP error 400', 'http', 400),
     (http_response(200, 'not json'), 'LibreTranslate languages response was not valid JSON', 'malformed', None),
     (http_response(200, '{}'), 'LibreTranslate languages response did not include a language list', 'malformed', None),
     (http_response(200, '["x"]'), 'LibreTranslate language entry was not an object', 'malformed', None),
     (http_response(200, '[{"code": "en"}]'), 'LibreTranslate language entry did not include code and name', 'malformed', None),
 ], ids=['connection', 'timeout', 'request', 'http', 'json', 'list', 'entry', 'fields'])
-def test_existing_language_error_messages_are_byte_identical(response, message, reason, status):
+def test_language_errors_are_sanitized_and_keep_typed_contracts(response, message, reason, status):
     with pytest.raises(TranslatorError) as caught:
         translator([response]).list_languages()
     assert str(caught.value) == message

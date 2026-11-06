@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -69,6 +70,7 @@ from .review_application import (
     ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
 )
 from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
+from .network_policy import NetworkPolicy, network_next_step
 from .translate_project import ContinuationTicket, TranslateProjectResult
 
 
@@ -86,6 +88,9 @@ class _RouteView(Protocol):
 DEFAULT_SOURCE_LANGUAGE = "en"
 DEFAULT_TARGET_LANGUAGE = "pt"
 DEFAULT_TRANSLATOR_URL = "http://localhost:5000"
+NETWORK_POLICY_HELP = ("Política HTTP desta execução: none bloqueia DNS/sockets; loopback (padrão) permite somente HTTP local. "
+                       "Não é salva. Leitores externos ficam fora da garantia offline.")
+_invocation_network_policy: ContextVar[NetworkPolicy | None] = ContextVar("network_policy", default=None)
 DEFAULT_CACHE_PATH = Path(".cache/traducoes.sqlite")
 DEFAULT_PREVIEW_DOCUMENT_LIMIT = 12
 DEFAULT_RETRY_BACKOFF = 0.5
@@ -290,9 +295,27 @@ class ExecutionControls:
     chunk_limit: int
 
 
+def _selected_network_policy(value: NetworkPolicy | None = None) -> NetworkPolicy | None:
+    """Read CLI request input only; composition resolves the compatibility default.
+
+    Guided menus, settings and recovery keep the invocation's selection without
+    persisting it in preferences, projects or checkpoints.
+    """
+    if value is not None:
+        return value
+    return _invocation_network_policy.get()
+
+
+def _print_network_selection(decision) -> None:
+    if decision is not None:
+        origin = "padrão de compatibilidade" if decision.defaulted else "seleção explícita"
+        console.print(f"[dim]Política HTTP: {decision.policy.value} ({origin}); somente o HTTP do Ayvu está coberto.[/dim]")
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     mode: Optional[UserMode] = typer.Option(
         None,
         "--mode",
@@ -310,10 +333,13 @@ def main(
         # COMMON mode is only when running 'ayvu' without subcommands or options (except for help)
         # Typer sets invoked_subcommand when a subcommand is used.
         # ctx.params contains options of the callback itself.
-        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k != "mode"):
+        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k not in {"mode", "network_policy"}):
             mode = UserMode.COMMON
     ctx.ensure_object(dict)
     ctx.obj["mode"] = mode
+    ctx.obj["network_policy"] = network_policy
+    network_token = _invocation_network_policy.set(network_policy)
+    ctx.call_on_close(lambda: _invocation_network_policy.reset(network_token))
 
     if ctx.invoked_subcommand is not None:
         return
@@ -369,6 +395,7 @@ def inspect(
 @app.command("test-translator")
 def test_translator(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     url: str = typer.Option(DEFAULT_TRANSLATOR_URL, "--url", help="LibreTranslate base URL or /translate endpoint."),
     source: str = typer.Option(DEFAULT_SOURCE_LANGUAGE, "--source"),
     target: str = typer.Option(DEFAULT_TARGET_LANGUAGE, "--target"),
@@ -393,23 +420,26 @@ def test_translator(
     """Test connectivity with the local translator by sending the text "Hello world"."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        result = cli_provider_session(
+        session = cli_provider_session(
+            network_policy=_selected_network_policy(network_policy),
             url=url,
             timeout=timeout,
             retries=retries,
             requests_per_second=requests_per_second,
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
-        ).test(source, target)
+        )
+        result = session.test(source, target)
+        _print_network_selection(session.network_decision)
         failure_code = None if result.outcome is DiscoveryOutcome.OK else result.code
     except ProviderSetupError as exc:
         failure_code = str(exc)
     if failure_code is not None:
         _print_expected_error(
             "O teste do tradutor falhou.",
-            "Inicie o LibreTranslate, verifique --url e tente novamente.",
+            network_next_step(failure_code) or "Inicie o LibreTranslate, verifique --url e tente novamente.",
             mode,
-            detail=failure_code,
+            detail=session.network_decision.diagnostic("translate", failure_code) if network_next_step(failure_code) else failure_code,
         )
         raise typer.Exit(code=1)
     console.print(f"[green]Translator OK:[/green] {SYNTHETIC_TEST_TEXT} -> {result.text}")
@@ -418,6 +448,7 @@ def test_translator(
 @app.command("languages")
 def languages(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     url: str = typer.Option(DEFAULT_TRANSLATOR_URL, "--url", help="LibreTranslate base URL or /translate endpoint."),
     timeout: float = typer.Option(10.0, "--timeout"),
     retries: int = typer.Option(1, "--retries"),
@@ -440,23 +471,26 @@ def languages(
     """List languages reported by the local LibreTranslate server."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        result = cli_provider_session(
+        session = cli_provider_session(
+            network_policy=_selected_network_policy(network_policy),
             url=url,
             timeout=timeout,
             retries=retries,
             requests_per_second=requests_per_second,
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
-        ).languages()
+        )
+        result = session.languages()
+        _print_network_selection(session.network_decision)
         failure_code = None if _languages_were_listed(result) else result.code
     except ProviderSetupError as exc:
         failure_code = str(exc)
     if failure_code is not None:
         _print_expected_error(
             "Não foi possível listar os idiomas.",
-            "Inicie o LibreTranslate, verifique --url e tente novamente.",
+            network_next_step(failure_code) or "Inicie o LibreTranslate, verifique --url e tente novamente.",
             mode,
-            detail=failure_code,
+            detail=session.network_decision.diagnostic("languages", failure_code) if network_next_step(failure_code) else failure_code,
         )
         raise typer.Exit(code=1)
 
@@ -780,6 +814,7 @@ def cache_import(
 @app.command()
 def translate(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     epub_paths: list[Path] = typer.Argument(
         ...,
         exists=True,
@@ -977,6 +1012,7 @@ def translate(
             target=target,
             translator_name=translator_name,
             url=url,
+            network_policy=_selected_network_policy(network_policy),
             cache_path=cache_path,
             glossary_path=glossary_path,
             profile_name=profile_name,
@@ -1012,6 +1048,7 @@ def translate(
         target=target,
         translator_name=translator_name,
         url=url,
+        network_policy=_selected_network_policy(network_policy),
         cache_path=cache_path,
         glossary_path=glossary_path,
         profile_name=profile_name,
@@ -1042,6 +1079,7 @@ def translate(
 @app.command()
 def resume(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     epub_path: Optional[Path] = typer.Argument(
         None,
         help="EPUB to resume. If omitted, resumes the only translation in progress.",
@@ -1066,7 +1104,7 @@ def resume(
         f"[green]Resuming translation:[/green] {state.input_path.name} -> {state.output_path.name}"
     )
     _print_resume_checkpoint(state)
-    _resume_translation(state, found, recovery, mode=mode)
+    _resume_translation(state, found, recovery, mode=mode, network_policy=_selected_network_policy(network_policy))
 
 
 def _print_expected_error(summary: str, next_step: str, mode: UserMode, detail: str = "") -> None:
@@ -1670,6 +1708,7 @@ def _run_translation(
     chunk_limit: int,
     workers: int,
     mode: UserMode,
+    network_policy: NetworkPolicy | None = None,
     config: AyvuConfig | None = None,
     translate_metadata: bool = False,
     translate_alt_text: bool = False,
@@ -1788,16 +1827,19 @@ def _run_translation(
     progress_view = TranslationProgress(progress, dry_run=dry_run, workers=workers)
 
     def prepare() -> object:
-        return prepare_translation(
+        prepared = prepare_translation(
             epub_path=epub_path, options=translation_options, cache_path=cache_path,
             glossary_path=resolved_glossary_path, translator_name=translator_name,
             url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
             retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
             output_path=output_path, overwrite=overwrite, processing_dir=_processing_dir(config),
             profile_name=identity_profile_name, preflight=run_translation_preflight,
+            network_policy=_selected_network_policy(network_policy),
             save_checkpoint=lambda **values: _checkpoint_action(checkpoint.start, **values),
             on_route=lambda route: _print_translation_route(route, mode=mode), on_ready=progress.start,
         )
+        _print_network_selection(getattr(prepared, "network_decision", None))
+        return prepared
 
     def on_chapter_start(index: int, total: int, name: str) -> None:
         progress_view.chapter_started(index, total, name)
@@ -2017,6 +2059,7 @@ def _run_batch_translation(
     workers: int,
     mode: UserMode,
     config: AyvuConfig,
+    network_policy: NetworkPolicy | None = None,
     translate_metadata: bool = False,
     translate_alt_text: bool = False,
     cache_only: bool = False,
@@ -2071,6 +2114,7 @@ def _run_batch_translation(
                 run_result = _run_translation(
                     epub_path=epub_path, output=None, output_dir=resolved_output_dir, review_output=None,
                     source=source, target=target, translator_name=translator_name, url=url,
+                    network_policy=_selected_network_policy(network_policy),
                     cache_path=cache_path, glossary_path=glossary_path, profile_name=profile_name,
                     performance_profile_name=performance_profile_name, dry_run=dry_run, fail_fast=fail_fast,
                     chapter_selection=chapter_selection, overwrite=overwrite, timeout=timeout, retries=retries,
@@ -2217,6 +2261,7 @@ def _run_preview(
     max_documents: int = DEFAULT_PREVIEW_DOCUMENT_LIMIT,
     mode: UserMode = UserMode.DEVELOPER,
     config: AyvuConfig | None = None,
+    network_policy: NetworkPolicy | None = None,
 ) -> None:
     config = config or _load_existing_config_or_default()
     epub_path = epub_path.expanduser()
@@ -2248,6 +2293,7 @@ def _run_preview(
 
     try:
         preflight = run_translation_preflight(
+            network_policy=_selected_network_policy(network_policy),
             epub_path=epub_path,
             cache_path=cache_path,
             glossary_path=glossary_path,
@@ -2266,6 +2312,7 @@ def _run_preview(
         raise typer.Exit(code=1) from exc
 
     _print_translation_route(preflight.route, mode=mode)
+    _print_network_selection(getattr(preflight, "network_decision", None))
 
     with Progress(
         SpinnerColumn(),
@@ -3276,6 +3323,7 @@ def _print_library_book_info(book: LibraryBook, config: AyvuConfig) -> None:
 
 
 def _open_library_book_path(service: LibraryService, ref: str, label: str) -> None:
+    console.print("[yellow]O leitor externo é outro processo: fica fora da garantia offline do HTTP do Ayvu, inclusive com --network-policy none.[/yellow]")
     result = service.open_entry(OpenRequest(ref, include_display_path=True))
     if result.status != "opened":
         messages = {
@@ -3480,10 +3528,16 @@ def _languages_were_listed(result: LanguagesResult) -> bool:
 
 
 def _load_languages_for_guided_selection() -> tuple[DiscoveredLanguage, ...]:
-    result = cli_provider_session(url=DEFAULT_TRANSLATOR_URL, timeout=10.0, retries=1).languages()
+    session = cli_provider_session(url=DEFAULT_TRANSLATOR_URL, timeout=10.0, retries=1,
+                                   network_policy=_selected_network_policy())
+    result = session.languages()
+    _print_network_selection(session.network_decision)
     if _languages_were_listed(result):
         return result.languages
     console.print(f"[yellow]Could not list LibreTranslate languages:[/yellow] {result.code}")
+    if network_next_step(result.code):
+        console.print(session.network_decision.diagnostic("languages", result.code))
+        console.print(network_next_step(result.code))
     return ()
 
 
@@ -3541,9 +3595,10 @@ def _offer_detected_translation_resume(found: InterruptedTranslations, recovery:
 class _ResumeRunner:
     """Runs a resume with what its file recorded, on whichever path the use case chose."""
 
-    def __init__(self, state: TranslationResumeState, mode: UserMode) -> None:
+    def __init__(self, state: TranslationResumeState, mode: UserMode, network_policy: NetworkPolicy | None = None) -> None:
         self._state = state
         self._mode = mode
+        self._network_policy = _selected_network_policy(network_policy)
 
     def run_legacy(self, reference: str) -> None:
         self._run(resolve_managed_project=False)
@@ -3561,6 +3616,7 @@ class _ResumeRunner:
             target=state.target,
             translator_name=state.translator_name,
             url=state.url,
+            network_policy=self._network_policy,
             cache_path=state.cache_path,
             glossary_path=state.glossary_path,
             profile_name=None,
@@ -3585,12 +3641,13 @@ class _ResumeRunner:
         )
 
 
-def _resume_translation(state: TranslationResumeState, found: InterruptedTranslations, recovery: JobRecovery, mode: UserMode) -> None:
+def _resume_translation(state: TranslationResumeState, found: InterruptedTranslations, recovery: JobRecovery, mode: UserMode,
+                        network_policy: NetworkPolicy | None = None) -> None:
     entry = found.entry_of(state)
     # Asking for this resume is the decision: the command says what it does, and it has always replaced its output.
     request = ResumeRequest(entry.reference, entry.job_id, entry.project_id, entry.expected_revision, tuple(RequiredDecision))
     try:
-        result = recovery.request_resume.execute(request, _ResumeRunner(state, mode))
+        result = recovery.request_resume.execute(request, _ResumeRunner(state, mode, network_policy))
         if result.status in (ResumeStatus.REFUSED, ResumeStatus.ALREADY_REQUESTED):
             _print_resume_refusal(result, state, mode)
             raise typer.Exit(code=1)

@@ -36,6 +36,7 @@ OPTION_KINDS = {
     "presentation-only",
 }
 PUBLIC_LINK_TARGETS = {
+    ROOT / "docs" / "architecture" / "network-policy.md",
     ROOT / "README.md",
     ROOT / "docs" / "product-scope.md",
     ROOT / "docs" / "translation-workflow-migration-baseline.md",
@@ -323,10 +324,18 @@ def normalized_cli_contract():
     return command_record(get_command(app))
 
 
-def test_frozen_post_predecessor_cli_contract():
+def test_frozen_post_predecessor_cli_contract_with_explicit_159_additions():
     baseline = json.loads((ROOT / 'tests/fixtures/cli-post-predecessor.json').read_text())
     assert baseline['base_sha'] == '3edd2c2813c592418189670dbef1866c3026780e'
-    assert normalized_cli_contract() == baseline['contract']
+    current = normalized_cli_contract()
+    commands = [current, *(current['commands'][name] for name in ('languages', 'test-translator', 'translate', 'resume'))]
+    for command in commands:
+        added = [parameter for parameter in command['parameters'] if parameter['name'] == 'network_policy']
+        assert len(added) == 1
+        assert added[0]['opts'] == ['--network-policy'] and added[0]['choices'] == ['none', 'loopback']
+        assert added[0]['default'] is None and added[0]['required'] is False
+        command['parameters'].remove(added[0])
+    assert current == baseline['contract']
 
 
 def test_matrix_covers_every_current_presentation_helper_and_compatibility_delegate():

@@ -76,6 +76,8 @@ OWNERS = {
     "ayvu.html_translate": Owner("format", "EPUB"),
     "ayvu.validation": Owner("format", "EPUB/Quality"),
     "ayvu.translator": Owner("provider", "Providers"),
+    "ayvu.network_policy": Owner("domain", "Network policy"),
+    "ayvu.network_http": Owner("provider", "Network policy"),
     "ayvu.cache": Owner("knowledge", "Exact cache"),
     "ayvu.cache_schema": Owner("knowledge", "Standalone cache migrations"),
     "ayvu.cache_repository": Owner("knowledge", "Exact cache"),
@@ -291,7 +293,7 @@ def check_cli_construction_imports(source, modules):
 
 LAYERS = {"surface", "domain", "application", "interface", "format", "provider",
           "knowledge", "infrastructure", "composition"}
-EXTERNAL = {"typer", "rich", "requests", "ebooklib", "bs4", "lxml", "rapidfuzz",
+EXTERNAL = {"typer", "rich", "requests", "urllib3", "ebooklib", "bs4", "lxml", "rapidfuzz",
             "PySide6", "PySide2", "PyQt6", "PyQt5", "mcp"}
 TECHNICAL_STDLIB = {"sqlite3", "subprocess", "http", "urllib", "xml", "zipfile", "csv",
                     "shelve", "dbm", "socket", "socketserver", "ssl", "ftplib",
@@ -382,13 +384,23 @@ def forbidden(
     allowed = {
         "interface": {"typer", "rich"} if owner.capability == "CLI" else
                      {"PySide6", "PySide2", "PyQt6", "PyQt5"},
-        "format": {"bs4", "lxml", "ebooklib"}, "provider": {"requests"},
+        "format": {"bs4", "lxml", "ebooklib"}, "provider": {"requests", "urllib3"},
         "composition": EXTERNAL,
     }.get(owner.layer, set())
     return None if root in allowed else "framework/vendor dependency"
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.provider_network", "ayvu.network_policy"),
+    ("ayvu.provider_discovery", "ayvu.network_policy"),
+    ("ayvu.cli", "ayvu.network_policy"),
+    ("ayvu.preflight", "ayvu.network_policy"),
+    ("ayvu.preflight", "ayvu.network_http"),
+    ("ayvu.provider_composition", "ayvu.network_policy"),
+    ("ayvu.provider_composition", "ayvu.network_http"),
+    ("ayvu.translator", "ayvu.network_policy"),
+    ("ayvu.translator", "ayvu.network_http"),
+    ("ayvu.network_http", "ayvu.network_policy"),
     ("ayvu.cli_contracts", "ayvu.config_values"),
     ("ayvu.cli_contracts", "ayvu.preferences_service"),
     ("ayvu.cli_contracts", "ayvu.job_recovery"),

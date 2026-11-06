@@ -29,6 +29,9 @@ def _isolated_from_the_user(tmp_path, monkeypatch):
 class FakeLibreTranslateSession:
     """A deterministic in-process LibreTranslate boundary for CLI workflows."""
 
+    def mount(self, prefix, adapter):
+        assert prefix == "http://"
+
     def __init__(
         self,
         languages: list[dict[str, object]],
@@ -40,11 +43,13 @@ class FakeLibreTranslateSession:
         self.gets: list[tuple[str, float]] = []
         self.posts: list[dict[str, str]] = []
 
-    def get(self, url: str, *, timeout: float) -> requests.Response:
+    def get(self, url: str, *, timeout: float, allow_redirects: bool = False) -> requests.Response:
+        assert allow_redirects is False
         self.gets.append((url, timeout))
         return _json_response(self.languages, url)
 
-    def post(self, url: str, *, json: dict[str, str], timeout: float) -> requests.Response:
+    def post(self, url: str, *, json: dict[str, str], timeout: float, allow_redirects: bool = False) -> requests.Response:
+        assert allow_redirects is False
         payload = dict(json)
         self.posts.append(payload)
         if self.interrupt_on_text and self.interrupt_on_text in payload["q"]:
@@ -194,7 +199,7 @@ def _translate_args(
         "--cache",
         str(cache_path),
         "--url",
-        "http://translator.test",
+        "http://localhost:5000",
         "--retries",
         "0",
     ]
@@ -462,11 +467,12 @@ class FailingSession(FakeLibreTranslateSession):
         super().__init__(languages)
         self.failing_text = failing_text
 
-    def post(self, url: str, *, json: dict[str, str], timeout: float) -> requests.Response:
+    def post(self, url: str, *, json: dict[str, str], timeout: float, allow_redirects: bool = False) -> requests.Response:
+        assert allow_redirects is False
         if self.failing_text in json["q"]:
             self.posts.append(dict(json))
             raise requests.exceptions.ConnectionError("translator went away")
-        return super().post(url, json=json, timeout=timeout)
+        return super().post(url, json=json, timeout=timeout, allow_redirects=allow_redirects)
 
 
 def _run_translate(tmp_path, monkeypatch, *extra, session=None, source_path=None, input=None):

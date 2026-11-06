@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- `--network-policy none|loopback` por execução, incluindo menus, idiomas, teste,
+  tradução/lote, preview e retomada. O padrão é HTTP loopback; `none` recusa antes
+  de DNS, sockets, sessão e payload. A escolha não é persistida (#159).
+
 - Contrato de perfis de tradução v1 por projeto, migração explícita dos perfis
   globais, revisões imutáveis e snapshots persistentes. A projeção separa efeitos
   no provedor bruto, pós-processamento, operação e metadados inertes para futuros
@@ -16,6 +20,12 @@ lancadas e secoes versionadas quando uma release for publicada.
   usando seus contratos atuais; `style` permanece informativo.
 
 ### Alterado
+
+- O transporte LibreTranslate fixa os sockaddrs loopback validados, ignora
+  proxies/credenciais ambientes e `.netrc` e recusa todo redirect. URLs remotas,
+  HTTPS, authorities ambíguas e credenciais na URL agora retornam recusa tipada,
+  sem migração ou fallback. Erros HTTP/conexão omitem URL e corpo de resposta.
+  A biblioteca avisa que o leitor externo fica fora da garantia offline (#159).
 
 - O cache standalone dispõe de preparação e repositório exato v2 para o caminho
   rico. A migração preserva as entradas v1 sem promovê-las a acertos v2. A CLI

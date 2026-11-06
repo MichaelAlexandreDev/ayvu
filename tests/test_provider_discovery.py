@@ -161,7 +161,7 @@ def test_strict_offline_and_denied_decisions_perform_no_io(operation, call):
     subject, adapter, _ = service()
     denied = decision(operation, allowed=False, network_class=NetworkClass.STRICT_OFFLINE, reason_code='strict_offline')
     result = call(subject, denied)
-    assert result.outcome is DiscoveryOutcome.POLICY_DENIED and result.code == 'network_decision_denied'
+    assert result.outcome is DiscoveryOutcome.POLICY_DENIED and result.code == 'strict_offline'
     assert adapter.observed == 0 and adapter.executed == []
     assert call(subject, decision(operation)).outcome is DiscoveryOutcome.OK
 

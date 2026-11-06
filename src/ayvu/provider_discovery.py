@@ -22,6 +22,7 @@ from .provider_capabilities import (
     ProviderDescriptor, ProviderRequirements, negotiate,
 )
 from .provider_network import ProviderOperation, network_binding, network_refusal
+from .network_policy import NETWORK_DENIAL_CODES
 from .provider_service import ProviderInstance, TranslationProvider, UNKNOWN_PRODUCER, execute, failed_result
 
 # Sent only by an explicit user request to test a provider, and never as a hidden probe.
@@ -259,9 +260,15 @@ class ProviderDiscoveryService:
         if reuse_fresh and instance_id in self._observed:
             cached = self._observed[instance_id].availability.current(self._clock())
             if cached.state is not AvailabilityState.UNKNOWN:
-                return AvailabilityResult(_AVAILABILITY_OUTCOMES[cached.state], cached, Freshness.CACHED, cached.reason_code)
+                return AvailabilityResult(self._availability_outcome(cached), cached, Freshness.CACHED, cached.reason_code)
         observed = self._observe(instance_id).availability
-        return AvailabilityResult(_AVAILABILITY_OUTCOMES[observed.state], observed, Freshness.FRESH, observed.reason_code)
+        return AvailabilityResult(self._availability_outcome(observed), observed, Freshness.FRESH, observed.reason_code)
+
+    @staticmethod
+    def _availability_outcome(availability: ProviderAvailability) -> DiscoveryOutcome:
+        if availability.reason_code in NETWORK_DENIAL_CODES:
+            return DiscoveryOutcome.POLICY_DENIED
+        return _AVAILABILITY_OUTCOMES[availability.state]
 
     def languages(self, instance_id: str, decision: object, *, cancellation: CancellationToken | None = None,
                   deadline: datetime | None = None) -> LanguagesResult:
@@ -269,8 +276,8 @@ class ProviderDiscoveryService:
         if blocked is not None:
             return LanguagesResult(blocked[0], (), Freshness.UNKNOWN, blocked[1])
         observation = self._observe(instance_id)
-        state = observation.availability.state
-        return LanguagesResult(_AVAILABILITY_OUTCOMES[state], observation.languages, Freshness.FRESH, observation.availability.reason_code)
+        return LanguagesResult(self._availability_outcome(observation.availability), observation.languages,
+                               Freshness.FRESH, observation.availability.reason_code)
 
     def resolve_route(self, instance_id: str, decision: object, source: str, target: str, *,
                       candidates: tuple[str, ...] = DEFAULT_ROUTE_CANDIDATES, cancellation: CancellationToken | None = None,
@@ -283,7 +290,7 @@ class ProviderDiscoveryService:
     def _route_from(self, instance_id: str, availability: ProviderAvailability, source: str, target: str,
                     candidates: tuple[str, ...]) -> RouteResult:
         if availability.state is not AvailabilityState.AVAILABLE:
-            return RouteResult(_AVAILABILITY_OUTCOMES[availability.state], None, Freshness.FRESH, availability.reason_code)
+            return RouteResult(self._availability_outcome(availability), None, Freshness.FRESH, availability.reason_code)
         try:
             route = self._entries[instance_id][1].route(availability, source, target, self._clock(), candidates)
         except Exception:
@@ -316,6 +323,8 @@ class ProviderDiscoveryService:
             return ProviderTestResult(DiscoveryOutcome.OK, result.text, result.producer, result.route, None)
         code = result.failure.code
         outcome = DiscoveryOutcome.CANCELLED if result.status is ProviderStatus.CANCELLED else DiscoveryOutcome.FAILED
+        if result.failure.family is JobFailureFamily.POLICY:
+            outcome = DiscoveryOutcome.POLICY_DENIED
         return ProviderTestResult(outcome, None, result.producer, result.route, result.failure, code)
 
     def preflight(self, instance_id: str, decision: object, requirements: ProviderRequirements, source: str, target: str, *,

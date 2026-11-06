@@ -281,7 +281,9 @@ def test_languages_command_lists_translator_languages(monkeypatch):
             requests_per_second: float | None = None,
             retry_backoff: float = 0.5,
             retry_backoff_max: float = 8.0,
+            network_authorization=None,
         ) -> None:
+            self.network_decision = network_authorization.decision
             calls["url"] = url
             calls["timeout"] = timeout
             calls["retries"] = retries
@@ -3626,6 +3628,9 @@ def _fake_http(monkeypatch, *, get=(), post=()):
     import requests as requests_module
 
     class Session:
+        def mount(self, prefix, adapter):
+            assert prefix == "http://"
+
         def __init__(self):
             self.calls = []
             self.get_script, self.post_script = list(get), list(post)
@@ -3636,11 +3641,13 @@ def _fake_http(monkeypatch, *, get=(), post=()):
                 raise item
             return item
 
-        def get(self, url, *, timeout):
+        def get(self, url, *, timeout, allow_redirects=False):
+            assert allow_redirects is False
             self.calls.append(("GET", url))
             return self._next(self.get_script)
 
-        def post(self, url, *, json, timeout):
+        def post(self, url, *, json, timeout, allow_redirects=False):
+            assert allow_redirects is False
             self.calls.append(("POST", url, json))
             return self._next(self.post_script)
 

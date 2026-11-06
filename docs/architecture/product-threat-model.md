@@ -27,9 +27,10 @@ the [shared use-case matrix](shared-use-case-matrix.md) describes future seams.
 
 Desktop, local API, inbound/outbound MCP, plugins, AI assistance, managed models,
 durable projects/jobs, approved translation memory, and contributed training
-corpus are proposed boundaries. A configurable HTTP URL already permits remote
-translation today; destination classification and purpose-specific authorization
-are future controls. The current CLI has no account or multi-tenant boundary.
+corpus are proposed boundaries. #159 now enforces the request-scoped
+[HTTP none/loopback boundary](network-policy.md); remote URLs and HTTPS are denied.
+Broader purpose-specific authorization remains future work. The current CLI has
+no account or multi-tenant boundary.
 
 The original must remain immutable, derived outputs must preserve the supported
 EPUB structure, and only selected reader-visible text should reach translation.
@@ -115,7 +116,7 @@ flowchart LR
 | --- | --- | --- |
 | B01 / Interfaces + Policies | CLI arguments/prompts and [config.py](../../src/ayvu/config.py) select paths, folders, profiles and reader command | Typer/path checks, folder-name validation and overwrite prompts exist; they are not a reusable scoped authorization decision |
 | B02 / Formats + Content | [`content_use_cases.py`](../../src/ayvu/content_use_cases.py) and [`epub_format.py`](../../src/ayvu/epub_format.py) handle the active `inspect`/`extract` path; legacy `epub_io.py` still contains `inspect_epub`, `extract_markdown` and `translate_epub`; [`epub_archive.py`](../../src/ayvu/epub_archive.py) validates ZIP/container/OPF/spine lookup | The active adapter path applies archive size/member/name checks before parser reads and visible-content output uses full-plan validation with per-file staging. The legacy `epub_io` facade is outside the migrated CLI path and retains its own behavior |
-| B03 / Translation + Providers + Policies | [preflight.py](../../src/ayvu/preflight.py) resolves routes; [translator.py](../../src/ayvu/translator.py) performs GET languages and POST text/languages; routed translation may make two hops | Timeout, retry/backoff, rate limiting and response-shape checks exist; destination/proxy/redirect authorization and response-size budgets do not |
+| B03 / Translation + Providers + Policies | [preflight.py](../../src/ayvu/preflight.py) resolves routes; [translator.py](../../src/ayvu/translator.py) performs GET languages and POST text/languages; routed translation may make two hops | Timeout, retry/backoff, rate limiting and response-shape checks exist. #159 enforces HTTP loopback or no transport, validated socket addresses, disabled ambient proxies/credentials and redirects; response-size budgets remain separate |
 | B04 / Knowledge | [cache.py](../../src/ayvu/cache.py) stores and imports/exports text; [translation_memory.py](../../src/ayvu/translation_memory.py) retrieves fuzzy candidates; [glossary.py](../../src/ayvu/glossary.py) loads/edits terms | SQL values are parameterized and import hashes validated; JSON import materializes the full payload without size or entry limits; hashes do not authenticate translations; cache has no provider identity or approved-TM lifecycle |
 | B05 / Review + Formats | Bounded [review_import.py](../../src/ayvu/review_import.py) v1 inspection; [review_exchange.py](../../src/ayvu/review_exchange.py) v2 codec/mapper; [review_application.py](../../src/ayvu/review_application.py) and [review_composition.py](../../src/ayvu/review_composition.py) use cases/adapters | V2 has byte/row/column/cell/content/metadata limits, reversible formula escaping, opaque revision-bound identities and protected-part validation. CLI export/apply use v2 and D106 publication; v1 apply stops with `legacy_reexport_required`. Review packages contain sensitive text and remain local files |
 | B06 / Jobs + Infrastructure | [resume.py](../../src/ayvu/resume.py): `ResumeStateStore.save/load`; [cli.py](../../src/ayvu/cli.py): `_resume_translation` restores paths, URL and execution parameters | Version/field validation exists; write is direct and resume uses `overwrite=True`; no durable job identity, lease or source fingerprint authenticates that state |
@@ -149,7 +150,7 @@ upload, telemetry collector or model updater exists in the delivered code.
 | Resume JSON | C2/C4 and possibly C3 in URL; configured processing folder | Absolute source/output/cache/glossary paths, endpoint and counters persist, including completed state; no lifecycle purge or cryptographic authority binding |
 | Review CSV | C1/C2; explicit review output | Legacy v1 includes original/translated text and internal document paths; v2 contains text but uses opaque document/locator identities. Both are local sensitive copies that may be opened/shared by the operator; no automatic deletion or recipient revocation |
 | Markdown, missing-text file, terminal | C1/C2, potentially reflected C3; configured/selected output and terminal | Reports include paths/errors; missing exports include untranslated content; scrollback, shell redirection, backups and copied files have independent retention |
-| HTTP service and intermediaries | C1 for submitted chunks, C2 for language/endpoint/request metadata, possible ambient C3 | Provider receives text on cache misses/probes; proxies/redirects may add recipients; server logging, training, backup and deletion are not controlled or attested by Ayvu |
+| HTTP service | C1 for submitted chunks, C2 for language/endpoint/request metadata | Under loopback the local provider receives text on cache misses or an explicit fixed public test sample; none denies before payload. Ambient proxies/credentials and redirects are disabled. Server logging, downstream egress, training, backup and deletion are not controlled or attested by Ayvu |
 | Process memory / external reader | C1–C5; Python heap, worker threads and reader process | May enter OS swap/core dumps or reader state; stopping the process is not proof of erasure |
 
 Local deletion is not secure erasure and does not revoke an already exported or
@@ -159,15 +160,16 @@ and secret values by default, and require separate consent for any sample.
 
 ## Proposed network and authority policy
 
-These modes classify future authorization, not current CLI switches:
+`none` and `loopback` are implemented by #159; the broader classes remain future
+authorization, without CLI permission or an inferred trust decision:
 
 | Mode | Proposed permitted authority | Current gap and implementation gate |
 | --- | --- | --- |
-| Strict offline | No Ayvu-controlled DNS, socket, HTTP, remote MCP, telemetry or update/download | `dry-run`/`cache-only` skip provider calls in `_run_translation`, but guided language discovery and diagnostic commands are separate network paths; [#159](https://github.com/MichaelAlexandreDev/ayvu/issues/159) owns transport enforcement |
-| Loopback-only | Explicit validated loopback endpoint; deny redirects and ambient proxy/credential inheritance | Default localhost URL alone is insufficient; an external server may itself send data elsewhere; #159 must state that limit |
-| Local network | Explicit LAN endpoint, operator and data-purpose decision | Reachable through today's URL; formal consent/classification is proposed; deny in strict/loopback modes |
-| Private remote | Explicitly approved remote operator, endpoint, data classes, retention and authentication | Reachable today; a private owner does not prove confidentiality; future remote authorization requires a separately reviewed policy |
-| Public remote | Explicit provider/model, purpose, data categories, retention/training terms, volume/cost and revocable choice | Reachable today; no inferred opt-in from book text, cache presence, tool descriptions, errors or an earlier unrelated approval |
+| Strict offline | `none`: zero DNS/socket/HTTP from Ayvu's current HTTP adapter | #159 enforces all current callers, before session and payload; external readers are outside its guarantee. Future MCP/telemetry/download clients must reuse an accepted boundary |
+| Loopback-only | `loopback`: only HTTP with validated canonical loopback hosts and socket addresses | #159 disables redirects and ambient proxies/credentials; an external server may itself send data elsewhere |
+| Local network | Explicit LAN endpoint, operator and data-purpose decision | Denied today; formal consent/classification remains proposed |
+| Private remote | Explicitly approved remote operator, endpoint, data classes, retention and authentication | Denied today; a private owner does not prove confidentiality; future remote authorization requires a separately reviewed policy |
+| Public remote | Explicit provider/model, purpose, data categories, retention/training terms, volume/cost and revocable choice | Denied today; no inferred opt-in from book text, cache presence, tool descriptions, errors or an earlier unrelated approval |
 
 An authorization must bind actor, action, project/source, destination, data
 classes, purpose and expiry. Missing/stale/out-of-scope decisions deny the action.
@@ -249,8 +251,8 @@ legacy entrypoints; the T01 migration gate also applies here.
 ### T03 — Unintended egress and confused network authority (High)
 
 **B03/B06; Providers + Policies.** URL choice, edited resume URL, redirect or
-ambient proxy can change who receives text. There is no destination policy in
-`LibreTranslateTranslator`; localhost is just its default. P: normalize and
+ambient proxy could change who receives text in the assessed baseline. #159 now
+enforces HTTP loopback/none in `LibreTranslateTranslator`. P: normalize and
 authorize the destination before transport, deny redirects and ambient
 proxies/credentials in restricted modes, bind future secrets to the destination.
 D: sanitized reason codes and denied-transport counters. R: stop with no silent
@@ -261,8 +263,8 @@ operator retention or downstream behavior.
 
 ### T04 — Reflected errors, paths and secret disclosure (High)
 
-**B03/B06/B09; Providers + Interfaces + Policies.** `_http_error` includes up to
-300 characters of the response body. HTML statistics and EPUB reports carry
+**B03/B06/B09; Providers + Interfaces + Policies.** #159 removes URL, raw transport
+exception and response body from HTTP errors. HTML statistics and EPUB reports carry
 errors to terminal/Markdown; connection errors and checkpoints can retain URL
 credentials or identifying paths. P: typed failures with allowlisted diagnostic
 fields and opaque references. D: synthetic secret/content sentinels through
@@ -273,7 +275,7 @@ claiming control of third-party copies. V/owners: #159 for HTTP sanitization,
 redaction and #145/#149 for migrated outcomes. A complete diagnostic-bundle
 lifecycle remains gated under G03 below; hiding a terminal detail is insufficient.
 The [provider contracts](provider-contracts.md) classify failures without reading those
-messages, but current consumers still use them until they migrate.
+messages; HTTP consumers now receive bounded diagnostics as well.
 
 ### T05 — Cache poisoning, cross-configuration reuse and covert corpus (High)
 

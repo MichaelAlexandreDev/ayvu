@@ -1,7 +1,6 @@
 """Provider wiring selected by the explicit CLI composition boundary (#158).
 
-The decision made here says plainly that no network policy ran: the CLI has none yet, and
-it allows what the user asked for, as it always has. It looks at no URL to claim otherwise.
+The request snapshot is shared with the translator and the existing #128 use cases.
 """
 from __future__ import annotations
 
@@ -16,10 +15,12 @@ from .provider_libretranslate import ADAPTER_ID, ADAPTER_VERSION, LibreTranslate
 from .provider_network import NetworkClass, ProviderOperation, ResolvedProviderNetworkDecision, network_binding
 from .provider_service import ProviderInstance
 from .translator import LibreTranslateTranslator, TranslatorError
+from .network_policy import NetworkPolicy, resolve_network_policy
+from .network_http import NetworkAuthorization
 
 CLI_INSTANCE_ID = "libretranslate_cli"
 _ISSUER = "cli_composition"
-_POLICY_REVISION = 0
+_POLICY_REVISION = 1
 _DECISION_LIFETIME = timedelta(minutes=5)
 _PREFLIGHT_REQUIREMENTS = ProviderRequirements((Capability.PLAIN_TEXT_INPUT, Capability.ROUTE_DISCOVERY))
 
@@ -33,6 +34,10 @@ class CliProviderSession:
 
     def __init__(self, translator: LibreTranslateTranslator, *, clock: Callable[[], datetime] = _utc_now) -> None:
         self._clock = clock
+        self.network_decision = getattr(translator, "network_decision", None)
+        if self.network_decision is None:
+            # Compatibility for non-HTTP injected translators; production supplies the snapshot.
+            self.network_decision = resolve_network_policy(None, "http://localhost:5000")
         self._service = ProviderDiscoveryService(trusted_issuers=frozenset({_ISSUER}), policy_revision=_POLICY_REVISION, clock=clock)
         self._service.register(ProviderInstance(CLI_INSTANCE_ID, ADAPTER_ID, ADAPTER_VERSION, 1),
                                LibreTranslateDiscoveryAdapter(translator, clock=clock))
@@ -43,7 +48,10 @@ class CliProviderSession:
     def _decision(self, operation: ProviderOperation) -> ResolvedProviderNetworkDecision:
         now = self._clock()
         return ResolvedProviderNetworkDecision(
-            allowed=True, network_class=NetworkClass.UNCLASSIFIED, reason_code="legacy_cli_unrestricted",
+            allowed=self.network_decision.allowed,
+            network_class=(NetworkClass.LOOPBACK_ONLY if self.network_decision.allowed else
+                           NetworkClass.STRICT_OFFLINE if self.network_decision.policy is NetworkPolicy.NONE else NetworkClass.UNCLASSIFIED),
+            reason_code=self.network_decision.reason,
             binding=network_binding(CLI_INSTANCE_ID, None, operation), policy_revision=_POLICY_REVISION, issuer=_ISSUER,
             issued_at=now, expires_at=now + _DECISION_LIFETIME)
 
@@ -59,11 +67,13 @@ class CliProviderSession:
 
 
 def cli_provider_session(*, url: str, timeout: float, retries: int, requests_per_second: float | None = None,
-                         retry_backoff: float = 0.5, retry_backoff_max: float = 8.0) -> CliProviderSession:
+                         retry_backoff: float = 0.5, retry_backoff_max: float = 8.0,
+                         network_policy: NetworkPolicy | str | None = None) -> CliProviderSession:
     try:
         translator = LibreTranslateTranslator(
             url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max)
+            retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
+            network_authorization=NetworkAuthorization(resolve_network_policy(network_policy, url)))
     except TranslatorError:
         # Its message is not forwarded: a bad setting is reported with a code.
         raise ProviderSetupError("invalid_provider_settings") from None
