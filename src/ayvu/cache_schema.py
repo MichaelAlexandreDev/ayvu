@@ -13,6 +13,7 @@ import json
 import os
 import sqlite3
 import stat
+import time
 from contextlib import contextmanager
 from enum import StrEnum
 from pathlib import Path
@@ -212,6 +213,21 @@ def classify_cache(path, *, authorized_directory=None) -> SchemaState:
     except OSError as exc:
         raise _error(exc) from None
 
+
+
+def classify_cache_waiting(path, *, timeout: float, authorized_directory=None) -> SchemaState:
+    """Like classify_cache, but waits up to timeout seconds while another connection holds the cache."""
+    deadline = time.monotonic() + timeout
+    delay = 0.01
+    while True:
+        try:
+            return classify_cache(path, authorized_directory=authorized_directory)
+        except CacheSchemaError as exc:
+            remaining = deadline - time.monotonic()
+            if exc.code != "cache_busy" or remaining <= 0:
+                raise
+        time.sleep(min(delay, remaining))
+        delay = min(delay * 2, 0.25)
 
 @contextmanager
 def _connection_closed(conn):

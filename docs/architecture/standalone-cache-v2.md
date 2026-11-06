@@ -107,12 +107,7 @@ um novo destino v2 vazio em armazenamento suportado.
 
 ## Administração
 
-A administração atual é v1. Em v2, `clean`, `import` e `export` falham com o
-código literal `v2-admin-required` antes de qualquer mutação ou publicação;
-`inspect` pode recusar por namespace. Não se deve usar esses comandos para
-administrar entradas v2. Preserve o v1 somente para leitura, escolha outro arquivo
-para um novo v2 pela API quando necessário e acompanhe DESKTOP-127 para a
-administração v2. Veja [administração do cache](cache-administration.md).
+A administração aceita seleção explícita de namespace, com previsão e mapa externo para importação v2. Sem seleção, a barreira legada continua ativa. Veja [administração do cache](cache-administration.md).
 
 O repositório não infere referências de execução a partir de textos ou hashes.
 Sem uma vinculação local autenticada de execução, `resolve_pinned` devolve
