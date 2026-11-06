@@ -4,6 +4,7 @@ from __future__ import annotations
 import ast
 import io
 import json
+import re
 import socket
 from dataclasses import FrozenInstanceError
 from pathlib import Path
@@ -302,8 +303,10 @@ def test_cli_selection_uses_real_composition_and_requests(monkeypatch, command, 
 def test_help_explains_request_policy_and_external_reader(args):
     from ayvu.cli import app
     result = CliRunner().invoke(app, [*args, "--help"])
-    assert result.exit_code == 0 and "--network-policy" in result.output
-    assert "loopback" in result.output and "none" in result.output and "externos" in result.output
+    # Typer forces color under GITHUB_ACTIONS, which splits option names with ANSI codes.
+    output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert result.exit_code == 0 and "--network-policy" in output
+    assert "loopback" in output and "none" in output and "externos" in output
 
 
 def test_import_contract_has_no_presentation_or_desktop_dependency():
