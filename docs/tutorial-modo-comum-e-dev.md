@@ -402,6 +402,39 @@ Se o Ayvu não detectar um leitor padrão do sistema, abra `Settings` e preencha
 
 Use o modo desenvolvedor quando quiser execução previsível por terminal, automação ou scripts.
 
+### Ativar o pipeline rico em uma tradução
+
+Edite o `config.json` existente em `$XDG_CONFIG_HOME/ayvu/config.json` (ou
+`~/.config/ayvu/config.json`), mantendo suas outras preferências, e adicione:
+
+```json
+"translator_models": {"libretranslate": "meu-modelo-2026-11"}
+```
+
+Use um rótulo de 1 a 48 caracteres, começando por letra minúscula ou número e
+contendo somente letras minúsculas ASCII, números, `_` e `-`. Não use URL ou caminho.
+Então execute:
+
+```bash
+uv run ayvu translate livro.epub --workers 1 --cache ./cache.sqlite
+```
+
+O rótulo ativa `rich/v2` também na tradução guiada e nos lotes. O arquivo novo é
+`cache.sqlite.v2.sqlite`; v1 permanece intacto e seus textos precisam de nova tradução
+no primeiro uso rico. A proveniência registra `declared:<rótulo>`, informado por você.
+**Trocar o modelo no servidor sem trocar o rótulo reutiliza traduções antigas.**
+
+O modo rico para na primeira falha do provedor, não publica EPUB parcial e conserva
+os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume livro.epub`.
+Mantenha o rótulo durante a retomada; um job legado exige sua ausência. A incompatibilidade
+entre `legacy/v1` e `rich/v2` é recusada antes de chamar o tradutor.
+
+`rich/v2` exige `--workers 1` e recusa `--translation-memory`, `--cache-only` e
+`--require-full-cache`. A resolução offline atual ainda não fixa a identidade e a rota
+exigidas pelo cache-only rico. Para esses recursos, remova o campo `libretranslate` de
+`translator_models` e inicie uma tradução legada. Sem rótulo não há mudança no comportamento
+anterior; dry run e preview continuam no v1 mesmo com rótulo configurado.
+
 ### Inspecionar um EPUB
 
 ```bash

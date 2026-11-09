@@ -3,9 +3,31 @@
 O módulo local `cache_schema.py` é independente do executor de projetos. A fronteira
 `prepare_cache(path, authorized_directory=None, checkpoint=None)` classifica e prepara
 um arquivo antes de iniciar workers ou abrir o repositório. `SQLiteExactCache`
-implementa `ExactCachePort` para o caminho rico. A CLI continua usando o cache v1
-legado: ela não fabrica identidade de provedor, modelo ou pipeline para produzir
-acertos v2. Um cache novo preparado nessa fronteira nasce v2.
+implementa `ExactCachePort` para o caminho rico. A composição de produção seleciona
+esse caminho quando `translator_models.libretranslate` contém um rótulo válido no
+`config.json`; sem rótulo mantém o v1 legado. O modelo é `declared:<rótulo>`, declarado
+pelo usuário, nunca observado no servidor. `unknown` continua inelegível.
+Um cache novo preparado nessa fronteira nasce v2.
+
+A integração de #252 deriva o arquivo irmão acrescentando `.v2.sqlite` ao nome de
+`--cache`: `cache.sqlite` produz `cache.sqlite.v2.sqlite`. O v1 original não é aberto
+nem alterado pelo runtime rico; não há migração, cópia, consulta ou promoção de suas
+linhas. Um v1 encontrado acidentalmente no nome irmão também é recusado. O primeiro
+uso rico volta a traduzir textos presentes somente no v1. Remover o rótulo restaura
+o caminho legado em novas execuções, com seu cache intacto. Dry run e preview usam v1.
+
+O rótulo aceita `[a-z0-9][a-z0-9_-]{0,47}` e faz parte do fingerprint semântico.
+**Trocar o modelo do servidor sem trocar o rótulo reutiliza os resultados antigos.**
+A declaração persiste na configuração existente e nos campos operacionais de
+proveniência/identidade, sem aparecer em repr, eventos, logs ou checkpoints.
+Não há consulta de modelo nem novas chamadas HTTP de descoberta.
+
+O runtime rico prepara o irmão antes de qualquer provedor ou worker, exige um worker
+e recusa `--translation-memory`, `--cache-only` e `--require-full-cache`. A resolução
+offline atual não fixa a identidade e rota de produção necessárias ao cache-only rico.
+Execuções concorrentes que encontrem o lock exclusivo da preparação recebem `cache_busy`
+sem chamar o provedor; não se acrescenta espera nem migração automática. Escritas exatas
+continuam usando o protocolo participante e `put_if_absent` da #154.
 
 A versão é registrada no ledger `cache_schema`; entradas exatas ficam em
 `cache_entries_v2`, com índice `cache_entries_v2_compatible` para resolução

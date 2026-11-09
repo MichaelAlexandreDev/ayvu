@@ -1,12 +1,9 @@
 """Translates one book through a format adapter, one unit at a time, with real project identity.
 
 The adapter owns the structure and the executor owns the language work, so nothing here parses
-markup or calls a provider. It keeps the current flow's rules: a failed text stays in the source
-language and the run goes on, unless the run is fail-fast. It is not ``DocumentTranslator``, which
-stops at the first failure and has a v2 cache port but no durable repository yet.
-
-Nothing in the current translation uses it yet. #145 migrates callers. ``ayvu.translate_project``
-wraps it in a durable job.
+markup or calls a provider. A unit failure keeps the legacy continuation rules unless fail-fast
+is selected. An optional document preparation port can fail before unit consumption and stop the
+book. The composition owns the executor; ``ayvu.translate_project`` owns the durable job.
 """
 from __future__ import annotations
 
@@ -69,6 +66,7 @@ class ExecutorPool(Protocol):
 class TranslationResources:
     executor: UnitExecutor
     pool: ExecutorPool | None = None
+    prepare_document: Callable[[ContentDocument], None] | None = None
 
     def __repr__(self) -> str:
         return "TranslationResources()"
@@ -230,12 +228,14 @@ def _translate_chapter(executor: UnitExecutor, chapter: _Chapter, *, fail_fast: 
 
 class TranslationEngine:
     def __init__(self, formats: FormatService, executor: UnitExecutor, *, pool: ExecutorPool | None = None,
-                 observer: EngineObserver | None = None, cancellation: CancellationToken | None = None) -> None:
+                 observer: EngineObserver | None = None, cancellation: CancellationToken | None = None,
+                 prepare_document: Callable[[ContentDocument], None] | None = None) -> None:
         self._formats = formats
         self._executor = executor
         self._pool = pool
         self._observer = observer or EngineObserver()
         self._cancellation = cancellation
+        self._prepare_document = prepare_document
 
     def __repr__(self) -> str:
         return "TranslationEngine()"
@@ -329,6 +329,8 @@ class TranslationEngine:
         if title is None:
             return
         unit = title.units[0]
+        if self._prepare_document is not None:
+            self._prepare_document(title)
         try:
             execution = self._executor.execute(unit)
         except Exception as error:
@@ -357,6 +359,9 @@ class TranslationEngine:
         for chapter in chapters:
             self._checkpoint(ENGINE_BEFORE_CHAPTER)
             self._start(chapter, len(chapters))
+            if self._prepare_document is not None:
+                self._checkpoint(ENGINE_BEFORE_UNIT)
+                self._prepare_document(chapter.document)
             try:
                 outcome = _translate_chapter(self._executor, chapter, fail_fast=request.fail_fast, on_status=self._status,
                                              checkpoint=self._checkpoint)

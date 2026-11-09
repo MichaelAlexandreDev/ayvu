@@ -75,8 +75,8 @@ class Runtime:
     def preflight(self):
         return None
 
-    def resources(self):
-        return nullcontext(SimpleNamespace(executor=object(), pool=None))
+    def resources(self, context):
+        return nullcontext(SimpleNamespace(executor=object(), pool=None, prepare_document=None))
 
     def facts(self):
         return None

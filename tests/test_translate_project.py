@@ -1252,7 +1252,7 @@ def test_a_framework_free_consumer_can_use_the_same_case_with_its_own_ports(worl
             return JobFailure(JobFailureFamily.PROVIDER_TRANSIENT, "provider_down", retryable=True)
         def facts(self):
             raise AssertionError
-        def resources(self):
+        def resources(self, context):
             raise AssertionError
         def classify(self, error):
             raise AssertionError
@@ -1270,7 +1270,7 @@ def test_a_runtime_that_cannot_classify_still_gives_a_bounded_failure(world):
     runtime = world.runtime_used
     def classify(error):
         raise RuntimeError("broken classifier")
-    def resources():
+    def resources(context):
         raise RuntimeError("quoting the book")
     runtime.classify, runtime.resources = classify, resources
     result = composed.execute(command)

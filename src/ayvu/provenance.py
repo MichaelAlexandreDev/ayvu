@@ -24,6 +24,7 @@ UNKNOWN = "unknown"
 NOT_APPLICABLE = "not_applicable"
 _OPAQUE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
 _PRODUCER = re.compile(r"[a-z0-9][a-z0-9._+@-]{0,63}")
+_MODEL_LABEL = re.compile(r"[a-z0-9][a-z0-9_-]{0,47}")
 _CONFIGURATION_REFERENCE = re.compile(r"[a-z][a-z0-9_-]{0,31}:[0-9a-f]{64}")
 
 
@@ -49,6 +50,13 @@ class ProvenanceReferenceError(ProvenanceError):
 
 class ProvenanceLimitError(ProvenanceError):
     pass
+
+
+def declared_model(label: str) -> str:
+    """A user declaration, never an observation of the server. No caller data in errors."""
+    if not isinstance(label, str) or _MODEL_LABEL.fullmatch(label) is None:
+        raise ProvenanceValidationError("invalid_model_label")
+    return f"declared:{label}"
 
 
 class ProvenanceStoreError(ProvenanceError):
@@ -111,12 +119,17 @@ class ProducerIdentity:
     pipeline: str
 
     def __post_init__(self) -> None:
-        for value in (self.provider, self.model, self.adapter, self.pipeline):
+        for value in (self.provider, self.adapter, self.pipeline):
             if not isinstance(value, str) or not _PRODUCER.fullmatch(value):
                 raise ProvenanceValidationError("invalid_producer")
+        if isinstance(self.model, str) and self.model.startswith("declared:"):
+            declared_model(self.model.removeprefix("declared:"))
+        elif not isinstance(self.model, str) or not _PRODUCER.fullmatch(self.model):
+            raise ProvenanceValidationError("invalid_producer")
 
     def __repr__(self) -> str:
-        return (f"ProducerIdentity(provider={self.provider!r}, model={self.model!r}, "
+        model = "declared:<redacted>" if self.model.startswith("declared:") else self.model
+        return (f"ProducerIdentity(provider={self.provider!r}, model={model!r}, "
                 f"adapter={self.adapter!r}, pipeline={self.pipeline!r})")
 
     @property
