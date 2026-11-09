@@ -11,6 +11,24 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_SCOPE = PROJECT_ROOT / "docs" / "product-scope.md"
 PRODUCT_THREAT_MODEL = PROJECT_ROOT / "docs" / "architecture" / "product-threat-model.md"
 MODULE_BOUNDARIES = PROJECT_ROOT / "docs" / "architecture" / "modular-monolith-boundaries.md"
+GLOBAL_PREFERENCES = PROJECT_ROOT / "docs" / "architecture" / "global-preferences.md"
+LOCAL_STORAGE = PROJECT_ROOT / "docs" / "architecture" / "local-project-storage.md"
+PROJECT_MIGRATIONS = PROJECT_ROOT / "docs" / "architecture" / "project-migrations.md"
+JOB_LIFECYCLE = PROJECT_ROOT / "docs" / "architecture" / "job-lifecycle.md"
+JOB_EVENTS = PROJECT_ROOT / "docs" / "architecture" / "job-events-cancellation.md"
+JOB_ARTIFACTS = PROJECT_ROOT / "docs" / "architecture" / "job-artifacts.md"
+PROVENANCE = PROJECT_ROOT / "docs" / "architecture" / "provenance.md"
+CONTENT_MODEL = PROJECT_ROOT / "docs" / "architecture" / "content-model.md"
+PROVIDER_CONTRACTS = PROJECT_ROOT / "docs" / "architecture" / "provider-contracts.md"
+PROVIDER_CAPABILITIES = PROJECT_ROOT / "docs" / "architecture" / "provider-capabilities.md"
+TRANSLATION_PIPELINE = PROJECT_ROOT / "docs" / "architecture" / "translation-pipeline.md"
+PROVIDER_DISCOVERY = PROJECT_ROOT / "docs" / "architecture" / "provider-discovery.md"
+FORMAT_ADAPTER = PROJECT_ROOT / "docs" / "architecture" / "format-adapter.md"
+HTML_STRUCTURE = PROJECT_ROOT / "docs" / "architecture" / "html-structure.md"
+EPUB_FORMAT = PROJECT_ROOT / "docs" / "architecture" / "epub-format.md"
+LOCAL_WORKER = PROJECT_ROOT / "docs" / "architecture" / "adr-local-worker-isolation.md"
+WORKER_SPIKE = PROJECT_ROOT / "spikes" / "local-worker" / "README.md"
+FORMAT_COMPATIBILITY = PROJECT_ROOT / "docs" / "architecture" / "format-compatibility.md"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
@@ -28,8 +46,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES],
-    ids=["product-scope", "product-threat-model", "module-boundaries"],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY, HTML_STRUCTURE, EPUB_FORMAT, LOCAL_WORKER, WORKER_SPIKE],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility", "html-structure", "epub-format", "local-worker", "worker-spike"],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""

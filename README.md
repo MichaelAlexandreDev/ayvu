@@ -1,6 +1,35 @@
 # ayvu
 
-`ayvu` é uma CLI em Python para traduzir arquivos EPUB locais usando um tradutor HTTP local compatível com LibreTranslate. A ferramenta preserva a estrutura interna do livro e modifica apenas textos visíveis ao leitor.
+`ayvu` é uma ferramenta em Python para traduzir arquivos EPUB locais usando um tradutor HTTP local compatível com LibreTranslate. A ferramenta preserva a estrutura interna do livro e modifica apenas textos visíveis ao leitor.
+
+Use `--network-policy none|loopback` para escolher a política HTTP desta execução.
+Sem a opção, o padrão visível é `loopback`: somente **HTTP**, com `localhost`,
+`localhost.`, IPv4 decimal em `127.0.0.0/8` ou IPv6 `[::1]` (também na forma
+completa), porta 1–65535, ou 80 se omitida. Outros nomes, LAN, VPN, IP privado,
+público e HTTPS são recusados; uma URL antiga assim precisa ser substituída
+explicitamente por um endpoint HTTP loopback. Não há migração automática.
+
+```bash
+uv run ayvu languages --network-policy loopback --url http://127.0.0.1:5000
+uv run ayvu translate livro.epub --network-policy none --cache-only
+uv run ayvu --network-policy none --preview livro.epub
+uv run ayvu resume --network-policy loopback
+uv run ayvu --network-policy none
+```
+
+`none` bloqueia o HTTP do Ayvu **antes de DNS, sockets, criação de sessão e
+construção do payload**. Assim, tradução online, idiomas, teste e preflight são
+recusados; `--dry-run` e `--cache-only` continuam disponíveis. A opção na raiz
+vale para preview e menus, incluindo a escolha guiada de idiomas e a retomada
+oferecida; a opção de um subcomando prevalece para esse pedido. Ela nunca é salva.
+Ambas as políticas ignoram proxies/credenciais do ambiente e `.netrc`, recusam
+credenciais na URL e qualquer redirect, mesmo local. HTTPS, proxies, credenciais
+explícitas e destinos não loopback dependem de contratos futuros.
+
+O leitor EPUB aberto pela biblioteca é **outro processo, fora da garantia
+offline**, e recebe um aviso explícito antes de abrir. `none` não contém esse
+leitor; um servidor local também pode ter sua própria rede e retenção.
+Veja o [contrato da política HTTP](docs/architecture/network-policy.md).
 
 O EPUB original nunca é alterado. A saída é gravada em um novo arquivo `.epub`.
 
@@ -22,7 +51,7 @@ O EPUB original nunca é alterado. A saída é gravada em um novo arquivo `.epub
 - Modo comum guiado e modo desenvolvedor direto.
 - Biblioteca inicial para listar originais e traduções e abrir EPUBs no leitor configurado ou padrão do sistema.
 - Checagens internas antes de iniciar traduções reais.
-- Modo `dry-run` para simular o processamento sem gerar arquivo.
+- Modo `dry-run` para simular o processamento sem gerar EPUB traduzido.
 - Modo `cache-only` para reconstruir o EPUB usando apenas o cache, sem chamar o tradutor.
 - Extração de texto visível para Markdown.
 - Relatório final no terminal e opção de salvar relatório Markdown no modo comum.
@@ -36,39 +65,66 @@ Por padrão, arquivos `.epub`, cache local e glossários privados ficam fora do 
 
 ## Requisitos
 
-- Python 3.11+
-- `uv` ou `pip`
-- Um servidor local compatível com LibreTranslate
+- Python 3.11 ou mais recente. A disponibilidade das dependências nativas do
+  desktop depende da versão do Python, sistema operacional e arquitetura.
+- `uv` ou `pip`.
+- Um servidor compatível com LibreTranslate para traduções reais.
+- Para o desktop, uma sessão gráfica e as dependências nativas exigidas pelo Qt.
 
-## Instalação Com uv
+## Instalação com uv
 
-Dentro do diretório do projeto:
+Dentro do diretório do projeto, instale apenas a CLI:
 
 ```bash
 cd ayvu
-uv sync --extra dev
-```
-
-Execute os comandos sem ativar manualmente o ambiente virtual:
-
-```bash
+uv sync
 uv run ayvu --help
 ```
 
-## Instalação Com pip
+Para instalar o suporte desktop opcional e executar seu ponto de entrada:
+
+```bash
+uv sync --extra desktop
+uv run --extra desktop ayvu-desktop
+```
+
+O extra instala `PySide6-Essentials==6.11.2`, sem Addons ou WebEngine. O ponto
+de entrada informa que a interface ainda não está disponível e termina com código
+1; sua implementação pertence a DESKTOP-010. `ayvu-desktop --help` retorna 0.
+Sem o extra, o comando informa como instalar a dependência e termina com código 1.
+Os fluxos de tradução documentados abaixo estão disponíveis pela CLI, cuja
+instalação padrão não exige PySide6.
+
+Para desenvolver e executar os testes da CLI:
+
+```bash
+uv sync --extra dev
+uv run --extra dev pytest
+```
+
+Para desenvolver o desktop, selecione ambos os extras:
+
+```bash
+uv sync --extra dev --extra desktop
+uv run --extra dev --extra desktop pytest
+```
+
+Ao alternar entre esses perfis, inclua os extras desejados no comando `uv run`,
+pois o uv sincroniza o ambiente conforme a seleção informada.
+
+## Instalação com pip
 
 ```bash
 cd ayvu
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+python -m pip install -e .              # CLI
+# Ou: python -m pip install -e ".[desktop]"
+# Para desenvolvimento: python -m pip install -e ".[dev,desktop]"
 ```
 
-Com o ambiente ativado:
-
-```bash
-ayvu --help
-```
+Com o ambiente ativado, use `ayvu --help` ou, com o extra desktop,
+`ayvu-desktop`.
 
 ## Servidor de Tradução
 
@@ -120,6 +176,12 @@ Inspecionar um EPUB:
 uv run ayvu inspect livro.epub
 ```
 
+O comando é somente de leitura: mostra caminho, título, autores, idioma e as
+contagens de documentos e itens, sem criar cache ou projeto. Livro protegido por
+DRM recebe só um aviso, sem título ou autores. `translate` e `extract` o recusam. Em erros de leitura,
+o modo desenvolvedor mostra um código de motivo seguro em vez do texto interno
+do parser.
+
 Traduzir um EPUB:
 
 ```bash
@@ -161,18 +223,35 @@ uv run ayvu translate livro-1.epub livro-2.epub livro-3.epub \
   --continue-on-error
 ```
 
-No batch, cada livro gera um EPUB separado com o padrão
+O comando aceita até 100 EPUBs e os processa sequencialmente, na ordem informada.
+Sem `--source`, o idioma de origem é identificado separadamente nos metadados
+de cada livro, que podem ter idiomas diferentes. Fora de `--dry-run`, cada livro
+gera um EPUB separado com o padrão
 `<nome>-<idioma>.epub` dentro de `--output-dir`. Se `--output-dir` não for
 informado, o Ayvu usa a pasta de traduzidos configurada. O comando para no
 primeiro erro por padrão; com `--continue-on-error`, continua nos livros
 restantes e termina com código 1 se algum item falhar. Saídas existentes não
 são sobrescritas sem confirmação no modo comum ou sem `--overwrite` no modo
-desenvolvedor.
+desenvolvedor. Destinos de EPUB duplicados são recusados antes do início; no
+modo comum, as escolhas para conflitos são feitas antes de processar os livros.
 
-As opções `--output` e `--review-output` são exclusivas do fluxo de um único
+As opções `--output`, `--review-output` e `--missing-output` são exclusivas do fluxo de um único
 EPUB, porque um caminho único de saída ou CSV não é suficiente para representar
 vários livros. O batch salva automaticamente um relatório Markdown separado por
-livro na pasta de relatórios configurada.
+livro que chega à etapa de relatório, na pasta de relatórios configurada.
+Em `--cache-only`, quando há textos ausentes, cada livro também recebe um
+arquivo de textos ausentes com nome automático nessa pasta. No `--dry-run`,
+o relatório e o arquivo de textos ausentes continuam sendo salvos, mas o EPUB
+não é publicado. Uma tradução parcial por falhas de trechos ou ausências no cache,
+sem `--fail-fast` e com validação aceita, não conta como falha do item.
+Se os nomes automáticos disponíveis se esgotarem, o item falha e a opção
+`--continue-on-error` determina se os demais continuam. As verificações de
+destino reduzem riscos, mas alterações concorrentes nos caminhos ainda podem
+ocorrer entre a última verificação e a substituição ou criação exclusiva do arquivo.
+Uma interrupção encerra o lote sem iniciar o próximo livro e preserva o resultado
+dos itens iniciados. Se o relatório não puder ser salvo, o item falha; um EPUB
+já publicado continua no destino. Uma recusa antes da execução não mostra um
+resumo vazio.
 
 Traduzir apenas capítulos selecionados:
 
@@ -232,34 +311,43 @@ uv run ayvu translate livro.epub \
   --review-output livro-review.csv
 ```
 
-O arquivo de revisão só é criado quando `--review-output` é informado. Ele
-registra cada segmento traduzido com identificador de capítulo e segmento,
-caminho interno do documento no EPUB, idiomas, origem do cache e texto original
-e traduzido lado a lado. Se o CSV já existir, use `--overwrite` ou escolha outro
-caminho. A opção não funciona com `--dry-run`, porque o dry-run não gera texto
-traduzido revisável.
+`--review-output` gera um pacote CSV v2 vinculado ao projeto, à fonte exata, ao
+artefato da tradução automática e às unidades estáveis. O pacote contém texto
+sensível do livro e deve ficar em armazenamento local protegido. Se o CSV já
+existir, use `--overwrite` ou escolha outro caminho. A opção não funciona com
+`--dry-run`, porque o dry-run não gera texto traduzido revisável.
 
-Depois de revisar o CSV (editando a coluna `translated`), reconstrua um EPUB
-final a partir do EPUB original com o texto revisado:
+Para revisar, abra o CSV em um editor ou planilha. Nas linhas que quiser corrigir,
+altere `reviewed_text`, que já vem com a tradução automática, e mude `review_status`
+de `pending` para `reviewed`. As demais linhas podem ficar como estão e mantêm a
+tradução automática. Se editar uma linha sem marcá-la, o pacote é recusado, para a
+correção não se perder. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
+mantenha cada um, na mesma ordem. As demais colunas ligam a linha ao livro e não
+podem mudar. Salvar pela planilha é aceito, com vírgula ou ponto e vírgula.
+
+Pacotes v1 antigos continuam disponíveis apenas para inspeção; `apply-review`
+recusa sua aplicação e pede uma nova exportação v2. Para verificar um pacote v2
+sem criar job, artefato ou EPUB, use `--validate-only`:
 
 ```bash
-uv run ayvu apply-review livro.epub livro-review.csv \
-  --output livro-revisado.epub
+uv run ayvu apply-review livro.epub livro-review.csv --validate-only
 ```
 
-O comando `apply-review` lê o EPUB original e o CSV revisado, confere que cada
-segmento ainda corresponde ao livro (comparando o texto original) e aplica as
-traduções revisadas em um novo EPUB, sem alterar o original. Se `--output` for
-omitido, o padrão é `<nome>-<idioma>-reviewed.epub`; use `--overwrite` para
-substituir um arquivo existente. O relatório informa quantos segmentos foram
-aplicados e lista trechos sem revisão, ausentes no EPUB, inconsistentes (texto
-original divergente), com identificadores duplicados ou documentos
-desconhecidos.
+Para aplicar, use o EPUB original e o pacote revisado. O padrão grava
+`<nome>-reviewed.epub`; se esse destino existir, a aplicação falha sem alterá-lo.
+`--overwrite` permite substituir um EPUB revisado anterior, nunca a fonte ou o
+artefato traduzido automaticamente. Repetir o mesmo pacote com o mesmo destino
+confirma o resultado já gravado; se esse arquivo foi apagado ou alterado, a
+aplicação roda de novo e segue as mesmas regras de destino:
 
-Limitação: o CSV de revisão guarda apenas o texto visível de cada segmento.
-Por isso, formatação inline dentro de um parágrafo traduzido (negrito, itálico,
-links) é convertida em texto plano ao aplicar a revisão. A estrutura de blocos
-do EPUB (capítulos, parágrafos, imagens, sumário) é preservada.
+```bash
+uv run ayvu apply-review livro.epub livro-review.csv
+```
+
+O mapeamento v2 aceita texto simples e placeholders emitidos para o próprio
+pacote/unidade; o adaptador estrutural restaura os nós originais do EPUB. Veja
+[`docs/architecture/review-exchange.md`](docs/architecture/review-exchange.md)
+e [`docs/architecture/review-application.md`](docs/architecture/review-application.md).
 
 Gerar um preview traduzido:
 
@@ -353,6 +441,11 @@ uv run ayvu translate livro.epub \
   --retry-backoff-max 10
 ```
 
+O `test-translator` envia o texto `Hello world` ao servidor, e só esse texto; nenhum outro comando
+envia conteúdo para testar o tradutor. No modo desenvolvedor, os erros de `test-translator`,
+`languages` e da verificação inicial mostram um código, como `provider_timeout`, em vez da
+mensagem do servidor, que pode conter a URL ou parte da resposta.
+
 As mesmas opções também existem em `test-translator` e `languages`, para testar o servidor com
 os controles que serão usados na tradução.
 
@@ -395,7 +488,7 @@ Usar glossário no modo comum:
 uv run ayvu
 ```
 
-Escolha `Glossaries` para criar ou editar um glossário guiado. O Ayvu pede o termo original,
+Escolha `Glossaries` para criar ou editar um glossário guiado. Na criação, o Ayvu pede o termo original,
 permite informar uma tradução preferida ou preservar o termo sem tradução, mostra uma prévia,
 valida o conteúdo e salva o JSON em:
 
@@ -411,6 +504,15 @@ Quando `XDG_CONFIG_HOME` não estiver definido, o fallback é:
 
 Se houver glossários salvos, o fluxo guiado de tradução permite escolher um deles antes de
 confirmar a saída do EPUB.
+
+O catálogo guiado aceita até 1.000 arquivos JSON, cada um com até 1 MiB, 10.000
+entradas, termos de até 1.024 caracteres e traduções de até 4.096 caracteres; o
+JSON salvo também tem limite de 1 MiB. Arquivos inválidos, grandes demais ou com
+links simbólicos ou múltiplos links físicos não podem ser selecionados: escolha
+outro glossário ou corrija o arquivo fora do fluxo guiado. Uma edição é recusada se o arquivo mudou depois de aberto; nesse caso, abra-o de novo.
+O conteúdo e os nomes dos glossários são privados. Essas regras se aplicam ao
+catálogo gerenciado; caminhos explícitos de `--glossary` continuam sendo lidos
+pelo carregador avançado existente.
 
 Usar glossário no modo desenvolvedor:
 
@@ -457,6 +559,12 @@ Extrair texto visível para Markdown:
 uv run ayvu extract livro.epub \
   --output livro-extraido/
 ```
+
+Sem `--overwrite`, um diretório de saída não vazio é recusado. Com a opção, o
+Ayvu substitui apenas os Markdown planejados e preserva os demais arquivos. Cada
+Markdown é publicado atomicamente; se uma falha ocorrer depois de algum arquivo
+ser publicado, a mensagem informa quantos foram concluídos e quantos não foram.
+Essa publicação é independente por arquivo, sem transação para o diretório todo.
 
 ## Glossário
 
@@ -523,6 +631,8 @@ Trechos já traduzidos serão reaproveitados automaticamente.
 O checkpoint de retomada preserva as opções de execução do tradutor, como
 timeout, workers, retries, limite de requisições por segundo e backoff.
 
+A tradução pela CLI usa o cache legado v1; o caminho rico dispõe de cache v2 independente. A migração preserva os dados v1 sem transformá-los em acertos exatos v2. A administração aceita namespaces explícitos; sem seleção, mantém o comportamento legado. Veja [cache standalone v2](docs/architecture/standalone-cache-v2.md).
+
 O cache pode ser inspecionado, limpo, exportado e importado separadamente dos
 comandos de tradução:
 
@@ -542,8 +652,60 @@ apagadas sem modificar o SQLite. `cache export` grava JSON legível e
 `cache import` lê esse JSON; entradas existentes são puladas por padrão e podem
 ser substituídas com `--replace`.
 
+Se o cache ainda não existir, `inspect` mostra zero entradas e `export` grava
+um JSON vazio sem criar o cache nem sua pasta. A limpeza rejeita uma seleção
+que mudou entre a prévia e a remoção; nesse caso, execute o comando novamente.
+Erros detalhados usam códigos curtos, sem incluir conteúdo das entradas.
+O destino da exportação deve ser um arquivo diferente do próprio cache SQLite.
+No formato legado v1, exportação e importação têm limite de 512 MiB e 1.000.000
+de entradas; acima disso, exporte em partes com `--source`, `--target` ou
+`--before`. O formato v2 tem limites e filtros próprios descritos em
+[administração de cache](docs/architecture/cache-administration.md).
+
 O arquivo exportado inclui texto original e texto traduzido. Trate esse JSON
 como conteúdo privado do livro, da mesma forma que o EPUB e o cache SQLite.
+
+`cache import` prepara as entradas num arquivo temporário ao lado do cache,
+`.ayvu-cache-import-legacy-*.sqlite`, e só depois altera o cache. Um Ctrl+C
+apaga esse arquivo. Se o processo for morto à força ou o computador desligar no
+meio, o cache fica como estava, mas o arquivo temporário sobra: ele contém
+textos do livro e pode ser apagado quando nenhum import estiver rodando.
+
+A administração de cache v2 aceita seleção explícita de namespace e importação com mapa externo e previsão. Veja [administração de cache](docs/architecture/cache-administration.md) para exemplos, autorização de escopos e limites. Arquivos de exportação e recuperação podem conter textos sensíveis.
+
+Traduções diretas, guiadas e em lote criam ou reutilizam automaticamente um
+projeto local em `<pasta de processamento>/projects/<UUID>/project.json`.
+O manifesto guarda identidade, referência e hash do original, idiomas e
+referências de configuração. Ele contém metadados privados, não o texto do livro
+nem credenciais. Mudar idioma ou configuração cria outro projeto, preservando
+o anterior. Prompts, nomes de saída e o EPUB original permanecem preservados.
+`--cache-only` também resolve um projeto; `--dry-run`, previews e a retomada de
+checkpoints antigos continuam sem exigir manifesto. A pasta de processamento
+padrão é `~/Documentos/Livros/Processando`.
+
+Falhas de persistência ou ambiguidades interrompem a tradução antes do
+preflight do tradutor. Não há limpeza automática: remover estado de projeto
+nunca apaga automaticamente originais, saídas, cache ou glossários, mas perde
+a identidade e as referências necessárias ao futuro histórico/retomada por
+projeto. Links simbólicos e fontes com hardlinks são recusados nesse fluxo.
+Para schema, limites e recuperação de escrita interrompida, consulte o
+[contrato do manifesto local](docs/architecture/project-manifest.md).
+O repositório também oferece uma API explícita para resolver o banco local
+`projects/<UUID>/project.sqlite` e seus backups em `backups/schema/`.
+O bootstrap SQLite e as migrações são chamados pela composição quando necessários;
+a tradução com projeto cria esse banco no primeiro uso. O manifesto v1
+e o cache independente permanecem preservados. Consulte o
+[protocolo de migração e recuperação](docs/architecture/project-migrations.md)
+para backup verificado, conflitos, queda de processo e recuperação manual.
+Esse banco também tem o [registro durável de jobs](docs/architecture/job-lifecycle.md),
+o [registro de artefatos e checkpoints](docs/architecture/job-artifacts.md) e o
+[registro de proveniência](docs/architecture/provenance.md). Cada tradução com projeto
+vira um job nesse banco, do começo ao resultado final, e o
+[caso de uso](docs/architecture/translate-project.md) explica o que acontece em cada caso.
+Dry-run e preview não têm projeto e não criam job.
+Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
+consulta e fragmentos. Autenticação por referências de credenciais é trabalho
+futuro; fingerprints do manifesto continuam sendo metadados privados.
 
 Durante traduções reais, o Ayvu também grava um checkpoint local da execução em
 `~/Documentos/Livros/Processando`, ou na pasta de processamento configurada
@@ -567,6 +729,18 @@ uma, informe o EPUB e o `--target` para escolher. O comando mostra o checkpoint
 `Retry policy`) e reexecuta a tradução com as opções salvas. Ao executar apenas
 `uv run ayvu`, o modo comum também procura estados em andamento e oferece retomar
 a execução detectada, mostrando o mesmo resumo de checkpoint.
+
+Uma retomada nunca reabre um job que terminou: ela encerra o job interrompido, se
+ainda não tiver um resultado, e cria um novo ligado a ele. Ela é recusada se a mesma
+tradução ainda estiver rodando em outro processo, se o livro tiver mudado desde o
+começo ou se o livro for recusado por política. Um arquivo de estado antigo, sem job
+correspondente, continua funcionando como sempre, sem criar projeto nem job. Veja
+[recuperação de traduções](docs/architecture/job-recovery.md).
+
+O tradutor pode ser chamado de novo para um trecho que estava em andamento quando a
+execução foi interrompida. O cache evita repetir o que já foi concluído, mas ainda não
+prova qual provedor ou modelo produziu um texto, então toda retomada reprocessa o livro
+inteiro em vez de reaproveitar etapas.
 
 Checkpoint e cache se complementam: o **cache** guarda cada trecho já traduzido e
 evita retraduzi-lo, enquanto o **checkpoint** registra o progresso e as falhas.
@@ -684,6 +858,63 @@ original e quais traduções foram encontradas, permite ver informações do liv
 selecionada no app leitor. Se nenhum leitor padrão for detectado, configure o comando do leitor em
 `Settings` no campo `Reader app`.
 
+Ao abrir uma versão, o Ayvu verifica novamente se o EPUB continua o mesmo e dentro da pasta de
+livros. Links para fora dessa pasta não entram na biblioteca; itens ignorados geram um aviso.
+Em `Reader app`, informe o executável e suas opções, sem interpretador de comandos como `sh`.
+
+## Pipeline rico e cache v2 (opcional)
+
+Para ativar em `translate`, tradução guiada e cada livro de um lote, adicione manualmente
+este campo ao **arquivo de configuração existente**, preservando os demais campos:
+
+```json
+{
+  "translator_models": {
+    "libretranslate": "meu-modelo-2026-11"
+  }
+}
+```
+
+O arquivo fica em `$XDG_CONFIG_HOME/ayvu/config.json`, ou `~/.config/ayvu/config.json`
+quando a variável não está definida. O rótulo aceita de 1 a 48 caracteres ASCII:
+letras minúsculas, números, `_` e `-`, começando por letra ou número. URLs, caminhos,
+espaços e texto livre são recusados antes de chamar o tradutor. Não há rótulo padrão.
+
+```bash
+uv run ayvu translate livro.epub --workers 1 --cache ./cache.sqlite
+```
+
+Com o rótulo, o runtime `rich/v2` usa `DocumentTranslator` e grava em
+`cache.sqlite.v2.sqlite`, no mesmo diretório do `--cache`. O arquivo v1 indicado por
+`--cache` permanece intacto: nenhuma entrada é lida, copiada ou promovida para v2.
+Por isso o primeiro uso rico traduz novamente textos que só estavam no v1. O cache v2
+é separado por projeto e identidade semântica; o glossário é aplicado depois do cache.
+
+O modelo é registrado na proveniência como `declared:meu-modelo-2026-11`: uma declaração
+sua, sem consulta nem descoberta de modelo no servidor. **Se você trocar o modelo do
+servidor e mantiver o rótulo, o Ayvu reutilizará resultados antigos sob esse rótulo.**
+Troque o rótulo junto com o modelo. Restaurar um rótulo permite reutilizar seu cache anterior.
+O rótulo aparece nos dados operacionais de proveniência e identidade do cache; não em logs,
+eventos, relatório de terminal ou checkpoint. Não coloque dados pessoais no rótulo.
+O checkpoint rico registra apenas a revisão de execução, para vincular a retomada ao job.
+
+Nesta primeira integração, `rich/v2` recusa `--workers` diferente de `1`,
+`--translation-memory`, `--cache-only` e `--require-full-cache`, com mensagem antes de
+qualquer chamada ao tradutor. A resolução offline atual não fixa a identidade de execução
+e a rota necessárias para oferecer cache-only rico com segurança. Para usar esses recursos
+do modo legado, remova `translator_models.libretranslate` da configuração.
+
+Uma falha do provedor para o runtime rico na primeira ocorrência e não publica EPUB parcial.
+Os segmentos concluídos ficam em v2; corrija o problema e execute `uv run ayvu resume livro.epub`.
+A retomada exige o mesmo runtime do job: adicionar ou remover o rótulo entre a falha e o
+resume é recusado como incompatibilidade `legacy/v1`/`rich/v2`. Restaure a configuração
+anterior para retomar. Replay de resultados brutos no resume continua reservado à issue #242.
+
+Sem rótulo, o runtime `legacy/v1`, suas mensagens, continuação após erros e cache-only com
+EPUB parcial continuam os mesmos. Remover o rótulo também permite voltar ao cache v1 intacto
+em novas traduções. Dry run, preview e outros fluxos sem projeto permanecem no v1.
+As políticas HTTP continuam as mesmas, sem novas requisições de descoberta.
+
 ## Configuração
 
 O Ayvu define um formato inicial para preferências locais. No modo comum, o primeiro uso pergunta o
@@ -738,6 +969,11 @@ Perfis podem ser adicionados manualmente em `profiles`:
 aceita `neutral`, `technical`, `literary` ou `academic`, mas no backend LibreTranslate atual
 serve apenas como metadado do perfil; ele não muda o prompt nem o comportamento do tradutor.
 
+O contrato de [perfis versionados do projeto](docs/architecture/project-translation-profiles.md)
+permite migração explícita por chamadores da aplicação. A CLI continua usando os perfis
+globais v1 nesta janela de compatibilidade; não existe comando novo de migração nem
+migração automática. A migração exige glossário do catálogo gerenciado e preserva o perfil global.
+
 A precedência para campos cobertos por perfis de tradução é:
 
 ```text
@@ -751,6 +987,20 @@ leitor padrão do sistema não for suficiente.
 
 Glossários criados pelo modo comum ficam ao lado da configuração, em `glossaries/`, e podem ser
 selecionados antes de iniciar uma tradução guiada.
+
+A configuração continua no formato v1. Leituras não regravam o arquivo; alterações
+usam gravação atômica e uma revisão para impedir que duas sessões sobrescrevam
+mudanças uma da outra. Campos desconhecidos permitem leitura com aviso, mas
+bloqueiam gravações até revisão explícita do arquivo, evitando perda de dados.
+Se uma gravação falhar, o menu informa que os valores valem apenas para a sessão
+atual. Em conflito de revisão, recarregue a configuração antes de tentar salvar
+novamente. Comandos do leitor com opções de credenciais, como `--token` ou
+`--password`, são recusados; a configuração não é um armazenamento de segredos.
+Consulte o [contrato de preferências](docs/architecture/global-preferences.md)
+para limites, resultados de erro, compatibilidade e permissões.
+Arquivos inválidos, futuros ou acima dos limites são preservados: guardar uma
+cópia privada e corrigir explicitamente o arquivo é necessário antes de salvar
+novamente. O menu não substitui esses arquivos pela configuração padrão.
 
 ## Testes
 
@@ -784,6 +1034,15 @@ ayvu/
 
 ## Limitações
 
+- O Ayvu recusa EPUBs com conteúdo protegido, nomes de arquivo internos inseguros,
+  arquivos internos repetidos, declarações de entidade XML, ou além dos limites de
+  tamanho e compressão, em qualquer modo. Fontes com a ofuscação padrão do EPUB são
+  aceitas.
+- Se o computador ficar suspenso por mais de uma hora durante uma tradução, ela
+  termina com falha e nada é publicado. O que foi traduzido fica no cache, então
+  repetir o comando é rápido.
+- A mesma tradução não roda duas vezes ao mesmo tempo. Se o processo anterior foi
+  encerrado à força, repetir o comando funciona na hora.
 - EPUBs com XHTML malformado podem depender do comportamento do parser.
 - Livros técnicos costumam exigir glossário para manter termos consistentes.
 - A qualidade final depende do servidor de tradução usado.

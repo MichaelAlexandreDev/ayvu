@@ -13,12 +13,12 @@ from ebooklib import epub
 
 from .cache import TranslationCache
 from .domain import ChapterSelection, ChapterSelectionError, TranslationOptions
+from .epub_archive import package_title, parse_package_for_edit, serialize_package
 from .glossary import Glossary, GlossaryUsage
 from .html_translate import (
     HtmlTranslatedSegment,
     HtmlTranslationStats,
     TextTranslationResult,
-    apply_reviewed_html,
     extract_visible_text,
     translate_html,
     translate_text,
@@ -29,9 +29,8 @@ from .review_export import (
     METADATA_SEGMENT_KIND,
     ReviewSegment,
     format_segment_id,
-    parse_segment_id,
 )
-from .review_import import ReviewImportData, ReviewRow
+from .review_import import LegacyReviewInspection, ReviewImportError
 from .translation_memory import TranslationMemory
 from .translator import Translator
 
@@ -42,11 +41,6 @@ TextProgressCallback = Callable[[str], None]
 MetadataReviewCallback = Callable[[str, TextTranslationResult], None]
 TranslatorFactory = Callable[[], Translator]
 CacheFactory = Callable[[], TranslationCache]
-OPF_NAMESPACE = "http://www.idpf.org/2007/opf"
-DC_NAMESPACE = "http://purl.org/dc/elements/1.1/"
-
-ET.register_namespace("", OPF_NAMESPACE)
-ET.register_namespace("dc", DC_NAMESPACE)
 
 
 @dataclass
@@ -625,7 +619,7 @@ def extract_markdown(input_path: str | Path, output_dir: str | Path) -> list[Pat
     return written
 
 
-@dataclass
+@dataclass(repr=False)
 class ReviewApplyReport:
     input_path: Path | None = None
     output_path: Path | None = None
@@ -638,6 +632,9 @@ class ReviewApplyReport:
     duplicated: list[str] = field(default_factory=list)
     unknown_documents: list[str] = field(default_factory=list)
     invalid_ids: list[str] = field(default_factory=list)
+
+    def __repr__(self) -> str:
+        return f"ReviewApplyReport(applied={self.applied}, warnings={int(self.has_warnings)})"
 
     @property
     def has_warnings(self) -> bool:
@@ -654,140 +651,19 @@ class ReviewApplyReport:
 def apply_reviewed_epub(
     input_path: str | Path,
     output_path: str | Path,
-    review: ReviewImportData,
-) -> ReviewApplyReport:
-    """Rebuild a translated EPUB from a reviewed CSV without touching the input.
-
-    Walks the original EPUB with the same run logic as translation so segment
-    indices line up with the review export, validates each segment's original
-    text against the CSV, and applies the reviewed translations. Missing,
-    duplicated, inconsistent and unknown segments are reported instead of
-    aborting; segments without a reviewed translation stay in the source
-    language.
-    """
-    source_path = Path(input_path)
-    destination_path = Path(output_path)
-    report = ReviewApplyReport(
-        input_path=source_path,
-        output_path=destination_path,
-        source_language=review.source_language,
-        target_language=review.target_language,
-        duplicated=list(review.duplicate_ids),
-    )
-
-    opf_archive_path = _get_opf_archive_path(source_path)
-    metadata_rows, document_groups = _group_review_rows(review.rows, report)
-    replacements = EpubReplacements()
-
-    with ZipFile(source_path, "r") as source_epub:
-        archive_names = set(source_epub.namelist())
-
-        if metadata_rows:
-            _apply_metadata_review(
-                metadata_rows[0],
-                source_epub=source_epub,
-                opf_archive_path=opf_archive_path,
-                archive_names=archive_names,
-                replacements=replacements,
-                report=report,
-            )
-
-        for document_path, rows_by_index in document_groups.items():
-            if document_path not in archive_names:
-                report.unknown_documents.append(document_path)
-                continue
-            replacements.add(
-                document_path,
-                _apply_document_review(
-                    source_epub.read(document_path),
-                    rows_by_index=rows_by_index,
-                    report=report,
-                ),
-            )
-
-    destination_path.parent.mkdir(parents=True, exist_ok=True)
-    _copy_epub_with_replacements(source_path, destination_path, replacements)
-    return report
-
-
-def _group_review_rows(
-    rows: tuple[ReviewRow, ...],
-    report: ReviewApplyReport,
-) -> tuple[list[ReviewRow], dict[str, dict[int, ReviewRow]]]:
-    metadata_rows: list[ReviewRow] = []
-    groups: dict[str, dict[int, ReviewRow]] = {}
-    for row in rows:
-        location = parse_segment_id(row.segment_id) if row.segment_id else None
-        if location is None:
-            report.invalid_ids.append(row.segment_id or "(empty)")
-            continue
-        if location.is_metadata:
-            metadata_rows.append(row)
-            continue
-        if not row.document_path or location.segment_index is None:
-            report.invalid_ids.append(row.segment_id)
-            continue
-        groups.setdefault(row.document_path, {})[location.segment_index] = row
-    return metadata_rows, groups
-
-
-def _apply_document_review(
-    content: bytes,
-    rows_by_index: dict[int, ReviewRow],
-    report: ReviewApplyReport,
-) -> bytes:
-    consumed: set[int] = set()
-
-    def resolve(index: int, _kind: str, original: str) -> str | None:
-        row = rows_by_index.get(index)
-        if row is None:
-            report.untranslated += 1
-            return None
-        consumed.add(index)
-        if row.original.strip() != original.strip():
-            report.inconsistent.append(row.segment_id)
-            return None
-        report.applied += 1
-        return row.translated
-
-    new_content, _stats = apply_reviewed_html(content, resolve)
-
-    for index, row in rows_by_index.items():
-        if index not in consumed:
-            report.missing_in_epub.append(row.segment_id)
-
-    return new_content
-
-
-def _apply_metadata_review(
-    row: ReviewRow,
-    source_epub: ZipFile,
-    opf_archive_path: str | None,
-    archive_names: set[str],
-    replacements: EpubReplacements,
-    report: ReviewApplyReport,
+    review: LegacyReviewInspection,
 ) -> None:
-    if opf_archive_path is None or opf_archive_path not in archive_names:
-        report.missing_in_epub.append(row.segment_id)
-        return
+    """Refuse positional v1 application before touching input or output.
 
-    opf_content = source_epub.read(opf_archive_path)
-    root = ET.fromstring(opf_content)
-    title = _first_metadata_title(root)
-    if title is None or title.text is None or not title.text.strip():
-        report.missing_in_epub.append(row.segment_id)
-        return
-
-    if row.original.strip() != title.text.strip():
-        report.inconsistent.append(row.segment_id)
-        return
-
-    title.text = row.translated
-    report.applied += 1
-    replacements.add(
-        opf_archive_path,
-        ET.tostring(root, encoding="utf-8", xml_declaration=_has_xml_declaration(opf_content)),
-    )
+    V2 callers validate with ``review_exchange.map_review_package`` and hand its
+    structural plan to the format reconstructor. The legacy CLI adapter has no
+    durable project and machine-result context and therefore cannot apply either version.
+    """
+    # Positional v1 rows cannot prove source revision or machine-result
+    # lineage. Reject before opening either EPUB or destination.
+    if isinstance(review, LegacyReviewInspection):
+        raise ReviewImportError("legacy_reexport_required")
+    raise ReviewImportError("review_v2_mapper_required")
 
 
 def _clean_extracted_text(text: str) -> str:
@@ -1045,8 +921,10 @@ def _translate_opf_title(
     memory: TranslationMemory | None = None,
     on_review_text: MetadataReviewCallback | None = None,
 ) -> bytes | None:
-    root = ET.fromstring(opf_content)
-    title = _first_metadata_title(root)
+    root = parse_package_for_edit(opf_content)
+    title = package_title(root)
+    if title is not None and len(title):
+        raise ValueError("the title holds a comment, element or entity, so it stays untranslated")
     if title is None or title.text is None or not title.text.strip():
         return None
 
@@ -1064,21 +942,12 @@ def _translate_opf_title(
     )
     if on_review_text:
         on_review_text(title.text, result)
-    if not result.missing:
+    changed = not result.missing and result.text != title.text
+    if changed:
         title.text = result.text
     report.record_text(result)
     _notify_text_processed(on_text_processed, _text_progress_status(result, options.dry_run))
-    return ET.tostring(root, encoding="utf-8", xml_declaration=_has_xml_declaration(opf_content))
-
-
-def _first_metadata_title(root: ET.Element) -> ET.Element | None:
-    metadata = _first_child_by_local_name(root, "metadata")
-    if metadata is None:
-        return None
-    for child in metadata:
-        if _local_name(child.tag) == "title":
-            return child
-    return None
+    return serialize_package(root, opf_content) if changed else None
 
 
 def _first_child_by_local_name(root: ET.Element, name: str) -> ET.Element | None:
@@ -1090,10 +959,6 @@ def _first_child_by_local_name(root: ET.Element, name: str) -> ET.Element | None
 
 def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
-
-
-def _has_xml_declaration(content: bytes) -> bool:
-    return content.lstrip().startswith(b"<?xml")
 
 
 def _text_progress_status(result: TextTranslationResult, dry_run: bool) -> str:

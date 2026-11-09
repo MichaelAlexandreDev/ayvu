@@ -194,11 +194,12 @@ uv run ayvu translate livro.epub \
   --review-output livro-review.csv
 ```
 
-Importar o CSV revisado e reconstruir o EPUB sem alterar o original:
+O comando abaixo permanece como verificação de compatibilidade, mas CSV v1 agora
+é apenas para inspeção; a aplicação é recusada antes de abrir o EPUB ou criar
+saída:
 
 ```bash
-uv run ayvu apply-review livro.epub livro-review.csv \
-  --output livro-revisado.epub
+uv run ayvu apply-review livro.epub livro-review.csv
 ```
 
 Gerar preview traduzido:
@@ -246,11 +247,9 @@ uv run ayvu --mode common translate livro.epub
 
 `src/ayvu/html_translate.py` traduz HTML/XHTML por bloco (parágrafos, títulos e itens de lista), substituindo tags inline por placeholders neutros e restaurando-as depois, preservando tags e atributos e ignorando conteúdo que não deve ser traduzido.
 
-`src/ayvu/review_export.py` escreve o CSV opcional de revisão externa com segmentos originais/traduzidos, IDs e metadados de rastreio, e centraliza o contrato de `segment_id` (`format_segment_id`/`parse_segment_id`).
+`src/ayvu/review_application.py` define os casos de uso framework-neutral de exportação, validação e aplicação. `src/ayvu/review_composition.py` conecta `TranslateProjectResult`, o codec e mapper v2, o adaptador EPUB e a publicação D106. `src/ayvu/review_exchange.py` define o pacote v2 canônico, limitado e ligado às unidades duráveis. `src/ayvu/review_import.py` mantém a inspeção v1 limitada e redigida; aplicar v1 retorna `legacy_reexport_required`.
 
-`src/ayvu/review_import.py` lê o CSV de revisão, valida o cabeçalho, expõe as linhas e detecta `segment_id` duplicados. O comando `apply-review` usa `epub_io.apply_reviewed_epub` para reconstruir um novo EPUB a partir do original, casando cada segmento por documento e índice, validando o texto original e relatando ausentes, inconsistentes, duplicados e documentos desconhecidos.
-
-`src/ayvu/library.py` varre as pastas de biblioteca configuradas, agrupa EPUB original e traduções por livro e resolve o comando usado para abrir EPUBs no app leitor.
+`src/ayvu/library_service.py` coordena o agrupamento de originais e traduções; `src/ayvu/library_adapters.py` implementa a varredura, a autorização e a abertura no leitor externo.
 
 `src/ayvu/translator.py` define o contrato `Translator` e o backend `LibreTranslateTranslator`.
 
@@ -506,9 +505,9 @@ Ao final da tradução, o Ayvu mostra um relatório no terminal com:
 
 A validação roda antes do relatório final, então os avisos aparecem na tabela do terminal e, no modo comum, também no relatório Markdown. Qualquer aviso faz a execução terminar com código 1.
 
-Quando `--review-output` é informado, a CLI coleta os segmentos emitidos pelo fluxo normal de tradução e grava um CSV lado a lado. Cada linha inclui `segment_id`, caminho interno do documento no EPUB, índice de capítulo, idiomas, indicação de cache, texto original e texto traduzido. O CSV não é gerado em `--dry-run` e não sobrescreve arquivo existente sem `--overwrite`.
+Quando `--review-output` é informado, `TranslateProject` entrega seu resultado real a `ExportReviewPackage`, que grava um CSV v2 sensível, ligado ao projeto, à fonte, ao artefato de tradução e às unidades estáveis. O pacote não inclui caminho interno ou absoluto. Ele não é gerado em `--dry-run` e não substitui arquivo existente sem `--overwrite`.
 
-O comando `apply-review` fecha o ciclo: percorre o EPUB original com a mesma lógica de runs da tradução, casa cada segmento ao CSV por `document_path` e índice por documento, valida que o texto original ainda corresponde e aplica as traduções revisadas em um novo EPUB, preservando o original. Segmentos sem revisão ficam no idioma de origem; ausentes, inconsistentes, duplicados e documentos desconhecidos entram no relatório. Como o CSV guarda só o texto visível, formatação inline dentro de um parágrafo revisado vira texto plano, mantendo a estrutura de blocos do EPUB.
+`apply-review --validate-only` valida sem persistência, rede, reconstrução ou publicação. A aplicação v2 repete a validação integral, reconstrói por meio do adaptador EPUB e publica um novo artefato pelo protocolo D106. CSV v1 continua disponível apenas para inspeção e retorna `legacy_reexport_required` quando aplicado.
 
 Quando vários EPUBs são informados no comando `translate`, a CLI entra em modo
 batch e chama o mesmo fluxo de tradução para cada livro. A saída de cada item é

@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from ebooklib import ITEM_DOCUMENT
 from ebooklib import epub
 
+from .epub_archive import resolve_internal_path as _resolve_internal_path
 from .html_translate import extract_visible_text
 
 ProgressCallback = Callable[[int, int, str], None]
@@ -93,15 +94,3 @@ def _missing_image_warnings(name: str, content: bytes, item_names: set[str]) -> 
         if target is not None and target not in item_names:
             warnings.append(f"Imagem ausente referenciada em {name}: {href}")
     return warnings
-
-
-def _resolve_internal_path(reference: str, base_dir: str) -> str | None:
-    if not reference or reference.startswith("#"):
-        return None
-    if "://" in reference or reference.startswith(("mailto:", "tel:", "data:")):
-        return None
-    file_part = reference.split("#", 1)[0]
-    if not file_part:
-        return None
-    joined = posixpath.join(base_dir, file_part) if base_dir else file_part
-    return posixpath.normpath(joined)
