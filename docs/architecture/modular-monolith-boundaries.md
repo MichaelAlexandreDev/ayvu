@@ -66,7 +66,18 @@ This decision is driven by the following constraints:
 
 This acceptance records the modular-monolith, inward-dependency, and shared
 application-contract decisions represented by `DEC-001`, `DEC-002`, and
-`DEC-017`. It does not accept any other proposed architecture decision.
+`DEC-017`. It does not accept any other proposed architecture decision. Later
+scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle.md)
+(`DEC-003`), [local storage](local-project-storage.md) (`DEC-012`) and
+[job lifecycle](job-lifecycle.md) (`DEC-004`) and [job artifacts](job-artifacts.md)
+(extending `DEC-004` and `DEC-012`), [provenance](provenance.md) (`DEC-014`) and
+[content model](content-model.md), [format adapter](format-adapter.md) and [EPUB format](epub-format.md) (`DEC-005`) and
+[provider contracts](provider-contracts.md) and
+[provider capabilities](provider-capabilities.md) (`DEC-008`) and
+[translation pipeline](translation-pipeline.md) (`DEC-007`).
+
+A pesquisa [workers locais e IPC](adr-local-worker-isolation.md) (#167) permanece
+`Proposed`, isolada de produção e sem alterar estas fronteiras aceitas.
 
 ## Architecture dimensions
 
@@ -96,6 +107,7 @@ infrastructure primitives.
 | Capability module | Owns | Does not own |
 | --- | --- | --- |
 | **Projects** | Future project identity, manifest semantics, source identity, and project lifecycle | Durable job scheduling, UI state, or parser details |
+| **Project profiles** | Closed project translation profiles, immutable revisions/snapshots, explicit legacy migration and stage-aware semantic projections; see [contract](project-translation-profiles.md) | Global preferences, glossary identity/content, provider requests or cache execution |
 | **Jobs** | Future execution lifecycle, checkpoints, cancellation semantics, progress events, retry state, and artifact references | Widgets, terminal progress, provider payloads, or EPUB internals |
 | **Content** | Minimal content documents, translation-unit identity, constraints, relationships, and opaque structural references produced by a format adapter | Concrete DOM nodes, archive paths as global identity, provider requests, or rendering |
 | **Translation** | Language routing, the inward-owned provider port, format-neutral chunking and linguistic stage execution, translation requests/results, and stage policy | Structural HTML segmentation, EPUB representation, HTTP sessions, UI, or persistence engines |
@@ -300,9 +312,9 @@ private paths, and secrets in URLs must not leak through results or observabilit
 
 Semantic progress and cooperative cancellation belong to application/job
 contracts. Rich progress rendering belongs to the CLI, and future Qt signals
-belong to the Desktop adapter. Current `KeyboardInterrupt` handling remains the
-compatibility baseline until a later issue introduces a reusable cancellation
-contract.
+belong to the Desktop adapter. The reusable contract is defined in
+[job events and cancellation](job-events-cancellation.md). No use case has adopted
+it yet, so current `KeyboardInterrupt` handling remains the compatibility baseline.
 
 ## Current module ownership and disposition
 
@@ -314,22 +326,31 @@ issue.
 | Current module | Current responsibility | Target owner and disposition |
 | --- | --- | --- |
 | `src/ayvu/__init__.py` | Package version metadata | Package public surface; keep minimal and independent of functional modules |
-| `src/ayvu/cli.py` | Typer commands, guided UI, composition, workflow orchestration, reporting, and conflict prompts | **Interfaces/CLI** keeps parsing and presentation; construction moves to composition roots and orchestration migrates use case by use case to **Application** |
+| `src/ayvu/cli.py` | Typer, fluxo guiado, confirmações, relatórios textuais e projeção de saídas | **Interfaces/CLI**; invoca contratos e funções nomeadas da composição consolidada por #158 |
+| `src/ayvu/cli_composition.py` | Construção tardia e explícita dos serviços/adaptadores selecionados | **Composition/CLI**; reutiliza composições por capacidade, sem registro ou singleton |
+| `src/ayvu/cli_contracts.py` | Portas estruturais, resultados de compatibilidade e erros compartilhados | **Application**; sem infraestrutura ou framework de apresentação |
+| `src/ayvu/config_values.py` | Valores v1 e conversões de preferências | **Domain/Preferences**; `config.py` preserva seus reexports de compatibilidade |
 | `src/ayvu/cli_progress.py` | Rich progress adaptation and snapshots | **Interfaces/CLI** keeps Rich rendering; semantic progress DTOs and cancellation later belong to **Application/Jobs** |
 | `src/ayvu/domain.py` | Shared value objects and policies for languages, outputs, chapters, memory, and execution | Transitional domain collection; split only when a use case establishes ownership in **Domain**, **Translation**, **Jobs**, or **Policies** |
-| `src/ayvu/config.py` | Configuration values, profiles, JSON persistence, and derived paths | Preference/profile contracts belong to **Application/Policies**; JSON and filesystem operations implement an **Infrastructure** port |
+| `src/ayvu/config.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `cli_composition` e valores em `config_values` |
 | `src/ayvu/epub_io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
 | `src/ayvu/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
 | `src/ayvu/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
 | `src/ayvu/translator.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
+| `src/ayvu/network_policy.py` | Vocabulário fechado none/loopback, classificação pura de destino e snapshot imutável por pedido (#159) | **Policies/Domain**; sem I/O ou dependência de interface; ver [contrato HTTP](network-policy.md) |
+| `src/ayvu/network_http.py` | Resolução injetável única e transporte Requests preso a sockaddrs loopback validados, sem ambiente ou redirects | **Providers/Infrastructure**; consome a decisão de Policies e não adiciona provedor nem entrada de interface |
 | `src/ayvu/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
 | `src/ayvu/cache.py` | Exact-cache identity, SQLite schema, querying, mutation, and JSON interchange | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
 | `src/ayvu/translation_memory.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
+| `src/ayvu/approved_memory.py` | Governed TM identity, scope, value semantics and closed lifecycle | **Domain/Approved translation memory**; independent of operational cache and dataset consent |
+| `src/ayvu/approved_memory_service.py` | Governed TM commands, queries, use cases and repository port | **Application/Approved translation memory**; no SQLite or pipeline bridge |
+| `src/ayvu/approved_memory_store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](approved-translation-memory.md) |
 | `src/ayvu/glossary.py` | Glossary rules, matching, validation, and JSON persistence | Glossary semantics belong to **Knowledge**; JSON/filesystem persistence implements an **Infrastructure** port |
 | `src/ayvu/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
 | `src/ayvu/review_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
 | `src/ayvu/review_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
-| `src/ayvu/library.py` | Library discovery and launching a reader process | Discovery/open coordination moves to **Application**; filesystem scanning and process launch are separate **Infrastructure** adapters with explicit authorization |
+| `src/ayvu/review_exchange.py` | Versioned bounded v2 codec, identity validation, and mapping to stable unit reconstruction inputs | Review-package semantics belong to **Review**; EPUB structure remains in **Formats/EPUB**; no application orchestration or publication |
+| `src/ayvu/library_service.py`, `src/ayvu/library_adapters.py` | Library discovery and launching a reader process | Discovery/open coordination belongs to **Application**; filesystem scanning and process launch are separate **Infrastructure** adapters with explicit authorization |
 | `src/ayvu/validation.py` | EPUB output validation and warnings using ebooklib/Beautiful Soup | Finding semantics belong to **Quality**; EPUB-specific inspection remains in the **Formats/EPUB** adapter |
 
 ## Current flows and target seams
@@ -338,11 +359,11 @@ These traces keep the accepted boundaries anchored in production behavior.
 
 | Flow | Current path | Incremental target seam |
 | --- | --- | --- |
-| Translate EPUB | `cli.py` → `preflight.py` → `epub_io.py` → `html_translate.py` → cache/TM/glossary/translator → `validation.py` | CLI invokes one application service; the service coordinates independent format, provider, knowledge, checkpoint, policy, progress, and artifact ports |
-| Export review | `cli.py` → `epub_io.translate_epub` → `html_translate.py` collects ordered review segments → `review_export.write_review_csv` | Application/Review owns the export command and review-unit result; EPUB traversal and CSV serialization remain separate adapters |
-| Apply review | `cli.py` → `review_import.read_review_csv` → `epub_io.apply_reviewed_epub` → `html_translate.apply_reviewed_html` | Application/Review validates revisions and coordinates format reconstruction; CSV parsing and EPUB/HTML rewriting remain separate adapters |
-| Inspect, clean, export, or import cache | `cli.py` → `cache.py` → SQLite/JSON | Application/Knowledge exposes explicit query and mutation use cases; SQLite and JSON implement separate ports |
-| Resume interrupted translation | `cli.py` → `resume.py` → translation workflow and cache | Application/Jobs validates checkpoint and source identity, then invokes the same translation service rather than a second orchestration path |
+| Translate EPUB / batch | `cli.py` → `cli_composition` → `TranslateProject` / `TranslateBatch` e portas entregues | Serviços possuem execução, cancelamento e publicação; CLI projeta eventos e resultados |
+| Export review | `cli.py` → composição → `ExportReviewPackage` com o resultado exato da tradução | Reconstrução e publicação pertencem a Review e aos adaptadores D106 |
+| Apply review | `cli.py` → composição → `ValidateReviewPackage` / `ApplyReviewPackage` | Serviços validam revisões e publicam; v1 é recusado antes de inspecionar a origem |
+| Inspect, clean, export, or import cache | `cli.py` → composição → `cache_admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
+| Resume interrupted translation | `cli.py` → composição → `job_recovery` → mesmo `TranslateProject` | Inspeção somente leitura, decisões explícitas e continuidade durável; checkpoint legado preservado |
 
 No target seam changes the current result, output naming, ordering, cache/glossary
 semantics, or source immutability unless a later issue explicitly revises the
@@ -358,17 +379,32 @@ conditionals that belong to owned modules.
 
 ### CLI composition root
 
-The CLI root converts Typer values and confirmed user choices into application
-inputs, selects permitted local adapters, invokes a use case, and renders its
-result with Rich. Existing commands and exit behavior remain compatible while
-orchestration is replaced behind one command at a time.
+A entrada instalada `ayvu = ayvu.cli:app` permanece a mesma. `cli.py` converte
+argumentos e escolhas confirmadas em entradas dos serviços e apresenta seus
+resultados com Rich. `cli_composition.py` é a fronteira explícita que seleciona
+e constrói os adaptadores por fluxo; os módulos de composição das capacidades
+continuam reutilizáveis. A importação e `--help` não abrem stores nem constroem
+provedores. Cache-only não adquire provedor, segredo ou transporte; consultas
+abrem somente seus repositórios necessários. Não há service locator ou singleton.
 
-### Future Desktop composition root
+A [matriz compartilhada](shared-use-case-matrix.md) contém os donos finais,
+o inventário completo de helpers/fachadas, o SHA-base congelado e as regras de
+construção tardia. As [regras executáveis](dependency-boundary-enforcement.md)
+de #133 verificam também dependências transitivas e reexports da apresentação.
 
-A future Desktop root may build the same application services with Desktop
-presenters and event-loop adapters. It must not import the CLI, reuse Rich
-objects, or create a parallel EPUB/cache/provider core. No Desktop root or Qt
-dependency is introduced by this decision.
+### Desktop composition root
+
+The injectable Desktop root in `ayvu.desktop.bootstrap.composition` accepts
+factories and environment overrides to assemble a graph, returning a sanitized
+diagnostic on startup failure and closing acquired resources in reverse order.
+Its package separates views, viewmodels, Qt adapter concerns, resources, and
+platform concerns. It does not establish concrete adapters or a delivered
+workflow; the desktop entry point remains a placeholder. A Desktop root may
+build the same application services with Desktop presenters and event-loop
+adapters. It must not import the CLI, reuse Rich objects, or create a parallel
+EPUB/cache/provider core. This accepted decision itself introduced neither the
+Desktop root nor a Qt dependency; see the [desktop evaluation](adr-desktop-stack.md)
+for the implementation's scope and the proposed toolkit decision.
 
 ### Future local API composition root
 
@@ -504,7 +540,7 @@ its dependencies, and the compatibility baseline before changing code.
 
 ## Public evidence
 
-- [Proposed product threat model and privacy data flows](product-threat-model.md)
+- [Accepted product threat model and privacy data flows](product-threat-model.md)
 - [Product scope and capability taxonomy](../product-scope.md)
 - [Translation workflow migration baseline](../translation-workflow-migration-baseline.md)
 - [Shared application use-case matrix](shared-use-case-matrix.md)

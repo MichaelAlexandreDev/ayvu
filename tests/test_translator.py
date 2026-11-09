@@ -27,14 +27,16 @@ class FakeSession:
         self.gets: list[tuple[str, float]] = []
         self.posts: list[tuple[str, dict[str, str], float]] = []
 
-    def get(self, url: str, *, timeout: float) -> requests.Response:
+    def get(self, url: str, *, timeout: float, allow_redirects: bool = False) -> requests.Response:
+        assert allow_redirects is False
         self.gets.append((url, timeout))
         response = self.get_responses.pop(0)
         if isinstance(response, requests.exceptions.RequestException):
             raise response
         return response
 
-    def post(self, url: str, *, json: dict[str, str], timeout: float) -> requests.Response:
+    def post(self, url: str, *, json: dict[str, str], timeout: float, allow_redirects: bool = False) -> requests.Response:
+        assert allow_redirects is False
         self.posts.append((url, json, timeout))
         response = self.responses.pop(0)
         if isinstance(response, requests.exceptions.RequestException):
@@ -231,7 +233,8 @@ def test_libretranslate_reports_http_error() -> None:
     with pytest.raises(TranslatorError) as error:
         translator.translate("Hello", "en", "xx")
 
-    assert "LibreTranslate HTTP error 400: bad language pair" in str(error.value)
+    assert str(error.value) == "LibreTranslate HTTP error 400"
+    assert "bad language pair" not in str(error.value)
 
 
 def test_libretranslate_reports_invalid_json_response() -> None:
@@ -271,7 +274,8 @@ def test_libretranslate_reports_connection_error_after_retries(monkeypatch: pyte
     with pytest.raises(TranslatorError) as error:
         translator.translate("Hello", "en", "pt")
 
-    assert "Could not connect to LibreTranslate at http://localhost:5000/translate" in str(error.value)
+    assert "Could not connect to LibreTranslate." in str(error.value)
+    assert "http://localhost:5000" not in str(error.value)
     assert len(session.posts) == 2
     assert sleeps == [0.5]
 
@@ -347,7 +351,8 @@ def test_libretranslate_reports_languages_http_error() -> None:
     with pytest.raises(TranslatorError) as error:
         translator.list_languages()
 
-    assert "LibreTranslate HTTP error 500: broken" in str(error.value)
+    assert str(error.value) == "LibreTranslate HTTP error 500"
+    assert "broken" not in str(error.value)
 
 
 def _language(code: str, targets: tuple[str, ...]) -> TranslatorLanguage:

@@ -27,12 +27,66 @@ entries fail, so a rename cannot silently discard protection.
 | --- | --- | --- |
 | `ayvu` | Independent package surface | Package metadata |
 | `domain`, `chunking` | Domain | Shared values, Translation |
+| `project` | Domain | Project identity and immutable manifest values |
+| `project_service` | Application | Project repository port and resolution policy |
+| `project_store` | Infrastructure | Atomic local manifest storage and source fingerprinting |
+| `preferences` | Domain | Immutable v1 preference/profile values and validation |
+| `preferences_service` | Application | Shared get/update requests, outcomes and repository port |
+| `preferences_store` | Infrastructure | Bounded JSON, expected revisions and atomic publication |
+| `migration_contracts` | Domain | Content-free schema version plans, errors and outcomes |
+| `sqlite_migrations` | Infrastructure | SQLite bootstrap, verified backups and transactional migration runner |
+| `project_schema` | Infrastructure | Production migration registry and explicit job, artifact and provenance bootstrap |
+| `job` | Domain | Job values, transition table, lease rules and typed errors |
+| `job_service` | Application | `JobRepository` port and job snapshot |
+| `job_store` | Infrastructure | SQLite job adapter and job schema SQL |
+| `job_events` | Domain | Job events, outcomes, ordering rules and canonical serialization |
+| `job_execution` | Application | Event ports, bounded in-memory log and cooperative cancellation |
+| `legacy_resume` | Infrastructure | Read-only view of a legacy checkpoint |
+| `artifact` | Domain | Artifact identity, lifecycle, derived locations and reuse predicate |
+| `artifact_service` | Application | Artifact ports, publication order, reuse and reconciliation |
+| `artifact_store` | Infrastructure | SQLite artifact records and contained local payload files |
+| `content` | Domain | Content documents, translation units, deterministic identity and canonical serialization |
+| `provenance` | Domain | Lineage record values, explicit unknowns and canonical serialization |
+| `provenance_service` | Application | Provenance repository port and query results |
+| `provenance_store` | Infrastructure | Append-only SQLite lineage and bounded traversal |
 | `translation_memory` | Transitional domain | Knowledge/TM |
-| `preflight`, `library` | Transitional application | Translation, Library |
+| `library` | Transitional application | Legacy library compatibility |
+| `library_service` | Application | Library discovery and authorized open coordination |
+| `library_adapters` | Infrastructure | Local library scanning and reader launch |
+| `preflight` | Composition | Translation |
 | `cli`, `cli_progress` | Interface | CLI |
-| `epub_io`, `html_translate`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `cli_composition` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
+| `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
+| `config_values` | Domain | Valores de preferências e conversões da fachada v1 |
+| `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `translation_engine` | Application | One book through a format adapter and a unit executor |
+| `translate_project` | Application | One project's book as one durable job, from its ports |
+| `job_recovery` | Application | Listing, inspecting and resuming interrupted translations |
+| `job_recovery_store` | Infrastructure | The read-only evidence recovery decides from |
+| `translate_project_composition` | Composition | The current language work and validator behind those ports |
+| `artifact_destination` | Infrastructure | Publishing a job's output to the file the user chose |
 | `translator` | Provider adapter with transitional embedded port | Providers |
+| `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
+| `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |
+| `translation_pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
+| `translation_document` | Application | Rich document path: results, artifact, replay, events and provenance |
+| `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
+| `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
+| `format_adapter` | Domain | What a format claims, negotiation, and the values its operations exchange |
+| `format_service` | Application | Format ports, registry and the checks before any format does work |
+| `format_local` | Infrastructure | Local files as format sources, and the check that a destination is not the source |
+| `content_use_cases` | Application | Shared read-only inspect and visible-content export requests/results |
+| `markdown_writer` | Infrastructure | Safe Markdown planning and atomic per-file publication |
+| `content_composition` | Composition | Explicit format registry and local content workflow adapters |
+| `provider_network` | Domain | The network decision an operation must present, and its enforcement |
+| `provider_service` | Application | Provider and factory ports, registry and strict result checking |
+| `provider_discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
+| `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
+| `provider_composition` | Composition | Adaptador de montagem de provedor selecionado por `cli_composition` |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
+| `cache_admin` | Application | Typed cache administration use cases and ports |
+| `cache_admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
+| `cache_admin_composition` | Composition | Local cache administration adapters |
 | `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |
 
 Application imports domain/application contracts; domain imports domain APIs.
@@ -46,6 +100,24 @@ functional modules to prevent reexports from hiding concrete adapters.
 The layer matrix is an upper bound: it cannot authorize an import without an
 exact module edge in `ALLOWED_INTERNAL_EDGES`. An allowed edge cannot override a
 forbidden layer direction.
+
+Desde #158, a interface CLI pode importar funções nomeadas de
+`cli_composition`; essa é a única fronteira em que a travessia transitiva da
+apresentação para a infraestrutura termina. Os módulos de composição anteriores
+continuam implementando a montagem por capacidade, chamados por essa fronteira.
+A regra reutiliza `OWNERS`, `ALLOWED_INTERNAL_EDGES`, o resolvedor de imports e
+as regras externas de #133. Não há uma segunda lista de permissões arquiteturais.
+Reexports e imports transitivos de adaptadores concretos, SQLite, HTTP ou
+bibliotecas EPUB/HTML são rejeitados mesmo quando uma aresta intermediária tem
+exceção. Typer/Rich continuam válidos na apresentação e proibidos em aplicação/domínio.
+
+A apresentação não pode importar classes reexportadas pela composição nem
+esconder construção através de um alias de módulo. A composição não pode manter
+instâncias/mapeamentos mutáveis globais, usar `global`/`nonlocal`, decorar
+factories para cachear instâncias ou construir recursos em argumentos padrão.
+Testes de execução instrumentam também importação limpa, ajuda, transporte
+HTTP/DNS/socket, sessões de provedor e repositórios para verificar construção
+tardia e escopo. Isso complementa a análise estática, não cria um sandbox.
 
 External package roots are explicitly recognized without importing or requiring
 their installation. CLI presenters can import Typer/Rich; Desktop presenters
@@ -67,12 +139,21 @@ and observable expiry condition. Wildcards, incomplete entries, and exceptions
 that no longer waive a forbidden edge fail. Exceptions cannot waive unknown
 imports, syntax/read errors, cycles or missing ownership.
 
-The existing CLI edges expire as application use cases are extracted in #128,
-#145, #146, #149, #150, #152, #157 and composition is consolidated in #158.
-Preflight exceptions expire in #145. EPUB/HTML pipeline coupling expires in
-#143/#144, after #141 separates the provider contract from its HTTP adapter.
-Review coupling expires in #149. Fuzzy memory's exact-cache and vendor coupling
-expires in #161. Library configuration/process coupling expires in #151.
+As exceções de apresentação CLI para cache, projeto, configuração, formato,
+revisão, biblioteca, lote, glossário, provedor e composições por capacidade foram
+removidas em #158. A matriz compartilhada de #123 registra os serviços entregues
+pelas dependências, o inventário de helpers e a única fronteira de construção.
+`preflight` continua sendo composição: conecta os adaptadores entregues de
+formato, cache, glossário e provedor. Sua aresta para `provider_composition`
+permanece uma exceção exata de composição entre capacidades, sem caminho direto
+da apresentação até esse módulo. A numeração #158 nessa exceção identifica a
+consolidação responsável, não uma autorização para duplicar serviços.
+The coupling of the
+`html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
+EPUB pipeline coupling expires in #144, after #141 separates the
+provider contract from its HTTP adapter. `html_structure` has no such coupling.
+Legacy review projection coupling expires in #158. Fuzzy memory's exact-cache and vendor coupling
+expires in #161. The guided library flow uses `library_service` and `library_adapters`.
 The exact edge and condition for each of these are recorded individually in
 the test data; these references do not imply that those issues are completed.
 

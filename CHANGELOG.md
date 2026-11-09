@@ -9,6 +9,71 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- Pipeline rico de produção opcional por `translator_models.libretranslate` no
+  `config.json`, com modelo `declared:<rótulo>`, `DocumentTranslator` e cache exato
+  em arquivo irmão `<--cache>.v2.sqlite` (#252). O v1 fica intacto, sem promoção de
+  entradas. Trocar o modelo no servidor exige trocar o rótulo para evitar reutilização
+  de resultados antigos. Sem rótulo, dry run e preview conservam seus fluxos anteriores.
+- No runtime rico, falhas de provedor interrompem o livro sem publicar EPUB parcial,
+  preservando segmentos no cache para `resume`. Retomadas entre `legacy/v1` e
+  `rich/v2` são recusadas. Esta integração exige `--workers 1` e recusa memória
+  aproximada e cache-only (incluindo `--require-full-cache`) antes do provedor.
+
+- `--network-policy none|loopback` por execução, incluindo menus, idiomas, teste,
+  tradução/lote, preview e retomada. O padrão é HTTP loopback; `none` recusa antes
+  de DNS, sockets, sessão e payload. A escolha não é persistida (#159).
+
+- Contrato de perfis de tradução v1 por projeto, migração explícita dos perfis
+  globais, revisões imutáveis e snapshots persistentes. A projeção separa efeitos
+  no provedor bruto, pós-processamento, operação e metadados inertes para futuros
+  consumidores. A CLI, o pedido LibreTranslate e o cache de produção continuam
+  usando seus contratos atuais; `style` permanece informativo.
+
+### Alterado
+
+- O transporte LibreTranslate fixa os sockaddrs loopback validados, ignora
+  proxies/credenciais ambientes e `.netrc` e recusa todo redirect. URLs remotas,
+  HTTPS, authorities ambíguas e credenciais na URL agora retornam recusa tipada,
+  sem migração ou fallback. Erros HTTP/conexão omitem URL e corpo de resposta.
+  A biblioteca avisa que o leitor externo fica fora da garantia offline (#159).
+
+- O cache standalone dispõe de preparação e repositório exato v2 para o caminho
+  rico. A migração preserva as entradas v1 sem promovê-las a acertos v2. A CLI
+  administra namespaces explícitos e oferece importação v2 com mapa externo e
+  previsão; os comandos legados continuam disponíveis. Representações dos DTOs
+  legados de cache ocultam texto e caminho.
+- O catálogo guiado de glossários recusa links simbólicos e arquivos com múltiplos
+  links físicos, sinaliza arquivos inválidos ou grandes demais e limita arquivos,
+  entradas e texto. Salvar é atômico, e uma edição é recusada se o arquivo mudou
+  depois de aberto. Caminhos explícitos `--glossary` mantêm o carregador avançado
+  existente.
+
+- O comando `translate` aceita no máximo 100 EPUBs e recusa `--missing-output`
+  com múltiplos arquivos; em cache-only, o nome dos textos ausentes continua
+  automático por livro. Destinos duplicados são recusados antes do lote, e as
+  decisões de conflito do modo comum são coletadas antes do primeiro item.
+  A exaustão dos nomes automáticos falha apenas o item. Uma interrupção retorna
+  os resultados dos itens iniciados e não inicia o próximo; uma recusa anterior
+  à execução não exibe resumo vazio. Falha ao salvar o relatório falha o item,
+  preservando a informação de EPUB já publicado. Ainda há uma janela entre a
+  última verificação e a substituição ou criação exclusiva do arquivo.
+- A abertura de um EPUB da biblioteca revalida o arquivo antes de iniciar o leitor; um arquivo
+  substituído pede para abrir a biblioteca de novo. Itens ignorados, como pasta sem permissão ou
+  link para fora da pasta de livros, geram um aviso em vez de sumir em silêncio.
+  Interpretadores de comandos como `sh` não são aceitos em `Reader app`.
+- Inspecionar ou exportar cache ausente não cria o banco nem sua pasta; a
+  exportação continua produzindo JSON vazio. A limpeza verifica se a seleção
+  mudou antes de remover entradas e erros detalhados usam códigos sem conteúdo.
+  A exportação recusa substituir o próprio arquivo SQLite do cache.
+  Exportação e importação têm limite de 512 MiB e 1.000.000 de entradas; acima
+  disso, exporte em partes com `--source`, `--target` ou `--before`.
+
+### Adicionado
+
+- Extra opcional `desktop` com PySide6-Essentials e ponto de entrada reservado
+  `ayvu-desktop`; a interface será implementada em DESKTOP-010. A instalação
+  da CLI continua independente do Qt.
+
 - Modo comum guiado ao executar `uv run ayvu`.
 - Modo desenvolvedor direto e opcao global `--mode`.
 - Preview traduzido com `uv run ayvu --preview livro.epub`.
@@ -77,13 +142,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 - Opcao `--translate-alt-text` para traduzir o texto alternativo (`alt`) das
   imagens, preservando a imagem e demais atributos e contando os textos no
   relatorio. Leitura de texto dentro da imagem (OCR) fica fora do escopo.
-- Opcao `--review-output` para gerar CSV opcional com textos originais e
-  traduzidos lado a lado, IDs de capitulo/segmento e metadados de rastreio do
-  EPUB para revisao humana externa.
-- Comando `apply-review` para reconstruir um EPUB a partir de um CSV revisado,
-  validando que cada segmento ainda corresponde ao EPUB original, aplicando as
-  traducoes revisadas sem alterar o original e relatando trechos sem revisao,
-  ausentes, inconsistentes, duplicados ou de documentos desconhecidos.
+- Opcao `--review-output` para exportar um pacote v2 vinculado ao projeto,
+  à fonte, ao artefato traduzido e às unidades estáveis.
+- Comando `apply-review` com validação opcional `--validate-only` e publicação
+  reconciliável de um novo EPUB revisado, preservando a fonte e a tradução
+  automática.
 - Traducao em batch no comando `translate`, aceitando multiplos EPUBs,
   `--output-dir`, relatorios Markdown por livro e `--continue-on-error` para
   seguir processando apos falhas.
@@ -92,6 +155,54 @@ lancadas e secoes versionadas quando uma release for publicada.
   mudancas.
 
 ### Atualizado
+
+- `inspect` e `extract` agora usam os casos de uso compartilhados de inspeção e
+  exportação de texto visível pelo registry de formatos. A tabela, os nomes e o
+  Markdown continuam iguais; a inspeção é somente de leitura. `extract` valida
+  todos os destinos antes de escrever e publica cada arquivo atomicamente,
+  preservando arquivos sem relação. Se uma falha ocorrer após uma publicação, a
+  saída informa o número concluído e o restante. No modo desenvolvedor, o detalhe
+  que antes mostrava a exceção do parser agora mostra um código de motivo
+  normalizado, sem conteúdo do livro ou caminhos originados pelo parser.
+  `inspect` de livro protegido por DRM mostra só um aviso, sem os dados do livro, e
+  `extract` o recusa, como `translate` já fazia. Em `extract`, caracteres de nome de
+  capítulo inválidos em algum sistema (`c:h`, `c*h`) viram `_`, e nomes longos demais
+  são encurtados, para o texto de todo capítulo ser exportado. Pasta de saída
+  inválida gera mensagem própria em vez de falha não tratada.
+- `apply-review` aplica só as linhas marcadas como `reviewed`; as demais mantêm a
+  tradução automática e não são registradas como revisão humana. Editar uma linha sem
+  marcá-la, ou marcar uma como `rejected`, recusa o pacote.
+- O contrato de revisão ganhou o pacote v2 `ayvu.review_exchange`, limitado e
+  ligado a projeto, fonte, artefato de tradução, formato, locator e unidades
+  estáveis. CSV v1 agora é apenas para inspeção: `apply-review` recusa antes de
+  abrir o EPUB ou criar saída e informa `legacy_reexport_required`. O caso de uso
+  de aplicação agora exporta pacotes v2 de `TranslateProject`, valida sem efeitos
+  colaterais e aplica pelo protocolo de publicação/reconciliação D106. `apply-review`
+  aceita `--validate-only`; v1 continua exigindo reexportação. Veja
+  `docs/architecture/review-exchange.md` e `docs/architecture/review-application.md`.
+- `translate`, a tradução guiada e cada livro de um lote agora rodam pelo caso de
+  uso `TranslateProject`, como um job durável com um único resultado final. Prompts,
+  relatórios, nomes de saída e códigos de saída não mudam, salvo o que está abaixo.
+  Dry-run e preview continuam sem projeto. Veja
+  `docs/architecture/translate-project.md`.
+- `resume` e a oferta do modo guiado agora retomam pelo job da tradução interrompida,
+  com um novo job ligado a ele, sempre que o arquivo de estado corresponde a esse job.
+  Os prompts não mudam. Um arquivo antigo sem job correspondente segue pelo caminho
+  anterior. Passam a ser recusados: retomar uma tradução ainda viva em outro processo, e
+  um livro alterado que um projeto registrou. Antes, ambos rodavam em silêncio. Um arquivo
+  de estado que não é UTF-8 deixa de causar traceback. A retomada continua sendo uma
+  reexecução completa sobre o cache, sem reaproveitar etapas. Veja
+  `docs/architecture/job-recovery.md`.
+- Passam a ser recusados, com mensagem clara e em todos os modos, EPUBs com conteúdo
+  protegido, nomes internos inseguros, arquivos internos repetidos, entidades XML ou
+  além dos limites de tamanho e compressão. Antes eles eram traduzidos.
+- `mimetype` defeituoso agora é corrigido na saída.
+- `--fail-fast` agora termina com uma mensagem, e não com um traceback.
+- A saída não aparece mais durante a escrita: ela é publicada de uma vez no fim, e a
+  validação roda antes disso. Um `--overwrite` só troca o arquivo antigo no fim.
+- Um computador suspenso por mais de uma hora faz a tradução terminar com falha, sem
+  publicar nada. O que foi traduzido fica no cache.
+- A mesma tradução em dois processos ao mesmo tempo é recusada.
 
 - Traducao de HTML agora ocorre por bloco (paragrafos, titulos e itens de
   lista), substituindo tags internas como `em`, `strong` e links por
@@ -113,6 +224,22 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Corrigido
 
+- `--overwrite` com a saída igual ao original agora é recusado antes de qualquer
+  escrita. Antes o comando terminava com `BadZipFile`.
+
+- `--translate-metadata` e a aplicacao de uma revisao mudam so o texto do titulo no OPF.
+  Atributos como `opf:role`, declaracoes de namespace, comentarios e CDATA nao se perdem
+  mais, e o OPF fica identico byte a byte quando o titulo nao muda.
+- Um titulo com comentario, elemento ou entidade dentro fica sem traducao e aparece como erro
+  no relatorio, em vez de ser traduzido em parte.
+- Uma traducao de titulo com caractere invalido em XML nao gera mais um OPF invalido: na
+  traducao ela vira erro no relatorio, e ao aplicar uma revisao o comando falha sem gerar saida.
+- Atributos com prefixo em tags inline, como `epub:type` e `xlink:href`, nao perdem mais
+  o prefixo no EPUB traduzido.
+- Comentarios e instrucoes de processamento dentro de tags inline nao viram mais texto
+  visivel ao leitor.
+- Texto do livro parecido com um marcador interno (`__AYVU_TAG_0__`) nao e mais trocado por
+  marcacao.
 - Interrupcao com `Ctrl+C` mostra progresso parcial e orienta reutilizar o
   cache.
 - EPUB invalido em `inspect` e `extract` falha sem traceback.

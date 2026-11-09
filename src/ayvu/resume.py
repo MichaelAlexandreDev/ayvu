@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .cli_contracts import ResumeStateError
+
 import json
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
@@ -15,8 +17,6 @@ COMPLETED_STATUS = "completed"
 STATE_FILE_PATTERN = "*.ayvu-state.json"
 
 
-class ResumeStateError(ValueError):
-    pass
 
 
 @dataclass(frozen=True)
@@ -70,6 +70,10 @@ class TranslationResumeState:
     completed_chapters: tuple[str, ...] = ()
     failed_chapters: tuple[str, ...] = ()
     failed_segment_count: int = 0
+    # Part of the project's identity, and the only part this file did not hold. Old files have none.
+    profile_name: str | None = None
+    # Generic execution contract revision; the model label stays in configuration/provenance.
+    execution_revision: int = 1
 
     @classmethod
     def create(
@@ -87,6 +91,8 @@ class TranslationResumeState:
         requests_per_second: float | None = None,
         retry_backoff: float = 0.5,
         retry_backoff_max: float = 8.0,
+        profile_name: str | None = None,
+        execution_revision: int = 1,
     ) -> "TranslationResumeState":
         now = _utc_now()
         return cls(
@@ -124,6 +130,8 @@ class TranslationResumeState:
             requests_per_second=requests_per_second,
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
+            profile_name=profile_name,
+            execution_revision=execution_revision,
         )
 
     @classmethod
@@ -138,6 +146,9 @@ class TranslationResumeState:
         status = _required_text(data, "status")
         if status not in (RUNNING_STATUS, COMPLETED_STATUS):
             raise ResumeStateError(f"Unsupported resume state status: {status}.")
+        execution_revision = _optional_int_default(data, "execution_revision", default=1)
+        if not 1 <= execution_revision < 2**31:
+            raise ResumeStateError("Invalid execution revision.")
 
         return cls(
             version=version,
@@ -179,10 +190,14 @@ class TranslationResumeState:
             completed_chapters=_optional_str_tuple(data, "completed_chapters"),
             failed_chapters=_optional_str_tuple(data, "failed_chapters"),
             failed_segment_count=_optional_int_default(data, "failed_segment_count", default=0),
+            profile_name=_optional_text(data, "profile_name"),
+            execution_revision=execution_revision,
         )
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
+        if self.execution_revision == 1:
+            data.pop("execution_revision")
         for key in ("input_path", "output_path", "cache_path", "glossary_path"):
             value = data[key]
             data[key] = str(value) if value is not None else None
