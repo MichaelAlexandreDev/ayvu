@@ -391,6 +391,19 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.cli_composition", "ayvu.job_events"),
+    ('ayvu.translate_project_composition', 'ayvu.translation_plan'),
+    ('ayvu.translate_project_composition', 'ayvu.provider_capabilities'),
+    ('ayvu.translate_project_composition', 'ayvu.provider'),
+    ('ayvu.translate_project_composition', 'ayvu.html_structure'),
+    ('ayvu.translate_project_composition', 'ayvu.glossary'),
+    ('ayvu.translate_project_composition', 'ayvu.content'),
+    ('ayvu.translate_project_composition', 'ayvu.cache_schema'),
+    ('ayvu.translate_project_composition', 'ayvu.cache_repository'),
+    ('ayvu.preferences', 'ayvu.provenance'),
+    ('ayvu.translate_project_composition', 'ayvu.translation_document'),
+    ('ayvu.translate_project_composition', 'ayvu.provider_libretranslate'),
+
     ("ayvu.provider_network", "ayvu.network_policy"),
     ("ayvu.provider_discovery", "ayvu.network_policy"),
     ("ayvu.cli", "ayvu.network_policy"),

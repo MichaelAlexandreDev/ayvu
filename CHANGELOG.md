@@ -9,6 +9,16 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- Pipeline rico de produção opcional por `translator_models.libretranslate` no
+  `config.json`, com modelo `declared:<rótulo>`, `DocumentTranslator` e cache exato
+  em arquivo irmão `<--cache>.v2.sqlite` (#252). O v1 fica intacto, sem promoção de
+  entradas. Trocar o modelo no servidor exige trocar o rótulo para evitar reutilização
+  de resultados antigos. Sem rótulo, dry run e preview conservam seus fluxos anteriores.
+- No runtime rico, falhas de provedor interrompem o livro sem publicar EPUB parcial,
+  preservando segmentos no cache para `resume`. Retomadas entre `legacy/v1` e
+  `rich/v2` são recusadas. Esta integração exige `--workers 1` e recusa memória
+  aproximada e cache-only (incluindo `--require-full-cache`) antes do provedor.
+
 - `--network-policy none|loopback` por execução, incluindo menus, idiomas, teste,
   tradução/lote, preview e retomada. O padrão é HTTP loopback; `none` recusa antes
   de DNS, sockets, sessão e payload. A escolha não é persistida (#159).

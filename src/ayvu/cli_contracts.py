@@ -1,7 +1,7 @@
 """CLI workflow ports and content-free failures. No concrete adapter or UI imports."""
 from __future__ import annotations
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 from .domain import OutputPlan, TranslationOptions, TranslationMemoryOptions
@@ -200,6 +200,8 @@ class _BookRequest:
     batch_plan: AcceptedItem | None = None
     cancellation: object | None = None
     on_project_result: Callable[[TranslateProjectResult], None] | None = None
+    translator_name: str = "libretranslate"
+    translator_models: dict[str, str] = field(default_factory=dict, repr=False)
 
 
 @dataclass(frozen=True, repr=False)
@@ -212,4 +214,5 @@ class _BookOutcome:
     raised: Exception | None = None
     warning: str | None = None
     job_result: TranslateProjectResult | None = None
+    notices: tuple[str, ...] = ()
 

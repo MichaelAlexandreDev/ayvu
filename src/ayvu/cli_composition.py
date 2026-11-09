@@ -21,7 +21,9 @@ from .preflight import run_translation_preflight as _preflight
 from .resume import ResumeStateStore, TranslationResumeState
 from .translate_project import TranslateObserver
 from .translation_engine import EngineObserver
+from .job_events import JobWarning
 from .translate_project_composition import LegacyResources, ProjectTranslation
+from .translate_project_composition import selected_model
 
 
 def configuration_store() -> ConfigStore:
@@ -173,6 +175,8 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
             book.operation_id,
             book.batch_plan.publication_guard if book.batch_plan is not None else None,
             book.batch_plan,
+            selected_model(book.translator_models, book.translator_name),
+            book.cache_path,
         ),
         TranslateObserver(
             EngineObserver(hooks.on_chapter_start, hooks.on_chapter_done, hooks.on_text_processed),
@@ -185,16 +189,19 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
     if run.preflight_error is not None:
         raise run.preflight_error
     result = run.result
+    notices = tuple(dict.fromkeys(event.payload.code for event in result.events
+        if isinstance(event.payload, JobWarning) and event.payload.code not in ("validation_warnings", "validation_unavailable")))
     reason = None if result.outcome is None else result.outcome.summary.reason_code
     if run.report is None:
         code = reason if reason == "publication_uncommitted" else (result.failure.code if result.failure else "job_record_failed")
-        return _BookOutcome(failure=code, raised=result.raised, job_result=result)
+        return _BookOutcome(failure=code, raised=result.raised, job_result=result, notices=notices)
     warning = "job_record_failed" if not result.recorded else (reason if reason == "provenance_failed" else None)
     return _BookOutcome(
         report=run.report,
         validation=result.validation,
         warning=warning,
         job_result=result,
+        notices=notices,
     )
 
 
@@ -239,21 +246,25 @@ def translation_checkpoint():
 def prepare_translation(*, epub_path, options, cache_path, glossary_path, translator_name,
                         url, timeout, retries, requests_per_second, retry_backoff, retry_backoff_max,
                         output_path, overwrite, processing_dir, profile_name,
-                        preflight, save_checkpoint, on_route, on_ready, network_policy=None):
+                        preflight, save_checkpoint, on_route, on_ready, network_policy=None,
+                        translator_models=None, project_backed=False):
     """Wire predecessor preparation and the compatibility checkpoint at its original safe point."""
     check_book(epub_path)
+    rich = project_backed and selected_model(translator_models or {}, translator_name) is not None
+    # The rich runtime already prepared the sibling cache before entering this callback.
+    cache_options = {"cache_check": lambda _path: None} if rich else {}
     prepared = preflight(epub_path=epub_path, cache_path=cache_path, glossary_path=glossary_path,
         translator_name=translator_name, url=url, timeout=timeout, retries=retries,
         requests_per_second=requests_per_second, retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
         language_pair=options.language_pair, dry_run=options.dry_run, cache_only=options.cache_only,
-        network_policy=network_policy)
+        network_policy=network_policy, **cache_options)
     on_route(prepared.route)
     if not options.dry_run and not options.cache_only:
         save_checkpoint(epub_path=epub_path, output_path=output_path, cache_path=cache_path,
             translator_name=translator_name, url=url, glossary_path=glossary_path, options=options,
             overwrite=overwrite, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
             retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
-            processing_dir=processing_dir, profile_name=profile_name)
+            processing_dir=processing_dir, profile_name=profile_name, **({"execution_revision": 2} if rich else {}))
     on_ready()
     return prepared
 

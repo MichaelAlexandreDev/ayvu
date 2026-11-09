@@ -6,7 +6,7 @@ raises here, so a caller learns of it before any translator is asked anything.
 """
 from __future__ import annotations
 
-from .cli_contracts import BookRefused, TranslationDryRunCancelled, ProjectTranslationUnavailable
+from .cli_contracts import BookRefused, PreflightError, TranslationDryRunCancelled, ProjectTranslationUnavailable
 
 import sqlite3
 from collections.abc import Callable, Iterator
@@ -19,6 +19,9 @@ from typing import Protocol
 
 from .artifact import ArtifactError
 from .artifact_destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
+from .cache_repository import SQLiteExactCache
+from .cache_schema import CacheSchemaError, SchemaState, classify_cache
+from .content import ContentDocument, TranslationUnit
 from .domain import OutputPlan, TranslationOptions
 from .epub_format import EPUB_REGISTRATION, epub_format_adapter
 from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB path
@@ -31,6 +34,8 @@ from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB p
 )
 from .format_local import LocalFormatSource
 from .format_service import FormatRegistry, FormatService
+from .glossary import apply_glossary_with_usage
+from .html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
 from .job import JobError, JobState
 from .job_events import JobFailure, JobFailureFamily
 from .job_execution import CancellationSource
@@ -40,7 +45,10 @@ from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_pac
 from .project import ProjectError
 from .project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from .project_store import ProjectJsonRepository
-from .provenance import ProvenanceError
+from .provenance import ProvenanceError, declared_model
+from .provider import ProviderRoute
+from .provider_capabilities import Capability, ProviderRequirements
+from .provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
 from .resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
     ResumeStateError,
@@ -58,12 +66,19 @@ from .translate_project import (
     TranslateProjectPorts,
     TranslateProjectResult,
     TranslateCommandError,
+    TranslationRuntime,
+    RuntimeContext,
 )
-from .translation_engine import BookFacts, TranslationResources
+from .translation_engine import (
+    ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, TranslationResources, UnitExecution,
+)
+from .translation_document import (
+    SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
+)
 from .translation_memory import TranslationMemory
-from .translator import TranslatorError
+from .translation_plan import resolve_plan as resolve_translation_plan
+from .translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
 from .validation import ValidationResult, validate_output_epub
-
 
 # What the adapter refuses by policy, on any path. A book it merely cannot read is left to the current checks.
 BOOK_REFUSALS = frozenset({
@@ -133,7 +148,7 @@ class LegacyTranslationRuntime:
         return read_package(self._source_path).facts
 
     @contextmanager
-    def resources(self) -> Iterator[TranslationResources]:
+    def resources(self, context: RuntimeContext | None = None) -> Iterator[TranslationResources]:
         prepared, options = self._prepared, self._options
         pool = None
         if options.workers > 1:
@@ -240,7 +255,7 @@ def interrupted_translations(recovery: JobRecovery) -> InterruptedTranslations:
 
 
 def open_translate_project(processing_dir: Path, project_id: str, source_path: Path, destination: Path, *, overwrite: bool,
-                           runtime: LegacyTranslationRuntime, clock: Callable[[], datetime] = _utc_now,
+                           runtime: TranslationRuntime, clock: Callable[[], datetime] = _utc_now,
                            ops: DestinationFileOps | None = None, before_publish: Callable[[], None] | None = None,
                            **tuning: object) -> TranslateProject:
     """``tuning`` is the optional new_id and lease timing of the use case. ``ops`` lets a test break the file system."""
@@ -252,8 +267,15 @@ def open_translate_project(processing_dir: Path, project_id: str, source_path: P
     jobs = open_job_repository(paths.database, paths.backups, project_id, clock=clock)
     artifacts = open_artifact_service(paths.database, paths.backups, root, project_id, payloads=payloads, clock=clock)
     provenance = open_provenance_repository(paths.database, paths.backups, project_id, clock=clock)
+    def recorded_producer(job):
+        if job.request.command_version == 1:
+            return None
+        nodes = provenance.list_by_job(job.job_id, limit=1).nodes
+        return nodes[0].record.request.producer if nodes else None
+    safe_points = DOCUMENT_SAFE_POINTS if isinstance(runtime, RichTranslationRuntime) else ()
     ports = TranslateProjectPorts(projects, jobs, provenance, epub_format_service(), DestinationPublications(artifacts, payloads, destination),
-                                  LegacyOutputValidator(destination), LocalFormatSource(source_path), runtime, projects.run_guard(project_id))
+                                  LegacyOutputValidator(destination), LocalFormatSource(source_path), runtime, projects.run_guard(project_id),
+                                  runtime_safe_points=safe_points, recorded_producer=recorded_producer)
     return TranslateProject(ports, clock=clock, **tuning)
 
 
@@ -312,6 +334,8 @@ class ProjectTranslation:
     operation_id: str | None = None
     before_publish: Callable[[], None] | None = None
     accepted_output: AcceptedOutputPlan | None = None
+    model_label: str | None = None
+    cache_path: Path | None = None
 
     def __repr__(self) -> str:
         return f"ProjectTranslation(project_id={self.project_id!r})"
@@ -334,9 +358,18 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
     if translation.accepted_output is not None and translation.output != translation.accepted_output.output:
         raise TranslateCommandError("output_plan_mismatch")
     runtime = LegacyTranslationRuntime(translation.source_path, translation.options, translation.prepare, translation.cache_factory)
+    execution = {}
     destination = translation.output.path
     overwrite = translation.accepted_output.overwrite if translation.accepted_output is not None else translation.replace_existing
     try:
+        if translation.model_label is not None:
+            projects = ProjectJsonRepository(translation.processing_dir)
+            paths = projects.resolve_database_paths(translation.project_id)
+            runtime = RichTranslationRuntime(translation.source_path, translation.options, translation.prepare,
+                translation.cache_path, translation.model_label, paths.database, paths.backups,
+                projects.resolve_artifact_root(translation.project_id), translation.project_id)
+            execution = {"execution_revision": 2, "producer": runtime.producer,
+                         "additional_output_roles": (RAW_RESULTS_ROLE,)}
         guard = translation.accepted_output.publication_guard if translation.accepted_output is not None else translation.before_publish
         publication_options = {} if guard is None else {"before_publish": guard}
         use_case = open_translate_project(translation.processing_dir, translation.project_id, translation.source_path, destination,
@@ -352,7 +385,7 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
     with binding as source:
         result = use_case.execute(TranslateProjectCommand(translation.project_id, translation.source_sha256, translation.options, planned,
                                                       overwrite=overwrite, operation_id=translation.operation_id,
-                                                      accepted_output=translation.accepted_output),
+                                                      accepted_output=translation.accepted_output, **execution),
                               observer=observer,
                               continuation=translation.continuation, cancellation=source)
     engine = result.engine
@@ -360,3 +393,144 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
                            and runtime.preflight_error is None and result.state not in (JobState.FAILED, JobState.CANCELLED))
     report = runtime.report(result, destination) if ended_with_a_report else None
     return ProjectTranslationRun(result, report, runtime.preflight_error)
+
+
+def selected_model(models: dict[str, str], translator_name: str) -> str | None:
+    """Selection belongs here, never in the presenter, engine or domain."""
+    name = translator_name.strip().lower()
+    if name not in models:
+        return None
+    label = models[name]
+    declared_model(label)
+    return label
+
+
+def v2_cache_path(legacy: Path) -> Path:
+    """Append, rather than replace a suffix: cache.sqlite -> cache.sqlite.v2.sqlite."""
+    return legacy.with_name(legacy.name + ".v2.sqlite")
+
+
+def check_rich_options(options: TranslationOptions) -> None:
+    if options.workers != 1:
+        raise PreflightError("O runtime rich/v2 requer --workers 1.", "Use --workers 1 ou remova o rótulo do modelo da configuração.")
+    if options.translation_memory is not None:
+        raise PreflightError("--translation-memory não está disponível no runtime rich/v2.", "Remova --translation-memory; a integração depende da issue #162.")
+    if options.cache_only or options.require_full_cache:
+        raise PreflightError("--cache-only e --require-full-cache não estão disponíveis no runtime rich/v2.",
+                             "Remova essas opções ou remova o rótulo do modelo para usar o cache legado v1.")
+
+
+class _DocumentExecutor:
+    def __init__(self, translator: DocumentTranslator, context: RuntimeContext) -> None:
+        self._translator, self._context = translator, context
+        self._executions: dict[str, UnitExecution] = {}
+        self._documents = 0
+
+    def __repr__(self) -> str:
+        return "DocumentExecutor()"
+
+    def prepare_document(self, document: ContentDocument) -> None:
+        self._documents += 1
+        context = self._context
+        job = context.current_job() if context.current_job is not None else context.job
+        result = self._translator.translate(document, ExecutionContext(
+            job, context.job.lease.owner_token, context.cancellation,
+            progress_phase=f"document_{self._documents}"), replay_raw_results=False)
+        executions = {}
+        for unit, translated in zip(document.units, result.units, strict=True):
+            template = html_unit_template(unit)
+            tokenized = translated.tokenized_text
+            if tokenized is None:
+                raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "missing_tokenized_result"))
+            status = (STATUS_CACHE if translated.source is UnitSource.EXACT_CACHE else
+                      STATUS_MISSING if translated.source is UnitSource.CACHE_ONLY_MISSING else STATUS_TRANSLATED)
+            kind = unit.content.kind.name
+            if kind == METADATA_KIND:
+                if without_xml_invalid(tokenized) != tokenized:
+                    raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "invalid_title_result"))
+                rebuilt = tokenized
+            else:
+                rebuilt = without_xml_invalid(tokenized) if kind == ALT_TEXT_KIND else normalize_translated_text(tokenized)
+            executions[unit.unit_id] = UnitExecution(rebuilt, status, template, translated.text,
+                                                     glossary_usage=translated.glossary_usage)
+        self._executions = executions
+
+    def execute(self, unit: TranslationUnit) -> UnitExecution:
+        return self._executions[unit.unit_id]
+
+    def untranslated(self, unit: TranslationUnit) -> str:
+        return html_unit_template(unit)
+
+
+class RichTranslationRuntime:
+    """Only the composition knows the concrete repositories and LibreTranslate adapter."""
+    def __init__(self, source_path, options, prepare, cache_path, label, database, backups, artifact_root, project_id,
+                 *, clock=lambda: datetime.now(UTC)) -> None:
+        self._source_path, self._options, self._prepare = source_path, options, prepare
+        self._cache_path = v2_cache_path(cache_path)
+        self._database, self._backups, self._artifact_root = database, backups, artifact_root
+        self._project_id, self._clock = project_id, clock
+        self.producer = replace(LIBRETRANSLATE_PRODUCER, model=declared_model(label))
+        self.preflight_error = None
+        self._prepared = None
+        self._cache = None
+
+    def __repr__(self) -> str:
+        return "RichTranslationRuntime()"
+
+    def preflight(self) -> JobFailure | None:
+        try:
+            check_rich_options(self._options)
+            # Do not promote even a v1 database accidentally placed at the sibling name.
+            if classify_cache(self._cache_path) not in (SchemaState.ABSENT, SchemaState.EMPTY, SchemaState.V2):
+                raise CacheSchemaError("cache_foreign")
+            # Constructor calls prepare_cache, synchronously, before preparation can reach /languages.
+            self._cache = SQLiteExactCache(self._cache_path)
+            self._prepared = self._prepare()
+        except BookRefused as error:
+            self.preflight_error = error
+            return JobFailure(JobFailureFamily.INPUT, error.code)
+        except CacheSchemaError as error:
+            self.preflight_error = PreflightError("Não foi possível preparar o cache v2.",
+                "Verifique o arquivo irmão de --cache e as permissões do sistema de arquivos.", detail=error.code)
+            return JobFailure(JobFailureFamily.RESOURCE, error.code)
+        except Exception as error:
+            # Existing presentation exceptions have their established wording; cache errors above are codes only.
+            self.preflight_error = error
+            return JobFailure(JobFailureFamily.RESOURCE, "preflight_failed")
+        return None
+
+    def facts(self):
+        return read_package(self._source_path).facts
+
+    @contextmanager
+    def resources(self, context: RuntimeContext):
+        prepared, options = self._prepared, self._options
+        translator = prepared.translator
+        base = translator._base if isinstance(translator, RoutedTranslator) else translator
+        route = translator.route if isinstance(translator, RoutedTranslator) else None
+        plan = resolve_translation_plan(libretranslate_snapshot(base, self._clock()),
+            ProviderRequirements((Capability.PLAIN_TEXT_INPUT, Capability.PLAIN_TEXT_OUTPUT)), self.producer,
+            ProviderRoute(options.source, options.target, None if route is None else route.intermediate),
+            chunk_limit=options.chunk_limit)
+        artifacts = open_artifact_service(self._database, self._backups, self._artifact_root, self._project_id, clock=self._clock)
+        provenance = open_provenance_repository(self._database, self._backups, self._project_id, clock=self._clock)
+        provider = LibreTranslateProvider(translator, producer=self.producer, clock=self._clock,
+            cleanup=base.close if isinstance(base, LibreTranslateTranslator) else None)
+        document_translator = DocumentTranslator(plan, provider,
+            lambda text: apply_glossary_with_usage(text, prepared.glossary), artifacts, provenance, context.events,
+            exact_cache=self._cache, clock=self._clock)
+        executor = _DocumentExecutor(document_translator, context)
+        try:
+            yield TranslationResources(executor, prepare_document=executor.prepare_document)
+        finally:
+            provider.close()
+
+    def classify(self, error: Exception) -> JobFailure:
+        if isinstance(error, TranslationExecutionError):
+            return error.failure
+        return JobFailure(JobFailureFamily.INTERNAL, "rich_translation_failed")
+
+    def report(self, result, destination):
+        return to_report(result.engine, self._source_path, destination, read_package(self._source_path),
+                         self._options, None if self._prepared is None else self._prepared.glossary)
