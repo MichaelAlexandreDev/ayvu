@@ -69,3 +69,8 @@ class TranslationMemory:
             score=score,
             applied=self._options.applies(score),
         )
+
+
+def similarity_score(left: str, right: str) -> float:
+    """Deterministic Unicode Indel similarity; normalization is the caller's policy."""
+    return fuzz.ratio(left, right) / 100.0

@@ -62,6 +62,8 @@ class TranslationResumeState:
     translation_memory_apply_threshold: float | None = None
     translation_memory_suggest_threshold: float | None = None
     translation_memory_max_candidates: int | None = None
+    translation_memory_conservative_auto_apply: bool = False
+    translation_memory_legacy_cache_compatibility: bool = False
     requests_per_second: float | None = None
     retry_backoff: float = 0.5
     retry_backoff_max: float = 8.0
@@ -118,6 +120,8 @@ class TranslationResumeState:
             created_at=now,
             updated_at=now,
             translation_memory_enabled=options.translation_memory is not None,
+            translation_memory_conservative_auto_apply=bool(options.translation_memory and options.translation_memory.conservative_auto_apply),
+            translation_memory_legacy_cache_compatibility=bool(options.translation_memory and options.translation_memory.legacy_cache_compatibility),
             translation_memory_apply_threshold=(
                 options.translation_memory.apply_threshold if options.translation_memory else None
             ),
@@ -173,6 +177,8 @@ class TranslationResumeState:
             created_at=_required_text(data, "created_at"),
             updated_at=_required_text(data, "updated_at"),
             translation_memory_enabled=_optional_bool(data, "translation_memory_enabled", default=False),
+            translation_memory_conservative_auto_apply=_optional_bool(data, "translation_memory_conservative_auto_apply", default=False),
+            translation_memory_legacy_cache_compatibility=_optional_bool(data, "translation_memory_legacy_cache_compatibility", default=False),
             translation_memory_apply_threshold=_optional_number_or_none(
                 data, "translation_memory_apply_threshold"
             ),
@@ -198,6 +204,9 @@ class TranslationResumeState:
         data = asdict(self)
         if self.execution_revision == 1:
             data.pop("execution_revision")
+        for selector in ("translation_memory_conservative_auto_apply", "translation_memory_legacy_cache_compatibility"):
+            if not data[selector]:
+                data.pop(selector)
         for key in ("input_path", "output_path", "cache_path", "glossary_path"):
             value = data[key]
             data[key] = str(value) if value is not None else None
@@ -214,6 +223,8 @@ class TranslationResumeState:
             apply_threshold=apply_threshold if apply_threshold is not None else defaults.apply_threshold,
             suggest_threshold=suggest_threshold if suggest_threshold is not None else defaults.suggest_threshold,
             max_candidates=max_candidates if max_candidates is not None else defaults.max_candidates,
+            conservative_auto_apply=self.translation_memory_conservative_auto_apply,
+            legacy_cache_compatibility=self.translation_memory_legacy_cache_compatibility,
         )
 
     def mark_completed(self) -> "TranslationResumeState":

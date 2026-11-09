@@ -17,6 +17,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
+from .approved_memory import MemoryScope, ScopeKind
+from .approved_memory_store import open_approved_memory
+from .memory_retrieval import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
 from .artifact import ArtifactError
 from .artifact_destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
 from .cache_repository import SQLiteExactCache
@@ -34,7 +37,7 @@ from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB p
 )
 from .format_local import LocalFormatSource
 from .format_service import FormatRegistry, FormatService
-from .glossary import apply_glossary_with_usage
+from .glossary import apply_glossary_with_usage, effective_glossary_reference
 from .html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
 from .job import JobError, JobState
 from .job_events import JobFailure, JobFailureFamily
@@ -70,7 +73,7 @@ from .translate_project import (
     RuntimeContext,
 )
 from .translation_engine import (
-    ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, TranslationResources, UnitExecution,
+    ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, TranslationResources, UnitExecution,
 )
 from .translation_document import (
     SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
@@ -134,6 +137,10 @@ class LegacyTranslationRuntime:
 
     def preflight(self) -> JobFailure | None:
         try:
+            memory_options = self._options.translation_memory
+            if memory_options is not None and (memory_options.conservative_auto_apply or memory_options.legacy_cache_compatibility):
+                raise PreflightError("Essas opções de política requerem o runtime rich/v2.",
+                    "Configure translator_models.libretranslate com um rótulo de modelo antes de usá-las.")
             self._prepared = self._prepare()
             _validate_worker_options(self._options, translator_factory=self._prepared.translator_factory, cache_factory=self._cache_factory)
         except BookRefused as error:
@@ -410,11 +417,22 @@ def v2_cache_path(legacy: Path) -> Path:
     return legacy.with_name(legacy.name + ".v2.sqlite")
 
 
+def memory_policy(options) -> RetrievalPolicy:
+    try:
+        return RetrievalPolicy(fuzzy_auto_apply=options.conservative_auto_apply,
+            suggest_threshold=options.suggest_threshold,
+            apply_threshold=options.apply_threshold if options.conservative_auto_apply else max(0.98, options.apply_threshold),
+            legacy_cache_enabled=options.legacy_cache_compatibility)
+    except ValueError:
+        raise PreflightError("Política de memória inválida no runtime rich/v2.",
+            "Use --tm-apply-threshold 0.98 ou maior com --tm-conservative-auto-apply; fuzzy é sugestão por padrão.") from None
+
+
 def check_rich_options(options: TranslationOptions) -> None:
     if options.workers != 1:
         raise PreflightError("O runtime rich/v2 requer --workers 1.", "Use --workers 1 ou remova o rótulo do modelo da configuração.")
     if options.translation_memory is not None:
-        raise PreflightError("--translation-memory não está disponível no runtime rich/v2.", "Remova --translation-memory; a integração depende da issue #162.")
+        memory_policy(options.translation_memory)
     if options.cache_only or options.require_full_cache:
         raise PreflightError("--cache-only e --require-full-cache não estão disponíveis no runtime rich/v2.",
                              "Remova essas opções ou remova o rótulo do modelo para usar o cache legado v1.")
@@ -443,6 +461,7 @@ class _DocumentExecutor:
             if tokenized is None:
                 raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "missing_tokenized_result"))
             status = (STATUS_CACHE if translated.source is UnitSource.EXACT_CACHE else
+                      STATUS_MEMORY if translated.source in (UnitSource.APPROVED_MEMORY, UnitSource.APPLIED_MEMORY) else
                       STATUS_MISSING if translated.source is UnitSource.CACHE_ONLY_MISSING else STATUS_TRANSLATED)
             kind = unit.content.kind.name
             if kind == METADATA_KIND:
@@ -452,7 +471,8 @@ class _DocumentExecutor:
             else:
                 rebuilt = without_xml_invalid(tokenized) if kind == ALT_TEXT_KIND else normalize_translated_text(tokenized)
             executions[unit.unit_id] = UnitExecution(rebuilt, status, template, translated.text,
-                                                     glossary_usage=translated.glossary_usage)
+                memory_suggestion=None if not translated.retrieval_suggestions else translated.retrieval_suggestions[0].source_snippet,
+                glossary_usage=translated.glossary_usage)
         self._executions = executions
 
     def execute(self, unit: TranslationUnit) -> UnitExecution:
@@ -512,14 +532,24 @@ class RichTranslationRuntime:
         plan = resolve_translation_plan(libretranslate_snapshot(base, self._clock()),
             ProviderRequirements((Capability.PLAIN_TEXT_INPUT, Capability.PLAIN_TEXT_OUTPUT)), self.producer,
             ProviderRoute(options.source, options.target, None if route is None else route.intermediate),
-            chunk_limit=options.chunk_limit)
+            chunk_limit=options.chunk_limit, glossary_ref=effective_glossary_reference(prepared.glossary))
         artifacts = open_artifact_service(self._database, self._backups, self._artifact_root, self._project_id, clock=self._clock)
         provenance = open_provenance_repository(self._database, self._backups, self._project_id, clock=self._clock)
         provider = LibreTranslateProvider(translator, producer=self.producer, clock=self._clock,
             cleanup=base.close if isinstance(base, LibreTranslateTranslator) else None)
+        retrieval, legacy, policy = None, None, RetrievalPolicy()
+        if options.translation_memory is not None:
+            policy = memory_policy(options.translation_memory)
+            scope = MemoryScope(ScopeKind.PROJECT, self._project_id)
+            repository = open_approved_memory(self._database.parent, allowed_scopes=frozenset({scope}),
+                provenance={self._project_id: provenance})
+            retrieval = MemoryRetrieval(repository, policy)
+            if policy.legacy_cache_enabled:
+                legacy = LegacyCacheCompatibility(self._cache, policy,
+                    apply_threshold=options.translation_memory.apply_threshold)
         document_translator = DocumentTranslator(plan, provider,
             lambda text: apply_glossary_with_usage(text, prepared.glossary), artifacts, provenance, context.events,
-            exact_cache=self._cache, clock=self._clock)
+            exact_cache=self._cache, approved_memory=retrieval, memory=legacy, retrieval_policy=policy, clock=self._clock)
         executor = _DocumentExecutor(document_translator, context)
         try:
             yield TranslationResources(executor, prepare_document=executor.prepare_document)

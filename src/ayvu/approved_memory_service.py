@@ -1,10 +1,11 @@
-"""Application port and explicit governed-memory commands; no pipeline bridge."""
+"""Application port and explicit governed-memory commands."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Protocol
 
 from .approved_memory import (
+    MemoryQuery,
     Candidate, MemoryEvent, MemoryPage, MemoryRevision, MemoryScope, MemorySource, MemoryState, TargetValue,
 )
 from .domain import LanguagePair
@@ -45,6 +46,7 @@ class ApprovedMemoryRepository(Protocol):
     transitions. Derivations fork history without modifying the parent value.
     """
 
+    def retrieve(self, query: MemoryQuery) -> tuple[MemoryRevision, ...]: ...
     def create(self, command: CreateCandidate) -> MemoryRevision: ...
     def derive(self, command: DeriveRevision) -> MemoryRevision: ...
     def review(self, command: ReviewRevision) -> MemoryRevision: ...

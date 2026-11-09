@@ -799,8 +799,8 @@ uv run ayvu translate livro.epub \
   --tm-suggest-threshold 0.80
 ```
 
-A memória usa os mesmos pares original/traduzido já guardados no cache SQLite, em
-disco. Para cada trecho novo sem correspondência exata, o Ayvu busca candidatos
+Sem `translator_models.libretranslate`, a memória mantém o comportamento legado
+e usa os mesmos pares original/traduzido já guardados no cache SQLite, em disco. Para cada trecho novo sem correspondência exata, o Ayvu busca candidatos
 parecidos do mesmo par de idiomas e mede a similaridade. O comportamento é em
 camadas, controlado por dois limiares de similaridade (entre 0 e 1):
 
@@ -898,11 +898,41 @@ O rótulo aparece nos dados operacionais de proveniência e identidade do cache;
 eventos, relatório de terminal ou checkpoint. Não coloque dados pessoais no rótulo.
 O checkpoint rico registra apenas a revisão de execução, para vincular a retomada ao job.
 
-Nesta primeira integração, `rich/v2` recusa `--workers` diferente de `1`,
-`--translation-memory`, `--cache-only` e `--require-full-cache`, com mensagem antes de
-qualquer chamada ao tradutor. A resolução offline atual não fixa a identidade de execução
+`rich/v2` recusa `--workers` diferente de `1`, `--cache-only` e
+`--require-full-cache`, com mensagem antes de qualquer chamada ao tradutor. A resolução offline atual não fixa a identidade de execução
 e a rota necessárias para oferecer cache-only rico com segurança. Para usar esses recursos
 do modo legado, remova `translator_models.libretranslate` da configuração.
+
+Com o rótulo configurado, `--translation-memory` seleciona o repositório governado
+`approved-memory.sqlite` do projeto (#162). O padrão continua desligado. A ordem é:
+cache v2 exato → memória aprovada exata → memória aprovada aproximada → compatibilidade
+legada explicitamente habilitada → provedor. Só revisões atuais `approved` entram;
+automação nunca aprova nem torna valores elegíveis para datasets.
+
+A aplicação automática exata exige as mesmas revisões de pipeline, perfil e glossário,
+placeholders compatíveis e estrutura de origem verificável no documento carregado.
+Resultados de outros documentos são sugestões. Tags inline ficam no fluxo normal.
+Correspondências fuzzy são sugestões por padrão, inclusive acima de `0.95`.
+Para selecionar a política conservadora de aplicação fuzzy, execute:
+
+```bash
+uv run ayvu translate livro.epub --translation-memory \
+  --tm-conservative-auto-apply --tm-apply-threshold 0.98
+```
+
+A compatibilidade com candidatos do cache exige, separadamente,
+`--translation-memory --tm-legacy-cache-compatibility`. Esses candidatos permanecem
+`machine_candidate`, sem revisão. Só valores v2 com identidade e estágio conhecidos
+são aceitos; linhas v1 não têm esses metadados e são excluídas. A mera presença do
+arquivo antigo ou o uso anterior de `--translation-memory` não habilita essa política.
+Os dois novos seletores requerem o rótulo de modelo e `--translation-memory`.
+
+O CLI informa `memory_review_suggestions` e conta sugestões e textos de memória no
+relatório existente. A consulta de concordância é uma API de aplicação para chamadores
+autorizados; não há editor ou consumidor Desktop novo. Para criar/aprovar revisões,
+use os casos de uso explícitos de #161, documentados em
+[Memória aprovada](docs/architecture/approved-translation-memory.md); o CLI de tradução
+não cria essas revisões. Limpar o cache não apaga a memória aprovada.
 
 Uma falha do provedor para o runtime rico na primeira ocorrência e não publica EPUB parcial.
 Os segmentos concluídos ficam em v2; corrija o problema e execute `uv run ayvu resume livro.epub`.

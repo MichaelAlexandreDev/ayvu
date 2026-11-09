@@ -139,7 +139,6 @@ def runtime(tmp_path, *, options=None, prepare=None, label="local-v1"):
 
 
 @pytest.mark.parametrize("changes,message", [({"workers": 2}, "--workers 1"),
-    ({"translation_memory": TranslationMemoryOptions()}, "--translation-memory"),
     ({"cache_only": True}, "--cache-only"), ({"require_full_cache": True}, "--require-full-cache")])
 def test_each_unsupported_option_is_the_actual_gate_before_cache_and_provider(tmp_path, changes, message):
     calls = []
@@ -544,3 +543,23 @@ def test_rich_checkpoint_associates_with_the_recorded_job_without_current_config
         assert entries and not any(entry.resumable for entry in entries)
         assert not any(entry.compatibility is CompatibilityStatus.LEGACY_ONLY for entry in entries)
     assert path.read_bytes() == checkpoint_bytes
+
+
+
+def test_translation_memory_is_supported_by_real_rich_preflight_without_v1(tmp_path):
+    calls = []
+    subject = runtime(tmp_path, options=TranslationOptions(language_pair=PAIR, translation_memory=TranslationMemoryOptions()),
+        prepare=lambda: (calls.append('prepare'), composition.LegacyResources(None))[1])
+    assert subject.preflight() is None and calls == ['prepare']
+    assert composition.v2_cache_path(tmp_path / 'cache.sqlite').exists()
+    assert not (tmp_path / 'cache.sqlite').exists()
+
+
+def test_strict_tm_policy_is_the_actual_preflight_gate_before_cache_or_provider(tmp_path):
+    calls = []
+    subject = runtime(tmp_path, options=TranslationOptions(language_pair=PAIR,
+        translation_memory=TranslationMemoryOptions(conservative_auto_apply=True, apply_threshold=0.95)),
+        prepare=lambda: calls.append('provider'))
+    assert subject.preflight().code == 'preflight_failed'
+    assert '0.98' in subject.preflight_error.next_step
+    assert calls == [] and not composition.v2_cache_path(tmp_path / 'cache.sqlite').exists()

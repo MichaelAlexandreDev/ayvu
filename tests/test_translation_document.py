@@ -35,6 +35,7 @@ from ayvu.translation_document import (
     TranslationExecutionError, UnitSource,
 )
 from ayvu.translation_memory import TranslationMemoryMatch
+from ayvu.memory_retrieval import RetrievalPolicy
 from ayvu.cache_identity import (
     CacheCompatibilityIdentity,
     CacheAuthorizationPolicy,
@@ -409,16 +410,17 @@ class PlanMemory:
 def test_applied_memory_skips_the_provider_and_is_recorded_as_unknown_producer(env):
     memory = PlanMemory(TranslationMemoryMatch('Good night', 'Boa noite', 0.99, True))
     provider = Provider()
-    result = env.translate(document(cue('a', 'Good night', 1)), provider, translator_options={'memory': memory})
+    result = env.translate(document(cue('a', 'Good night', 1)), provider, translator_options={'memory': memory, 'retrieval_policy': RetrievalPolicy(legacy_cache_enabled=True)})
     assert provider.requests == [] and result.units[0].source is UnitSource.APPLIED_MEMORY and result.units[0].text == 'BOA NOITE'
     assert [query.semantic_fingerprint for query in memory.calls] == [plan().semantic_fingerprint]
-    record = next(node.record for node in env.records() if node.record.request.source_kind is SourceKind.TRANSLATION_MEMORY)
+    record = next(node.record for node in env.records() if node.record.request.operation == 'reuse_legacy_cache')
+    assert record.request.source_kind is SourceKind.CACHE
     assert record.request.producer.provider == UNKNOWN and not record.request.producer.fully_identified
 
 
 def test_a_memory_suggestion_is_distinct_from_applied_memory(env):
     memory = PlanMemory(TranslationMemoryMatch('Good night', 'Boa noite', 0.6, False))
-    result = env.translate(document(cue('a', 'Good night', 1)), translator_options={'memory': memory})
+    result = env.translate(document(cue('a', 'Good night', 1)), translator_options={'memory': memory, 'retrieval_policy': RetrievalPolicy(legacy_cache_enabled=True)})
     assert result.units[0].source is UnitSource.PROVIDER and result.units[0].memory_suggested
 
 

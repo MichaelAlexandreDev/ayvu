@@ -429,11 +429,40 @@ os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume li
 Mantenha o rótulo durante a retomada; um job legado exige sua ausência. A incompatibilidade
 entre `legacy/v1` e `rich/v2` é recusada antes de chamar o tradutor.
 
-`rich/v2` exige `--workers 1` e recusa `--translation-memory`, `--cache-only` e
+`rich/v2` exige `--workers 1` e recusa `--cache-only` e
 `--require-full-cache`. A resolução offline atual ainda não fixa a identidade e a rota
 exigidas pelo cache-only rico. Para esses recursos, remova o campo `libretranslate` de
 `translator_models` e inicie uma tradução legada. Sem rótulo não há mudança no comportamento
 anterior; dry run e preview continuam no v1 mesmo com rótulo configurado.
+
+Com `translator_models.libretranslate` configurado, habilite a memória governada
+por projeto com `--translation-memory`. O cache exato v2 vem primeiro. Em seguida,
+somente revisões atuais aprovadas são consultadas; sem resultado aplicável, o tradutor
+continua normalmente. A memória começa vazia e o comando não aprova traduções.
+A criação e revisão humanas usam os casos de uso de #161 descritos em
+[Memória aprovada](architecture/approved-translation-memory.md).
+
+No rich, fuzzy é sugestão por padrão: `--tm-apply-threshold 0.95` sozinho não autoriza
+reutilização aproximada. Para autorizar a política conservadora, use:
+
+```bash
+uv run ayvu translate livro.epub --translation-memory \
+  --tm-conservative-auto-apply --tm-apply-threshold 0.98
+```
+
+A estrutura e os placeholders precisam ser compatíveis, com origem conferível no
+mesmo documento. Alterar glossário, perfil ou pipeline impede a aplicação de valores
+finais com revisões anteriores. Esses resultados podem aparecer como sugestões sem
+aprovação herdada; `memory_review_suggestions` é mostrado no terminal. Valores
+`linguistic_final` compatíveis já incluem o glossário e não o recebem novamente.
+
+Se precisar permitir candidatos de máquina do cache, acrescente
+`--tm-legacy-cache-compatibility` junto com `--translation-memory`. A escolha é
+explícita e fica registrada na retomada. O resultado é sempre não revisado;
+a compatibilidade exige identidade e estágio v2. Linhas v1 sem esses metadados
+continuam excluídas. Limpar o cache não afeta `approved-memory.sqlite`.
+Sem rótulo, os parâmetros antigos de memória conservam o fluxo legado; os dois novos
+seletores de política exigem rich/v2. A API de concordância não adiciona editor Desktop.
 
 ### Inspecionar um EPUB
 

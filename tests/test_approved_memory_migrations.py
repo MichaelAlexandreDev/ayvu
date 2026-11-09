@@ -26,15 +26,30 @@ def test_real_upgrade_preserves_independent_history_and_verified_backup(tmp_path
     first = runner.migrate(database, backups, target_version=1)
     assert first.ok and first.to_version == 1
     result = runner.migrate(database, backups)
-    assert result.ok and result.to_version == 2 and result.applied == (2,) and result.backup_verified
+    assert result.ok and result.to_version == 3 and result.applied == (2, 3) and result.backup_verified
     with closing(sqlite3.connect(backups / result.backup_name)) as db:
         assert db.execute('PRAGMA user_version').fetchone()[0] == 1
         assert db.execute("SELECT name FROM sqlite_schema WHERE name LIKE 'tm_%'").fetchall() == []
     with closing(runner.connect(database, readonly=True)) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 2
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 3
         assert db.execute('SELECT version, checksum FROM ayvu_schema_migrations ORDER BY version').fetchall() == [
             (step.version, step.checksum) for step in MEMORY_MIGRATIONS]
     assert runner.migrate(database, backups).status == 'unchanged'
+
+
+def test_retrieval_indexes_upgrade_a_released_schema_and_keep_its_tables(tmp_path):
+    database = tmp_path / 'approved-memory.sqlite'
+    backups = tmp_path / 'backups' / 'approved-memory-schema'
+    runner = memory_migration_runner()
+    assert runner.migrate(database, backups, target_version=2).to_version == 2
+    with closing(sqlite3.connect(database)) as db:
+        tables = db.execute("SELECT name, sql FROM sqlite_schema WHERE type='table' ORDER BY name").fetchall()
+    result = runner.migrate(database, backups)
+    assert result.ok and result.from_version == 2 and result.applied == (3,) and result.backup_verified
+    with closing(runner.connect(database, readonly=True)) as db:
+        assert db.execute("SELECT name, sql FROM sqlite_schema WHERE type='table' ORDER BY name").fetchall() == tables
+        assert {row[0] for row in db.execute("SELECT name FROM sqlite_schema WHERE type='index' AND name LIKE 'tm_retrieval_%'")} == {
+            'tm_retrieval_exact', 'tm_retrieval_search'}
 
 
 def test_production_initialization_never_promotes_representative_legacy_rows(tmp_path):

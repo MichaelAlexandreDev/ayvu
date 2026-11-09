@@ -610,7 +610,7 @@ def test_v2_cache_values_namespaces_clear_and_replacement_stay_independent(env):
 
 
 def test_snapshot_schema_history_is_frozen():
-    assert [step.version for step in MEMORY_MIGRATIONS] == [1, 2]
+    assert [step.version for step in MEMORY_MIGRATIONS] == [1, 2, 3]
     assert MEMORY_MIGRATIONS[1].checksum == 'aacfd30a61a1718759aa821466bec626d6bae62c17c172c4e395acc4bbfb6243'
 
 

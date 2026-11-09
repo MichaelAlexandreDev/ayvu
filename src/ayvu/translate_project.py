@@ -165,6 +165,8 @@ def resolve_plan(command: TranslateProjectCommand, project: ProjectManifest) -> 
         producer = command.producer
         inputs["execution"] = [command.execution_revision, command.additional_output_roles,
                                None if producer is None else [producer.provider, producer.model, producer.adapter, producer.pipeline]]
+    if memory is not None and (memory.conservative_auto_apply or memory.legacy_cache_compatibility):
+        inputs["memory_policy"] = [memory.conservative_auto_apply, memory.legacy_cache_compatibility]
     digest = hashlib.sha256(json.dumps(inputs, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
     return ExecutionPlan(command.project_id, command.source_sha256, f"sha256:{digest}")
 

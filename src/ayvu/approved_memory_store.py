@@ -18,6 +18,7 @@ from typing import Mapping
 from uuid import uuid4
 
 from .approved_memory import (
+    MemoryQuery, RetrievalMode, search_key,
     Candidate, MemoryConflictError, MemoryError, MemoryEvent, MemoryNotFoundError, MemoryPage,
     MemoryProvenanceError, MemoryRevision, MemoryScope, MemoryScopeError, MemorySource, MemoryState,
     MemoryStorageError, MemoryTransitionError, MemoryValidationError, MemoryValueError, PipelinePin,
@@ -69,7 +70,11 @@ BEGIN SELECT RAISE(ABORT, 'immutable_memory'); END"""
 )
 
 # This namespace has its own history. Released project/cache steps stay frozen.
-MEMORY_MIGRATIONS = (SqliteMigration(1), SqliteMigration(2, MEMORY_SCHEMA_STATEMENTS))
+MEMORY_MIGRATIONS = (SqliteMigration(1), SqliteMigration(2, MEMORY_SCHEMA_STATEMENTS),
+    SqliteMigration(3, (
+        "CREATE INDEX tm_retrieval_exact ON tm_revisions(scope_kind, scope_owner, source_lang, target_lang, canonical_source)",
+        "CREATE INDEX tm_retrieval_search ON tm_revisions(scope_kind, scope_owner, source_lang, target_lang, search_key)",
+    )))
 
 
 def memory_migration_runner() -> SqliteMigrationRunner:
@@ -398,3 +403,65 @@ class SqliteApprovedMemoryRepository:
                         raise MemoryStorageError("invalid_current_approval")
                     return revision
         return None
+
+
+    def retrieve(self, query: MemoryQuery) -> tuple[MemoryRevision, ...]:
+        """Read at most 64 bounded values, from indexed scope/language/search ranges.
+
+        Approximate search deliberately examines only the first 64 current rows
+        in the first-codepoint range. It is recall-limited, never a full-table
+        fuzzy scan. SQL ranks metadata before any linguistic value is loaded.
+        """
+        if type(query) is not MemoryQuery:
+            raise MemoryValidationError("invalid_memory_query")
+        self._scopes(query.scopes)
+        limits = query.limits
+        result, used = [], 0
+        key = search_key(query.canonical)
+        if not key:
+            return ()
+        with self._transaction() as db:
+            # A compatible final value always wins over a pin-mismatch suggestion.
+            for compatible in (True, False):
+                for scope in query.scopes:
+                    remaining = limits.candidates - len(result)
+                    if not remaining:
+                        return tuple(result)
+                    where = ["r.scope_kind=?", "r.scope_owner=?", "r.source_lang=?", "r.target_lang=?",
+                             "r.value_kind='linguistic_final'", "r.pipeline_stage='linguistic_final'",
+                             "r.normalization_version=?", "r.search_version=?",
+                             "e.state='approved'",
+                             "length(CAST(r.canonical_source AS BLOB)) <= ?",
+                             "length(CAST(r.target_value AS BLOB)) <= ?"]
+                    args = [scope.kind.value, scope.owner_id, query.languages.source, query.languages.target,
+                            query.normalization_version, query.search_version, limits.source_bytes, limits.target_bytes]
+                    pin_condition = "(r.pipeline_ref=? AND r.profile_ref=? AND r.glossary_ref=?)"
+                    where.append(pin_condition if compatible else 'NOT ' + pin_condition)
+                    args.extend(ref.reference for ref in query.pin.references)
+                    if query.mode is RetrievalMode.EXACT:
+                        where.append("r.canonical_source=?")
+                        args.append(query.canonical)
+                        index, order = 'tm_retrieval_exact', 'r.canonical_source, r.sequence'
+                    else:
+                        # Range lookup is Unicode-aware (SQLite BINARY UTF-8 order).
+                        prefix = key[0]
+                        where.append("r.search_key >= ? AND r.search_key < ?")
+                        args.extend((prefix, chr(ord(prefix) + 1) if ord(prefix) < 0x10ffff else prefix + chr(0x10ffff)))
+                        index, order = 'tm_retrieval_search', 'r.search_key, r.sequence'
+                    sql = ("WITH bounded AS MATERIALIZED (SELECT r.revision_id, r.revision_number, "
+                           "length(r.search_key) AS chars, "
+                           "length(CAST(r.canonical_source AS BLOB)) AS sb, "
+                           "length(CAST(r.target_value AS BLOB)) AS tb "
+                           f"FROM tm_revisions r INDEXED BY {index} JOIN tm_approvals a ON a.revision_id=r.revision_id "
+                           "JOIN tm_events e ON e.revision_id=r.revision_id AND e.version="
+                           "(SELECT max(version) FROM tm_events WHERE revision_id=r.revision_id) WHERE "
+                           + ' AND '.join(where) + f" ORDER BY {order} LIMIT 64) "
+                           "SELECT revision_id, sb, tb FROM bounded ORDER BY abs(chars-?), "
+                           "revision_number DESC, revision_id LIMIT ?")
+                    rows = db.execute(sql, (*args, len(key), remaining)).fetchall()
+                    for revision_id, source_bytes, target_bytes in rows:
+                        if used + source_bytes + target_bytes > limits.aggregate_bytes:
+                            continue
+                        result.append(self._load(db, revision_id, (scope,)))
+                        used += source_bytes + target_bytes
+        return tuple(result)
