@@ -2,6 +2,35 @@
 
 `ayvu` é uma ferramenta em Python para traduzir arquivos EPUB locais usando um tradutor HTTP local compatível com LibreTranslate. A ferramenta preserva a estrutura interna do livro e modifica apenas textos visíveis ao leitor.
 
+Use `--network-policy none|loopback` para escolher a política HTTP desta execução.
+Sem a opção, o padrão visível é `loopback`: somente **HTTP**, com `localhost`,
+`localhost.`, IPv4 decimal em `127.0.0.0/8` ou IPv6 `[::1]` (também na forma
+completa), porta 1–65535, ou 80 se omitida. Outros nomes, LAN, VPN, IP privado,
+público e HTTPS são recusados; uma URL antiga assim precisa ser substituída
+explicitamente por um endpoint HTTP loopback. Não há migração automática.
+
+```bash
+uv run ayvu languages --network-policy loopback --url http://127.0.0.1:5000
+uv run ayvu translate livro.epub --network-policy none --cache-only
+uv run ayvu --network-policy none --preview livro.epub
+uv run ayvu resume --network-policy loopback
+uv run ayvu --network-policy none
+```
+
+`none` bloqueia o HTTP do Ayvu **antes de DNS, sockets, criação de sessão e
+construção do payload**. Assim, tradução online, idiomas, teste e preflight são
+recusados; `--dry-run` e `--cache-only` continuam disponíveis. A opção na raiz
+vale para preview e menus, incluindo a escolha guiada de idiomas e a retomada
+oferecida; a opção de um subcomando prevalece para esse pedido. Ela nunca é salva.
+Ambas as políticas ignoram proxies/credenciais do ambiente e `.netrc`, recusam
+credenciais na URL e qualquer redirect, mesmo local. HTTPS, proxies, credenciais
+explícitas e destinos não loopback dependem de contratos futuros.
+
+O leitor EPUB aberto pela biblioteca é **outro processo, fora da garantia
+offline**, e recebe um aviso explícito antes de abrir. `none` não contém esse
+leitor; um servidor local também pode ter sua própria rede e retenção.
+Veja o [contrato da política HTTP](docs/architecture/network-policy.md).
+
 O EPUB original nunca é alterado. A saída é gravada em um novo arquivo `.epub`.
 
 ## Recursos
@@ -602,6 +631,8 @@ Trechos já traduzidos serão reaproveitados automaticamente.
 O checkpoint de retomada preserva as opções de execução do tradutor, como
 timeout, workers, retries, limite de requisições por segundo e backoff.
 
+A tradução pela CLI usa o cache legado v1; o caminho rico dispõe de cache v2 independente. A migração preserva os dados v1 sem transformá-los em acertos exatos v2. A administração aceita namespaces explícitos; sem seleção, mantém o comportamento legado. Veja [cache standalone v2](docs/architecture/standalone-cache-v2.md).
+
 O cache pode ser inspecionado, limpo, exportado e importado separadamente dos
 comandos de tradução:
 
@@ -626,11 +657,21 @@ um JSON vazio sem criar o cache nem sua pasta. A limpeza rejeita uma seleção
 que mudou entre a prévia e a remoção; nesse caso, execute o comando novamente.
 Erros detalhados usam códigos curtos, sem incluir conteúdo das entradas.
 O destino da exportação deve ser um arquivo diferente do próprio cache SQLite.
-Exportação e importação têm limite de 512 MiB e 1.000.000 de entradas; acima
-disso, exporte em partes com `--source`, `--target` ou `--before`.
+No formato legado v1, exportação e importação têm limite de 512 MiB e 1.000.000
+de entradas; acima disso, exporte em partes com `--source`, `--target` ou
+`--before`. O formato v2 tem limites e filtros próprios descritos em
+[administração de cache](docs/architecture/cache-administration.md).
 
 O arquivo exportado inclui texto original e texto traduzido. Trate esse JSON
 como conteúdo privado do livro, da mesma forma que o EPUB e o cache SQLite.
+
+`cache import` prepara as entradas num arquivo temporário ao lado do cache,
+`.ayvu-cache-import-legacy-*.sqlite`, e só depois altera o cache. Um Ctrl+C
+apaga esse arquivo. Se o processo for morto à força ou o computador desligar no
+meio, o cache fica como estava, mas o arquivo temporário sobra: ele contém
+textos do livro e pode ser apagado quando nenhum import estiver rodando.
+
+A administração de cache v2 aceita seleção explícita de namespace e importação com mapa externo e previsão. Veja [administração de cache](docs/architecture/cache-administration.md) para exemplos, autorização de escopos e limites. Arquivos de exportação e recuperação podem conter textos sensíveis.
 
 Traduções diretas, guiadas e em lote criam ou reutilizam automaticamente um
 projeto local em `<pasta de processamento>/projects/<UUID>/project.json`.
@@ -874,6 +915,11 @@ Perfis podem ser adicionados manualmente em `profiles`:
 `glossary` aceita caminho absoluto ou caminho relativo à pasta local de glossários. `style`
 aceita `neutral`, `technical`, `literary` ou `academic`, mas no backend LibreTranslate atual
 serve apenas como metadado do perfil; ele não muda o prompt nem o comportamento do tradutor.
+
+O contrato de [perfis versionados do projeto](docs/architecture/project-translation-profiles.md)
+permite migração explícita por chamadores da aplicação. A CLI continua usando os perfis
+globais v1 nesta janela de compatibilidade; não existe comando novo de migração nem
+migração automática. A migração exige glossário do catálogo gerenciado e preserva o perfil global.
 
 A precedência para campos cobertos por perfis de tradução é:
 

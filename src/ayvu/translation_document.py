@@ -477,6 +477,9 @@ class _PlanBoundCache:
         return ExactCacheLookup(CacheLookupState.MISS, reason=reason)
 
     def get(self, text: str, language_pair: LanguagePair) -> ExactCacheLookup:
+        from .cache_identity import CACHE_ENTRY_V2_LIMITS
+        if len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text:
+            return self._miss(CacheMissReason.CACHE_INELIGIBLE)
         if self._fingerprint is None:
             return self._miss(CacheMissReason.CACHE_INELIGIBLE)
         if self._cache is None:
@@ -530,6 +533,10 @@ class _PlanBoundCache:
         return result
 
     def set(self, text: str, language_pair: LanguagePair, translated: str) -> None:
+        from .cache_identity import CACHE_ENTRY_V2_LIMITS
+        if (len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text
+                or len(translated.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.value):
+            return
         if self._cache is None or self._fingerprint is None or self._cache_only is not None:
             return
         key = exact_entry_key(self._scope, self._value_kind, self._fingerprint, self._source_text)
@@ -539,6 +546,7 @@ class _PlanBoundCache:
         try:
             result = self._cache.put_if_absent(ExactCacheEntry(
                 key, translated, CacheProvenanceMetadata("translate", self._plan.producer, operation.pipeline_revision),
+                source_text=self._source_text, canonical_identity=operation.canonical_payload(),
             ))
         except CacheIdentityError:
             raise

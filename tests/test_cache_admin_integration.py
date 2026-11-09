@@ -487,6 +487,9 @@ def test_a_link_refused_for_another_reason_is_still_a_failure(tmp_path, monkeypa
 
 
 def test_the_command_says_how_to_get_past_the_limit(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.chdir(tmp_path)
     path = tmp_path / "cache.sqlite"
     seed(path, "one", "two")
     monkeypatch.setattr(cache_admin_store, "MAX_ENTRIES", 1)
@@ -500,6 +503,9 @@ def test_the_command_says_how_to_get_past_the_limit(tmp_path, monkeypatch):
 
 
 def test_the_command_says_when_another_process_holds_the_cache(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.chdir(tmp_path)
     path = tmp_path / "cache.sqlite"
     seed(path, "one")
     monkeypatch.setattr(cache_admin_store, "BUSY_TIMEOUT_SECONDS", 0.05)
@@ -509,3 +515,56 @@ def test_the_command_says_when_another_process_holds_the_cache(tmp_path, monkeyp
 
     assert result.exit_code == 1
     assert "Outro processo" in " ".join(result.output.split())
+
+
+@pytest.mark.parametrize("command", ["export", "import"])
+def test_commands_wait_while_another_process_writes_the_cache(tmp_path, monkeypatch, command):
+    # A writer holds the cache when the command starts. The command must wait for it, as before
+    # DESKTOP-127, instead of failing on the read-only schema check. The writer finishes on the
+    # first wait, so the test needs no real sleep.
+    from ayvu import cache_schema
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.chdir(tmp_path)
+    path = tmp_path / "cache.sqlite"
+    seed(path, "one", "two")
+    source = tmp_path / "in.json"
+    assert CliRunner().invoke(app, ["cache", "export", str(source), "--cache", str(path)]).exit_code == 0
+    writer = sqlite3.connect(path, isolation_level=None, check_same_thread=False)
+    writer.execute("BEGIN EXCLUSIVE")
+    waits = []
+
+    def finish_writer(seconds):
+        waits.append(seconds)
+        if writer.in_transaction:
+            writer.execute("ROLLBACK")
+
+    monkeypatch.setattr(cache_schema.time, "sleep", finish_writer)
+    args = {"export": ["cache", "export", str(tmp_path / "out.json")],
+            "import": ["cache", "import", str(source), "--replace"]}[command]
+    try:
+        result = CliRunner().invoke(app, [*args, "--cache", str(path)])
+    finally:
+        writer.close()
+
+    assert result.exit_code == 0, result.output
+    assert waits, "the command did not meet the held lock"
+    assert "Outro processo" not in result.output
+
+
+def test_waiting_schema_check_still_reports_a_cache_that_stays_busy(tmp_path, monkeypatch):
+    from ayvu import cache_schema
+    clock = iter([0.0, 0.0, 0.2, 0.4, 0.6])
+    monkeypatch.setattr(cache_schema.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(cache_schema.time, "sleep", lambda seconds: None)
+    calls = []
+
+    def busy(path, *, authorized_directory=None):
+        calls.append(path)
+        raise cache_schema.CacheSchemaError("cache_busy")
+
+    monkeypatch.setattr(cache_schema, "classify_cache", busy)
+    with pytest.raises(cache_schema.CacheSchemaError) as raised:
+        cache_schema.classify_cache_waiting(tmp_path / "c.sqlite", timeout=0.5)
+    assert raised.value.code == "cache_busy"
+    assert len(calls) == 4

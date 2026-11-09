@@ -7,13 +7,14 @@ not accept `DEC-015`: nothing here evaluates network policy.
 
 `ProviderDiscoveryService` is what interfaces call to learn about providers, instead of reaching
 one directly. `languages`, `test-translator`, guided language selection and the provider part of
-translation preflight all use it. Errors during translation itself do not yet: they keep their
-current messages until #153 and #159. Only `--fail-fast` gained a message of its own, in #145.
+translation preflight all use it. Translation errors now omit URLs, response bodies and raw
+transport exceptions under #159, while retaining typed connection/timeout/protocol categories.
 
-`ayvu.provider_composition` assembles LibreTranslate for the CLI until
-[#158](https://github.com/MichaelAlexandreDev/ayvu/issues/158) consolidates composition. Its decision
-is `unclassified`, with reason `legacy_cli_unrestricted`, because the CLI has no network policy yet.
-It reads no URL to claim otherwise, so this is a record and not a protection.
+`cli_composition` (#158) delegates to `ayvu.provider_composition`, which derives the
+operation-bound decisions from the same immutable `none`/`loopback` snapshot enforced
+by the translator. Missing selection explicitly records the loopback compatibility
+default. See the [HTTP policy contract](network-policy.md). The shared use cases
+still do not evaluate URLs or duplicate policy classification.
 
 No code here names a provider or reads a URL. Adapters are registered explicitly at a composition
 root and implement `ProviderDiscoveryAdapter`.
@@ -65,8 +66,8 @@ its own code and with zero provider I/O on failure:
 | Allowed | `network_decision_denied` |
 
 The class `unclassified` records that no policy was evaluated, so that nothing has to guess a class
-from an address. A real policy can later produce the same input without changing these use cases, and
-[#159](https://github.com/MichaelAlexandreDev/ayvu/issues/159) is its first real test.
+from an address. #159 now supplies real policy decisions through the existing contract,
+including bounded actionable denial codes, without recreating discovery DTOs or use cases.
 
 ## Cancellation and deadlines
 

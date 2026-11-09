@@ -19,13 +19,26 @@ from .job import validate_job_identity
 from .provenance import ProducerIdentity
 
 CACHE_IDENTITY_VERSION = 2
-MAX_CANONICAL_PAYLOAD_BYTES = 64 * 1024
 MAX_ROUTE_HOPS = 8
 MAX_COLLECTION_ENTRIES = 256
 MAX_OPAQUE_SCALAR_BYTES = 1024
 MAX_CACHE_ONLY_CANDIDATES = MAX_COLLECTION_ENTRIES
 MAX_GENERATION_INTEGER = 2**63 - 1
 MAX_GENERATION_DECIMAL = Decimal("1000000000")
+
+
+@dataclass(frozen=True)
+class CacheEntryV2Limits:
+    canonical_identity: int = 64 * 1024
+    source_text: int = 1024 * 1024
+    value: int = 1024 * 1024
+    metadata: int = 64 * 1024
+    provenance: int = 64 * 1024
+    timestamp: int = 27
+
+
+CACHE_ENTRY_V2_LIMITS = CacheEntryV2Limits()
+MAX_CANONICAL_PAYLOAD_BYTES = CACHE_ENTRY_V2_LIMITS.canonical_identity
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _LOCALE = re.compile(r"[A-Za-z]{2,8}(?:[-_][A-Za-z0-9]{1,8})*")
 _SLUG = re.compile(r"[a-z][a-z0-9_-]{0,63}")
@@ -627,9 +640,16 @@ class ExactCacheEntry:
     key: ExactEntryKey
     value: str = field(repr=False)
     provenance: CacheProvenanceMetadata
+    source_text: str | None = field(default=None, repr=False)
+    canonical_identity: bytes | None = field(default=None, repr=False)
+    metadata: bytes = field(default=b"{}", repr=False)
 
     def __post_init__(self) -> None:
         if type(self.key) is not ExactEntryKey or not isinstance(self.value, str) or type(self.provenance) is not CacheProvenanceMetadata:
+            raise CacheIdentityError("invalid_cache_entry")
+        if (self.source_text is not None and not isinstance(self.source_text, str)
+                or self.canonical_identity is not None and not isinstance(self.canonical_identity, bytes)
+                or not isinstance(self.metadata, bytes)):
             raise CacheIdentityError("invalid_cache_entry")
 
     def __repr__(self) -> str:
@@ -640,6 +660,7 @@ class PutIfAbsentState(StrEnum):
     INSERTED = "inserted"
     IDEMPOTENT = "idempotent"
     CONFLICT = "conflict"
+    NOT_CACHEABLE = "not_cacheable"
 
 
 @dataclass(frozen=True, repr=False)
@@ -818,3 +839,55 @@ def candidate_matches_query(candidate: CompatibleMemoryCandidate, query: Compati
     return (type(candidate) is CompatibleMemoryCandidate and candidate.identity.scope == query.scope
             and candidate.identity.value_kind is query.value_kind
             and candidate.identity.semantic_fingerprint == query.semantic_fingerprint)
+
+
+def semantic_operation_from_canonical(payload: bytes) -> SemanticOperationV2:
+    """Decode the closed v2 projection and require its exact canonical representation."""
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError()
+            result[key] = value
+        return result
+
+    def scalar(value):
+        return value["value"]
+
+    def revision(value):
+        if value == {"type": "absent"}:
+            return None
+        snapshot = value["snapshot_reference"]
+        return OpaqueSemanticRevision(scalar(value["owner"]), scalar(value["namespace"]),
+                                      scalar(value["version"]), scalar(value["value"]),
+                                      None if snapshot == {"type": "absent"} else scalar(snapshot))
+
+    def producer(value):
+        return ProducerIdentity(*(scalar(value[name]) for name in ("provider", "model", "adapter", "pipeline")))
+
+    def mapping(value):
+        return tuple((scalar(item["key"]), CanonicalValue(item["value"]["type"], scalar(item["value"])))
+                     for item in value["entries"])
+
+    try:
+        if not isinstance(payload, bytes) or len(payload) > MAX_CANONICAL_PAYLOAD_BYTES:
+            raise ValueError()
+        obj = json.loads(payload.decode("utf-8"), object_pairs_hook=unique,
+                         parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+        hops = tuple(SemanticRouteHop(scalar(hop["source_locale"]), scalar(hop["target_locale"]),
+                                      producer(hop["producer"]), scalar(hop["capability_fingerprint"]),
+                                      revision(hop["configuration_revision"]))
+                     for hop in obj["route_hops"]["items"])
+        stages = tuple((scalar(item["stage"]), scalar(item["version"])) for item in obj["stage_versions"]["items"])
+        operation = SemanticOperationV2(
+            scalar(obj["operation"]), scalar(obj["source_locale"]), scalar(obj["target_locale"]), hops,
+            revision(obj["pipeline_revision"]), stages, scalar(obj["prompt_strategy"]), revision(obj["prompt_revision"]),
+            scalar(obj["context_strategy"]), revision(obj["context_revision"]), revision(obj["terminology_revision"]),
+            mapping(obj["generation_parameters"]), revision(obj["segmentation_revision"]), scalar(obj["chunk_limit"]),
+            revision(obj["chunking_revision"]), revision(obj["protection_revision"]), revision(obj["normalization_revision"]),
+            mapping(obj["format_constraints"]), scalar(obj["version"]))
+        if operation.canonical_payload() != payload:
+            raise ValueError()
+        return operation
+    except (ValueError, TypeError, KeyError, IndexError, UnicodeError, RecursionError, AttributeError):
+        raise CacheIdentityError("invalid_canonical_identity") from None

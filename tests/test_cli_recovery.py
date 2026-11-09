@@ -181,7 +181,7 @@ def _old_file(tmp_path, source, **changes) -> Path:
     folder = tmp_path / "processing"
     folder.mkdir(exist_ok=True)
     data = {"version": 1, "status": "running", "input_path": str(source), "output_path": str(tmp_path / "out.epub"), "cache_path": str(tmp_path / "cache.sqlite"),
-            "source": "en", "target": "pt", "translator_name": "libretranslate", "url": "http://translator.test", "glossary_path": None, "fail_fast": False,
+            "source": "en", "target": "pt", "translator_name": "libretranslate", "url": "http://localhost:5000", "glossary_path": None, "fail_fast": False,
             "overwrite": False, "timeout": 30.0, "retries": 0, "chunk_limit": 3000, "created_at": "2026-09-06T11:25:49+00:00", "updated_at": "2026-09-06T11:25:49+00:00", **changes}
     path = folder / "book-pt.ayvu-state.json"
     path.write_text(json.dumps(data))
@@ -210,7 +210,8 @@ def test_an_old_file_stays_byte_for_byte_when_it_is_only_read_or_when_the_transl
     assert path.read_bytes() == before and "Processing translations" in listed.output and declined.exit_code in (0, 1)
 
     class Down(Session):
-        def get(self, _url, *, timeout):
+        def get(self, _url, *, timeout, allow_redirects=False):
+            assert allow_redirects is False
             raise __import__("requests").exceptions.ConnectionError("refused")
 
     down, _ = _invoke(monkeypatch, RESUME, Down())
@@ -231,12 +232,15 @@ def test_an_old_file_with_a_project_from_before_jobs_gets_no_job(tmp_path, monke
     assert (tmp_path / "other.epub").exists() and len(_jobs(tmp_path)) == count and not session.posts
 
 
-def test_an_address_with_credentials_keeps_working_on_the_current_flow(tmp_path, monkeypatch):
+def test_a_legacy_address_with_credentials_is_refused_without_migrating_it(tmp_path, monkeypatch):
     source = _book(tmp_path / "book.epub")
-    _old_file(tmp_path, source, url="http://user:secret@translator.test")
+    path = _old_file(tmp_path, source, url="http://user:secret@translator.test")
+    before = path.read_bytes()
     result, session = _invoke(monkeypatch, RESUME)
-    assert result.exit_code == 0, result.output
-    assert session.posts and not (tmp_path / "processing" / "projects").exists()
+    assert result.exit_code == 1 and "userinfo_unsupported" in result.output, result.output
+    assert not session.posts and not (tmp_path / "processing" / "projects").exists()
+    assert "secret" not in result.output and "translator.test" not in result.output
+    assert path.read_bytes() == before
 
 
 @pytest.mark.parametrize("make", [
@@ -300,7 +304,8 @@ def test_a_translator_down_refuses_like_before_and_a_later_resume_still_works(tm
     before = _state_file(tmp_path).read_bytes()
 
     class Down(Session):
-        def get(self, _url, *, timeout):
+        def get(self, _url, *, timeout, allow_redirects=False):
+            assert allow_redirects is False
             raise __import__("requests").exceptions.ConnectionError("refused")
 
     down, _ = _invoke(monkeypatch, RESUME, Down())

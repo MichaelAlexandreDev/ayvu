@@ -38,8 +38,16 @@ OWNERS = {
     "ayvu.project": Owner("domain", "Projects"),
     "ayvu.project_service": Owner("application", "Projects"),
     "ayvu.project_store": Owner("infrastructure", "Projects"),
+    "ayvu.project_profiles": Owner("application", "Project profiles"),
+    "ayvu.project_profile_service": Owner("application", "Project profiles"),
+    "ayvu.project_profile_store": Owner("infrastructure", "Project profiles"),
+    "ayvu.profile_glossary_store": Owner("knowledge", "Project profiles"),
+    "ayvu.project_profile_composition": Owner("composition", "Project profiles"),
     "ayvu.chunking": Owner("domain", "Translation"),
     "ayvu.cli": Owner("interface", "CLI"),
+    "ayvu.cli_composition": Owner("composition", "CLI"),
+    "ayvu.cli_contracts": Owner("application", "CLI workflow ports"),
+    "ayvu.config_values": Owner("domain", "Preferences"),
     "ayvu.desktop_bootstrap": Owner("interface", "Desktop"),
     "ayvu.desktop": Owner("interface", "Desktop"),
     "ayvu.desktop.bootstrap": Owner("interface", "Desktop"),
@@ -68,8 +76,17 @@ OWNERS = {
     "ayvu.html_translate": Owner("format", "EPUB"),
     "ayvu.validation": Owner("format", "EPUB/Quality"),
     "ayvu.translator": Owner("provider", "Providers"),
+    "ayvu.network_policy": Owner("domain", "Network policy"),
+    "ayvu.network_http": Owner("provider", "Network policy"),
     "ayvu.cache": Owner("knowledge", "Exact cache"),
+    "ayvu.cache_schema": Owner("knowledge", "Standalone cache migrations"),
+    "ayvu.cache_repository": Owner("knowledge", "Exact cache"),
     "ayvu.cache_admin": Owner("application", "Cache administration"),
+    "ayvu.cache_legacy_format": Owner("domain", "Cache administration"),
+    "ayvu.cache_legacy_stream": Owner("knowledge", "Cache administration"),
+    "ayvu.cache_admin_legacy_store": Owner("knowledge", "Cache administration"),
+    "ayvu.cache_interchange": Owner("knowledge", "Cache administration"),
+    "ayvu.cache_admin_v2_store": Owner("knowledge", "Cache administration"),
     "ayvu.cache_admin_store": Owner("knowledge", "Cache administration"),
     "ayvu.cache_admin_composition": Owner("composition", "Cache administration"),
     "ayvu.glossary": Owner("knowledge", "Glossary"),
@@ -77,6 +94,9 @@ OWNERS = {
     "ayvu.glossary_catalog_store": Owner("knowledge", "Glossary administration"),
     "ayvu.glossary_catalog_composition": Owner("composition", "Glossary administration"),
     "ayvu.translation_memory": Owner("domain", "Knowledge/TM"),
+    "ayvu.approved_memory": Owner("domain", "Approved translation memory"),
+    "ayvu.approved_memory_service": Owner("application", "Approved translation memory"),
+    "ayvu.approved_memory_store": Owner("infrastructure", "Approved translation memory"),
     "ayvu.config": Owner("infrastructure", "Preferences"),
     "ayvu.preferences": Owner("domain", "Preferences"),
     "ayvu.preferences_service": Owner("application", "Preferences"),
@@ -183,9 +203,12 @@ def check_tree(root: Path, owners: dict[str, Owner],
     used: set[tuple[str, str]] = set()
     used_allowed: set[tuple[str, str]] = set()
     graph: dict[str, set[str]] = {}
+    effective_graph: dict[str, set[str]] = {}
     for source, (_, package, tree) in modules.items():
         graph[source] = set()
+        effective_graph[source] = set()
         for target in imports(source, package, tree, modules):
+            effective_graph[source].add(target)
             if target in modules:
                 graph[source].add(target)
             edge = (source, target)
@@ -196,6 +219,42 @@ def check_tree(root: Path, owners: dict[str, Owner],
                 used.add(edge)
             elif edge in allowed_edges:
                 used_allowed.add(edge)
+    # Reuse the same owners, import resolver and external dependency rules over
+    # effective reachability. A reviewed edge exception cannot launder an adapter
+    # through an application module or a re-export into CLI presentation.
+    for source, owner in owners.items():
+        if owner.layer != "interface" or owner.capability != "CLI":
+            continue
+        pending = list(effective_graph[source])
+        visited = set()
+        while pending:
+            target = pending.pop()
+            if target in visited:
+                continue
+            visited.add(target)
+            if target == "ayvu.cli_composition":
+                continue
+            if target in owners:
+                if owners[target].layer not in (ALLOWED_LAYER_DEPENDENCIES["interface"] - {"composition"}) | {"interface"}:
+                    raise BoundaryError(f"CLI transitive infrastructure: {source} -> {target}")
+                pending.extend(effective_graph[target])
+            elif forbidden(source, target, owners, allowed_edges):
+                raise BoundaryError(f"CLI transitive vendor: {source} -> {target}")
+        check_cli_construction_imports(source, modules)
+    if "ayvu.cli_composition" in modules:
+        tree = modules["ayvu.cli_composition"][2]
+        for node in tree.body:
+            if isinstance(node, (ast.Assign, ast.AnnAssign)) and any(isinstance(part, (ast.Call, ast.Dict, ast.List, ast.Set)) for part in ast.walk(node)):
+                raise BoundaryError("eager CLI resource or hidden singleton")
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Global, ast.Nonlocal)):
+                raise BoundaryError("mutable CLI service locator or singleton")
+            if isinstance(node, ast.FunctionDef) and (node.decorator_list or any(
+                isinstance(part, (ast.Call, ast.Dict, ast.List, ast.Set))
+                for default in [*node.args.defaults, *(value for value in node.args.kw_defaults if value is not None)]
+                for part in ast.walk(default)
+            )):
+                raise BoundaryError("cached or eager CLI construction")
     for source in graph:
         pending = list(graph[source])
         visited: set[str] = set()
@@ -212,9 +271,29 @@ def check_tree(root: Path, owners: dict[str, Owner],
         raise BoundaryError(f"unused allowed edge: {sorted(allowed_edges - used_allowed)}")
 
 
+def check_cli_construction_imports(source, modules):
+    """The presenter may import named factories, never an adapter re-export."""
+    _, package, tree = modules[source]
+    if "ayvu.cli_composition" not in modules:
+        return
+    root_tree = modules["ayvu.cli_composition"][2]
+    factories = {node.name for node in root_tree.body if isinstance(node, ast.FunctionDef)}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Import, ast.ImportFrom)):
+            continue
+        targets = imports(source, package, ast.Module(body=[node], type_ignores=[]), modules)
+        if "ayvu.cli_composition" not in targets:
+            continue
+        if isinstance(node, ast.ImportFrom) and node.module in {"cli_composition", "ayvu.cli_composition"}:
+            if any(alias.name not in factories for alias in node.names):
+                raise BoundaryError("CLI concrete re-export through composition")
+        else:
+            raise BoundaryError("CLI must inject named workflow factories")
+
+
 LAYERS = {"surface", "domain", "application", "interface", "format", "provider",
           "knowledge", "infrastructure", "composition"}
-EXTERNAL = {"typer", "rich", "requests", "ebooklib", "bs4", "lxml", "rapidfuzz",
+EXTERNAL = {"typer", "rich", "requests", "urllib3", "ebooklib", "bs4", "lxml", "rapidfuzz",
             "PySide6", "PySide2", "PyQt6", "PyQt5", "mcp"}
 TECHNICAL_STDLIB = {"sqlite3", "subprocess", "http", "urllib", "xml", "zipfile", "csv",
                     "shelve", "dbm", "socket", "socketserver", "ssl", "ftplib",
@@ -223,7 +302,7 @@ PRESENTATION_STDLIB = {"tkinter", "curses", "turtle", "idlelib", "webbrowser"}
 ALLOWED_LAYER_DEPENDENCIES = {
     "surface": set(), "domain": {"domain"},
     "application": {"domain", "application"},
-    "interface": {"domain", "application", "surface"},
+    "interface": {"domain", "application", "surface", "composition"},
     "format": {"domain", "application", "format"},
     "provider": {"domain", "application", "provider"},
     "knowledge": {"domain", "application", "knowledge"},
@@ -288,6 +367,8 @@ def forbidden(
             if (source, target) not in allowed_edges:
                 return "undeclared internal edge"
             return None
+        if source == "ayvu.cli_composition" and destination.layer == "composition":
+            return None if (source, target) in allowed_edges else "undeclared internal edge"
         if destination.layer not in ALLOWED_LAYER_DEPENDENCIES[owner.layer]:
             return "dependency direction"
         if (source, target) not in allowed_edges:
@@ -303,13 +384,77 @@ def forbidden(
     allowed = {
         "interface": {"typer", "rich"} if owner.capability == "CLI" else
                      {"PySide6", "PySide2", "PyQt6", "PyQt5"},
-        "format": {"bs4", "lxml", "ebooklib"}, "provider": {"requests"},
+        "format": {"bs4", "lxml", "ebooklib"}, "provider": {"requests", "urllib3"},
         "composition": EXTERNAL,
     }.get(owner.layer, set())
     return None if root in allowed else "framework/vendor dependency"
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.provider_network", "ayvu.network_policy"),
+    ("ayvu.provider_discovery", "ayvu.network_policy"),
+    ("ayvu.cli", "ayvu.network_policy"),
+    ("ayvu.preflight", "ayvu.network_policy"),
+    ("ayvu.preflight", "ayvu.network_http"),
+    ("ayvu.provider_composition", "ayvu.network_policy"),
+    ("ayvu.provider_composition", "ayvu.network_http"),
+    ("ayvu.translator", "ayvu.network_policy"),
+    ("ayvu.translator", "ayvu.network_http"),
+    ("ayvu.network_http", "ayvu.network_policy"),
+    ("ayvu.cli_contracts", "ayvu.config_values"),
+    ("ayvu.cli_contracts", "ayvu.preferences_service"),
+    ("ayvu.cli_contracts", "ayvu.job_recovery"),
+    ("ayvu.cli_composition", "ayvu.domain"),
+    ("ayvu.cli_composition", "ayvu.cache_admin_composition"),
+    ("ayvu.cli_composition", "ayvu.content_composition"),
+    ("ayvu.cli_composition", "ayvu.glossary_catalog_composition"),
+    ("ayvu.cli_composition", "ayvu.preflight"),
+    ("ayvu.cli_composition", "ayvu.provider_composition"),
+    ("ayvu.cli_composition", "ayvu.review_composition"),
+    ("ayvu.cli_composition", "ayvu.translate_batch_composition"),
+    ("ayvu.cli_composition", "ayvu.translate_project_composition"),
+    ("ayvu.batch_output_policy", "ayvu.cli_contracts"),
+    ("ayvu.cli", "ayvu.cli_composition"),
+    ("ayvu.cli", "ayvu.cli_contracts"),
+    ("ayvu.cli", "ayvu.config_values"),
+    ("ayvu.cli_composition", "ayvu.batch_output_policy"),
+    ("ayvu.cli_composition", "ayvu.cache"),
+    ("ayvu.cli_composition", "ayvu.cli_contracts"),
+    ("ayvu.cli_composition", "ayvu.config"),
+    ("ayvu.cli_composition", "ayvu.library_adapters"),
+    ("ayvu.cli_composition", "ayvu.library_service"),
+    ("ayvu.cli_composition", "ayvu.project_service"),
+    ("ayvu.cli_composition", "ayvu.project_store"),
+    ("ayvu.cli_composition", "ayvu.resume"),
+    ("ayvu.cli_composition", "ayvu.translate_project"),
+    ("ayvu.cli_composition", "ayvu.translation_engine"),
+    ("ayvu.cli_contracts", "ayvu.domain"),
+    ("ayvu.cli_contracts", "ayvu.translate_project"),
+    ("ayvu.config", "ayvu.config_values"),
+    ("ayvu.config_values", "ayvu.preferences"),
+    ("ayvu.preflight", "ayvu.cli_contracts"),
+    ("ayvu.provider_composition", "ayvu.cli_contracts"),
+    ("ayvu.resume", "ayvu.cli_contracts"),
+    ("ayvu.translate_project_composition", "ayvu.cli_contracts"),
+    ("ayvu.project_profiles", "ayvu.glossary_catalog"),
+    ("ayvu.project_profiles", "ayvu.preferences"),
+    ("ayvu.project_profiles", "ayvu.project"),
+    ("ayvu.project_profile_service", "ayvu.preferences"),
+    ("ayvu.project_profile_service", "ayvu.preferences_service"),
+    ("ayvu.project_profile_service", "ayvu.project_profiles"),
+    ("ayvu.project_profile_store", "ayvu.project"),
+    ("ayvu.project_profile_store", "ayvu.project_store"),
+    ("ayvu.project_profile_store", "ayvu.project_profile_service"),
+    ("ayvu.project_profile_store", "ayvu.project_profiles"),
+    ("ayvu.profile_glossary_store", "ayvu.glossary_catalog"),
+    ("ayvu.profile_glossary_store", "ayvu.glossary_catalog_store"),
+    ("ayvu.profile_glossary_store", "ayvu.project_profile_service"),
+    ("ayvu.profile_glossary_store", "ayvu.project_profiles"),
+    ("ayvu.project_profile_composition", "ayvu.glossary_catalog_store"),
+    ("ayvu.project_profile_composition", "ayvu.profile_glossary_store"),
+    ("ayvu.project_profile_composition", "ayvu.project_profile_service"),
+    ("ayvu.project_profile_composition", "ayvu.project_profile_store"),
+    ("ayvu.project_profile_composition", "ayvu.project_store"),
     ("ayvu.translate_batch_composition", "ayvu.batch_output_policy"),
     ("ayvu.translate_batch_composition", "ayvu.translate_batch"),
     ("ayvu.translate_batch_composition", "ayvu.translate_project"),
@@ -320,14 +465,41 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.batch_output_policy", "ayvu.artifact"),
     ("ayvu.batch_output_policy", "ayvu.domain"),
     ("ayvu.cli", "ayvu.translate_batch"),
-    ("ayvu.cli", "ayvu.job"),
     ("ayvu.glossary_catalog_store", "ayvu.glossary_catalog"),
     ("ayvu.glossary_catalog_store", "ayvu.glossary"),
     ("ayvu.glossary_catalog_composition", "ayvu.glossary_catalog_store"),
     ("ayvu.cli", "ayvu.glossary_catalog"),
     ("ayvu.cache_admin", "ayvu.job_events"),
+    ("ayvu.cache_admin", "ayvu.cache_identity"),
+    ("ayvu.cache_admin", "ayvu.cache_legacy_format"),
+    ("ayvu.cache_legacy_stream", "ayvu.cache_admin"),
+    ("ayvu.cache_legacy_stream", "ayvu.cache_interchange"),
+    ("ayvu.cache_admin_legacy_store", "ayvu.cache"),
+    ("ayvu.cache_admin_legacy_store", "ayvu.cache_admin"),
+    ("ayvu.cache_admin_legacy_store", "ayvu.cache_admin_store"),
+    ("ayvu.cache_admin_legacy_store", "ayvu.cache_admin_v2_store"),
+    ("ayvu.cache_admin_legacy_store", "ayvu.cache_legacy_stream"),
+    ("ayvu.cache_admin_legacy_store", "ayvu.cache_schema"),
+    ("ayvu.cache_admin_composition", "ayvu.cache_admin_legacy_store"),
+    ("ayvu.cache_interchange", "ayvu.cache_admin"),
+    ("ayvu.cache_interchange", "ayvu.cache_identity"),
+    ("ayvu.cache_interchange", "ayvu.provenance"),
+    ("ayvu.cache_interchange", "ayvu.cache_repository"),
+    ("ayvu.cache_interchange", "ayvu.cache_schema"),
+    ("ayvu.cache_admin_v2_store", "ayvu.cache_admin"),
+    ("ayvu.cache_admin_v2_store", "ayvu.cache_identity"),
+    ("ayvu.cache_admin_v2_store", "ayvu.cache_admin_store"),
+    ("ayvu.cache_admin_v2_store", "ayvu.cache_schema"),
+    ("ayvu.cache_admin_v2_store", "ayvu.cache_interchange"),
+    ("ayvu.cache_admin_composition", "ayvu.cache_admin_v2_store"),
+    ("ayvu.cache_admin_composition", "ayvu.cache_schema"),
+    ("ayvu.cli", "ayvu.cache_identity"),
     ("ayvu.cache_admin_store", "ayvu.cache_admin"),
     ("ayvu.cache_admin_store", "ayvu.cache"),
+    ("ayvu.cache_admin_store", "ayvu.cache_schema"),
+    ("ayvu.cache_schema", "ayvu.cache"),
+    ("ayvu.cache_repository", "ayvu.cache_schema"),
+    ("ayvu.cache_repository", "ayvu.cache_identity"),
     ("ayvu.cache_admin_composition", "ayvu.cache_admin"),
     ("ayvu.cache_admin_composition", "ayvu.cache_admin_store"),
     ("ayvu.cli", "ayvu.cache_admin"),
@@ -464,14 +636,12 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.preferences_store", "ayvu.preferences"),
     ("ayvu.preferences_store", "ayvu.preferences_service"),
     ("ayvu.cli", "ayvu.project"),
-    ("ayvu.cli", "ayvu.project_service"),
     ("ayvu.project_service", "ayvu.project"),
     ("ayvu.project_store", "ayvu.project"),
     ("ayvu.project_store", "ayvu.project_service"),
     ("ayvu.cache", "ayvu.domain"),
     ("ayvu.cli", "ayvu.cli_progress"),
     ("ayvu.cli", "ayvu.translate_project"),
-    ("ayvu.cli", "ayvu.translation_engine"),
     ("ayvu.cli", "ayvu.review_application"),
     ("ayvu.cli", "ayvu.domain"),
     ("ayvu.cli", "ayvu.library_service"),
@@ -615,27 +785,25 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.preflight", "ayvu.domain"),
     ("ayvu.resume", "ayvu.domain"),
     ("ayvu.translation_memory", "ayvu.domain"),
+    ("ayvu.approved_memory", "ayvu.content"),
+    ("ayvu.approved_memory", "ayvu.domain"),
+    ("ayvu.approved_memory", "ayvu.job"),
+    ("ayvu.approved_memory", "ayvu.provenance"),
+    ("ayvu.approved_memory_service", "ayvu.approved_memory"),
+    ("ayvu.approved_memory_service", "ayvu.domain"),
+    ("ayvu.approved_memory_store", "ayvu.approved_memory"),
+    ("ayvu.approved_memory_store", "ayvu.approved_memory_service"),
+    ("ayvu.approved_memory_store", "ayvu.domain"),
+    ("ayvu.approved_memory_store", "ayvu.migration_contracts"),
+    ("ayvu.approved_memory_store", "ayvu.provenance"),
+    ("ayvu.approved_memory_store", "ayvu.provenance_service"),
+    ("ayvu.approved_memory_store", "ayvu.sqlite_migrations"),
     ("ayvu.validation", "ayvu.html_translate"),
 }
 
 
 EXCEPTIONS = {
-    ("ayvu.cli", "ayvu.translate_batch_composition"): Exemption("Translation", 158, "batch service composed at the CLI root"),
-    ("ayvu.cli", "ayvu.batch_output_policy"): Exemption("Translation", 158, "batch output policy composed at CLI root"),
-    ("ayvu.cli", "ayvu.cache_admin_composition"): Exemption("Cache administration", 158, "cache administration composed at the root"),
-    ("ayvu.cli", "ayvu.project_store"): Exemption(
-        "Projects", 158, "project repository constructed in the shared composition root"),
-    ("ayvu.cli", "sqlite3"): Exemption("CLI", 158, "CLI uses application outcomes"),
-    ("ayvu.cli", "ayvu.cache"): Exemption("Knowledge", 150, "cache administration extracted"),
-    ("ayvu.cli", "ayvu.config"): Exemption("Preferences", 158, "compatibility config converted at shared composition root"),
-    ("ayvu.cli", "ayvu.content_composition"): Exemption("Formats", 147, "inspect and export use cases composed at the root"),
-    ("ayvu.cli", "ayvu.review_composition"): Exemption("Review", 158, "review use cases composed at the shared application root"),
-    ("ayvu.cli", "ayvu.glossary_catalog_composition"): Exemption("Glossary administration", 157, "glossary administration composed at the root"),
-    ("ayvu.cli", "ayvu.html_translate"): Exemption("CLI", 158, "neutral statistics outcome"),
-    ("ayvu.cli", "ayvu.preflight"): Exemption("Translation", 158, "built in the shared composition root"),
     ("ayvu.preflight", "ayvu.provider_composition"): Exemption("Translation", 158, "built in the shared composition root"),
-    ("ayvu.cli", "ayvu.translate_project_composition"): Exemption("Translation", 158, "built in the shared composition root"),
-    ("ayvu.cli", "ayvu.provider_composition"): Exemption("Providers", 158, "provider built in the shared composition root"),
     ("ayvu.epub_io", "ayvu.cache"): Exemption("Formats", 144, "EPUB adapter isolated from pipeline"),
     ("ayvu.epub_io", "ayvu.glossary"): Exemption("Formats", 144, "glossary coordinated by pipeline"),
     ("ayvu.epub_io", "ayvu.review_export"): Exemption("Review", 158, "legacy EPUB review projection removed with the old facade"),
@@ -646,7 +814,6 @@ EXCEPTIONS = {
     ("ayvu.html_translate", "ayvu.translator"): Exemption("Formats", 153, "compatibility facade retired with the versioned cache"),
     ("ayvu.translation_memory", "rapidfuzz"): Exemption("Knowledge", 161, "TM matching behind repository boundary"),
     ("ayvu.translation_memory", "ayvu.cache"): Exemption("Knowledge", 161, "approved TM separated from exact cache"),
-    ("ayvu.cli", "ayvu.library_adapters"): Exemption("Library", 158, "library adapters composed at the shared application root"),
 }
 
 
@@ -922,3 +1089,79 @@ def make_tree(tmp_path: Path, source: str, code: str,
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(code if module == source else "", encoding="utf-8")
     return root
+
+
+@pytest.mark.parametrize('hidden', ['from .cache import TranslationCache', 'import requests', 'import sqlite3'])
+def test_cli_transitive_dependencies_cannot_be_laundered_by_an_exemption(tmp_path, hidden):
+    root = make_tree(tmp_path, 'ayvu.cli', 'from .provider_discovery import DiscoveryOutcome')
+    (root / 'provider_discovery.py').write_text(hidden)
+    modules = {}
+    for path in root.glob('*.py'):
+        name = 'ayvu' if path.stem == '__init__' else 'ayvu.' + path.stem
+        modules[name] = (path, path.stem == '__init__', ast.parse(path.read_text()))
+    targets = imports('ayvu.provider_discovery', False, ast.parse(hidden), modules)
+    target = targets[0]
+    exceptions = {('ayvu.provider_discovery', target): Exemption('test', 158, 'never valid for presentation')}
+    with pytest.raises(BoundaryError, match='CLI transitive'):
+        check_tree(root, TEST_OWNERS, exceptions, allowed_edges={('ayvu.cli', 'ayvu.provider_discovery')})
+
+
+def test_cli_cannot_import_concrete_reexport_from_composition(tmp_path):
+    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
+    root = make_tree(tmp_path, 'ayvu.cli', 'from .cli_composition import TranslationCache', owners)
+    (root / 'cli_composition.py').write_text('from .cache import TranslationCache')
+    with pytest.raises(BoundaryError, match='concrete re-export'):
+        check_tree(root, owners, allowed_edges={('ayvu.cli', 'ayvu.cli_composition'), ('ayvu.cli_composition', 'ayvu.cache')})
+
+
+@pytest.mark.parametrize("code", ["services = dict()", "services = {}", "services = []"])
+def test_cli_composition_cannot_cache_a_mutable_or_eager_graph(tmp_path, code):
+    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
+    root = make_tree(tmp_path, 'ayvu.cli_composition', code, owners)
+    with pytest.raises(BoundaryError, match='singleton'):
+        check_tree(root, owners)
+
+
+@pytest.mark.parametrize('code', [
+    'from . import cli_composition as root',
+    'from ayvu import cli_composition',
+    'import ayvu.cli_composition as root',
+])
+def test_cli_cannot_hide_composition_construction_behind_a_module_alias(tmp_path, code):
+    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
+    root = make_tree(tmp_path, 'ayvu.cli', code, owners)
+    with pytest.raises(BoundaryError, match='named workflow factories'):
+        check_tree(root, owners, allowed_edges={('ayvu.cli', 'ayvu.cli_composition')})
+
+
+@pytest.mark.parametrize('code', [
+    'def services():\n global registry\n registry = {}',
+    'def service(resources={}):\n return resources',
+    '@cache\ndef service():\n return adapter()',
+])
+def test_cli_composition_cannot_hide_a_cached_graph_in_a_factory(tmp_path, code):
+    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
+    root = make_tree(tmp_path, 'ayvu.cli_composition', code, owners)
+    with pytest.raises(BoundaryError, match='singleton|eager CLI construction'):
+        check_tree(root, owners)
+
+
+# Pesquisa #167: registro separado, removível, nunca um módulo de produção.
+LOCAL_WORKER_RESEARCH = frozenset({'probe.py', 'measure.py'})
+
+
+def test_local_worker_research_is_registered_stdlib_only_and_unreachable_from_production():
+    directory = ROOT / 'spikes' / 'local-worker'
+    assert {path.name for path in directory.glob('*.py')} == LOCAL_WORKER_RESEARCH
+    for name in LOCAL_WORKER_RESEARCH:
+        tree = ast.parse((directory / name).read_text(encoding='utf-8'))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                assert all(alias.name.split('.')[0] in sys.stdlib_module_names for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                assert node.level == 0 and node.module.split('.')[0] in sys.stdlib_module_names
+    for path in (ROOT / 'src' / 'ayvu').rglob('*.py'):
+        tree = ast.parse(path.read_text(encoding='utf-8'))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                assert 'local-worker' not in node.value and 'local_worker_spike' not in node.value

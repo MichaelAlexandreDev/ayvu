@@ -74,14 +74,16 @@ class FakeSession:
         self.gets = []
         self.closed = 0
 
-    def post(self, url, *, json, timeout):
+    def post(self, url, *, json, timeout, allow_redirects=False):
+        assert allow_redirects is False
         self.posts.append((url, json, timeout))
         response = self.responses.pop(0)
         if isinstance(response, Exception):
             raise response
         return response
 
-    def get(self, url, *, timeout):
+    def get(self, url, *, timeout, allow_redirects=False):
+        assert allow_redirects is False
         self.gets.append((url, timeout))
         response = self.get_responses.pop(0)
         if isinstance(response, Exception):

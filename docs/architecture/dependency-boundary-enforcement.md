@@ -55,6 +55,9 @@ entries fail, so a rename cannot silently discard protection.
 | `library_adapters` | Infrastructure | Local library scanning and reader launch |
 | `preflight` | Composition | Translation |
 | `cli`, `cli_progress` | Interface | CLI |
+| `cli_composition` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
+| `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
+| `config_values` | Domain | Valores de preferências e conversões da fachada v1 |
 | `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation_engine` | Application | One book through a format adapter and a unit executor |
 | `translate_project` | Application | One project's book as one durable job, from its ports |
@@ -79,7 +82,7 @@ entries fail, so a rename cannot silently discard protection.
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
 | `provider_discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
 | `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
-| `provider_composition` | Composition | Assembles LibreTranslate and its network decision for the CLI, until #158 |
+| `provider_composition` | Composition | Adaptador de montagem de provedor selecionado por `cli_composition` |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `cache_admin` | Application | Typed cache administration use cases and ports |
 | `cache_admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
@@ -97,6 +100,24 @@ functional modules to prevent reexports from hiding concrete adapters.
 The layer matrix is an upper bound: it cannot authorize an import without an
 exact module edge in `ALLOWED_INTERNAL_EDGES`. An allowed edge cannot override a
 forbidden layer direction.
+
+Desde #158, a interface CLI pode importar funções nomeadas de
+`cli_composition`; essa é a única fronteira em que a travessia transitiva da
+apresentação para a infraestrutura termina. Os módulos de composição anteriores
+continuam implementando a montagem por capacidade, chamados por essa fronteira.
+A regra reutiliza `OWNERS`, `ALLOWED_INTERNAL_EDGES`, o resolvedor de imports e
+as regras externas de #133. Não há uma segunda lista de permissões arquiteturais.
+Reexports e imports transitivos de adaptadores concretos, SQLite, HTTP ou
+bibliotecas EPUB/HTML são rejeitados mesmo quando uma aresta intermediária tem
+exceção. Typer/Rich continuam válidos na apresentação e proibidos em aplicação/domínio.
+
+A apresentação não pode importar classes reexportadas pela composição nem
+esconder construção através de um alias de módulo. A composição não pode manter
+instâncias/mapeamentos mutáveis globais, usar `global`/`nonlocal`, decorar
+factories para cachear instâncias ou construir recursos em argumentos padrão.
+Testes de execução instrumentam também importação limpa, ajuda, transporte
+HTTP/DNS/socket, sessões de provedor e repositórios para verificar construção
+tardia e escopo. Isso complementa a análise estática, não cria um sandbox.
 
 External package roots are explicitly recognized without importing or requiring
 their installation. CLI presenters can import Typer/Rich; Desktop presenters
@@ -118,20 +139,16 @@ and observable expiry condition. Wildcards, incomplete entries, and exceptions
 that no longer waive a forbidden edge fail. Exceptions cannot waive unknown
 imports, syntax/read errors, cycles or missing ownership.
 
-The existing CLI edges expire as application use cases are extracted in #128,
-#147, #149, #150, #152, #157 and composition is consolidated in #158.
-#145 removed the CLI's edge to the validator and its use of `translate_epub`.
-The CLI still imports `epub_io` inspection/extraction helpers. Review export,
-validation and apply now use `review_application` through
-`review_composition`; `apply-review` rejects v1 before source inspection.
-Remaining legacy format edges expire under #147.
-The compatibility CLI-to-config edge now expires in #158: first-use/Settings
-already call shared preference use cases, while legacy config conversion and
-construction stay at this transitional composition boundary.
-The exact CLI-to-project-store construction edge also expires in #158; domain
-and application project modules never import the concrete store.
-`preflight` builds a translator, a cache and a glossary, so it is composition, and its
-edges to the CLI and to the provider composition expire in #158. The coupling of the
+As exceções de apresentação CLI para cache, projeto, configuração, formato,
+revisão, biblioteca, lote, glossário, provedor e composições por capacidade foram
+removidas em #158. A matriz compartilhada de #123 registra os serviços entregues
+pelas dependências, o inventário de helpers e a única fronteira de construção.
+`preflight` continua sendo composição: conecta os adaptadores entregues de
+formato, cache, glossário e provedor. Sua aresta para `provider_composition`
+permanece uma exceção exata de composição entre capacidades, sem caminho direto
+da apresentação até esse módulo. A numeração #158 nessa exceção identifica a
+consolidação responsável, não uma autorização para duplicar serviços.
+The coupling of the
 `html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
 EPUB pipeline coupling expires in #144, after #141 separates the
 provider contract from its HTTP adapter. `html_structure` has no such coupling.

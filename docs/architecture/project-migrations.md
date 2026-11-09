@@ -4,8 +4,10 @@ This contract implements [#135](https://github.com/MichaelAlexandreDev/ayvu/issu
 under the [accepted, scoped DEC-012](local-project-storage.md). The runner itself
 owns no domain tables. Schema version 2 adds the job tables of the
 [job lifecycle](job-lifecycle.md) and version 3 the [job artifact](job-artifacts.md)
-metadata, and version 4 the [provenance](provenance.md) tables. No cache or review
-tables exist.
+metadata, and version 4 the [provenance](provenance.md) tables. This project
+database contains no cache or review tables. The [governed approved translation
+memory](approved-translation-memory.md) uses the same runner with its own file,
+registry and backup directory; its versions do not extend `PROJECT_MIGRATIONS`.
 
 ## Composition boundary and current schema
 

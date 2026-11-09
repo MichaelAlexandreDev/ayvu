@@ -1,5 +1,12 @@
 # Library discovery and external opening
 
+A abertura que antes se chamava `open_library_epub()` em `library.py` está hoje
+em `LibraryService.open_entry`/`ReaderLauncher.launch`. O leitor é um processo
+independente, explicitamente fora da [garantia HTTP offline](network-policy.md).
+A CLI exibe esse limite antes de lançar o processo, inclusive com
+`--network-policy none`; o resultado de abertura não representa contenção de
+rede do leitor. A política não é passada como promessa de isolamento ao filho.
+
 The guided Library flow composes [`LibraryService`](../../src/ayvu/library_service.py)
 with the local adapters in [`library_adapters.py`](../../src/ayvu/library_adapters.py).
 The service uses separate discovery, authorization and launcher protocols and does not import a UI, EPUB

@@ -14,6 +14,7 @@ from enum import StrEnum
 
 from .job import JobError, is_slug, validate_utc
 from .provider import valid_reference
+from .network_policy import NETWORK_DENIAL_CODES
 
 NETWORK_DECISION_VERSION = 1
 
@@ -98,5 +99,8 @@ def network_refusal(decision: object, *, binding: str, trusted_issuers: frozense
     if decision.policy_revision != policy_revision:
         return "network_decision_revision_mismatch"
     if not decision.allowed:
+        # Only this closed allowlist can cross the shared diagnostic boundary.
+        if decision.reason_code in NETWORK_DENIAL_CODES:
+            return decision.reason_code
         return "network_decision_denied"
     return None

@@ -88,6 +88,10 @@ def _http_failure(status_code: int | None) -> JobFailure:
 
 
 def _classify(error: TranslatorError) -> tuple[JobFailure, DeliveryState]:
+    if error.reason == "policy":
+        return JobFailure(JobFailureFamily.POLICY, error.code), DeliveryState.NOT_SENT
+    if error.reason == "redirect":
+        return JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "provider_redirect_refused"), DeliveryState.COMPLETED
     if error.reason == "http":
         return _http_failure(error.status_code), DeliveryState.COMPLETED
     if error.reason == "malformed":
@@ -189,7 +193,7 @@ class LibreTranslateProviderFactory:
     def create(self, instance: ProviderInstance) -> LibreTranslateProvider:
         base = self._translator_factory()
         translator = RoutedTranslator(base, self._route) if self._route is not None else base
-        cleanup = base.session.close if isinstance(base, LibreTranslateTranslator) else None
+        cleanup = base.close if isinstance(base, LibreTranslateTranslator) else None
         return LibreTranslateProvider(translator, clock=self._clock, cleanup=cleanup)
 
 
@@ -221,6 +225,10 @@ def libretranslate_snapshot(translator: LibreTranslateTranslator, observed_at: d
 
 
 def _probe_failure(error: TranslatorError) -> tuple[AvailabilityState, str]:
+    if error.reason == "policy":
+        return AvailabilityState.UNAVAILABLE, error.code
+    if error.reason == "redirect":
+        return AvailabilityState.UNAVAILABLE, "provider_redirect_refused"
     if error.reason == "malformed":
         return AvailabilityState.DEGRADED, "malformed_languages"
     if error.reason == "timeout":

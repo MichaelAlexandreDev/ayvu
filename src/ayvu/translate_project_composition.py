@@ -6,6 +6,8 @@ raises here, so a caller learns of it before any translator is asked anything.
 """
 from __future__ import annotations
 
+from .cli_contracts import BookRefused, TranslationDryRunCancelled, ProjectTranslationUnavailable
+
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
@@ -69,14 +71,6 @@ BOOK_REFUSALS = frozenset({
     "malformed_encryption", "member_name_too_long", "member_too_large", "protected_member", "source_too_large", "suspicious_compression", "too_many_members",
     "unsafe_manifest_href", "unsafe_member_name",
 })
-
-
-class BookRefused(RuntimeError):
-    """The book is refused before anything starts. The message is the code, never a name from the book."""
-
-    def __init__(self, code: str) -> None:
-        super().__init__(code)
-        self.code = code
 
 
 def epub_format_service() -> FormatService:
@@ -295,14 +289,6 @@ def translate_without_project(source_path: Path, destination_path: Path, **argum
     report = translate_epub(source_path, destination_path, **arguments)
     checkpoint()
     return report
-
-
-class TranslationDryRunCancelled(KeyboardInterrupt):
-    """The no-project path observed a request at a callback safe point."""
-
-
-class ProjectTranslationUnavailable(RuntimeError):
-    """The project's storage could not be opened. Nothing was started, and the message is a bounded code."""
 
 
 class CancellationBinding(Protocol):

@@ -131,6 +131,8 @@ def test_preflight_passes_execution_controls_to_translator_factory(monkeypatch, 
     assert calls["args"] == ("libretranslate",)
     kwargs = calls["kwargs"]
     assert isinstance(kwargs.pop("rate_limiter"), RequestRateLimiter)
+    from ayvu.network_http import NetworkAuthorization
+    assert isinstance(kwargs.pop("network_authorization"), NetworkAuthorization)
     assert kwargs == {
         "url": "http://localhost:5000",
         "timeout": 1.0,
@@ -145,7 +147,7 @@ def test_preflight_cache_only_skips_route_resolution(monkeypatch, tmp_path):
     translator = TranslatorWithLanguages(
         (TranslatorLanguage(code="en", name="English", targets=("pt",)),)
     )
-    monkeypatch.setattr("ayvu.preflight.create_translator", lambda *_args, **_kwargs: translator)
+    monkeypatch.setattr("ayvu.preflight.create_translator", lambda *_args, **_kwargs: pytest.fail("cache-only constructed a provider"))
     monkeypatch.setattr("ayvu.preflight.inspect_epub", lambda _path: object())
 
     result = run_translation_preflight(
@@ -162,7 +164,8 @@ def test_preflight_cache_only_skips_route_resolution(monkeypatch, tmp_path):
     )
 
     assert result.route is None
-    assert result.translator is translator
+    assert result.translator is None
+    assert result.translator_factory is None
     assert translator.translate_calls == []
     assert translator.list_calls == 0
 
@@ -408,7 +411,7 @@ def test_preflight_next_step_is_exact_and_holds_no_address(monkeypatch, tmp_path
     assert error.value.next_step == "Inicie o LibreTranslate, verifique --url e confirme que o servidor está acessível."
 
 
-def test_cli_network_decision_states_that_no_policy_ran():
+def test_cli_network_decision_records_the_loopback_compatibility_default():
     from datetime import UTC, datetime
 
     from ayvu.provider_composition import CLI_INSTANCE_ID, CliProviderSession
@@ -416,8 +419,9 @@ def test_cli_network_decision_states_that_no_policy_ran():
 
     session = CliProviderSession(TranslatorWithLanguages(()), clock=lambda: datetime(2026, 11, 3, tzinfo=UTC))
     decision = session._decision(ProviderOperation.LANGUAGES)
-    assert decision.allowed is True and decision.network_class is NetworkClass.UNCLASSIFIED
-    assert decision.reason_code == "legacy_cli_unrestricted" and decision.policy_ref is None
+    assert decision.allowed is True and decision.network_class is NetworkClass.LOOPBACK_ONLY
+    assert decision.reason_code == "loopback_permitted" and decision.policy_ref is None
+    assert session.network_decision.defaulted is True
     assert decision.binding == network_binding(CLI_INSTANCE_ID, None, ProviderOperation.LANGUAGES)
 
 
