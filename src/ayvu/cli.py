@@ -1,26 +1,45 @@
 from __future__ import annotations
 
+from collections import Counter
+from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
-import sqlite3
-from typing import NoReturn, Optional
+import json
+from typing import NoReturn, Optional, Protocol
 
 import typer
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from .cache import CacheError, CacheImportReport, CacheSummaryRow, TranslationCache
+from .translate_batch import ItemOutcome, ItemStatus
+from .cache_admin import (
+    CacheAdminError, CacheFilter, CacheRef, FileRef, InspectRequest,
+    PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest,
+    CacheNamespace, CacheScopeMapping, ImportScopeMap, ExecuteImportRequest,
+)
+from .cache_identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind, CacheIdentityError
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
-from .config import (
-    DEFAULT_BOOKS_DIR,
-    AyvuConfig,
-    ConfigError,
-    ConfigStore,
-    FolderNames,
-    TranslationProfile,
-    default_glossaries_dir,
+from .config_values import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
+from .cli_contracts import (
+    _BookHooks, _BookRequest, _BookOutcome, AcceptedItem, BatchOutputError,
+    BookRefused, ProjectTranslationUnavailable, TranslationDryRunCancelled,
+    PreflightError, ProviderSetupError, ConfigStore, TranslationReport, ValidationResult,
+    TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery,
+    SelectedChapter, CacheSummaryRow, CacheImportReport, ResumeStateError,
+)
+from .cli_composition import (
+    configuration_store, library_service, default_glossaries_dir,
+    open_content_use_cases, cache_admin_services, read_scope_map_payload,
+    managed_glossary_repository, cli_provider_session, open_review_use_cases,
+    destination_fingerprint, read_review_input, run_translation_preflight,
+    resolve_translation_project, batch_output_intent, translate_batch, batch_item_outcome,
+    book_refusal, check_book, default_processing_dir, detect_epub_language,
+    interrupted_translations, open_job_recovery, resolve_chapter_selection, validate_output,
+    prepare_translation, publish_cli_report, report_destination,
+    translation_checkpoint, _translate_without_project as execute_translate_without_project,
+    _translate_in_project as execute_translate_in_project,
 )
 from .domain import (
     ChapterSelection,
@@ -37,50 +56,41 @@ from .domain import (
     default_preview_books_dir,
     default_translated_books_dir,
 )
-from .epub_io import (
-    ReviewApplyReport,
-    SelectedChapter,
-    TranslationReport,
-    apply_reviewed_epub,
-    detect_epub_language,
-    extract_markdown,
-    inspect_epub,
-    resolve_chapter_selection,
-    translate_epub,
+from .glossary_catalog import (
+    Entry as GlossaryEntry, GlossaryReference, list_glossaries, read_glossary,
+    create_glossary, update_glossary,
 )
-from .glossary import (
-    GLOSSARY_RULE_PRESERVE,
-    GLOSSARY_RULE_TRANSLATE,
-    Glossary,
-    GlossaryEntry,
-    GlossaryError,
-    load_glossary,
-    save_glossary,
+
+GLOSSARY_RULE_TRANSLATE = "translate"
+GLOSSARY_RULE_PRESERVE = "preserve"
+from .library_service import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
+from .project import ProjectError
+from .job_recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
+from .review_application import (
+    ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
 )
-from .html_translate import HtmlTranslationStats
-from .library import LibraryBook, LibraryOpenError, open_library_epub, scan_library
-from .preflight import PreflightError, run_translation_preflight
-from .resume import (
-    InvalidResumeState,
-    ResumeStateError,
-    ResumeStateScan,
-    ResumeStateStore,
-    TranslationResumeState,
-    default_processing_dir,
-)
-from .review_export import ReviewSegment, write_review_csv
-from .review_import import ReviewImportError, read_review_csv
-from .translator import LibreTranslateTranslator, TranslationRoute, TranslatorError, TranslatorLanguage
-from .validation import validate_output_epub
+from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
+from .network_policy import NetworkPolicy, network_next_step
+from .translate_project import ContinuationTicket, TranslateProjectResult
 
 
 app = typer.Typer(help="Translate local EPUB files with a local HTTP translator.")
 cache_app = typer.Typer(help="Inspect, clean, export, and import the translation cache.")
 app.add_typer(cache_app, name="cache")
 console = Console()
+
+
+class _RouteView(Protocol):
+    @property
+    def is_direct(self) -> bool: ...
+
+    def describe(self) -> str: ...
 DEFAULT_SOURCE_LANGUAGE = "en"
 DEFAULT_TARGET_LANGUAGE = "pt"
 DEFAULT_TRANSLATOR_URL = "http://localhost:5000"
+NETWORK_POLICY_HELP = ("Política HTTP desta execução: none bloqueia DNS/sockets; loopback (padrão) permite somente HTTP local. "
+                       "Não é salva. Leitores externos ficam fora da garantia offline.")
+_invocation_network_policy: ContextVar[NetworkPolicy | None] = ContextVar("network_policy", default=None)
 DEFAULT_CACHE_PATH = Path(".cache/traducoes.sqlite")
 DEFAULT_PREVIEW_DOCUMENT_LIMIT = 12
 DEFAULT_RETRY_BACKOFF = 0.5
@@ -117,15 +127,161 @@ class TranslationRunResult:
     report: TranslationReport
     validation_warnings: list[str]
     markdown_report_path: Path | None = None
+    project_id: str | None = None
+    job_result: TranslateProjectResult | None = None
 
 
-@dataclass(frozen=True)
+_RESUME_RACED = (
+    "Esta tradução mudou enquanto a retomada começava.",
+    "Rode 'ayvu resume' de novo para ver como ela está agora. Nada foi alterado.",
+)
+_PROJECT_NEXT_STEPS = {
+    "source_missing": "Informe uma fonte existente; o projeto anterior foi preservado.",
+    "source_changed": "A fonte foi alterada. Restaure a revisão original ou escolha explicitamente outra fonte para um novo projeto.",
+    "ambiguous_project": "Há projetos compatíveis duplicados. Preserve os manifests e resolva a duplicação antes de repetir.",
+    "incomplete_project_creation": "Com todas as execuções encerradas, preserve a pasta .staging-* movendo-a para fora de projects e repita o comando.",
+    "project_commit_uncertain": "O manifesto pode já estar publicado. Recarregue o estado ou repita a tradução para reutilizar o projeto.",
+    "credential_bearing_endpoint": "Use uma URL do tradutor sem usuário, senha, parâmetros de consulta ou fragmento.",
+}
+_PROJECT_NEXT_STEP = (
+    "Verifique a fonte, as permissões da pasta de processamento e o estado do projeto; "
+    "preserve os arquivos existentes antes de corrigir conflitos."
+)
+_BOOK_PROTECTED = (
+    "Este EPUB tem conteúdo protegido ou criptografado.",
+    "O Ayvu não traduz nem remove essa proteção. Escolha um EPUB sem proteção. O original não foi alterado.",
+)
+_BOOK_UNSAFE = (
+    "Este EPUB tem uma estrutura interna insegura, e o Ayvu preferiu não abri-lo.",
+    "Nomes de arquivo inseguros, arquivos repetidos ou declarações de entidade XML não são aceitos. "
+    "Tente outra cópia do livro. O original não foi alterado.",
+)
+_BOOK_TOO_BIG = (
+    "Este EPUB passa dos limites de tamanho ou de compressão aceitos.",
+    "Isso protege contra arquivos que se expandem demais ao abrir. Tente outra cópia do livro. O original não foi alterado.",
+)
+_BOOK_BROKEN = (
+    "Este EPUB está danificado ou incompleto.",
+    "Abra o livro em um leitor para conferir e tente outra cópia. O original não foi alterado.",
+)
+_TRANSLATION_FAILURES: dict[str, tuple[str, str]] = {
+    **dict.fromkeys(("encrypted_content", "encrypted_member", "malformed_encryption", "protected_member"), _BOOK_PROTECTED),
+    **dict.fromkeys(
+        ("unsafe_member_name", "unsafe_manifest_href", "member_name_too_long", "duplicate_member", "entity_declaration"),
+        _BOOK_UNSAFE,
+    ),
+    **dict.fromkeys(
+        ("suspicious_compression", "archive_too_large", "member_too_large", "document_too_large", "source_too_large", "too_many_members"),
+        _BOOK_TOO_BIG,
+    ),
+    **dict.fromkeys(
+        (
+            "corrupt_archive",
+            "corrupt_member",
+            "unsupported_compression",
+            "missing_container",
+            "missing_member",
+            "missing_package",
+            "malformed_container",
+            "malformed_package",
+            "manifest_member_missing",
+            "source_not_regular_file",
+        ),
+        _BOOK_BROKEN,
+    ),
+    "invalid_source_text": (
+        "Um texto deste EPUB não pôde ser preparado para tradução.",
+        "Ele tem caracteres que o Ayvu não aceita, como caracteres de controle. Nada foi publicado e o original não foi alterado.",
+    ),
+    "source_unreadable": (
+        "Não foi possível ler o EPUB informado.",
+        "Confirme que o arquivo existe e pode ser lido, e repita.",
+    ),
+    "source_changed": (
+        "O EPUB mudou enquanto a tradução começava.",
+        "Repita o comando com o arquivo já final. O que foi traduzido continua no cache.",
+    ),
+    "language_pair_mismatch": (
+        "Os idiomas pedidos não são os do projeto local.",
+        "Repita o comando. Se continuar, informe --source e --target explicitamente.",
+    ),
+    "no_chapters_matched": (
+        "Nenhum capítulo corresponde à seleção.",
+        "Veja os capítulos com 'ayvu inspect' e ajuste --chapters.",
+    ),
+    "nothing_to_materialize": (
+        "Este EPUB não tem nada que o Ayvu possa traduzir.",
+        "Confira o livro com 'ayvu inspect'. Nada foi publicado.",
+    ),
+    "job_in_progress": (
+        "Esta mesma tradução já está em andamento em outro processo.",
+        "Espere ela terminar. Para rodar ao mesmo tempo, use outra saída com --output.",
+    ),
+    "stale_revision": _RESUME_RACED,
+    "continuation_exists": _RESUME_RACED,
+    "job_not_resumable": _RESUME_RACED,
+    "job_store_unavailable": (
+        "Não foi possível registrar o trabalho no projeto local.",
+        "Verifique as permissões e o espaço da pasta de processamento e repita. Nada foi traduzido.",
+    ),
+    "run_guard_unavailable": (
+        "Não foi possível registrar o trabalho no projeto local.",
+        "Verifique as permissões e o espaço da pasta de processamento e repita. Nada foi traduzido.",
+    ),
+    "lease_expired": (
+        "A tradução ficou parada por mais de uma hora e o trabalho perdeu a validade.",
+        "Isso costuma ser o computador suspenso. Nada foi publicado. Repita o comando: o que já foi traduzido está no cache.",
+    ),
+    "output_exists": (
+        "Apareceu um arquivo no destino durante a tradução, e ele não foi alterado.",
+        "Escolha outra saída com --output, ou use --overwrite para substituir {output}. O que foi traduzido está no cache.",
+    ),
+    "output_is_source": (
+        "A saída é o próprio EPUB original, que o Ayvu nunca altera.",
+        "Escolha outra saída com --output.",
+    ),
+    "provider_failed": (
+        "O tradutor falhou e a tradução parou, como pedido por --fail-fast.",
+        "Verifique o tradutor local e repita. O que já foi traduzido está no cache.",
+    ),
+    "text_failed": (
+        "Um texto falhou e a tradução parou, como pedido por --fail-fast.",
+        "Veja o detalhe com --mode developer e repita. O que já foi traduzido está no cache.",
+    ),
+    "publication_uncommitted": (
+        "O EPUB foi publicado, mas o projeto local não conseguiu registrar isso.",
+        "O arquivo está em {output}. Confira o livro antes de usar. Repetir com --overwrite gera um registro novo.",
+    ),
+    "job_record_failed": (
+        "O projeto local não conseguiu registrar o fim deste trabalho.",
+        "Verifique se {output} existe e confira o livro. Verifique as permissões e o espaço da pasta de processamento.",
+    ),
+    "provenance_failed": (
+        "O EPUB foi gerado, mas o histórico dele não pôde ser gravado no projeto local.",
+        "O livro está em {output}. Verifique as permissões e o espaço da pasta de processamento.",
+    ),
+    "unexpected_error": (
+        "Não foi possível concluir a tradução deste EPUB.",
+        "Veja o detalhe com --mode developer e repita. O que já foi traduzido está no cache e o original não foi alterado.",
+    ),
+}
+
+
+@dataclass(frozen=True, repr=False)
 class BatchTranslationResult:
     epub_path: Path
     succeeded: bool
     output_path: Path | None = None
     report_path: Path | None = None
     detail: str = ""
+
+
+class _BatchItemExit(typer.Exit):
+    """Presentation exit with the content-free outcome of the active item."""
+
+    def __init__(self, outcome: ItemOutcome) -> None:
+        super().__init__(code=1)
+        self.outcome = outcome
 
 
 @dataclass(frozen=True)
@@ -139,9 +295,27 @@ class ExecutionControls:
     chunk_limit: int
 
 
+def _selected_network_policy(value: NetworkPolicy | None = None) -> NetworkPolicy | None:
+    """Read CLI request input only; composition resolves the compatibility default.
+
+    Guided menus, settings and recovery keep the invocation's selection without
+    persisting it in preferences, projects or checkpoints.
+    """
+    if value is not None:
+        return value
+    return _invocation_network_policy.get()
+
+
+def _print_network_selection(decision) -> None:
+    if decision is not None:
+        origin = "padrão de compatibilidade" if decision.defaulted else "seleção explícita"
+        console.print(f"[dim]Política HTTP: {decision.policy.value} ({origin}); somente o HTTP do Ayvu está coberto.[/dim]")
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     mode: Optional[UserMode] = typer.Option(
         None,
         "--mode",
@@ -159,10 +333,13 @@ def main(
         # COMMON mode is only when running 'ayvu' without subcommands or options (except for help)
         # Typer sets invoked_subcommand when a subcommand is used.
         # ctx.params contains options of the callback itself.
-        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k != "mode"):
+        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k not in {"mode", "network_policy"}):
             mode = UserMode.COMMON
     ctx.ensure_object(dict)
     ctx.obj["mode"] = mode
+    ctx.obj["network_policy"] = network_policy
+    network_token = _invocation_network_policy.set(network_policy)
+    ctx.call_on_close(lambda: _invocation_network_policy.reset(network_token))
 
     if ctx.invoked_subcommand is not None:
         return
@@ -172,8 +349,9 @@ def main(
         return
 
     config = _load_existing_config_or_default()
-    scan = _print_processing_translation_states(ResumeStateStore(_processing_dir(config)))
-    if _offer_detected_translation_resume(scan.running, mode=mode):
+    recovery = open_job_recovery(_processing_dir(config))
+    found = _print_processing_translation_states(recovery)
+    if _offer_detected_translation_resume(found, recovery, mode=mode):
         return
 
     if _run_guided_main_flow(ctx, mode=mode):
@@ -190,25 +368,34 @@ def inspect(
     """Show basic information about an EPUB."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        info = inspect_epub(epub_path)
-    except Exception as exc:
-        _print_epub_read_error(str(exc), mode)
-        raise typer.Exit(code=1) from exc
+        result = open_content_use_cases().inspect_path(epub_path)
+    except Exception:
+        _print_epub_read_error("inspection_failed", mode)
+        raise typer.Exit(code=1) from None
+    if result.failure is not None:
+        if _TRANSLATION_FAILURES.get(result.failure.code) is _BOOK_PROTECTED:
+            # Being protected is the answer to "what is this book", so it is not an error. Its data stays hidden.
+            console.print(f"[yellow]{_BOOK_PROTECTED[0]}[/yellow]")
+            console.print("Os dados do livro não são exibidos, e o Ayvu não traduz nem remove essa proteção.")
+            return
+        _print_content_failure(result.failure.code, mode)
+        raise typer.Exit(code=1)
     table = Table(title="EPUB information")
     table.add_column("Field")
     table.add_column("Value")
-    table.add_row("Path", str(info.path))
-    table.add_row("Title", info.title or "-")
-    table.add_row("Authors", ", ".join(info.authors) if info.authors else "-")
-    table.add_row("Language", info.language or "-")
-    table.add_row("Documents", str(info.document_count))
-    table.add_row("Items", str(info.item_count))
+    table.add_row("Path", str(epub_path))
+    table.add_row("Title", result.title or "-")
+    table.add_row("Authors", ", ".join(result.authors) if result.authors else "-")
+    table.add_row("Language", result.language or "-")
+    table.add_row("Documents", str(result.document_count))
+    table.add_row("Items", str(result.item_count))
     console.print(table)
 
 
 @app.command("test-translator")
 def test_translator(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     url: str = typer.Option(DEFAULT_TRANSLATOR_URL, "--url", help="LibreTranslate base URL or /translate endpoint."),
     source: str = typer.Option(DEFAULT_SOURCE_LANGUAGE, "--source"),
     target: str = typer.Option(DEFAULT_TARGET_LANGUAGE, "--target"),
@@ -230,10 +417,11 @@ def test_translator(
         help="Maximum retry backoff delay in seconds.",
     ),
 ) -> None:
-    """Test connectivity with the local translator."""
+    """Test connectivity with the local translator by sending the text "Hello world"."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        translator = LibreTranslateTranslator(
+        session = cli_provider_session(
+            network_policy=_selected_network_policy(network_policy),
             url=url,
             timeout=timeout,
             retries=retries,
@@ -241,21 +429,26 @@ def test_translator(
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
         )
-        translated = translator.translate("Hello world", source, target)
-    except TranslatorError as exc:
+        result = session.test(source, target)
+        _print_network_selection(session.network_decision)
+        failure_code = None if result.outcome is DiscoveryOutcome.OK else result.code
+    except ProviderSetupError as exc:
+        failure_code = str(exc)
+    if failure_code is not None:
         _print_expected_error(
             "O teste do tradutor falhou.",
-            "Inicie o LibreTranslate, verifique --url e tente novamente.",
+            network_next_step(failure_code) or "Inicie o LibreTranslate, verifique --url e tente novamente.",
             mode,
-            detail=str(exc),
+            detail=session.network_decision.diagnostic("translate", failure_code) if network_next_step(failure_code) else failure_code,
         )
-        raise typer.Exit(code=1) from exc
-    console.print(f"[green]Translator OK:[/green] Hello world -> {translated}")
+        raise typer.Exit(code=1)
+    console.print(f"[green]Translator OK:[/green] {SYNTHETIC_TEST_TEXT} -> {result.text}")
 
 
 @app.command("languages")
 def languages(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     url: str = typer.Option(DEFAULT_TRANSLATOR_URL, "--url", help="LibreTranslate base URL or /translate endpoint."),
     timeout: float = typer.Option(10.0, "--timeout"),
     retries: int = typer.Option(1, "--retries"),
@@ -278,7 +471,8 @@ def languages(
     """List languages reported by the local LibreTranslate server."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        translator = LibreTranslateTranslator(
+        session = cli_provider_session(
+            network_policy=_selected_network_policy(network_policy),
             url=url,
             timeout=timeout,
             retries=retries,
@@ -286,17 +480,86 @@ def languages(
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
         )
-        available_languages = translator.list_languages()
-    except TranslatorError as exc:
+        result = session.languages()
+        _print_network_selection(session.network_decision)
+        failure_code = None if _languages_were_listed(result) else result.code
+    except ProviderSetupError as exc:
+        failure_code = str(exc)
+    if failure_code is not None:
         _print_expected_error(
             "Não foi possível listar os idiomas.",
-            "Inicie o LibreTranslate, verifique --url e tente novamente.",
+            network_next_step(failure_code) or "Inicie o LibreTranslate, verifique --url e tente novamente.",
             mode,
-            detail=str(exc),
+            detail=session.network_decision.diagnostic("languages", failure_code) if network_next_step(failure_code) else failure_code,
         )
-        raise typer.Exit(code=1) from exc
+        raise typer.Exit(code=1)
 
-    _print_languages(available_languages)
+    _print_languages(result.languages)
+
+
+def _cache_namespace(namespace: str | None, scope_kind: str | None, scope_id: str | None,
+                     project_id: str | None, all_namespaces: bool = False):
+    if all_namespaces:
+        if namespace is not None or any((scope_kind, scope_id, project_id)):
+            raise CacheAdminError("invalid_scope")
+        return CacheNamespace.all()
+    if namespace is None:
+        if any((scope_kind, scope_id, project_id)):
+            raise CacheAdminError("invalid_scope")
+        return None
+    if namespace == "legacy-v1":
+        if any((scope_kind, scope_id, project_id)):
+            raise CacheAdminError("invalid_scope")
+        return CacheNamespace.legacy()
+    if namespace != "v2" or not all((scope_kind, scope_id, project_id)):
+        raise CacheAdminError("invalid_scope")
+    try:
+        kind = CacheScopeKind(scope_kind)
+        if kind not in (CacheScopeKind.PROJECT, CacheScopeKind.LOCAL_USER, CacheScopeKind.WORK):
+            raise ValueError()
+        scope = CacheScope(kind, scope_id)
+        policy = CacheAuthorizationPolicy(project_id, () if kind is CacheScopeKind.PROJECT else (scope,))
+        return CacheNamespace.v2(policy.resolve(scope))
+    except (ValueError, CacheIdentityError):
+        raise CacheAdminError("invalid_scope") from None
+
+
+def _cache_scope_map(path: Path):
+    try:
+        raw = read_scope_map_payload(FileRef(str(path)))
+        def unique_object(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError()
+                result[key] = value
+            return result
+        data = json.loads(raw, object_pairs_hook=unique_object)
+        if not isinstance(data, list) or len(data) > 10000:
+            raise ValueError()
+        def namespace(value, source=False):
+            if not isinstance(value, dict):
+                raise ValueError()
+            if value == {"kind": "legacy-v1"}:
+                return CacheNamespace.legacy()
+            expected = {"kind", "scope_kind", "scope_id"} | (set() if source else {"project_id"})
+            if set(value) != expected or value["kind"] != "v2":
+                raise ValueError()
+            source_project = (value["scope_id"] if value["scope_kind"] == "project" else
+                              "00000000-0000-0000-0000-000000000001")
+            return _cache_namespace("v2", value["scope_kind"], value["scope_id"],
+                                    source_project if source else value["project_id"])
+        if any(not isinstance(row, dict) or set(row) != {"source", "destination"} for row in data):
+            raise ValueError()
+        return ImportScopeMap(tuple(CacheScopeMapping(namespace(row["source"], True),
+                                                       namespace(row["destination"])) for row in data))
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError, RecursionError, CacheAdminError):
+        raise CacheAdminError("invalid_scope_map") from None
+
+
+def _cache_warnings(result):
+    for warning in result.warnings:
+        console.print(f"[yellow]Cache warning:[/yellow] {warning.code}")
 
 
 @cache_app.command("inspect")
@@ -310,23 +573,42 @@ def cache_inspect(
         "--before",
         help="Only include entries created before this date (YYYY-MM-DD or ISO datetime).",
     ),
+    namespace: Optional[str] = typer.Option(None, "--namespace", help="Select legacy-v1 or v2."),
+    scope_kind: Optional[str] = typer.Option(None, "--scope-kind", help="V2 scope: project, local_user or work."),
+    scope_id: Optional[str] = typer.Option(None, "--scope-id"),
+    project_id: Optional[str] = typer.Option(None, "--project-id"),
+    all_namespaces: bool = typer.Option(False, "--all", help="Select all cache namespaces."),
 ) -> None:
     """Show cached translations grouped by language pair."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    before_value = _normalize_cache_before(before, mode)
+    before_value = _normalize_cache_before(before, mode, preserve_fraction=namespace == "v2" or all_namespaces)
     try:
-        with TranslationCache(cache_path) as cache:
-            rows = cache.summary(source_lang=source, target_lang=target, before=before_value)
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        services = cache_admin_services()
+        result = services.inspect.execute(InspectRequest(CacheRef(str(cache_path)), CacheFilter(source, target, before_value), namespace=_cache_namespace(namespace, scope_kind, scope_id, project_id, all_namespaces)))
+        _cache_warnings(result)
+        if result.failure:
+            raise CacheAdminError(result.failure.code, result.failure.family)
+        summary = result.value
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível inspecionar o cache.",
-            "Verifique o caminho informado em --cache e tente novamente.",
+            _cache_failure_hint(exc.code, "Verifique o caminho informado em --cache e tente novamente."),
             mode,
             detail=str(exc),
         )
         raise typer.Exit(code=1) from exc
 
-    _print_cache_summary(rows, cache_path)
+    if summary.adapter == "semantic_v2":
+        console.print(f"[dim]Cache path:[/dim] {cache_path}")
+        counts = Counter()
+        for item in summary.namespaces:
+            counts[(item.kind, item.scope_kind)] += item.count
+        for (kind, scope_kind), count in sorted(counts.items(), key=lambda row: (row[0][0], row[0][1] or "")):
+            label = kind if scope_kind is None else f"{kind} / {scope_kind}"
+            console.print(f"{label}: {_plural_cache_entries(count)}")
+        console.print(f"Total: {_plural_cache_entries(summary.count)}")
+    else:
+        _print_cache_summary(summary.pairs, cache_path)
 
 
 @cache_app.command("clean")
@@ -343,10 +625,14 @@ def cache_clean(
     all_entries: bool = typer.Option(False, "--all", help="Allow cleaning the whole cache."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show how many entries would be removed."),
     yes: bool = typer.Option(False, "--yes", help="Confirm destructive cleanup."),
+    namespace: Optional[str] = typer.Option(None, "--namespace", help="Select legacy-v1 or v2."),
+    scope_kind: Optional[str] = typer.Option(None, "--scope-kind", help="V2 scope: project, local_user or work."),
+    scope_id: Optional[str] = typer.Option(None, "--scope-id"),
+    project_id: Optional[str] = typer.Option(None, "--project-id"),
 ) -> None:
     """Remove cache entries by filter or clear the whole cache."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    before_value = _normalize_cache_before(before, mode)
+    before_value = _normalize_cache_before(before, mode, preserve_fraction=namespace in ("v2", "all"))
     _validate_cache_clean_options(
         source=source,
         target=target,
@@ -358,23 +644,58 @@ def cache_clean(
     )
 
     try:
-        with TranslationCache(cache_path) as cache:
-            if dry_run:
-                matched = _count_cache_entries(cache, source=source, target=target, before=before_value)
-                console.print(f"[yellow]Dry run:[/yellow] {_plural_cache_entries(matched)} would be removed.")
-                return
-
-            report = cache.delete_entries(source_lang=source, target_lang=target, before=before_value)
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        if namespace == "all" and not all_entries:
+            raise CacheAdminError("invalid_scope")
+        services = cache_admin_services()
+        selection = services.preview.execute(PreviewCleanRequest(
+            CacheRef(str(cache_path)), CacheFilter(source, target, before_value, all_entries), namespace=_cache_namespace(None if namespace == "all" else namespace, scope_kind, scope_id, project_id, namespace == "all" and all_entries)))
+        _cache_warnings(selection)
+        if selection.failure:
+            raise CacheAdminError(selection.failure.code, selection.failure.family)
+        if dry_run:
+            console.print(f"[yellow]Dry run:[/yellow] {_plural_cache_entries(selection.value.count)} would be removed.")
+            return
+        report = services.clean.execute(ExecuteCleanRequest(selection.value))
+        _cache_warnings(report)
+        if report.failure:
+            raise CacheAdminError(report.failure.code, report.failure.family)
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível limpar o cache.",
-            "Verifique o caminho informado em --cache e tente novamente.",
+            _cache_failure_hint(exc.code, "Verifique o caminho informado em --cache e tente novamente."),
             mode,
             detail=str(exc),
         )
         raise typer.Exit(code=1) from exc
 
-    console.print(f"[green]Deleted {_plural_cache_entries(report.deleted)}.[/green]")
+    console.print(f"[green]Deleted {_plural_cache_entries(report.value)}.[/green]")
+
+
+_CACHE_LIMIT_CODES = frozenset({"limit_exceeded", "file_too_large", "too_many_entries", "text_too_large",
+                                "structure_too_deep", "structure_too_large"})
+
+
+def _cache_failure_hint(code: str, default: str, too_large: str | None = None, *, v2: bool = False) -> str:
+    if code == "v2-admin-required":
+        return "Este cache requer administração compatível com v2."
+    if code == "stale_preview":
+        return "A previsão ficou desatualizada. Execute o comando novamente para gerar uma nova previsão."
+    if code == "import_conflict":
+        return "Revise os conflitos na previsão. Para substituir essas entradas, execute novamente com --replace e confirme a nova previsão."
+    if code == "duplicate_conflict":
+        return "O arquivo contém entradas divergentes para a mesma chave de destino. Corrija o arquivo ou o mapa; --replace não resolve essa colisão."
+    if code in {"invalid_scope_map", "unmapped_scope", "scope_map_limit", "scope_reference_limit"}:
+        return "Confira --scope-map: ele deve cobrir exatamente as origens do arquivo e autorizar cada destino, dentro dos limites documentados."
+    if code == "unsupported_audit_mode":
+        return "A importação mapeada exige journal delete, truncate ou persist. Prepare outro cache suportado; não altere o modo automaticamente."
+    if code == "too_many_namespaces":
+        return "Selecione menos namespaces por arquivo; o limite é de 10.000 seções."
+    if code == "cache_busy":
+        return "Outro processo está usando o cache. Espere ele terminar e tente novamente."
+    if too_large is not None and code in _CACHE_LIMIT_CODES:
+        limits = "1 GiB e 5.000.000 de entradas para v2; seleções somente legadas mantêm 512 MiB e 1.000.000 de entradas" if v2 else "512 MiB por arquivo e 1.000.000 de entradas"
+        return f"O limite é de {limits}. {too_large}"
+    return default
 
 
 @cache_app.command("export")
@@ -390,30 +711,37 @@ def cache_export(
         help="Export only entries created before this date (YYYY-MM-DD or ISO datetime).",
     ),
     overwrite: bool = typer.Option(False, "--overwrite", help="Allow replacing an existing JSON file."),
+    namespace: Optional[str] = typer.Option(None, "--namespace", help="Select legacy-v1 or v2."),
+    scope_kind: Optional[str] = typer.Option(None, "--scope-kind", help="V2 scope: project, local_user or work."),
+    scope_id: Optional[str] = typer.Option(None, "--scope-id"),
+    project_id: Optional[str] = typer.Option(None, "--project-id"),
+    all_namespaces: bool = typer.Option(False, "--all", help="Select all cache namespaces."),
 ) -> None:
     """Export cached translations to readable JSON."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    before_value = _normalize_cache_before(before, mode)
+    before_value = _normalize_cache_before(before, mode, preserve_fraction=namespace == "v2" or all_namespaces)
     try:
-        with TranslationCache(cache_path) as cache:
-            report = cache.export_json(
-                output,
-                source_lang=source,
-                target_lang=target,
-                before=before_value,
-                overwrite=overwrite,
-            )
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        services = cache_admin_services()
+        report = services.export.execute(ExportRequest(
+            CacheRef(str(cache_path)), FileRef(str(output)), CacheFilter(source, target, before_value), overwrite, namespace=_cache_namespace(namespace, scope_kind, scope_id, project_id, all_namespaces)))
+        _cache_warnings(report)
+        if report.failure:
+            raise CacheAdminError(report.failure.code, report.failure.family)
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível exportar o cache.",
-            "Verifique --cache, o caminho de saída e tente novamente.",
+            _cache_failure_hint(exc.code, "Verifique --cache, o caminho de saída e tente novamente.",
+                                "Exporte um namespace explícito menor ou reduza --before." if namespace == "v2" or all_namespaces else
+                                "Exporte em partes com --source, --target ou --before.", v2=namespace == "v2" or all_namespaces),
             mode,
             detail=str(exc),
         )
         raise typer.Exit(code=1) from exc
 
-    console.print(f"[green]Cache export saved to:[/green] {report.path}")
-    console.print(f"Entries exported: {report.exported}")
+    console.print(f"[green]Cache export saved to:[/green] {output}")
+    console.print(f"Entries exported: {report.value}")
+    if namespace is not None or all_namespaces:
+        console.print(f"JSON format: v{report.format_version}")
 
 
 @cache_app.command("import")
@@ -428,27 +756,65 @@ def cache_import(
     ),
     cache_path: Path = typer.Option(DEFAULT_CACHE_PATH, "--cache", help="SQLite cache path."),
     replace: bool = typer.Option(False, "--replace", help="Replace existing cache entries."),
+    scope_map: Optional[Path] = typer.Option(None, "--scope-map", help="External JSON namespace mapping."),
+    all_namespaces: bool = typer.Option(False, "--all", help="Not allowed for import."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview a mapped import."),
+    yes: bool = typer.Option(False, "--yes", help="Confirm a mapped import."),
 ) -> None:
     """Import cached translations from an Ayvu JSON export."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        with TranslationCache(cache_path) as cache:
-            report = cache.import_json(input_path, replace=replace)
-    except (CacheError, OSError, sqlite3.Error) as exc:
+        if all_namespaces:
+            raise CacheAdminError("invalid_scope")
+        if scope_map is None and (dry_run or yes):
+            raise CacheAdminError("invalid_scope_map")
+        mapping = _cache_scope_map(scope_map) if scope_map is not None else None
+        services = cache_admin_services()
+        request = ImportRequest(CacheRef(str(cache_path)), FileRef(str(input_path)), replace, scope_map=mapping)
+        if mapping is None:
+            report = services.import_cache.execute(request)
+        else:
+            preview = services.preview_import.execute(request)
+            _cache_warnings(preview)
+            if preview.failure:
+                raise CacheAdminError(preview.failure.code, preview.failure.family)
+            completed = False
+            try:
+                console.print(f"Import preview: {preview.value.count} entries; {preview.value.imported} imported; "
+                              f"{preview.value.skipped} skipped; {preview.value.replaced} replacements; "
+                              f"{preview.value.conflicts} conflicts; {preview.value.duplicates} duplicates.")
+                if dry_run:
+                    return
+                if not yes and not typer.confirm("Import these cache entries?"):
+                    raise typer.Exit(code=1)
+                report = services.execute_import.execute(ExecuteImportRequest(preview.value))
+                completed = report.failure is None
+            finally:
+                if not completed:
+                    discarded = services.discard_import.execute(preview.value)
+                    _cache_warnings(discarded)
+                    if discarded.failure:
+                        console.print(f"[yellow]Cache warning:[/yellow] {discarded.failure.code}")
+        _cache_warnings(report)
+        if report.failure:
+            raise CacheAdminError(report.failure.code, report.failure.family)
+    except CacheAdminError as exc:
         _print_expected_error(
             "Não foi possível importar o cache.",
-            "Confirme que o arquivo foi exportado pelo Ayvu e tente novamente.",
+            _cache_failure_hint(exc.code, "Confirme que o arquivo foi exportado pelo Ayvu e tente novamente.",
+                                "Exporte em partes menores com --source, --target ou --before e importe cada uma.", v2=scope_map is not None),
             mode,
             detail=str(exc),
         )
         raise typer.Exit(code=1) from exc
 
-    _print_cache_import_report(report)
+    _print_cache_import_report(report.value)
 
 
 @app.command()
 def translate(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     epub_paths: list[Path] = typer.Argument(
         ...,
         exists=True,
@@ -472,7 +838,7 @@ def translate(
     review_output: Optional[Path] = typer.Option(
         None,
         "--review-output",
-        help="Optional CSV path with original and translated segments for external review.",
+        help="Optional v2 review package for the completed project translation.",
     ),
     source: Optional[str] = typer.Option(
         None,
@@ -585,8 +951,21 @@ def translate(
 ) -> None:
     """Translate EPUB visible text while preserving EPUB structure."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    config = _load_existing_config_or_default()
     epub_list = list(epub_paths)
+    if len(epub_list) > 100:
+        _print_expected_error(
+            "Um lote aceita no máximo 100 EPUBs.",
+            "Divida os arquivos em lotes de até 100 EPUBs.",
+            mode,
+        )
+        raise typer.Exit(code=1)
+    if len(epub_list) > 1 and missing_output is not None:
+        _print_expected_error(
+            "Não é possível usar --missing-output com múltiplos EPUBs.",
+            "Remova --missing-output para usar os arquivos automáticos de cada EPUB.",
+            mode,
+        )
+        raise typer.Exit(code=1)
     _validate_translate_command_options(
         epub_paths=epub_list,
         output=output,
@@ -594,6 +973,7 @@ def translate(
         review_output=review_output,
         mode=mode,
     )
+    config = _load_existing_config_or_default()
     _validate_cache_only_options(
         cache_only=cache_only,
         require_full_cache=require_full_cache,
@@ -632,6 +1012,7 @@ def translate(
             target=target,
             translator_name=translator_name,
             url=url,
+            network_policy=_selected_network_policy(network_policy),
             cache_path=cache_path,
             glossary_path=glossary_path,
             profile_name=profile_name,
@@ -667,6 +1048,7 @@ def translate(
         target=target,
         translator_name=translator_name,
         url=url,
+        network_policy=_selected_network_policy(network_policy),
         cache_path=cache_path,
         glossary_path=glossary_path,
         profile_name=profile_name,
@@ -697,6 +1079,7 @@ def translate(
 @app.command()
 def resume(
     ctx: typer.Context,
+    network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     epub_path: Optional[Path] = typer.Argument(
         None,
         help="EPUB to resume. If omitted, resumes the only translation in progress.",
@@ -710,10 +1093,10 @@ def resume(
     """Resume a translation in progress from its saved checkpoint."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     config = _load_existing_config_or_default()
-    store = ResumeStateStore(_processing_dir(config))
-    scan = store.scan()
+    recovery = open_job_recovery(_processing_dir(config))
+    found = interrupted_translations(recovery)
 
-    state = _select_resume_state(scan.running, epub_path, target, mode=mode)
+    state = _select_resume_state(found.running, epub_path, target, mode=mode)
     if state is None:
         raise typer.Exit(code=1)
 
@@ -721,7 +1104,7 @@ def resume(
         f"[green]Resuming translation:[/green] {state.input_path.name} -> {state.output_path.name}"
     )
     _print_resume_checkpoint(state)
-    _resume_translation(state, mode=mode)
+    _resume_translation(state, found, recovery, mode=mode, network_policy=_selected_network_policy(network_policy))
 
 
 def _print_expected_error(summary: str, next_step: str, mode: UserMode, detail: str = "") -> None:
@@ -731,7 +1114,7 @@ def _print_expected_error(summary: str, next_step: str, mode: UserMode, detail: 
     console.print(next_step)
 
 
-def _normalize_cache_before(value: str | None, mode: UserMode) -> str | None:
+def _normalize_cache_before(value: str | None, mode: UserMode, *, preserve_fraction: bool = False) -> str | None:
     if value is None:
         return None
 
@@ -754,13 +1137,15 @@ def _normalize_cache_before(value: str | None, mode: UserMode) -> str | None:
             "Data de cache inválida.",
             "Use --before no formato YYYY-MM-DD ou em formato ISO, como 2026-01-31T10:30:00.",
             mode,
-            detail=str(exc),
+            detail="invalid_before",
         )
-        raise typer.Exit(code=1) from exc
+        raise typer.Exit(code=1) from None
 
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
 
+    if preserve_fraction and parsed.microsecond:
+        return parsed.isoformat(sep=" ", timespec="microseconds")
     return parsed.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -801,17 +1186,6 @@ def _validate_cache_clean_options(
             mode,
         )
         raise typer.Exit(code=1)
-
-
-def _count_cache_entries(
-    cache: TranslationCache,
-    *,
-    source: str | None,
-    target: str | None,
-    before: str | None,
-) -> int:
-    rows = cache.summary(source_lang=source, target_lang=target, before=before)
-    return sum(row.count for row in rows)
 
 
 def _print_cache_summary(rows: tuple[CacheSummaryRow, ...], cache_path: Path) -> None:
@@ -861,6 +1235,40 @@ def _print_epub_read_error(detail: str, mode: UserMode) -> None:
         mode,
         detail=detail,
     )
+
+
+_CONTENT_NAME_FAILURES = frozenset({"unsafe_output_name", "duplicate_output_target"})
+
+
+def _print_content_failure(code: str, mode: UserMode) -> None:
+    """Says which side failed: the book, a chapter's name or the chosen output."""
+    if code in _CONTENT_NAME_FAILURES:
+        _print_expected_error(
+            "Um capítulo deste EPUB tem um nome que não pode virar arquivo.",
+            "Nada foi gravado. O original não foi alterado.",
+            mode,
+            detail=code,
+        )
+    elif code.startswith("output_") or code in {"invalid_output_directory", "source_alias", "source_alias_unknown"}:
+        _print_expected_error(
+            "Não foi possível gravar na pasta de saída.",
+            "Confirme que --output é uma pasta gravável, diferente do livro, e tente novamente. O original não foi alterado.",
+            mode,
+            detail=code,
+        )
+    elif code == "source_changed":
+        _print_expected_error(
+            "O EPUB mudou enquanto era lido.",
+            "Espere o arquivo terminar de ser alterado e tente novamente.",
+            mode,
+            detail=code,
+        )
+    elif _TRANSLATION_FAILURES.get(code) is _BOOK_PROTECTED:
+        # A protected book is not a broken one, so "confirm that it is valid" would send the person the wrong way.
+        message, hint = _BOOK_PROTECTED
+        _print_expected_error(message, hint, mode, detail=code)
+    else:
+        _print_epub_read_error(code, mode)
 
 
 def _resolve_source_language(
@@ -1021,7 +1429,7 @@ def _resolve_performance_profile(name: str, mode: UserMode) -> PerformanceProfil
     raise typer.Exit(code=1)
 
 
-def _print_translation_route(route: TranslationRoute | None, mode: UserMode) -> None:
+def _print_translation_route(route: _RouteView | None, mode: UserMode) -> None:
     if route is None:
         return
     if mode == UserMode.DEVELOPER:
@@ -1300,6 +1708,7 @@ def _run_translation(
     chunk_limit: int,
     workers: int,
     mode: UserMode,
+    network_policy: NetworkPolicy | None = None,
     config: AyvuConfig | None = None,
     translate_metadata: bool = False,
     translate_alt_text: bool = False,
@@ -1311,13 +1720,34 @@ def _run_translation(
     auto_save_markdown_report: bool = False,
     report_dir: Path | None = None,
     confirm_output_location: bool = True,
+    resolve_managed_project: bool = True,
+    project_profile_name: str | None = None,
+    batch_plan: AcceptedItem | None = None,
+    continuation: ContinuationTicket | None = None,
+    operation_id: str | None = None,
+    cancellation: object | None = None,
 ) -> TranslationRunResult:
+    active_job = None
+
+    def record_job(result: TranslateProjectResult) -> None:
+        nonlocal active_job
+        active_job = result
+
+    def item_exit(code: str, *, interrupted: bool = False) -> NoReturn:
+        if batch_plan is not None:
+            normalized = (batch_item_outcome(active_job, interrupted=interrupted, fail_fast=fail_fast)
+                          if active_job is not None else ItemOutcome(ItemStatus.FAILED, failure=code, interrupted=interrupted))
+            raise _BatchItemExit(normalized)
+        raise typer.Exit(code=1)
+
     config = config or _load_existing_config_or_default()
     resolved_profile_name, profile = _resolve_requested_profile(config, profile_name, mode=mode)
     resolved_target = _resolve_target_language(target, profile)
     resolved_glossary_path = _resolve_glossary_path(glossary_path, profile)
     resolved_source, source_inferred = _resolve_source_language(source, epub_path, mode=mode)
     language_pair = LanguagePair(source=resolved_source, target=resolved_target)
+    # A resume holds the profile of the run it continues, and shows no profile, because it applies none of its settings.
+    identity_profile_name = project_profile_name or resolved_profile_name
     _print_translation_plan(
         language_pair,
         source_inferred=source_inferred,
@@ -1359,9 +1789,13 @@ def _run_translation(
         dry_run=dry_run,
         default_dir=output_dir or _translated_books_dir(config),
     )
+    if batch_plan is not None:
+        output_plan = batch_plan.output
+        batch_plan.revalidate()
     if confirm_output_location:
         output_plan = _confirm_default_output_location(output_plan, epub_path, mode=mode)
-    output_plan = _resolve_existing_output_conflict(output_plan, overwrite=overwrite, mode=mode)
+    if batch_plan is None:
+        output_plan = _resolve_existing_output_conflict(output_plan, overwrite=overwrite, mode=mode)
     output_path = output_plan.path
     review_output_path = _resolve_review_output_path(
         review_output,
@@ -1370,100 +1804,107 @@ def _run_translation(
         mode=mode,
     )
 
-    try:
-        preflight = run_translation_preflight(
-            epub_path=epub_path,
-            cache_path=cache_path,
-            glossary_path=resolved_glossary_path,
-            translator_name=translator_name,
-            url=url,
-            timeout=timeout,
-            retries=retries,
-            requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff,
-            retry_backoff_max=retry_backoff_max,
-            language_pair=language_pair,
-            dry_run=dry_run,
-            cache_only=cache_only,
+    project_id = None
+    source_sha256 = None
+    if resolve_managed_project and not dry_run:
+        try:
+            resolution = resolve_translation_project(
+                _processing_dir(config), epub_path, source=language_pair.source, target=language_pair.target,
+                glossary_path=resolved_glossary_path, profile_name=identity_profile_name,
+                translator=translator_name, url=url, chunk_limit=chunk_limit,
+                translate_metadata=translate_metadata, translate_alt_text=translate_alt_text,
+                chapters=chapter_selection.source if chapter_selection else None,
+                translation_memory=translation_memory,
+            )
+            project_id = resolution.project.project_id
+            source_sha256 = resolution.project.source_sha256
+        except ProjectError as exc:
+            _print_project_failure(str(exc), mode)
+            item_exit("project_unavailable")
+
+    checkpoint = translation_checkpoint()
+    progress = _translation_progress_display()
+    progress_view = TranslationProgress(progress, dry_run=dry_run, workers=workers)
+
+    def prepare() -> object:
+        prepared = prepare_translation(
+            epub_path=epub_path, options=translation_options, cache_path=cache_path,
+            glossary_path=resolved_glossary_path, translator_name=translator_name,
+            url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
+            retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
+            output_path=output_path, overwrite=overwrite, processing_dir=_processing_dir(config),
+            profile_name=identity_profile_name, preflight=run_translation_preflight,
+            network_policy=_selected_network_policy(network_policy),
+            save_checkpoint=lambda **values: _checkpoint_action(checkpoint.start, **values),
+            on_route=lambda route: _print_translation_route(route, mode=mode), on_ready=progress.start,
         )
+        _print_network_selection(getattr(prepared, "network_decision", None))
+        return prepared
+
+    def on_chapter_start(index: int, total: int, name: str) -> None:
+        progress_view.chapter_started(index, total, name)
+        _checkpoint_action(checkpoint.chapter_started, index, total, name)
+
+    def on_chapter_done(index: int, total: int, name: str, stats: object) -> None:
+        progress_view.chapter_done(index, total, name, stats)
+        _checkpoint_action(checkpoint.chapter_done, index, total, name, stats)
+
+    validation_task = None
+
+    def on_validation(index: int, total: int, _name: str) -> None:
+        nonlocal validation_task
+        if validation_task is None:
+            validation_task = progress.add_task("Validando EPUB", total=total)
+        progress.update(validation_task, total=total, completed=index, description=f"Validando EPUB {index}/{total}")
+
+    hooks = _BookHooks(on_chapter_start, on_chapter_done, progress_view.text_processed, on_validation)
+    book = _BookRequest(
+        epub_path=epub_path,
+        output_plan=output_plan,
+        # Whoever gets this far with a file already there accepted replacing it, by flag or at the prompt.
+        replace_existing=batch_plan.overwrite if batch_plan is not None else (overwrite or output_path.exists()),
+        options=translation_options,
+        cache_path=cache_path,
+        prepare=prepare,
+        project_id=project_id,
+        source_sha256=source_sha256,
+        processing_dir=_processing_dir(config) if project_id is not None else None,
+        continuation=continuation,
+        operation_id=operation_id,
+        batch_plan=batch_plan,
+        cancellation=cancellation,
+        on_project_result=record_job,
+    )
+    try:
+        try:
+            outcome = (
+                _translate_without_project(book, hooks)
+                if project_id is None
+                else _translate_in_project(book, hooks)
+            )
+        finally:
+            progress.stop()
     except PreflightError as exc:
         _print_expected_error(exc.summary, exc.next_step, mode, detail=exc.detail)
-        raise typer.Exit(code=1) from exc
-
-    _print_translation_route(preflight.route, mode=mode)
-
-    resume_store: ResumeStateStore | None = None
-    resume_state: TranslationResumeState | None = None
-    if not dry_run and not cache_only:
-        resume_store, resume_state = _save_running_resume_state(
-            epub_path=epub_path,
-            output_path=output_path,
-            cache_path=cache_path,
-            translator_name=translator_name,
-            url=url,
-            glossary_path=resolved_glossary_path,
-            options=translation_options,
-            overwrite=overwrite,
-            timeout=timeout,
-            retries=retries,
-            requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff,
-            retry_backoff_max=retry_backoff_max,
-            processing_dir=_processing_dir(config),
+        item_exit("provider_failed")
+    except BookRefused as exc:
+        _print_translation_failure(_BookOutcome(failure=exc.code), output_path, mode)
+        item_exit("input_failed")
+    except ProjectTranslationUnavailable as exc:
+        _print_expected_error(
+            "Não foi possível abrir o estado do projeto local.",
+            "Verifique as permissões da pasta de processamento e repita. Nada foi traduzido nem escrito.",
+            mode,
+            detail=str(exc),
         )
-
-    progress_view: TranslationProgress | None = None
-    review_segments: list[ReviewSegment] | None = [] if review_output_path is not None else None
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            TimeElapsedColumn(),
-            console=console,
-        ) as progress:
-            progress_view = TranslationProgress(progress, dry_run=dry_run, workers=workers)
-
-            def on_chapter_start(index: int, total: int, name: str) -> None:
-                nonlocal resume_state
-                progress_view.chapter_started(index, total, name)
-                if resume_store and resume_state:
-                    resume_state = resume_state.start_chapter(name, total)
-                    _save_resume_state(resume_store, resume_state)
-
-            def on_chapter_done(index: int, total: int, name: str, stats: HtmlTranslationStats) -> None:
-                nonlocal resume_state
-                progress_view.chapter_done(index, total, name, stats)
-                if resume_store and resume_state:
-                    ok = not stats.errors and stats.missing == 0
-                    failed = len(stats.errors) + stats.missing
-                    resume_state = resume_state.record_chapter(
-                        name=name,
-                        total=total,
-                        ok=ok,
-                        failed_segment_count=failed,
-                    )
-                    _save_resume_state(resume_store, resume_state)
-
-            with TranslationCache(cache_path) as cache:
-                report = translate_epub(
-                    epub_path,
-                    output_path,
-                    translator=preflight.translator,
-                    cache=cache,
-                    options=translation_options,
-                    glossary=preflight.glossary,
-                    on_chapter_start=on_chapter_start,
-                    on_chapter_done=on_chapter_done,
-                    on_text_processed=progress_view.text_processed,
-                    review_segments=review_segments,
-                    translator_factory=getattr(preflight, "translator_factory", None),
-                    cache_factory=lambda: TranslationCache(cache_path),
-                )
+        item_exit("project_unavailable")
+    except TranslationDryRunCancelled:
+        raise _BatchItemExit(ItemOutcome(ItemStatus.CANCELLED)) from None
     except KeyboardInterrupt as exc:
+        if hasattr(exc, "result"):
+            record_job(exc.result)
         _print_interrupted_translation(
-            snapshot=progress_view.snapshot() if progress_view else None,
+            snapshot=progress_view.snapshot(),
             output_path=output_path,
             cache_path=cache_path,
             dry_run=dry_run,
@@ -1473,58 +1914,124 @@ def _run_translation(
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
         )
+        if batch_plan is not None:
+            item_exit("interrupted", interrupted=True)
         raise typer.Exit(code=1) from exc
 
-    if review_output_path is not None and review_segments is not None:
-        _write_review_output(review_output_path, review_segments, overwrite=overwrite, mode=mode)
+    if outcome.report is None:
+        _print_translation_failure(replace(outcome, raised=None) if batch_plan is not None else outcome, output_path, mode)
+        item_exit(outcome.failure if outcome.failure in ("output_conflict", "provider_failed") else "translation_failed")
+    report = outcome.report
+    if batch_plan is not None and report.output_written and not dry_run:
+        batch_plan.mark_published()
+    if review_output_path is not None:
+        if outcome.job_result is None:
+            _print_review_export_failure("translation_identity_unavailable", mode)
+            raise typer.Exit(code=1)
+        use_cases = open_review_use_cases(_processing_dir(config))
+        cancellation = use_cases.cancellation()
+        exported = use_cases.export.execute(ReviewExportCommand(
+            outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
+            cancellation=cancellation.token))
+        if exported.outcome is not ReviewOutcome.READY or exported.artifact is None:
+            _print_review_export_failure(exported.code, mode)
+            raise typer.Exit(code=1)
+        console.print(f"[green]Review file saved to:[/green] {review_output_path}")
         report.review_output_path = review_output_path
 
     if cache_only and report.missing_texts:
-        _save_missing_texts(
-            report,
-            missing_output=missing_output,
-            overwrite=overwrite,
-            directory=report_dir,
-            mode=mode,
-        )
+        try:
+            _save_missing_texts(
+                report,
+                missing_output=missing_output,
+                overwrite=overwrite,
+                directory=report_dir,
+                mode=mode,
+                batch_plan=batch_plan,
+            )
+        except (BatchOutputError, OSError) as exc:
+            if batch_plan is None:
+                raise
+            code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "report_failed"
+            raise _BatchItemExit(ItemOutcome(ItemStatus.FAILED, failure=code,
+                job_ref=active_job.job_id if active_job else None,
+                job_state=active_job.state.value if active_job and active_job.state else None,
+                output_published=bool(active_job and active_job.output_ready))) from None
 
-    validation = (
-        _validate_with_progress(output_path) if report.output_written and not dry_run else None
-    )
-    validation_warnings = validation.warnings if validation else []
+    validation = outcome.validation
+    validation_warnings = list(validation.warnings) if validation else []
 
     _print_report(report, dry_run, validation_warnings)
     markdown_report_path = None
     if auto_save_markdown_report:
-        markdown_report_path = _save_markdown_report(
-            report,
-            dry_run,
-            validation_warnings,
-            directory=report_dir,
-        )
+        try:
+            markdown_report_path = _save_markdown_report(
+                report,
+                dry_run,
+                validation_warnings,
+                directory=report_dir,
+                batch_plan=batch_plan,
+            )
+        except (BatchOutputError, OSError) as exc:
+            if batch_plan is None:
+                raise
+            code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "report_failed"
+            raise _BatchItemExit(ItemOutcome(ItemStatus.FAILED, failure=code,
+                job_ref=active_job.job_id if active_job else None,
+                job_state=active_job.state.value if active_job and active_job.state else None,
+                output_published=bool(active_job and active_job.output_ready))) from None
         console.print(f"[green]Report saved to:[/green] {markdown_report_path}")
     else:
         _offer_markdown_report(report, dry_run, validation_warnings, mode=mode)
 
     if cache_only and require_full_cache and not report.output_written:
         _print_cache_coverage_blocked(report, mode)
-        raise typer.Exit(code=1)
+        item_exit("cache_incomplete")
 
     if validation is not None:
         if validation.ok:
             console.print(
                 f"[green]Validação OK:[/green] {validation.document_count} documentos XHTML/HTML encontrados."
             )
-            if resume_store and resume_state:
-                _mark_resume_state_completed(resume_store, resume_state)
+            _checkpoint_action(checkpoint.completed)
         else:
-            raise typer.Exit(code=1)
+            item_exit("validation_failed")
+
+    if outcome.warning is not None:
+        _print_translation_failure(outcome, output_path, mode)
+        if outcome.warning != "provenance_failed":
+            item_exit("translation_failed")
 
     return TranslationRunResult(
         report=report,
         validation_warnings=validation_warnings,
         markdown_report_path=markdown_report_path,
+        project_id=project_id,
+        job_result=outcome.job_result,
     )
+
+
+def _translation_progress_display() -> Progress:
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    )
+
+
+def _print_project_failure(code: str, mode: UserMode) -> None:
+    next_step = _PROJECT_NEXT_STEPS.get(code, _PROJECT_NEXT_STEP)
+    _print_expected_error("Não foi possível resolver o projeto local.", next_step, mode, detail=code)
+
+
+def _print_translation_failure(outcome: _BookOutcome, output_path: Path, mode: UserMode) -> None:
+    code = outcome.failure or outcome.warning or "unexpected_error"
+    template = _TRANSLATION_FAILURES.get(code) or _TRANSLATION_FAILURES["unexpected_error"]
+    detail = str(outcome.raised) if outcome.raised is not None and str(outcome.raised) else code
+    _print_expected_error(template[0], template[1].format(output=output_path), mode, detail=detail)
 
 
 def _run_batch_translation(
@@ -1552,6 +2059,7 @@ def _run_batch_translation(
     workers: int,
     mode: UserMode,
     config: AyvuConfig,
+    network_policy: NetworkPolicy | None = None,
     translate_metadata: bool = False,
     translate_alt_text: bool = False,
     cache_only: bool = False,
@@ -1573,86 +2081,114 @@ def _run_batch_translation(
         retry_backoff_max=retry_backoff_max,
     )
 
+    _, profile = _resolve_requested_profile(config, profile_name, mode=mode)
+    target_language = _resolve_target_language(target, profile)
+    intents = []
+    try:
+        for epub_path in epub_paths:
+            output_plan = OutputPlan.for_translation(
+                epub_path, None, LanguagePair(source or "", target_language), dry_run=dry_run,
+                default_dir=resolved_output_dir,
+            )
+            output_plan = _resolve_existing_output_conflict(output_plan, overwrite=overwrite, mode=mode)
+            intents.append(batch_output_intent(
+                epub_path, output_plan, report_dir, _report_stem_for(epub_path, target_language),
+                _missing_stem_for(epub_path, target_language) if cache_only else None,
+                overwrite or (not dry_run and output_plan.path.exists()),
+            ))
+    except BatchOutputError as exc:
+        _print_expected_error(
+            "Não foi possível planejar as saídas do lote.",
+            "Escolha destinos distintos dos EPUBs originais e tente novamente.",
+            mode, detail=str(exc),
+        )
+        raise typer.Exit(code=1) from None
+
     results: list[BatchTranslationResult] = []
     total = len(epub_paths)
-    for index, epub_path in enumerate(epub_paths, start=1):
-        console.print(f"[cyan]Batch item {index}/{total}:[/cyan] {epub_path}")
-        try:
-            run_result = _run_translation(
-                epub_path=epub_path,
-                output=None,
-                output_dir=resolved_output_dir,
-                review_output=None,
-                source=source,
-                target=target,
-                translator_name=translator_name,
-                url=url,
-                cache_path=cache_path,
-                glossary_path=glossary_path,
-                profile_name=profile_name,
-                performance_profile_name=performance_profile_name,
-                dry_run=dry_run,
-                fail_fast=fail_fast,
-                chapter_selection=chapter_selection,
-                overwrite=overwrite,
-                timeout=timeout,
-                retries=retries,
-                requests_per_second=requests_per_second,
-                retry_backoff=retry_backoff,
-                retry_backoff_max=retry_backoff_max,
-                chunk_limit=chunk_limit,
-                workers=workers,
-                mode=mode,
-                config=config,
-                translate_metadata=translate_metadata,
-                translate_alt_text=translate_alt_text,
-                cache_only=cache_only,
-                require_full_cache=require_full_cache,
-                translation_memory=translation_memory,
-                auto_save_markdown_report=True,
-                report_dir=report_dir,
-                confirm_output_location=False,
-            )
-        except typer.Exit as exc:
-            if isinstance(exc.__cause__, KeyboardInterrupt):
-                raise
-            results.append(
-                BatchTranslationResult(
-                    epub_path=epub_path,
-                    succeeded=False,
-                    detail=f"exit code {exc.exit_code or 1}",
+
+    def execute_item(epub_path: Path):
+        def execute(plan: AcceptedItem, correlation_id: str, ordinal: int, cancellation) -> ItemOutcome:
+            console.print(f"[cyan]Batch item {ordinal}/{total}:[/cyan] {epub_path}")
+            try:
+                run_result = _run_translation(
+                    epub_path=epub_path, output=None, output_dir=resolved_output_dir, review_output=None,
+                    source=source, target=target, translator_name=translator_name, url=url,
+                    network_policy=_selected_network_policy(network_policy),
+                    cache_path=cache_path, glossary_path=glossary_path, profile_name=profile_name,
+                    performance_profile_name=performance_profile_name, dry_run=dry_run, fail_fast=fail_fast,
+                    chapter_selection=chapter_selection, overwrite=overwrite, timeout=timeout, retries=retries,
+                    requests_per_second=requests_per_second, retry_backoff=retry_backoff,
+                    retry_backoff_max=retry_backoff_max, chunk_limit=chunk_limit, workers=workers, mode=mode,
+                    config=config, translate_metadata=translate_metadata, translate_alt_text=translate_alt_text,
+                    cache_only=cache_only, require_full_cache=require_full_cache, translation_memory=translation_memory,
+                    auto_save_markdown_report=True, report_dir=report_dir, confirm_output_location=False,
+                    batch_plan=plan, operation_id=correlation_id,
+                    cancellation=cancellation,
                 )
-            )
-            console.print(f"[red]Batch item failed:[/red] {epub_path}")
-            if continue_on_error:
-                continue
-            _print_batch_summary(results)
-            raise typer.Exit(code=exc.exit_code or 1) from exc
-        except Exception as exc:
-            detail = str(exc) or exc.__class__.__name__
-            _print_expected_error(
-                "Falha inesperada ao traduzir este EPUB.",
-                "Verifique o EPUB, o tradutor local e as opções usadas antes de tentar novamente.",
-                mode,
-                detail=detail,
-            )
-            results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False, detail=detail))
-            if continue_on_error:
-                continue
-            _print_batch_summary(results)
-            raise typer.Exit(code=1) from exc
+            except _BatchItemExit as exc:
+                if exc.outcome.output_published and exc.outcome.failure in ("report_failed", "auxiliary_allocation_exhausted"):
+                    console.print("[yellow]O EPUB foi publicado, mas o relatório não pôde ser salvo.[/yellow]")
+                if exc.outcome.output_published and exc.outcome.interrupted:
+                    console.print("[yellow]O EPUB foi publicado antes da interrupção.[/yellow]")
+                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False,
+                                                      detail="exit code 1"))
+                console.print(f"[red]Batch item failed:[/red] {epub_path}")
+                return exc.outcome
+            except typer.Exit as exc:
+                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False,
+                                                      detail=f"exit code {exc.exit_code or 1}"))
+                console.print(f"[red]Batch item failed:[/red] {epub_path}")
+                return ItemOutcome(ItemStatus.FAILED, failure="translation_failed")
+            except KeyboardInterrupt:
+                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False, detail="exit code 1"))
+                return ItemOutcome(ItemStatus.FAILED, failure="interrupted", interrupted=True)
+            except BatchOutputError as exc:
+                code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "output_conflict"
+                _print_expected_error("Não foi possível publicar as saídas deste EPUB.",
+                                      "Verifique os destinos e tente novamente.", mode, detail=code)
+                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False, detail="exit code 1"))
+                return ItemOutcome(ItemStatus.FAILED, failure=code)
+            except Exception:
+                _print_expected_error("Falha inesperada ao traduzir este EPUB.",
+                                      "Verifique o EPUB, o tradutor local e as opções usadas antes de tentar novamente.",
+                                      mode, detail="unexpected_error")
+                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False, detail="unexpected_error"))
+                return ItemOutcome(ItemStatus.FAILED, failure="unexpected_error")
+            report = run_result.report
+            job = run_result.job_result
+            if job is not None:
+                outcome = batch_item_outcome(job, report_saved=run_result.markdown_report_path is not None,
+                                               fail_fast=fail_fast)
+            elif report.errors or report.missing_texts or run_result.validation_warnings:
+                outcome = ItemOutcome(ItemStatus.PARTIAL, warnings=("translation_warnings",))
+            else:
+                outcome = ItemOutcome(ItemStatus.SUCCESS)
+            succeeded = outcome.status in (ItemStatus.SUCCESS, ItemStatus.PARTIAL) and not outcome.interrupted
+            results.append(BatchTranslationResult(epub_path=epub_path, succeeded=succeeded,
+                                                  output_path=report.output_path if succeeded else None,
+                                                  report_path=run_result.markdown_report_path if succeeded else None,
+                                                  detail="" if succeeded else "exit code 1"))
+            return outcome
+        return execute
 
-        results.append(
-            BatchTranslationResult(
-                epub_path=epub_path,
-                succeeded=True,
-                output_path=run_result.report.output_path,
-                report_path=run_result.markdown_report_path,
-            )
-        )
+    def on_progress(item) -> None:
+        failure = item.outcome.normalized_failure
+        if failure is not None and failure.code == "auxiliary_allocation_exhausted" and len(results) < item.ordinal:
+            path = epub_paths[item.ordinal - 1]
+            results.append(BatchTranslationResult(path, False, detail="auxiliary_allocation_exhausted"))
+            console.print(f"[red]Batch item failed:[/red] {path}")
 
+    try:
+        result = translate_batch(tuple(zip(intents, (execute_item(path) for path in epub_paths))),
+                                 continue_on_error=continue_on_error, on_progress=on_progress)
+    except BatchOutputError as exc:
+        _print_expected_error(
+            "Não foi possível planejar as saídas do lote.",
+            "Escolha destinos distintos dos EPUBs originais e tente novamente.", mode, detail=str(exc))
+        raise typer.Exit(code=1) from None
     _print_batch_summary(results)
-    if any(not result.succeeded for result in results):
+    if not result.succeeded:
         raise typer.Exit(code=1)
 
 
@@ -1689,6 +2225,8 @@ def _print_batch_plan(
 
 
 def _print_batch_summary(results: list[BatchTranslationResult]) -> None:
+    if not results:
+        return
     table = Table(title="Batch translation summary")
     table.add_column("EPUB")
     table.add_column("Status")
@@ -1723,6 +2261,7 @@ def _run_preview(
     max_documents: int = DEFAULT_PREVIEW_DOCUMENT_LIMIT,
     mode: UserMode = UserMode.DEVELOPER,
     config: AyvuConfig | None = None,
+    network_policy: NetworkPolicy | None = None,
 ) -> None:
     config = config or _load_existing_config_or_default()
     epub_path = epub_path.expanduser()
@@ -1747,7 +2286,14 @@ def _run_preview(
             raise typer.Exit(code=1)
 
     try:
+        check_book(epub_path)
+    except BookRefused as exc:
+        _print_translation_failure(_BookOutcome(failure=exc.code), output_path, mode)
+        raise typer.Exit(code=1) from exc
+
+    try:
         preflight = run_translation_preflight(
+            network_policy=_selected_network_policy(network_policy),
             epub_path=epub_path,
             cache_path=cache_path,
             glossary_path=glossary_path,
@@ -1766,6 +2312,7 @@ def _run_preview(
         raise typer.Exit(code=1) from exc
 
     _print_translation_route(preflight.route, mode=mode)
+    _print_network_selection(getattr(preflight, "network_decision", None))
 
     with Progress(
         SpinnerColumn(),
@@ -1776,18 +2323,12 @@ def _run_preview(
         console=console,
     ) as progress:
         progress_view = TranslationProgress(progress, dry_run=False)
-        with TranslationCache(cache_path) as cache:
-            report = translate_epub(
-                epub_path,
-                output_path,
-                translator=preflight.translator,
-                cache=cache,
-                options=translation_options,
-                glossary=preflight.glossary,
-                on_chapter_start=progress_view.chapter_started,
-                on_chapter_done=progress_view.chapter_done,
-                on_text_processed=progress_view.text_processed,
-            )
+        outcome = _translate_without_project(
+            _BookRequest(epub_path, output_plan, True, translation_options, cache_path, lambda: preflight),
+            _BookHooks(progress_view.chapter_started, progress_view.chapter_done, progress_view.text_processed, lambda *args: None),
+            validate=False,
+        )
+        report = outcome.report
 
     validation = _validate_with_progress(output_path)
     _print_report(report, dry_run=False, validation_warnings=validation.warnings)
@@ -1810,16 +2351,24 @@ def extract(
 ) -> None:
     """Extract visible text from EPUB documents to Markdown files without translating."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    if output.exists() and any(output.iterdir()) and not overwrite:
-        console.print(f"[red]Output directory is not empty:[/red] {output}")
-        console.print("Use --overwrite to write into it.")
-        raise typer.Exit(code=1)
     try:
-        written = extract_markdown(epub_path, output)
-    except Exception as exc:
-        _print_epub_read_error(str(exc), mode)
-        raise typer.Exit(code=1) from exc
-    console.print(f"[green]Extracted {len(written)} Markdown files to[/green] {output}")
+        result = open_content_use_cases().export_path(epub_path, output, overwrite=overwrite)
+    except Exception:
+        _print_epub_read_error("visible_content_export_failed", mode)
+        raise typer.Exit(code=1) from None
+    if result.failure is not None:
+        if result.failure.code == "output_not_empty":
+            console.print(f"[red]Output directory is not empty:[/red] {output}")
+            console.print("Use --overwrite to write into it.")
+            raise typer.Exit(code=1)
+        if result.partial_publication:
+            console.print(
+                f"[red]Partially extracted {result.completed_count} Markdown files to[/red] {output}; "
+                f"{result.failed_count + result.not_started_count} were not published."
+            )
+        _print_content_failure(result.failure.code, mode)
+        raise typer.Exit(code=1)
+    console.print(f"[green]Extracted {result.completed_count} Markdown files to[/green] {output}")
 
 
 @app.command("apply-review")
@@ -1830,115 +2379,127 @@ def apply_review(
         exists=True,
         dir_okay=False,
         readable=True,
-        help="Original EPUB to rebuild from.",
+        help="Original EPUB path used to verify the source revision.",
     ),
     review_csv: Path = typer.Argument(
         ...,
         exists=True,
         dir_okay=False,
         readable=True,
-        help="Reviewed CSV exported by Ayvu.",
+        help="Edited v2 review package. Legacy v1 files are inspection-only.",
     ),
     output: Optional[Path] = typer.Option(
         None,
         "--output",
         "-o",
-        help="Output EPUB path. Defaults to <input-stem>-<target>-reviewed.epub.",
+        help="Output EPUB path. Defaults to <input-stem>-reviewed.epub.",
     ),
-    overwrite: bool = typer.Option(False, "--overwrite", help="Allow replacing an existing output file."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Allow replacing an existing output EPUB."),
+    validate_only: bool = typer.Option(False, "--validate-only", help="Validate the package without reconstructing an EPUB."),
 ) -> None:
-    """Rebuild a translated EPUB from a reviewed CSV, preserving the original file."""
+    """Validate and apply one identity-bound v2 review package."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     try:
-        review = read_review_csv(review_csv)
-    except ReviewImportError as exc:
+        package_bytes = read_review_input(review_csv)
+    except Exception as exc:
+        code = getattr(exc, "code", "review_file_unreadable")
         _print_expected_error(
             "Não foi possível ler o arquivo de revisão.",
-            "Confirme que é um CSV de revisão gerado pelo Ayvu e tente novamente.",
+            "Confirme que o arquivo é um pacote de revisão local válido e tente novamente.",
             mode,
-            detail=str(exc),
+            detail=code,
         )
-        raise typer.Exit(code=1) from exc
+        raise typer.Exit(code=1) from None
 
-    if not review.rows:
-        _print_expected_error(
-            "O arquivo de revisão não tem segmentos.",
-            "Gere o CSV com `ayvu translate --review-output` e revise antes de importar.",
-            mode,
-        )
+    use_cases = open_review_use_cases(_processing_dir(_load_existing_config_or_default()), source_path=epub_path)
+    if validate_only:
+        cancellation = use_cases.cancellation()
+        validated = use_cases.validate.execute(
+            ReviewValidationCommand(package_bytes, cancellation=cancellation.token))
+        if validated.valid:
+            table = Table(title="Review package validation")
+            table.add_column("Metric")
+            table.add_column("Value")
+            table.add_row("Documents", str(validated.counts.documents))
+            table.add_row("Units", str(validated.counts.units))
+            table.add_row("Reviewed", str(validated.counts.reviewed))
+            table.add_row("Kept machine translation", str(validated.counts.pending))
+            console.print(table)
+            raise typer.Exit(code=0)
+        _print_review_apply_failure(validated.code, mode)
         raise typer.Exit(code=1)
 
-    output_path = _resolve_apply_review_output(epub_path, output, review.target_language)
-    if output_path.exists() and not overwrite:
-        _print_expected_error(
-            "Arquivo de saída já existe.",
-            "Use --overwrite para substituí-lo ou escolha outro caminho em --output.",
-            mode,
-            detail=f"Output: {output_path}",
-        )
+    output_path = output or epub_path.with_name(f"{epub_path.stem}-reviewed{epub_path.suffix or '.epub'}")
+    cancellation = use_cases.cancellation()
+    applied = use_cases.apply.execute(ReviewApplyCommand(
+        package_bytes, None, output_path, destination_fingerprint(output_path), overwrite,
+        cancellation=cancellation.token))
+    if not applied.success:
+        _print_review_apply_failure(applied.code, mode)
         raise typer.Exit(code=1)
 
-    try:
-        report = apply_reviewed_epub(epub_path, output_path, review)
-    except Exception as exc:
-        _print_epub_read_error(str(exc), mode)
-        raise typer.Exit(code=1) from exc
-
-    validation = _validate_with_progress(output_path)
-    _print_apply_review_report(report, validation.warnings)
-
-
-def _resolve_apply_review_output(epub_path: Path, output: Path | None, target_language: str) -> Path:
-    if output is not None:
-        return output.expanduser()
-    suffix = f"-{target_language}" if target_language else ""
-    return epub_path.with_name(f"{epub_path.stem}{suffix}-reviewed.epub")
-
-
-def _print_apply_review_report(report: ReviewApplyReport, validation_warnings: list[str]) -> None:
-    table = Table(title="Importação de revisão", show_header=False)
-    table.add_column("Campo", style="bold")
-    table.add_column("Valor")
-    table.add_row("Input", str(report.input_path) if report.input_path else "-")
-    table.add_row("Output", str(report.output_path) if report.output_path else "-")
-    table.add_row("Languages", f"{report.source_language or '-'} → {report.target_language or '-'}")
-    table.add_row("Segments applied", str(report.applied))
-    table.add_row("Without review", str(report.untranslated))
-    table.add_row("Missing in EPUB", str(len(report.missing_in_epub)))
-    table.add_row("Inconsistent", str(len(report.inconsistent)))
-    table.add_row("Duplicated ids", str(len(report.duplicated)))
-    table.add_row("Unknown documents", str(len(report.unknown_documents)))
-    table.add_row("Invalid ids", str(len(report.invalid_ids)))
+    table = Table(title="Review application report")
+    table.add_column("Metric")
+    table.add_column("Value")
+    table.add_row("Output", _display_optional_path(output_path))
+    table.add_row("Documents", str(applied.counts.documents))
+    table.add_row("Units applied", str(applied.counts.reviewed))
+    table.add_row("Kept machine translation", str(applied.counts.pending))
     console.print(table)
-
-    _print_apply_review_warnings(report)
-    if validation_warnings:
-        _print_validation_warnings(validation_warnings)
-    console.print(f"[green]Reviewed EPUB saved to:[/green] {report.output_path}")
+    console.print(f"[green]Reviewed EPUB saved to:[/green] {output_path}")
 
 
-def _print_apply_review_warnings(report: ReviewApplyReport) -> None:
-    sections = (
-        ("Segments missing in the EPUB", report.missing_in_epub),
-        ("Inconsistent segments (original changed)", report.inconsistent),
-        ("Duplicated segment ids", report.duplicated),
-        ("Unknown documents", report.unknown_documents),
-        ("Invalid segment ids", report.invalid_ids),
-    )
-    for title, items in sections:
-        if not items:
-            continue
-        console.print(f"[yellow]{title}:[/yellow]")
-        for item in items[:10]:
-            console.print(f"  - {item}")
-        if len(items) > 10:
-            console.print(f"  - ... (+{len(items) - 10})")
-    if report.untranslated:
-        console.print(
-            f"[yellow]{report.untranslated} segment(s) had no reviewed translation "
-            "and stayed in the source language.[/yellow]"
+def _print_review_apply_failure(code: str, mode: UserMode) -> None:
+    if code == "legacy_reexport_required":
+        _print_expected_error(
+            "CSV v1 serve apenas para inspeção e não pode reconstruir o EPUB.",
+            "Exporte novamente usando --review-output depois de gerar uma tradução da mesma fonte e aplique o novo pacote v2.",
+            mode,
+            detail="legacy_reexport_required",
         )
-
+        return
+    if code in {"invalid_preamble", "invalid_encoding", "malformed_csv", "invalid_newline", "invalid_column_count"}:
+        _print_expected_error(
+            "Não foi possível ler o arquivo de revisão.",
+            "Confirme que o arquivo é um pacote de revisão local válido e tente novamente.",
+            mode,
+            detail=code,
+        )
+        return
+    if code in {"output_exists", "review_file_exists"}:
+        _print_expected_error("O arquivo de saída já existe.", "Use --overwrite ou escolha outro caminho com --output.",
+                              mode, detail="output_exists")
+        return
+    if code == "review_not_approved":
+        _print_expected_error(
+            "Nenhuma linha do pacote foi marcada como revisada.",
+            "Edite reviewed_text nas linhas que quiser e marque review_status como reviewed nelas. As demais mantêm a tradução automática.",
+            mode,
+            detail=code,
+        )
+        return
+    if code == "pending_row_edited":
+        _print_expected_error(
+            "Uma linha foi editada, mas não foi marcada como revisada.",
+            "Marque review_status como reviewed nessa linha, ou desfaça a edição em reviewed_text. Nada foi gravado.",
+            mode,
+            detail=code,
+        )
+        return
+    if code == "review_rejected":
+        _print_expected_error(
+            "O pacote tem uma linha marcada como rejeitada.",
+            "Corrija reviewed_text e marque a linha como reviewed, ou volte para pending para manter a tradução automática. Nada foi gravado.",
+            mode,
+            detail=code,
+        )
+        return
+    _print_expected_error(
+        "Não foi possível validar ou aplicar o pacote de revisão.",
+        "Confirme que o pacote v2 pertence à mesma revisão do projeto, à fonte e ao artefato de tradução; corrija os conflitos e tente novamente.",
+        mode,
+        detail=code,
+    )
 
 def _validate_with_progress(output_path: Path) -> ValidationResult:
     with Progress(
@@ -1959,7 +2520,7 @@ def _validate_with_progress(output_path: Path) -> ValidationResult:
                 description=f"Validando EPUB {index}/{total}",
             )
 
-        return validate_output_epub(output_path, on_progress=on_progress)
+        return validate_output(output_path, on_progress=on_progress)
 
 
 def _print_validation_warnings(warnings: list[str]) -> None:
@@ -2057,31 +2618,28 @@ def _resolve_review_output_path(
             "Arquivo de revisão já existe.",
             "Use --overwrite para substituí-lo ou escolha outro caminho em --review-output.",
             mode,
-            detail=f"Review output: {path}",
+            detail="review_output_exists",
         )
         raise typer.Exit(code=1)
 
     return path
 
 
-def _write_review_output(
-    path: Path,
-    segments: list[ReviewSegment],
-    overwrite: bool,
-    mode: UserMode,
-) -> None:
-    try:
-        write_review_csv(path, segments, overwrite=overwrite)
-    except OSError as exc:
+def _print_review_export_failure(code: str, mode: UserMode) -> None:
+    if code in {"output_exists", "review_file_exists"}:
         _print_expected_error(
-            "Não foi possível salvar o arquivo de revisão.",
-            "Escolha um caminho gravável para --review-output e tente novamente.",
+            "Arquivo de revisão já existe.",
+            "Use --overwrite para substituí-lo ou escolha outro caminho em --review-output.",
             mode,
-            detail=str(exc),
+            detail="review_output_exists",
         )
-        raise typer.Exit(code=1) from exc
-
-    console.print(f"[green]Review file saved to:[/green] {path}")
+        return
+    _print_expected_error(
+        "Não foi possível salvar o pacote de revisão.",
+        "Confirme que a tradução terminou com um artefato íntegro e escolha um caminho gravável para --review-output.",
+        mode,
+        detail=code,
+    )
 
 
 def _print_interrupted_translation(
@@ -2143,16 +2701,13 @@ def _interrupted_output_message(output_path: Path, dry_run: bool) -> str:
     return f"Translated EPUB was not written: {output_path}"
 
 
-def _print_processing_translation_states(store: ResumeStateStore) -> ResumeStateScan:
-    scan = store.scan()
-    if not scan.has_findings:
-        return scan
-
-    if scan.running:
-        _print_running_resume_states(scan.running)
-    if scan.invalid:
-        _print_invalid_resume_states(scan.invalid)
-    return scan
+def _print_processing_translation_states(recovery: JobRecovery) -> InterruptedTranslations:
+    found = interrupted_translations(recovery)
+    if found.running:
+        _print_running_resume_states(found.running)
+    if found.invalid:
+        _print_invalid_resume_states(found.invalid)
+    return found
 
 
 def _run_guided_main_flow(ctx: typer.Context, mode: UserMode) -> bool:
@@ -2166,26 +2721,29 @@ def _run_guided_main_flow(ctx: typer.Context, mode: UserMode) -> bool:
 
 
 def _load_or_init_config(store: ConfigStore | None = None) -> AyvuConfig:
-    store = store or ConfigStore.default()
-    if not store.path.exists():
-        return _init_default_language_config(store)
-
-    try:
-        return store.load()
-    except ConfigError as exc:
-        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {exc}")
+    store = store or configuration_store()
+    snapshot = store.get_preferences()
+    if snapshot.error:
+        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {snapshot.error}")
         console.print("Usando configuração padrão. Ajuste o arquivo de configuração se quiser alterar o idioma.")
         return AyvuConfig.default()
+    if not snapshot.exists:
+        return _init_default_language_config(store)
+    if snapshot.read_only:
+        console.print("[yellow]Configuração em somente leitura: campos desconhecidos impedem a gravação.[/yellow]")
+    return config_from_preferences(snapshot.preferences, snapshot.revision)
 
 
 def _load_existing_config_or_default(store: ConfigStore | None = None) -> AyvuConfig:
-    store = store or ConfigStore.default()
-    try:
-        return store.load()
-    except ConfigError as exc:
-        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {exc}")
+    store = store or configuration_store()
+    snapshot = store.get_preferences()
+    if snapshot.error:
+        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {snapshot.error}")
         console.print("Usando configuração padrão. Ajuste o arquivo de configuração quando possível.")
         return AyvuConfig.default()
+    if snapshot.read_only:
+        console.print("[yellow]Configuração em somente leitura: campos desconhecidos impedem a gravação.[/yellow]")
+    return config_from_preferences(snapshot.preferences, snapshot.revision)
 
 
 def _init_default_language_config(store: ConfigStore) -> AyvuConfig:
@@ -2202,8 +2760,10 @@ def _init_default_language_config(store: ConfigStore) -> AyvuConfig:
         default_target_language=language,
         books_dir=books_dir,
         folders=folders,
+        _preferences_revision='missing',
     )
-    if _save_config(store, config):
+    config, persisted = _save_config(store, config)
+    if persisted:
         console.print(f"[green]Idioma padrão salvo:[/green] {language}")
         console.print(f"[green]Pasta base salva:[/green] {books_dir}")
     return config
@@ -2233,14 +2793,20 @@ def _print_feature_folder_paths(config: AyvuConfig) -> None:
     console.print(table)
 
 
-def _save_config(store: ConfigStore, config: AyvuConfig) -> bool:
+def _save_config(
+    store: ConfigStore, config: AyvuConfig, fallback: AyvuConfig | None = None,
+) -> tuple[AyvuConfig, bool]:
     try:
-        store.save(config)
-        return True
+        result = store.update_preferences(config, config._preferences_revision or 'missing')
     except ConfigError as exc:
         console.print(f"[yellow]Não foi possível salvar a configuração:[/yellow] {exc}")
+        console.print("A configuração informada é inválida; os valores anteriores foram mantidos.")
+        return fallback or AyvuConfig.default(), False
+    if not result.persisted:
+        console.print(f"[yellow]Não foi possível salvar a configuração:[/yellow] {result.error}")
         console.print("A mudança será usada nesta execução, mas não foi persistida.")
-        return False
+    revision = result.snapshot.revision if result.snapshot else config._preferences_revision
+    return config_from_preferences(result.effective, revision), result.persisted
 
 
 def _print_guided_main_menu() -> None:
@@ -2416,101 +2982,99 @@ def _print_guided_glossary_menu(directory: Path) -> None:
 
 
 def _create_guided_glossary(directory: Path) -> Path | None:
-    path = _prompt_new_glossary_path(directory)
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if items is None:
+        return None
+    path = _prompt_new_glossary_path(directory, items)
     if path is None:
         return None
-
-    glossary = _prompt_guided_glossary_terms(Glossary())
-    return _save_guided_glossary(path, glossary)
+    entries = _prompt_guided_glossary_terms(())
+    return _save_guided_glossary(repository, path, entries)
 
 
 def _edit_guided_glossary(directory: Path) -> Path | None:
-    files = _list_glossary_files(directory)
-    if not files:
-        console.print("[yellow]No saved glossaries found.[/yellow]")
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if not items:
+        if items is not None:
+            console.print("[yellow]No saved glossaries found.[/yellow]")
         return None
-
-    path = _prompt_saved_glossary_path(files)
-    if path is None:
+    item = _prompt_saved_glossary_path(items)
+    if item is None:
         return None
-
-    glossary = _load_guided_glossary(path)
-    if glossary is None:
+    snapshot = _load_guided_glossary(repository, item.reference)
+    if snapshot is None:
         return None
-
-    updated = _prompt_guided_glossary_terms(glossary)
-    return _save_guided_glossary(path, updated)
+    entries = _prompt_guided_glossary_terms(snapshot.entries)
+    return _save_guided_glossary(repository, directory / item.reference.value, entries, snapshot.revision)
 
 
 def _preview_guided_glossary(directory: Path) -> None:
-    files = _list_glossary_files(directory)
-    if not files:
-        console.print("[yellow]No saved glossaries found.[/yellow]")
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if not items:
+        if items is not None:
+            console.print("[yellow]No saved glossaries found.[/yellow]")
         return
-
-    path = _prompt_saved_glossary_path(files)
-    if path is None:
+    item = _prompt_saved_glossary_path(items)
+    if item is None:
         return
-
-    glossary = _load_guided_glossary(path)
-    if glossary is None:
-        return
-    _print_guided_glossary_preview(glossary)
+    snapshot = _load_guided_glossary(repository, item.reference)
+    if snapshot is not None:
+        _print_guided_glossary_preview(snapshot.entries)
 
 
 def _choose_guided_translation_glossary() -> Path | None:
-    files = _list_glossary_files(default_glossaries_dir())
-    if not files:
+    directory = default_glossaries_dir()
+    repository = managed_glossary_repository(directory)
+    items = _list_glossary_files(repository)
+    if not items:
         return None
-
     console.print("[yellow]Saved glossaries are available.[/yellow]")
     while True:
-        path = _prompt_saved_glossary_path(files, back_label="Run without glossary")
-        if path is None:
+        item = _prompt_saved_glossary_path(items, back_label="Run without glossary")
+        if item is None:
             return None
-        if _load_guided_glossary(path) is not None:
+        if _load_guided_glossary(repository, item.reference) is not None:
+            path = directory / item.reference.value
             console.print(f"[green]Glossary selected:[/green] {path}")
             return path
         console.print("Choose another glossary or run without glossary.")
 
 
-def _prompt_new_glossary_path(directory: Path) -> Path | None:
+def _prompt_new_glossary_path(directory: Path, items: tuple) -> Path | None:
     while True:
         raw_name = typer.prompt("Glossary name", default="glossary").strip()
         stem = _safe_filename_part(Path(raw_name).stem or raw_name).lower()
         path = directory / f"{stem}.json"
-        if not path.exists():
+        if not any(item.reference.value.casefold() == path.name.casefold() for item in items):
             return path
-
         console.print(f"[yellow]Glossary already exists:[/yellow] {path}")
         if not typer.confirm("Choose another glossary name?", default=True):
             console.print("Glossary was not created.")
             return None
 
 
-def _prompt_guided_glossary_terms(glossary: Glossary) -> Glossary:
-    entries = list(glossary.entries)
+def _prompt_guided_glossary_terms(glossary: tuple[GlossaryEntry, ...]) -> tuple[GlossaryEntry, ...]:
+    entries = list(glossary)
     if entries:
-        _print_guided_glossary_preview(Glossary(entries))
-
+        _print_guided_glossary_preview(tuple(entries))
     while True:
         term = typer.prompt("Original term (leave empty to finish)", default="").strip()
         if not term:
-            if entries:
-                return Glossary(entries)
-            console.print("[yellow]No glossary terms were added.[/yellow]")
-            return Glossary()
-
+            if not entries:
+                console.print("[yellow]No glossary terms were added.[/yellow]")
+            return tuple(entries)
         entry = _prompt_guided_glossary_entry(term)
         replaced = _upsert_glossary_entry(entries, entry)
         if replaced:
             console.print(f"[green]Term updated:[/green] {entry.term}")
         else:
             console.print(f"[green]Term added:[/green] {entry.term}")
-        _print_guided_glossary_preview(Glossary(entries))
-
+        _print_guided_glossary_preview(tuple(entries))
         if not typer.confirm("Add another term?", default=True):
-            return Glossary(entries)
+            return tuple(entries)
 
 
 def _prompt_guided_glossary_entry(term: str) -> GlossaryEntry:
@@ -2543,101 +3107,129 @@ def _upsert_glossary_entry(entries: list[GlossaryEntry], entry: GlossaryEntry) -
     return False
 
 
-def _save_guided_glossary(path: Path, glossary: Glossary) -> Path | None:
-    if not glossary.entries:
+def _save_guided_glossary(repository, path: Path, glossary: tuple[GlossaryEntry, ...], revision=None) -> Path | None:
+    if not glossary:
         console.print("[yellow]Glossary was not saved because it has no terms.[/yellow]")
         return None
-
     _print_guided_glossary_preview(glossary)
     if not typer.confirm("Save this glossary?", default=True):
         console.print("Glossary was not saved.")
         return None
-
-    try:
-        saved_path = save_glossary(path, glossary)
-    except GlossaryError as exc:
-        console.print(f"[red]Glossary validation failed:[/red] {exc}")
+    reference = GlossaryReference(path.name)
+    if revision is None:
+        result = create_glossary(repository, reference, glossary)
+    else:
+        result = update_glossary(repository, reference, glossary, revision)
+    if result.failure is not None:
+        console.print(f"[red]Glossary was not saved:[/red] {_glossary_failure(result.failure)}")
         return None
+    console.print(f"[green]Glossary saved:[/green] {path}")
+    return path
 
-    console.print(f"[green]Glossary saved:[/green] {saved_path}")
-    return saved_path
+
+_GLOSSARY_STATUS = {
+    "invalid": "invalid file",
+    "oversized": "too large",
+    "unsafe-link": "link, not accepted",
+    "unsafe-multilink": "hard link, not accepted",
+}
+_GLOSSARY_FAILURES = {
+    "invalid": "the file is not a valid glossary.",
+    "oversized": "the file is above the glossary limits.",
+    "unsafe-link": "links are not accepted in the glossary folder.",
+    "unsafe-multilink": "a file with more than one hard link is not accepted in the glossary folder.",
+    "missing": "the file no longer exists.",
+    "stale-revision": "the file changed after it was opened. Open it again and repeat the change.",
+    "already-exists": "a glossary with this name already exists.",
+    "catalog-too-large": "the glossary folder has more than 1000 files.",
+}
 
 
-def _load_guided_glossary(path: Path) -> Glossary | None:
-    try:
-        return load_glossary(path)
-    except GlossaryError as exc:
-        console.print(f"[red]Could not load glossary:[/red] {exc}")
+def _glossary_failure(code: str) -> str:
+    return _GLOSSARY_FAILURES.get(code, f"the glossary could not be used ({code}).")
+
+
+def _load_guided_glossary(repository, reference):
+    result = read_glossary(repository, reference)
+    if result.failure is not None:
+        console.print(f"[red]Could not load glossary:[/red] {_glossary_failure(result.failure)}")
         return None
+    return result.value
 
 
-def _prompt_saved_glossary_path(files: tuple[Path, ...], back_label: str = "Back") -> Path | None:
-    _print_saved_glossaries(files)
+def _prompt_saved_glossary_path(items: tuple, back_label: str = "Back"):
+    _print_saved_glossaries(items)
     console.print(f"{GLOSSARY_BACK_OPTION}. {back_label}")
-
     while True:
         choice = typer.prompt("Choose glossary", default=GLOSSARY_BACK_OPTION).strip()
         if choice == GLOSSARY_BACK_OPTION:
             return None
-        if choice.isdigit() and 1 <= int(choice) <= len(files):
-            return files[int(choice) - 1]
-        console.print(f"[red]Invalid glossary.[/red] Choose 1-{len(files)} or 0.")
+        if choice.isdigit() and 1 <= int(choice) <= len(items):
+            return items[int(choice) - 1]
+        console.print(f"[red]Invalid glossary.[/red] Choose 1-{len(items)} or 0.")
 
 
-def _print_saved_glossaries(files: tuple[Path, ...]) -> None:
+def _print_saved_glossaries(items: tuple) -> None:
     table = Table(title="Saved glossaries")
     table.add_column("Option")
     table.add_column("Name")
     table.add_column("Terms")
-    for index, path in enumerate(files, start=1):
-        table.add_row(str(index), path.stem, _glossary_term_count(path))
+    for index, item in enumerate(items, start=1):
+        table.add_row(str(index), Path(item.reference.value).stem,
+                      str(item.count) if item.status == "valid" else _GLOSSARY_STATUS.get(item.status, item.status))
     console.print(table)
 
 
-def _glossary_term_count(path: Path) -> str:
-    glossary = _load_guided_glossary(path)
-    if glossary is None:
-        return "invalid"
-    return str(len(glossary.entries))
-
-
-def _print_guided_glossary_preview(glossary: Glossary) -> None:
-    if not glossary.entries:
+def _print_guided_glossary_preview(glossary: tuple[GlossaryEntry, ...]) -> None:
+    if not glossary:
         console.print("[yellow]Glossary has no terms yet.[/yellow]")
         return
-
     table = Table(title="Glossary preview")
     table.add_column("Term")
     table.add_column("Rule")
     table.add_column("Translation")
-    for entry in glossary.entries:
+    for entry in glossary:
         table.add_row(entry.term, entry.rule, entry.translation or "-")
     console.print(table)
 
 
-def _list_glossary_files(directory: Path) -> tuple[Path, ...]:
-    if not directory.exists():
-        return ()
-    try:
-        return tuple(sorted(path for path in directory.glob("*.json") if path.is_file()))
-    except OSError as exc:
-        console.print(f"[yellow]Could not list glossaries:[/yellow] {exc}")
-        return ()
+def _list_glossary_files(repository):
+    result = list_glossaries(repository)
+    if result.failure is not None:
+        console.print(f"[yellow]Could not list glossaries:[/yellow] {_glossary_failure(result.failure)}")
+        return None
+    return result.value
+
+
+_LIBRARY_WARNINGS = {
+    "root_unavailable": "the books folder could not be read.",
+    "directory_unavailable": "a library folder could not be read.",
+    "directory_escape": "a library folder points outside the books folder, so it was skipped.",
+    "invalid_folder": "a library folder name is invalid, so it was skipped.",
+    "entry_limit": "the library has too many files, so only the first 10000 are listed.",
+    "invalid_entry": "an entry is not a file inside the books folder, so it was skipped.",
+    "entry_unavailable": "a file could not be read, so it was skipped.",
+    "invalid_filename": "a file name has invalid characters or is too long, so it was skipped.",
+}
 
 
 def _run_guided_library(config: AyvuConfig) -> None:
-    books = scan_library(config)
+    service = library_service(config)
+    scan = service.scan_request(ScanRequest(service.root_ref))
+    books = service.list_entries(ListRequest(service.root_ref)).books
     if not books:
         console.print("[yellow]Library has no EPUB books yet.[/yellow]")
         console.print(f"Original folder: {config.original_dir}")
         console.print(f"Translated folder: {config.translated_dir}")
+        _print_library_warnings(scan.warnings)
         return
 
     _print_library_books(books)
+    _print_library_warnings(scan.warnings)
     book = _prompt_library_book(books)
     if book is None:
         return
-    _run_guided_library_book(config, book)
+    _run_guided_library_book(service, book, config)
 
 
 def _print_library_books(books: tuple[LibraryBook, ...]) -> None:
@@ -2669,7 +3261,17 @@ def _prompt_library_book(books: tuple[LibraryBook, ...]) -> LibraryBook | None:
         console.print(f"[red]Invalid book.[/red] Choose 1-{len(books)} or 0.")
 
 
-def _run_guided_library_book(config: AyvuConfig, book: LibraryBook) -> None:
+def _print_library_warnings(warnings: tuple[object, ...]) -> None:
+    """Without this, a folder that cannot be read would look like a library with nothing in it."""
+    reasons = Counter(warning.reason for warning in warnings)
+    for reason, count in sorted(reasons.items()):
+        console.print(f"[yellow]Library warning ({count}):[/yellow] {_LIBRARY_WARNINGS.get(reason, reason)}")
+
+
+def _run_guided_library_book(service: LibraryService, book: LibraryBook, config: AyvuConfig) -> None:
+    book = service.describe_entry(DescribeRequest(book.ref)).book
+    if book is None:
+        return
     while True:
         actions = _library_book_actions(book)
         _print_library_book_actions(book, actions)
@@ -2681,25 +3283,25 @@ def _run_guided_library_book(config: AyvuConfig, book: LibraryBook) -> None:
             console.print(f"[red]Invalid action.[/red] Choose 1-{len(actions)} or 0.")
             continue
 
-        label, path = actions[int(choice) - 1]
-        if path is None:
-            _print_library_book_info(book)
+        label, ref = actions[int(choice) - 1]
+        if ref is None:
+            _print_library_book_info(book, config)
             continue
-        _open_library_book_path(path, config, label)
+        _open_library_book_path(service, ref, label)
         return
 
 
-def _library_book_actions(book: LibraryBook) -> list[tuple[str, Path | None]]:
-    actions: list[tuple[str, Path | None]] = []
-    if book.original_path:
-        actions.append(("Open original", book.original_path))
+def _library_book_actions(book: LibraryBook) -> list[tuple[str, str | None]]:
+    actions: list[tuple[str, str | None]] = []
+    if book.original:
+        actions.append(("Open original", book.original.ref))
     for translation in book.translations:
-        actions.append((f"Open {translation.label}", translation.path))
+        actions.append((f"Open {translation.label}", translation.ref))
     actions.append(("Show information", None))
     return actions
 
 
-def _print_library_book_actions(book: LibraryBook, actions: list[tuple[str, Path | None]]) -> None:
+def _print_library_book_actions(book: LibraryBook, actions: list[tuple[str, str | None]]) -> None:
     table = Table(title=book.name)
     table.add_column("Option")
     table.add_column("Action")
@@ -2709,26 +3311,36 @@ def _print_library_book_actions(book: LibraryBook, actions: list[tuple[str, Path
     console.print(f"{LIBRARY_BACK_OPTION}. Back")
 
 
-def _print_library_book_info(book: LibraryBook) -> None:
+def _print_library_book_info(book: LibraryBook, config: AyvuConfig) -> None:
     table = Table(title="Book information")
     table.add_column("Field")
     table.add_column("Value")
     table.add_row("Book", book.name)
-    table.add_row("Original EPUB", str(book.original_path) if book.original_path else "-")
+    table.add_row("Original EPUB", str(config.original_dir / book.original.filename) if book.original else "-")
     table.add_row("Translations", _display_book_translations(book))
-    table.add_row("Translation files", _display_translation_paths(book))
+    table.add_row("Translation files", "\n".join(str(config.translated_dir / t.filename) for t in book.translations) or "-")
     console.print(table)
 
 
-def _open_library_book_path(path: Path, config: AyvuConfig, label: str) -> None:
-    try:
-        open_library_epub(path, reader_app=config.reader_app)
-    except LibraryOpenError as exc:
-        console.print(f"[red]Could not open EPUB:[/red] {exc}")
-        console.print("Configure Reader app in Settings or install a default EPUB reader.")
+def _open_library_book_path(service: LibraryService, ref: str, label: str) -> None:
+    console.print("[yellow]O leitor externo é outro processo: fica fora da garantia offline do HTTP do Ayvu, inclusive com --network-policy none.[/yellow]")
+    result = service.open_entry(OpenRequest(ref, include_display_path=True))
+    if result.status != "opened":
+        messages = {
+            "unavailable": "No EPUB reader app is configured or available on this system.",
+            "configuration_invalid": "Reader app command is invalid.",
+            "launch_failed": "Could not open EPUB with the configured reader.",
+            "unauthorized": "EPUB file was not found or is no longer authorized.",
+            "stale": "EPUB file was not found or is no longer authorized.",
+        }
+        console.print(f"[red]Could not open EPUB:[/red] {messages.get(result.status, 'Could not open EPUB.')}")
+        if result.status in {"unavailable", "configuration_invalid", "launch_failed"}:
+            console.print("Configure Reader app in Settings or install a default EPUB reader.")
+        else:
+            console.print("Open the library again to see the current files.")
         return
 
-    console.print(f"[green]{label}:[/green] {path}")
+    console.print(f"[green]{label}:[/green] {result.display_path}")
 
 
 def _display_book_translations(book: LibraryBook) -> str:
@@ -2737,14 +3349,8 @@ def _display_book_translations(book: LibraryBook) -> str:
     return ", ".join(translation.label for translation in book.translations)
 
 
-def _display_translation_paths(book: LibraryBook) -> str:
-    if not book.translations:
-        return "-"
-    return "\n".join(str(translation.path) for translation in book.translations)
-
-
 def _run_guided_settings(config: AyvuConfig) -> None:
-    store = ConfigStore.default()
+    store = configuration_store()
     current = config
     while True:
         _print_settings(current)
@@ -2797,9 +3403,10 @@ def _update_guided_settings(store: ConfigStore, current: AyvuConfig, updated: Ay
     if updated == current:
         console.print("Settings unchanged.")
         return current
-    if _save_config(store, updated):
+    effective, persisted = _save_config(store, updated, fallback=current)
+    if persisted:
         console.print("[green]Settings saved.[/green]")
-    return updated
+    return effective
 
 
 def _settings_with_default_language(config: AyvuConfig) -> AyvuConfig:
@@ -2893,7 +3500,7 @@ def _prompt_target_language_code(default_target: str) -> str:
     return target or default_target
 
 
-def _print_guided_language_choices(languages: tuple[TranslatorLanguage, ...]) -> None:
+def _print_guided_language_choices(languages: tuple[DiscoveredLanguage, ...]) -> None:
     table = Table(title="LibreTranslate languages")
     table.add_column("Option")
     table.add_column("Language")
@@ -2905,7 +3512,7 @@ def _print_guided_language_choices(languages: tuple[TranslatorLanguage, ...]) ->
     console.print(table)
 
 
-def _language_code_from_guided_choice(choice: str, languages: tuple[TranslatorLanguage, ...]) -> str | None:
+def _language_code_from_guided_choice(choice: str, languages: tuple[DiscoveredLanguage, ...]) -> str | None:
     if not choice.isdigit():
         return None
 
@@ -2915,16 +3522,26 @@ def _language_code_from_guided_choice(choice: str, languages: tuple[TranslatorLa
     return None
 
 
-def _load_languages_for_guided_selection() -> tuple[TranslatorLanguage, ...]:
-    translator = LibreTranslateTranslator(url=DEFAULT_TRANSLATOR_URL, timeout=10.0, retries=1)
-    try:
-        return translator.list_languages()
-    except TranslatorError as exc:
-        console.print(f"[yellow]Could not list LibreTranslate languages:[/yellow] {exc}")
-        return ()
+def _languages_were_listed(result: LanguagesResult) -> bool:
+    # A server with no installed language answered correctly: it just has nothing to list.
+    return result.outcome is DiscoveryOutcome.OK or result.code == "no_languages"
 
 
-def _print_languages(languages: tuple[TranslatorLanguage, ...]) -> None:
+def _load_languages_for_guided_selection() -> tuple[DiscoveredLanguage, ...]:
+    session = cli_provider_session(url=DEFAULT_TRANSLATOR_URL, timeout=10.0, retries=1,
+                                   network_policy=_selected_network_policy())
+    result = session.languages()
+    _print_network_selection(session.network_decision)
+    if _languages_were_listed(result):
+        return result.languages
+    console.print(f"[yellow]Could not list LibreTranslate languages:[/yellow] {result.code}")
+    if network_next_step(result.code):
+        console.print(session.network_decision.diagnostic("languages", result.code))
+        console.print(network_next_step(result.code))
+    return ()
+
+
+def _print_languages(languages: tuple[DiscoveredLanguage, ...]) -> None:
     table = Table(title="LibreTranslate languages")
     table.add_column("Language")
     table.add_column("Code")
@@ -2950,7 +3567,8 @@ def _display_language_targets(targets: tuple[str, ...]) -> str:
     return f"{first_targets} (+{len(targets) - 8})"
 
 
-def _offer_detected_translation_resume(states: tuple[TranslationResumeState, ...], mode: UserMode) -> bool:
+def _offer_detected_translation_resume(found: InterruptedTranslations, recovery: JobRecovery, mode: UserMode) -> bool:
+    states = found.running
     if not states:
         return False
     # In DEVELOPER mode, we don't resume automatically to avoid unexpected behavior.
@@ -2970,13 +3588,27 @@ def _offer_detected_translation_resume(states: tuple[TranslationResumeState, ...
         return False
 
     console.print(f"[green]Resuming translation:[/green] {state.input_path.name} -> {state.output_path.name}")
-    _resume_translation(state, mode=mode)
+    _resume_translation(state, found, recovery, mode=mode)
     return True
 
 
-def _resume_translation(state: TranslationResumeState, mode: UserMode) -> None:
-    try:
-        _run_translation(
+class _ResumeRunner:
+    """Runs a resume with what its file recorded, on whichever path the use case chose."""
+
+    def __init__(self, state: TranslationResumeState, mode: UserMode, network_policy: NetworkPolicy | None = None) -> None:
+        self._state = state
+        self._mode = mode
+        self._network_policy = _selected_network_policy(network_policy)
+
+    def run_legacy(self, reference: str) -> None:
+        self._run(resolve_managed_project=False)
+
+    def run_durable(self, reference: str, ticket: ContinuationTicket, operation_id: str) -> TranslateProjectResult:
+        return self._run(continuation=ticket, operation_id=operation_id).job_result
+
+    def _run(self, **identity: object) -> TranslationRunResult:
+        state, mode = self._state, self._mode
+        return _run_translation(
             epub_path=state.input_path,
             output=state.output_path,
             review_output=None,
@@ -2984,6 +3616,7 @@ def _resume_translation(state: TranslationResumeState, mode: UserMode) -> None:
             target=state.target,
             translator_name=state.translator_name,
             url=state.url,
+            network_policy=self._network_policy,
             cache_path=state.cache_path,
             glossary_path=state.glossary_path,
             profile_name=None,
@@ -3003,12 +3636,41 @@ def _resume_translation(state: TranslationResumeState, mode: UserMode) -> None:
             translate_metadata=state.translate_metadata,
             translate_alt_text=state.translate_alt_text,
             translation_memory=state.translation_memory_options(),
+            project_profile_name=state.profile_name,
+            **identity,
         )
+
+
+def _resume_translation(state: TranslationResumeState, found: InterruptedTranslations, recovery: JobRecovery, mode: UserMode,
+                        network_policy: NetworkPolicy | None = None) -> None:
+    entry = found.entry_of(state)
+    # Asking for this resume is the decision: the command says what it does, and it has always replaced its output.
+    request = ResumeRequest(entry.reference, entry.job_id, entry.project_id, entry.expected_revision, tuple(RequiredDecision))
+    try:
+        result = recovery.request_resume.execute(request, _ResumeRunner(state, mode, network_policy))
+        if result.status in (ResumeStatus.REFUSED, ResumeStatus.ALREADY_REQUESTED):
+            _print_resume_refusal(result, state, mode)
+            raise typer.Exit(code=1)
     except typer.Exit:
         console.print(
             "Não foi possível retomar a tradução detectada. Verifique a mensagem acima e reinicie a tradução se necessário."
         )
         raise
+
+
+def _print_resume_refusal(result: ResumeResult, state: TranslationResumeState, mode: UserMode) -> None:
+    code = "continuation_exists" if result.status is ResumeStatus.ALREADY_REQUESTED else result.code
+    if code in ("source_changed", "source_missing", "source_unreadable"):
+        _print_project_failure(code, mode)
+    elif code == "not_found":
+        _print_expected_error(
+            "No translation in progress was found to resume.",
+            "Start a translation with 'ayvu translate <epub>' or check the processing folder.",
+            mode,
+        )
+    else:
+        failure = (book_refusal(state.input_path) or "unexpected_error") if code == "policy_denied" else code
+        _print_translation_failure(_BookOutcome(failure=failure), state.output_path, mode)
 
 
 def _select_resume_state(
@@ -3116,57 +3778,6 @@ def _print_invalid_resume_states(states: tuple[InvalidResumeState, ...]) -> None
     console.print("Restart the translation if the state file cannot be fixed.")
 
 
-def _save_running_resume_state(
-    epub_path: Path,
-    output_path: Path,
-    cache_path: Path,
-    translator_name: str,
-    url: str,
-    glossary_path: Path | None,
-    options: TranslationOptions,
-    overwrite: bool,
-    timeout: float,
-    retries: int,
-    requests_per_second: float | None,
-    retry_backoff: float,
-    retry_backoff_max: float,
-    processing_dir: Path,
-) -> tuple[ResumeStateStore, TranslationResumeState]:
-    store = ResumeStateStore(processing_dir)
-    state = TranslationResumeState.create(
-        input_path=epub_path,
-        output_path=output_path,
-        cache_path=cache_path,
-        translator_name=translator_name,
-        url=url,
-        glossary_path=glossary_path,
-        options=options,
-        overwrite=overwrite,
-        timeout=timeout,
-        retries=retries,
-        requests_per_second=requests_per_second,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    )
-    _save_resume_state(store, state)
-    return store, state
-
-
-def _mark_resume_state_completed(store: ResumeStateStore, state: TranslationResumeState) -> None:
-    _save_resume_state(store, state.mark_completed())
-
-
-def _save_resume_state(store: ResumeStateStore, state: TranslationResumeState) -> None:
-    try:
-        store.save(state)
-    except (OSError, ResumeStateError) as exc:
-        console.print(f"[red]Resume state check failed:[/red] {exc}")
-        console.print(
-            "Choose a writable processing directory or fix permissions for Documentos/Livros/Processando."
-        )
-        raise typer.Exit(code=1) from exc
-
-
 def _offer_markdown_report(
     report: TranslationReport,
     dry_run: bool,
@@ -3188,11 +3799,13 @@ def _save_markdown_report(
     dry_run: bool,
     validation_warnings: list[str] | None = None,
     directory: Path | None = None,
+    batch_plan: AcceptedItem | None = None,
 ) -> Path:
+    if batch_plan is not None:
+        return batch_plan.write_auxiliary("report", _render_markdown_report(report, dry_run, validation_warnings))
     directory = directory or _default_reports_dir()
-    directory.mkdir(parents=True, exist_ok=True)
     path = _next_available_report_path(directory, _report_filename_stem(report))
-    path.write_text(_render_markdown_report(report, dry_run, validation_warnings), encoding="utf-8")
+    publish_cli_report(path, _render_markdown_report(report, dry_run, validation_warnings))
     return path
 
 
@@ -3202,7 +3815,12 @@ def _save_missing_texts(
     overwrite: bool,
     directory: Path | None,
     mode: UserMode,
+    batch_plan: AcceptedItem | None = None,
 ) -> None:
+    if batch_plan is not None:
+        path = batch_plan.write_auxiliary("missing", _render_missing_texts(report))
+        console.print(f"[green]Missing texts saved to:[/green] {path}")
+        return
     if missing_output is not None:
         path = missing_output.expanduser()
         if path.exists() and not overwrite:
@@ -3215,12 +3833,10 @@ def _save_missing_texts(
             raise typer.Exit(code=1)
     else:
         directory = directory or _default_reports_dir()
-        directory.mkdir(parents=True, exist_ok=True)
         path = _next_available_report_path(directory, _missing_filename_stem(report), suffix=".txt")
 
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_render_missing_texts(report), encoding="utf-8")
+        publish_cli_report(path, _render_missing_texts(report))
     except OSError as exc:
         _print_expected_error(
             "Não foi possível salvar o arquivo de textos ausentes.",
@@ -3250,9 +3866,7 @@ def _render_missing_texts(report: TranslationReport) -> str:
 
 
 def _missing_filename_stem(report: TranslationReport) -> str:
-    source = _safe_filename_part(report.input_path.stem if report.input_path else "translation")
-    target = _safe_filename_part(report.target_language or "translated")
-    return f"{source}-{target}-missing"
+    return _missing_stem_for(report.input_path, report.target_language)
 
 
 def _print_cache_coverage_blocked(report: TranslationReport, mode: UserMode) -> None:
@@ -3341,18 +3955,11 @@ def _default_reports_dir() -> Path:
 
 
 def _next_available_report_path(directory: Path, stem: str, suffix: str = ".md") -> Path:
-    path = directory / f"{stem}{suffix}"
-    index = 2
-    while path.exists():
-        path = directory / f"{stem}-{index}{suffix}"
-        index += 1
-    return path
+    return report_destination(directory, stem, suffix)
 
 
 def _report_filename_stem(report: TranslationReport) -> str:
-    source = _safe_filename_part(report.input_path.stem if report.input_path else "translation")
-    target = _safe_filename_part(report.target_language or "translated")
-    return f"{source}-{target}-report"
+    return _report_stem_for(report.input_path, report.target_language)
 
 
 def _safe_filename_part(value: str) -> str:
@@ -3528,6 +4135,35 @@ def _processing_dir(config: AyvuConfig) -> Path:
 
 def _uses_internal_storage_defaults(config: AyvuConfig) -> bool:
     return config.books_dir == Path(DEFAULT_BOOKS_DIR) and config.folders == FolderNames()
+
+
+def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
+    return execute_translate_without_project(book, hooks, validate=validate)
+
+
+def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
+    return execute_translate_in_project(book, hooks)
+
+
+def _checkpoint_action(action, *args, **kwargs):
+    try:
+        return action(*args, **kwargs)
+    except (OSError, ResumeStateError) as exc:
+        console.print(f"[red]Resume state check failed:[/red] {exc}")
+        console.print("Choose a writable processing directory or fix permissions for Documentos/Livros/Processando.")
+        raise typer.Exit(code=1) from exc
+
+
+def _report_stem_for(input_path, target_language):
+    source = _safe_filename_part(input_path.stem if input_path else "translation")
+    target = _safe_filename_part(target_language or "translated")
+    return f"{source}-{target}-report"
+
+
+def _missing_stem_for(input_path, target_language):
+    source = _safe_filename_part(input_path.stem if input_path else "translation")
+    target = _safe_filename_part(target_language or "translated")
+    return f"{source}-{target}-missing"
 
 
 if __name__ == "__main__":

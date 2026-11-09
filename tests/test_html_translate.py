@@ -1,3 +1,9 @@
+import re
+from collections import Counter
+
+import pytest
+from bs4 import BeautifulSoup
+
 from ayvu.cache import CacheKey, TranslationCache
 from ayvu.domain import LanguagePair, TranslationMemoryOptions
 from ayvu.translation_memory import TranslationMemory
@@ -8,8 +14,256 @@ from ayvu.glossary import (
     Glossary,
     GlossaryEntry,
 )
-from ayvu.html_translate import apply_reviewed_html, extract_visible_text, translate_html, translate_text
+from ayvu.html_translate import (
+    _protected_terms_are_intact,
+    apply_reviewed_html,
+    extract_visible_text,
+    translate_html,
+    translate_text,
+)
 from ayvu.translator import Translator
+
+
+class DamagingMarkerTranslator(Translator):
+    def __init__(self, damage="spaces", fallback="translate"):
+        self.damage = damage
+        self.fallback = fallback
+        self.calls = []
+
+    def translate(self, text, source, target):
+        self.calls.append(text)
+        tokens = re.findall(r"__AYVU_PROTECTED_\d+__", text)
+        if tokens:
+            if self.damage == "spaces":
+                return text.replace("__AYVU_PROTECTED_", "AYVU PROTECTED ").replace("__", "")
+            if self.damage == "drop":
+                return text.replace(tokens[0], "")
+            if self.damage == "duplicate":
+                return text + tokens[0]
+            if self.damage == "unknown":
+                return text + "__AYVU_PROTECTED_999__"
+            if self.damage == "reverse":
+                replacements = iter(reversed(tokens))
+                return re.sub(r"__AYVU_PROTECTED_\d+__", lambda _: next(replacements), text)
+        if self.fallback == "error":
+            raise RuntimeError("synthetic failure")
+        if self.fallback == "empty":
+            return ""
+        if self.fallback == "marker":
+            return "AYVU PROTECTED 9"
+        for original, translated in {"Read": "Leia", "with": "com", "care": "cuidado", "Visit": "Visite", "and": "e"}.items():
+            text = text.replace(original, translated)
+        return text
+
+
+@pytest.mark.parametrize("damage", ["spaces", "drop", "duplicate", "unknown", "reverse"])
+def test_corrupted_markers_recover_terms_and_cache_only_safe_result(tmp_path, damage):
+    original = "  Read CacheKey and CacheKey with https://example.com.  "
+    expected = "  Leia CacheKey e CacheKey com https://example.com.  "
+    translator = DamagingMarkerTranslator(damage)
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        first = translate_text(original, translator, cache, "en", "pt")
+        call_count = len(translator.calls)
+        second = translate_text(original, translator, cache, "en", "pt")
+        assert first.text == second.text == expected
+        assert second.from_cache
+        assert len(translator.calls) == call_count
+        assert all("AYVU" not in call for call in translator.calls[1:])
+
+
+def test_marker_fallback_preserves_nested_markup_and_opaque_content(tmp_path):
+    html = '<html><body><p>Read <a href="chapter.xhtml"><em>CacheKey</em></a> with <code>private_code()</code><br/>care.</p></body></html>'
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        output, stats = translate_html(html, DamagingMarkerTranslator(), cache, "en", "pt")
+    soup = BeautifulSoup(output, "lxml-xml")
+    assert soup.p.a["href"] == "chapter.xhtml"
+    assert soup.p.a.em.string == "CacheKey"
+    assert soup.p.code.string == "private_code()"
+    assert soup.p.br is not None
+    assert "Leia " in str(soup.p) and "cuidado." in str(soup.p)
+    assert "AYVU" not in str(soup)
+    assert stats.translated == 1 and not stats.errors
+
+
+@pytest.mark.parametrize("cached", [
+    "AYVU PROTECTED 0 CacheKey",
+    "__AYVU_PROTECTED_0__ CacheKey",
+    "Leia __AYVU_TAG_0__ CacheKey",
+    "Leia com cuidado.",
+    "Leia xxCacheKey com cuidado.",
+    "Leia CacheKeyX com cuidado.",
+    "Leia CacheKey CacheKey com cuidado.",
+])
+@pytest.mark.parametrize("mode", ["online", "cache_only", "dry_run"])
+def test_poisoned_cache_is_retranslated_or_reported_missing(tmp_path, cached, mode):
+    original = "Read CacheKey with care."
+    key = CacheKey(text=original, language_pair=LanguagePair("en", "pt"))
+    translator = DamagingMarkerTranslator()
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        cache.set(key, cached)
+        result = translate_text(original, translator, cache, "en", "pt", **({mode: True} if mode != "online" else {}))
+        assert not result.from_cache
+        if mode == "online":
+            assert result.text == "Leia CacheKey com cuidado."
+            assert cache.get(key) == result.text
+        else:
+            assert result.text == original
+            assert not translator.calls
+            assert result.missing == (mode == "cache_only")
+            assert cache.get(key) == cached
+
+
+@pytest.mark.parametrize("failure", ["error", "empty", "marker"])
+def test_failed_marker_recovery_keeps_original_html_and_does_not_cache(tmp_path, failure):
+    original = "Read CacheKey with care."
+    html = f"<html><body><p>{original}</p></body></html>"
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        output, stats = translate_html(html, DamagingMarkerTranslator(fallback=failure), cache, "en", "pt")
+        assert original in output.decode()
+        assert stats.errors and stats.translated == 0
+        assert cache.get(CacheKey(text=original, language_pair=LanguagePair("en", "pt"))) is None
+        with pytest.raises((RuntimeError, ValueError)):
+            translate_html(html, DamagingMarkerTranslator(fallback=failure), cache, "en", "pt", fail_fast=True)
+
+
+def test_tiny_chunks_never_send_broken_markers_and_preserve_spaces(tmp_path):
+    translator = DamagingMarkerTranslator()
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        result = translate_text("Read CacheKey with care.", translator, cache, "en", "pt", chunk_limit=5)
+    assert result.text == "Leia CacheKey com cuidado."
+    assert all("AYVU" not in call and len(call) <= 5 for call in translator.calls)
+
+
+def test_fuzzy_memory_rejects_marker_leaks(tmp_path):
+    translator = DamagingMarkerTranslator()
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        cache.set(CacheKey(text="Read with care.", language_pair=LanguagePair("en", "pt")), "AYVU PROTECTED 0")
+        memory = TranslationMemory(cache, TranslationMemoryOptions(apply_threshold=0.9, suggest_threshold=0.7))
+        result = translate_text("Read with care!", translator, cache, "en", "pt", memory=memory)
+    assert result.text == "Leia com cuidado!"
+    assert not result.from_memory and result.memory_suggestion is None
+
+
+def test_fuzzy_memory_rejects_concatenated_protected_terms(tmp_path):
+    original = "Read CacheKey with care."
+    key = CacheKey(text=original, language_pair=LanguagePair("en", "pt"))
+    translator = DamagingMarkerTranslator()
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        cache.set(key, "Leia xxCacheKey com cuidado.")
+        memory = TranslationMemory(
+            cache,
+            TranslationMemoryOptions(apply_threshold=0.9, suggest_threshold=0.7),
+        )
+        result = translate_text(original, translator, cache, "en", "pt", memory=memory)
+    assert result.text == "Leia CacheKey com cuidado."
+    assert not result.from_cache and not result.from_memory
+    assert result.memory_suggestion is None
+
+
+def test_marker_recovery_stops_at_global_call_limit(tmp_path, monkeypatch):
+    monkeypatch.setattr("ayvu.html_translate.MAX_PROTECTED_RECOVERY_CALLS", 2)
+    original = "Read CacheKey with care. Read CacheKey with care."
+    key = CacheKey(text=original, language_pair=LanguagePair("en", "pt"))
+    translator = DamagingMarkerTranslator()
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        with pytest.raises(ValueError, match="limite de chamadas"):
+            translate_text(original, translator, cache, "en", "pt")
+        assert cache.get(key) is None
+    assert len(translator.calls) == 3  # Initial attempt plus two recovery calls.
+    assert all("AYVU" not in call for call in translator.calls[1:])
+
+
+def test_alt_text_marker_recovery(tmp_path):
+    html = '<html><body><img src="cover.png" alt="Read CacheKey with care."/></body></html>'
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        output, stats = translate_html(html, DamagingMarkerTranslator(), cache, "en", "pt", translate_alt_text=True)
+    soup = BeautifulSoup(output, "lxml-xml")
+    assert soup.img["alt"] == "Leia CacheKey com cuidado."
+    assert soup.img["src"] == "cover.png"
+    assert stats.alt_translated == 1
+
+
+@pytest.mark.parametrize("cached", [
+    "Leia CacheKey.",
+    "Leia __AYVU_TAG_1__CacheKey__AYVU_TAG_0__.",
+    "Leia __AYVU_TAG_0__CacheKey__AYVU_TAG_1____AYVU_TAG_1__.",
+])
+def test_cache_with_lost_or_reordered_tags_is_repaired(tmp_path, cached):
+    template = "Read __AYVU_TAG_0__CacheKey__AYVU_TAG_1__."
+    key = CacheKey(text=template, language_pair=LanguagePair("en", "pt"))
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        cache.set(key, cached)
+        output, stats = translate_html(
+            "<html><body><p>Read <em>CacheKey</em>.</p></body></html>",
+            DamagingMarkerTranslator(), cache, "en", "pt",
+        )
+        assert cache.get(key) == "Leia __AYVU_TAG_0__CacheKey__AYVU_TAG_1__."
+    assert "<p>Leia <em>CacheKey</em>.</p>" in output.decode()
+    assert stats.from_cache == 0 and not stats.errors
+
+
+def test_literal_marker_in_source_is_restored_without_recursive_substitution(tmp_path):
+    original = "Read __AYVU_PROTECTED_1__ with CacheKey."
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        result = translate_text(original, FakeTranslator(), cache, "en", "pt")
+    assert result.text == f"PT:{original}"
+
+
+def test_cache_rejects_reordered_protected_and_tag_placeholders(tmp_path):
+    original = "Read __AYVU_PROTECTED_5__ __AYVU_TAG_0__ CacheKey"
+    key = CacheKey(text=original, language_pair=LanguagePair("en", "pt"))
+    translator = DamagingMarkerTranslator()
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        cache.set(key, "Leia __AYVU_TAG_0__ __AYVU_PROTECTED_5__ CacheKey")
+        result = translate_text(original, translator, cache, "en", "pt")
+        assert cache.get(key) == result.text
+    assert result.text == "Leia __AYVU_PROTECTED_5__ __AYVU_TAG_0__ CacheKey"
+    assert not result.from_cache
+
+
+def test_protected_term_scanner_bounds_suffix_match_work():
+    repeated_units = 100
+    terms = Counter(
+        {
+            "A!!" * (length - 1) + "A!": repeated_units - length + 1
+            for length in range(1, repeated_units + 1)
+        }
+    )
+    assert not _protected_terms_are_intact("A!!" * repeated_units, terms)
+
+
+def test_protected_term_scanner_counts_valid_suffix_matches():
+    terms = Counter({"foo": 1, "bar-foo": 1})
+    assert _protected_terms_are_intact("bar-foo", terms)
+
+
+def test_marker_fallback_copies_whitespace_only_chunks_without_http(tmp_path):
+    translator = DamagingMarkerTranslator()
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        result = translate_text("Read      with\t\tCacheKey.", translator, cache, "en", "pt", chunk_limit=5)
+    assert result.text == "Leia      com\t\tCacheKey."
+    assert all(call.strip() for call in translator.calls)
+
+
+@pytest.mark.parametrize("damage", [False, True])
+def test_technical_terms_touching_inline_tags_never_reach_provider(tmp_path, damage):
+    class AcronymTranslator(DamagingMarkerTranslator):
+        def translate(self, text, source, target):
+            if damage:
+                return super().translate(text, source, target).replace("AI", "IA")
+            self.calls.append(text)
+            return text.replace("Read", "Leia").replace("with", "com").replace("AI", "IA")
+
+    translator = AcronymTranslator()
+    html = '<html><body><p>Read AI with <em>AI</em> and <a href="help.xhtml">CacheKey</a>.</p></body></html>'
+    with TranslationCache(tmp_path / "cache.sqlite") as cache:
+        output, stats = translate_html(html, translator, cache, "en", "pt", fail_fast=True)
+    decoded = output.decode()
+    assert "Leia AI com <em>AI</em>" in decoded
+    assert '<a href="help.xhtml">CacheKey</a>' in decoded
+    assert "IA" not in decoded and "AYVU" not in decoded
+    assert all("AI" not in call and "CacheKey" not in call for call in translator.calls)
+    assert not stats.errors
 
 
 class FakeTranslator(Translator):
@@ -670,3 +924,105 @@ def test_apply_reviewed_html_applies_image_alt_after_text_runs():
     assert 'alt="Uma casa vermelha"' in result
     assert stats.applied == 1
     assert seen == [(1, "text", "Hello reader."), (2, "alt", "A red house")]
+
+
+class IdentityOr(Translator):
+    def __init__(self, replace=("world", "mundo")):
+        self.replace = replace
+        self.sent = []
+
+    def translate(self, text, source, target):
+        self.sent.append(text)
+        return text.replace(*self.replace)
+
+
+def run_markup(tmp_path, html, translator=None, **options):
+    translator = translator or IdentityOr()
+    with TranslationCache(tmp_path / "markup.sqlite") as cache:
+        output, stats = translate_html(html, translator, cache, "en", "pt", **options)
+    return output.decode(), stats, translator
+
+
+NAMESPACED = (
+    '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xmlns:xlink="http://www.w3.org/1999/xlink"><body>'
+    '<p>{}</p></body></html>'
+)
+
+
+@pytest.mark.parametrize("markup,expected", [
+    ('<span epub:type="pagebreak" id="p1">world</span> z', '<span epub:type="pagebreak" id="p1">mundo</span> z'),
+    ('<a epub:type="noteref" href="#n">world</a>', '<a epub:type="noteref" href="#n">mundo</a>'),
+    ('<a xlink:href="#n">world</a>', '<a xlink:href="#n">mundo</a>'),
+    ('<code epub:type="x">world</code> world', '<code epub:type="x">world</code> mundo'),
+    ('<b><i epub:type="y">world</i></b>', '<b><i epub:type="y">mundo</i></b>'),
+    ('<span xml:lang="en">world</span>', '<span xml:lang="en">mundo</span>'),
+    ('<br epub:type="z"/>world', '<br epub:type="z"/>mundo'),
+], ids=range(7))
+def test_inline_namespaced_attributes_survive_translation(tmp_path, markup, expected):
+    output, stats, _ = run_markup(tmp_path, NAMESPACED.format(markup))
+    assert expected in output and stats.errors == []
+
+
+@pytest.mark.parametrize("markup,expected", [
+    ("a <b>world<!-- secret -->x</b> y", "a <b>mundo<!-- secret -->x</b> y"),
+    ("a <b>world<?pi secret?>x</b>", "a <b>mundo<?pi secret?>x</b>"),
+    ("<i><b><!-- secret -->world</b></i>", "<i><b><!-- secret -->mundo</b></i>"),
+], ids=range(3))
+def test_a_comment_inside_an_inline_tag_stays_a_comment(tmp_path, markup, expected):
+    html = f"<html><body><p>{markup}</p></body></html>"
+    segments = []
+    output, _, translator = run_markup(tmp_path, html, on_segment_translated=segments.append)
+    assert expected in output
+    assert not any("secret" in text for text in translator.sent)
+    assert "secret" not in segments[0].original and "secret" not in segments[0].translated
+
+
+@pytest.mark.parametrize("markup,expected", [
+    ("__AYVU_TAG_0__ world <b>x</b>", "__AYVU_TAG_0__ mundo <b>x</b>"),
+    ("<b>x</b> __AYVU_TAG_0__ world", "<b>x</b> __AYVU_TAG_0__ mundo"),
+    ("__AYVU_TAG_7__ world", "__AYVU_TAG_7__ mundo"),
+    ("<b>__AYVU_TAG_0__</b> world", "<b>__AYVU_TAG_0__</b> mundo"),
+    (" \n __AYVU_TAG_1__ world", " \n __AYVU_TAG_1__ mundo"),
+], ids=range(5))
+def test_book_text_that_looks_like_a_token_comes_back_unchanged(tmp_path, markup, expected):
+    output, stats, _ = run_markup(tmp_path, f"<html><body><p>{markup}</p></body></html>")
+    assert expected in output and stats.errors == []
+
+
+def test_a_run_of_only_a_token_like_literal_is_skipped(tmp_path):
+    output, stats, translator = run_markup(tmp_path, "<html><body><p>__AYVU_TAG_0__</p></body></html>")
+    assert translator.sent == [] and stats.skipped == 1 and "__AYVU_TAG_0__" in output
+
+
+def test_review_text_of_a_token_like_literal_is_the_literal(tmp_path):
+    segments = []
+    run_markup(tmp_path, "<html><body><p>__AYVU_TAG_0__ world <b>x</b></p></body></html>", on_segment_translated=segments.append)
+    assert segments[0].original == "__AYVU_TAG_0__ world x" and segments[0].translated == "__AYVU_TAG_0__ mundo x"
+
+
+def test_ordinary_text_keeps_its_cache_key(tmp_path):
+    html = '<html><body><p>a <b id="k">world</b> <!-- out --><code>x</code></p></body></html>'
+    from ayvu.html_structure import TransientHtmlDocument
+
+    assert [run.template for run in TransientHtmlDocument(html).runs] == ["a __AYVU_TAG_0__world__AYVU_TAG_1__ ", "__AYVU_TAG_0__"]
+
+
+@pytest.mark.parametrize("hostile", ["<script>x()</script>", "&amp;", "]]>", "<b>"], ids=range(4))
+def test_translated_text_never_becomes_markup_in_the_current_flow(tmp_path, hostile):
+    output, _, _ = run_markup(tmp_path, "<html><body><p>a <i>world</i></p></body></html>", IdentityOr(("world", hostile)))
+    parsed = BeautifulSoup(output, "lxml-xml")
+    assert parsed.find("script") is None and parsed.find("i").get_text() == hostile and parsed.find("i").find_all(True) == []
+
+
+def test_an_invalid_character_from_a_provider_no_longer_damages_original_markup(tmp_path):
+    html = "<html><body><p>world<code>a &amp; b</code></p></body></html>"
+    output, _, _ = run_markup(tmp_path, html, IdentityOr(("world", "wo\x0brld")))
+    assert "<code>a &amp; b</code>" in output
+
+
+@pytest.mark.parametrize("markup", ["a <b>world</b>", '<a href="u">world</a> x<br/>y', "<span/>world", "<code>k</code> world"], ids=range(4))
+def test_translating_again_from_the_cache_gives_the_same_output(tmp_path, markup):
+    html = f"<html><body><p>{markup}</p></body></html>"
+    first, _, _ = run_markup(tmp_path, html)
+    second, _, _ = run_markup(tmp_path, html)
+    assert first == second and "mundo" in first

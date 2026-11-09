@@ -1,0 +1,17 @@
+{
+  "timestamp_utc": "2026-11-06T10:58:07.263223+00:00",
+  "baseline": "79bcc6ec45d603bcab1d74da58021f1edf0657ca",
+  "official_online_sources_checked": false,
+  "supported_targets": [],
+  "resolution_exit_code": 1,
+  "package_probe": "not_executed_packager_absent_resolution_failed",
+  "private_store_entries_touched": 0,
+  "evidence_sha256": {
+    "spikes/secret-store/probe.py": "cc72ea6e7418c34de60a2eb2481c764a7b491c6523a7404dd3ef4ff7031b1501",
+    "spikes/secret-store/pyproject.toml": "6cc3164f69518eeb6ceda0b22a177bd56f6973723fb46a82e63e9ad4507bdfad",
+    "spikes/secret-store/results/native-closure-2026-11-06.json": "5238347418d6e9032d24428e8ba7e7b1135b9a820bd68d4bf783b94905f5287d",
+    "spikes/secret-store/results/native-packages-2026-11-06.txt": "fa8c5c69f63e00f257b490ed307922d37d2e263490e69353a9339f0793b298dd",
+    "spikes/secret-store/results/resolution-offline-2026-11-06.txt": "2ef1762f58cb2731c445d6c971a12c8371f6d11c3fc691a46c1c450c03671dd0",
+    "spikes/secret-store/results/sandbox-2026-11-06.json": "8ec604d8eba7808ab2769743298e59441cffe027302fa4a7250e32162457c6a7"
+  }
+}

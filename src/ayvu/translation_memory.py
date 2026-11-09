@@ -8,7 +8,7 @@ from .cache import TranslationCache
 from .domain import LanguagePair, TranslationMemoryOptions
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class TranslationMemoryMatch:
     """Best fuzzy match found for a piece of text.
 
@@ -22,6 +22,9 @@ class TranslationMemoryMatch:
     translated: str
     score: float
     applied: bool
+
+    def __repr__(self) -> str:
+        return f"TranslationMemoryMatch(score={self.score!r}, applied={self.applied})"
 
 
 class TranslationMemory:
