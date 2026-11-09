@@ -171,7 +171,7 @@ def test_resume_across_runtimes_is_refused_and_names_both_before_any_request(tmp
 
 
 @pytest.mark.parametrize("arguments,gate", [(["--workers", "2"], "--workers 1"),
-    (["--translation-memory"], "--translation-memory"), (["--cache-only"], "--cache-only"),
+    (["--cache-only"], "--cache-only"),
     (["--cache-only", "--require-full-cache"], "--require-full-cache")])
 def test_cli_unsupported_rich_options_name_the_actual_refusal(tmp_path, monkeypatch, arguments, gate):
     config(tmp_path)
@@ -312,3 +312,114 @@ def test_rich_job_cancellation_at_each_existing_safe_point(tmp_path, monkeypatch
     for event in result.events:
         sequence.accept(event)
     assert sequence.outcome is result.outcome
+
+
+
+def test_tm_approved_epub_workflow_and_cache_clear_isolation_real_stores(tmp_path, monkeypatch):
+    from uuid import uuid4
+    from ayvu.approved_memory import Candidate, MemoryScope, MemorySource, MemoryState, ScopeKind, TargetValue, ValueKind, PipelineStage
+    from ayvu.approved_memory_service import CreateCandidate, ReviewRevision
+    from ayvu.approved_memory_store import open_approved_memory
+    from ayvu.memory_retrieval import plan_memory_pin
+    from ayvu.provenance import ActorKind, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
+    config(tmp_path)
+    source = _book(tmp_path / 'book.epub')
+    original_bytes = source.read_bytes()
+    seen = []
+    real_translate = composition.DocumentTranslator.translate
+    def observe(self, document, *args, **kwargs):
+        seen.append((document, self._plan))
+        return real_translate(self, document, *args, **kwargs)
+    monkeypatch.setattr(composition.DocumentTranslator, 'translate', observe)
+    first, transport = invoke(tmp_path, monkeypatch, source, '--translation-memory')
+    assert first.exit_code == 0, text(first)
+    assert transport.posts == ['T', 'Hello title', 'Hello reader.', 'Goodbye reader.']
+    document, plan = next((doc, plan) for doc, plan in seen if any(u.source_text == 'Hello reader.' for u in doc.units))
+    selected = next(u for u in document.units if u.source_text == 'Hello reader.')
+    job = next(job for job in _jobs(tmp_path) if job.request.command_type == 'translate_project')
+    paths = ProjectJsonRepository(tmp_path / 'processing').resolve_database_paths(document.project_id)
+    provenance = open_provenance_repository(paths.database, paths.backups, document.project_id)
+    scope = MemoryScope(ScopeKind.PROJECT, document.project_id)
+    repository = open_approved_memory(paths.database.parent, allowed_scopes=frozenset({scope}),
+        provenance={document.project_id: provenance})
+    pin = plan_memory_pin(plan)
+    def evidence(operation, operation_id, actor, parents=()):
+        return provenance.append(ProvenanceRequest(document.project_id, job.job_id, operation, actor,
+            SourceKind.HUMAN if actor is ActorKind.HUMAN else SourceKind.PIPELINE,
+            ProducerIdentity('not_applicable', 'not_applicable', 'not_applicable', 'not_applicable'),
+            subject=SubjectRef('content_unit', 1, selected.unit_id), configuration_refs=pin.references,
+            parents=parents, operation_id=operation_id))
+    operation_id = str(uuid4())
+    created = repository.create(CreateCandidate(operation_id, Candidate(
+        MemorySource.from_document(document, selected.unit_id), LanguagePair('en', 'pt'),
+        TargetValue('REVISADO', ValueKind.LINGUISTIC_FINAL, PipelineStage.LINGUISTIC_FINAL, pin), scope,
+        evidence('tm_create', operation_id, ActorKind.SYSTEM).record_id)))
+    operation_id = str(uuid4())
+    approved = repository.review(ReviewRevision(operation_id, created.revision_id, created.event.version,
+        scope, evidence('tm_approve', operation_id, ActorKind.HUMAN, (created.event.provenance_id,)).record_id,
+        MemoryState.APPROVED, created.value.target))
+    memory_file = paths.database.parent / 'approved-memory.sqlite'
+    memory_bytes = memory_file.read_bytes()
+    # Clear through the real cache administration boundary, not through the TM repository.
+    cleaned = runner.invoke(cli.app, ['cache', 'clean', '--cache', str(composition.v2_cache_path(tmp_path / 'cache.sqlite')),
+        '--namespace', 'v2', '--scope-kind', 'project', '--scope-id', document.project_id,
+        '--project-id', document.project_id, '--all', '--yes'])
+    assert cleaned.exit_code == 0, text(cleaned)
+    assert memory_file.read_bytes() == memory_bytes
+    second, transport = invoke(tmp_path, monkeypatch, source, '--translation-memory', '--overwrite')
+    assert second.exit_code == 0, text(second)
+    assert transport.posts == ['T', 'Hello title', 'Goodbye reader.']
+    assert 'Texts from memory' in text(second)
+    with ZipFile(tmp_path / 'out.epub') as output:
+        assert b'REVISADO' in output.read('OEBPS/c1.xhtml')
+    assert source.read_bytes() == original_bytes
+    assert repository.get(approved.revision_id, scopes=(scope,)) == approved
+
+
+def test_tm_empty_repository_provider_failure_and_resume_use_real_boundaries(tmp_path, monkeypatch):
+    from ayvu.resume import ResumeStateStore
+    config(tmp_path)
+    source = _book(tmp_path / 'book.epub')
+    first, transport = invoke(tmp_path, monkeypatch, source, '--translation-memory', session=Transport(failing='Goodbye reader.'))
+    assert first.exit_code == 1 and transport.posts == ['T', 'Hello title', 'Hello reader.', 'Goodbye reader.'], text(first)
+    checkpoint = ResumeStateStore(tmp_path / 'processing').scan().running[0]
+    assert checkpoint.translation_memory_enabled
+    assert not checkpoint.translation_memory_options().legacy_cache_compatibility
+    resumed_transport = Transport()
+    monkeypatch.setattr('ayvu.translator.requests.Session', lambda: resumed_transport)
+    result = runner.invoke(cli.app, ['--mode', 'developer', 'resume', str(source)])
+    assert result.exit_code == 0, text(result)
+    assert resumed_transport.posts == ['Goodbye reader.']
+    job = _jobs(tmp_path)[-1]
+    paths = ProjectJsonRepository(tmp_path / 'processing').resolve_database_paths(job.request.project_id)
+    with sqlite3.connect(paths.database.parent / 'approved-memory.sqlite') as db:
+        assert db.execute('SELECT count(*) FROM tm_revisions').fetchone() == (0,)
+
+
+@pytest.mark.parametrize('flag', ['--tm-conservative-auto-apply', '--tm-legacy-cache-compatibility'])
+def test_new_tm_policy_flags_require_explicit_memory_before_any_transport(tmp_path, monkeypatch, flag):
+    config(tmp_path)
+    result, transport = invoke(tmp_path, monkeypatch, _book(tmp_path / 'book.epub'), flag)
+    assert result.exit_code == 1 and 'requerem --translation-memory' in ' '.join(text(result).split())
+    assert transport.requests == []
+
+
+def test_cli_tm_conservative_threshold_gate_is_explicit_and_precedes_transport(tmp_path, monkeypatch):
+    config(tmp_path)
+    result, transport = invoke(tmp_path, monkeypatch, _book(tmp_path / 'book.epub'),
+        '--translation-memory', '--tm-conservative-auto-apply', '--tm-apply-threshold', '0.95')
+    assert result.exit_code == 1 and '0.98' in text(result)
+    assert transport.requests == []
+
+
+
+def test_memory_review_warning_reaches_current_cli_presentation(tmp_path, monkeypatch):
+    from uuid import UUID
+    from ayvu.job_events import JobCorrelation, JobEvent, JobWarning
+    from test_cli_translate_project import _canned, _report, _result
+    event = JobEvent(str(UUID(int=1)), str(UUID(int=2)), 1, datetime.now(UTC),
+        JobCorrelation(str(UUID(int=3))), JobWarning('memory_review_suggestions'))
+    result = _result(JobState.VALIDATED, 'validated', events=(event,))
+    invocation = _canned(tmp_path, monkeypatch, result, _report)
+    assert invocation.exit_code == 0, text(invocation)
+    assert 'Aviso da tradução:' in text(invocation) and 'memory_review_suggestions' in text(invocation)

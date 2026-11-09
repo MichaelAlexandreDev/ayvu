@@ -279,3 +279,56 @@ class MemoryRevision:
 class MemoryPage:
     revisions: tuple[MemoryRevision, ...]
     next_cursor: int | None
+
+
+class RetrievalMode(StrEnum):
+    EXACT = "exact"
+    CONCORDANCE = "concordance"
+    FUZZY = "fuzzy"
+
+
+@dataclass(frozen=True, repr=False)
+class RetrievalLimits:
+    candidates: int = 20
+    aggregate_bytes: int = 256 * 1024
+    source_bytes: int = MAX_VALUE_BYTES
+    target_bytes: int = MAX_VALUE_BYTES
+    snippet_bytes: int = 512
+
+    def __post_init__(self) -> None:
+        for value, maximum in ((self.candidates, 64), (self.aggregate_bytes, 1024 * 1024),
+                               (self.source_bytes, MAX_VALUE_BYTES), (self.target_bytes, MAX_VALUE_BYTES),
+                               (self.snippet_bytes, 512)):
+            if type(value) is not int or not 1 <= value <= maximum:
+                raise MemoryValidationError("invalid_retrieval_limit")
+
+
+@dataclass(frozen=True, repr=False)
+class MemoryQuery:
+    text: str
+    languages: LanguagePair
+    scopes: tuple[MemoryScope, ...]
+    pin: PipelinePin
+    mode: RetrievalMode = RetrievalMode.EXACT
+    limits: RetrievalLimits = RetrievalLimits()
+    normalization_version: str = NORMALIZATION_VERSION
+    search_version: str = SEARCH_VERSION
+
+    def __post_init__(self) -> None:
+        bounded_value(self.text)
+        canonical = unicodedata.normalize("NFC", self.text)
+        bounded_value(canonical)
+        validate_pair(self.languages)
+        if (type(self.mode) is not RetrievalMode or type(self.pin) is not PipelinePin
+                or type(self.limits) is not RetrievalLimits
+                or type(self.scopes) is not tuple or not 1 <= len(self.scopes) <= 32
+                or any(type(scope) is not MemoryScope for scope in self.scopes)
+                or len(set(self.scopes)) != len(self.scopes)
+                or self.normalization_version != NORMALIZATION_VERSION or self.search_version != SEARCH_VERSION):
+            raise MemoryValidationError("invalid_memory_query")
+        if max(len(self.text.encode("utf-8")), len(canonical.encode("utf-8"))) > self.limits.source_bytes:
+            raise MemoryValidationError("retrieval_source_limit")
+
+    @property
+    def canonical(self) -> str:
+        return unicodedata.normalize("NFC", self.text)

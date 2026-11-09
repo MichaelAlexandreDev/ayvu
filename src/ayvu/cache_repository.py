@@ -202,3 +202,44 @@ class SQLiteExactCache:
             raise
         except Exception:
             raise CacheIdentityError("cache_repository_failed") from None
+
+
+    def legacy_candidates(self, query, limits):
+        """Bounded compatibility source; never reads v1 or infers missing stage metadata."""
+        from .approved_memory import RetrievalLimits
+        from .cache_identity import CompatibleMemoryQuery, TRANSLATION_STAGE_AGGREGATE
+        if (type(query) is not CompatibleMemoryQuery or type(limits) is not RetrievalLimits
+                or query.max_candidates > limits.candidates or query.value_kind is not TRANSLATION_STAGE_AGGREGATE):
+            raise CacheIdentityError("invalid_memory_query")
+        try:
+            with participating_connection(self._path, authorized_directory=self._authorized_directory) as connection:
+                connection.execute("BEGIN")  # Keep checked lengths and materialized rows in one read snapshot.
+                rows = connection.execute(
+                    "WITH bounded AS MATERIALIZED (SELECT source_digest, length(source_text) AS chars, "
+                    "length(CAST(source_text AS BLOB)) AS sb, length(CAST(value AS BLOB)) AS tb "
+                    "FROM cache_entries_v2 WHERE scope_kind=? AND scope_id=? AND value_kind=? AND semantic_fingerprint=? "
+                    "AND length(CAST(source_text AS BLOB))<=? AND length(CAST(value AS BLOB))<=? "
+                    "ORDER BY source_digest LIMIT 64) SELECT source_digest, sb, tb FROM bounded "
+                    "ORDER BY abs(chars-?), source_digest LIMIT ?",
+                    (query.scope.scope.kind.value, query.scope.scope.scope_id, query.value_kind.value,
+                     query.semantic_fingerprint, limits.source_bytes, limits.target_bytes,
+                     len(query.source_text), query.max_candidates)).fetchall()
+                results, used = [], 0
+                for digest, sb, tb in rows:
+                    if used + sb + tb > limits.aggregate_bytes:
+                        continue
+                    key = ExactEntryKey(query.scope, query.value_kind, query.semantic_fingerprint, digest)
+                    row = connection.execute(
+                        "SELECT source_text, value, canonical_identity, metadata, provenance, created_at, "
+                        "provenance_digest, entry_digest FROM cache_entries_v2 WHERE scope_kind=? AND scope_id=? "
+                        "AND value_kind=? AND semantic_fingerprint=? AND source_digest=?", _key_values(key)).fetchone()
+                    if row is None or not _valid_row(key, row):
+                        raise CacheIdentityError("cache_entry_corrupt")
+                    results.append((row[0], row[1], key))
+                    used += sb + tb
+                connection.rollback()
+                return tuple(results)
+        except CacheIdentityError:
+            raise
+        except Exception:
+            raise CacheIdentityError("cache_repository_failed") from None

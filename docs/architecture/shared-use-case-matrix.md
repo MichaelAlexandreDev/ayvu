@@ -287,6 +287,8 @@ remain presentation concerns.
         "--target": "domain-input",
         "--timeout": "application-policy",
         "--tm-apply-threshold": "application-policy",
+        "--tm-conservative-auto-apply": "application-policy",
+        "--tm-legacy-cache-compatibility": "application-policy",
         "--tm-suggest-threshold": "application-policy",
         "--translate-alt-text": "application-policy",
         "--translate-metadata": "application-policy",
@@ -412,7 +414,13 @@ os testes CLI antigos conservam suas asserções e apenas apontam canários para
 os novos donos. Alterar simultaneamente o comportamento e esse baseline exige
 decisão de compatibilidade documentada e revisão separada. O teste conserva o
 baseline de #158 e verifica separadamente as cinco adições `--network-policy`
-pedidas por #159; não regrava o fixture histórico.
+pedidas por #159; não regrava o fixture histórico. A #162 acrescenta explicitamente
+`--tm-conservative-auto-apply` e `--tm-legacy-cache-compatibility`, desligados por
+padrão, e esclarece os três textos de ajuda de TM. O teste verifica essas adições
+e os textos exatos antes de comparar todo o restante com o fixture congelado.
+No runtime rich/v2, `--translation-memory` seleciona `MemoryRetrieval` por projeto;
+os novos seletores apenas escolhem `RetrievalPolicy`. O runtime legado conserva
+os seletores anteriores. Não existe consumidor Desktop de recuperação hoje.
 
 ## CLI helper and facade inventory
 

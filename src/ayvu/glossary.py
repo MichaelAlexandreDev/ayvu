@@ -337,3 +337,14 @@ def _match_case(original: str, replacement: str) -> str:
     if original[:1].isupper() and original[1:].islower():
         return replacement[:1].upper() + replacement[1:]
     return replacement
+
+
+def effective_glossary_reference(glossary: Glossary | Mapping[object, object] | None) -> str:
+    """Immutable reference to the effective ordered rules, including explicit absence."""
+    import hashlib
+    from dataclasses import asdict
+    entries = (() if not glossary else glossary.entries if isinstance(glossary, Glossary)
+               else _parse_glossary_entries(glossary))
+    payload = json.dumps([asdict(entry) for entry in entries], sort_keys=True,
+                         ensure_ascii=True, separators=(",", ":"))
+    return 'glossary:' + hashlib.sha256(payload.encode('ascii')).hexdigest()

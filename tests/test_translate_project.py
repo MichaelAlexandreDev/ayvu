@@ -537,7 +537,10 @@ def test_the_plan_changes_with_anything_that_decides_the_result(world):
     variants = [world.command(translate_metadata=True), world.command(translate_alt_text=True), world.command(chunk_limit=10),
                 world.command(fail_fast=True), world.command(workers=2), world.command(cache_only=True),
                 world.command(chapter_selection=ChapterSelection.parse("1")), world.command(overwrite=True),
-                world.command(destination=world.tmp_path / "other.epub")]
+                world.command(destination=world.tmp_path / "other.epub"),
+                world.command(translation_memory=TranslationMemoryOptions()),
+                world.command(translation_memory=TranslationMemoryOptions(conservative_auto_apply=True)),
+                world.command(translation_memory=TranslationMemoryOptions(legacy_cache_compatibility=True))]
     seen = {resolve_plan(item, world.project).input_fingerprint for item in variants}
     assert len(seen) == len(variants) and fingerprint not in seen
     assert resolve_plan(base, dataclasses.replace(world.project, glossary_ref="glossary:" + "a" * 64)).input_fingerprint != fingerprint

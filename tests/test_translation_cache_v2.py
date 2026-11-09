@@ -52,6 +52,7 @@ from ayvu.translation_document import (
     UnitSource,
 )
 from ayvu.translation_plan import ResolvedTranslationPlan
+from ayvu.memory_retrieval import RetrievalPolicy
 
 PROJECT = str(UUID(int=0x4321))
 NOW = datetime(2026, 11, 5, 12, tzinfo=UTC)
@@ -203,7 +204,8 @@ class Env:
     def translate(self, subject=None, *, context=None, **kwargs):
         translator = DocumentTranslator(
             self.plan, self.provider, self.glossary, self.artifacts, self.provenance, self.events,
-            exact_cache=self.cache, memory=self.memory, clock=lambda: NOW, new_id=lambda: str(uuid4()),
+            exact_cache=self.cache, memory=self.memory,
+            retrieval_policy=RetrievalPolicy(legacy_cache_enabled=self.memory is not None), clock=lambda: NOW, new_id=lambda: str(uuid4()),
         )
         return translator.translate(subject or document(), context or ExecutionContext(self.job, OWNER), **kwargs)
 

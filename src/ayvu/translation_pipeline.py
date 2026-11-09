@@ -19,6 +19,7 @@ from .cache_identity import (
 )
 from .chunking import split_text
 from .domain import LanguagePair
+from .memory_retrieval import MemoryMatch, RetrievalDecision
 from .translation_memory import TranslationMemoryMatch
 from .translation_plan import LINGUISTIC_STAGES
 from .translation_protection import (
@@ -41,6 +42,7 @@ class LinguisticSource(StrEnum):
     BLANK = "blank"
     EXACT_CACHE = "exact_cache"
     APPLIED_MEMORY = "applied_memory"
+    APPROVED_MEMORY = "approved_memory"
     CACHE_ONLY_MISSING = "cache_only_missing"
     DRY_RUN = "dry_run"
     PROVIDER = "provider"
@@ -76,6 +78,8 @@ class LinguisticOutcome:
     cache_eligibility: CacheEligibility | None = None
     cache_lookup_state: CacheLookupState | None = None
     cache_miss_reason: CacheMissReason | None = None
+    retrieval_decision: RetrievalDecision | None = None
+    retrieval_suggestions: tuple[MemoryMatch, ...] = ()
 
     def __repr__(self) -> str:
         return f"LinguisticOutcome(source={self.source.value!r}, cache={None if self.cache_lookup_state is None else self.cache_lookup_state.value!r})"
@@ -152,7 +156,10 @@ class LinguisticStages:
 
     def __init__(self, provider: TextProvider, cache: LegacyExactCache, apply_glossary: Callable[[str], GlossaryOutcome],
                  *, memory: LegacyMemory | None = None, max_recovery_calls: int = DEFAULT_MAX_RECOVERY_CALLS,
-                 on_stage: Callable[[str], None] | None = None) -> None:
+                 on_stage: Callable[[str], None] | None = None,
+                 approved: Callable[[str, LanguagePair], tuple[MemoryMatch, ...]] | None = None) -> None:
+        self._approved = approved
+        self._suggestions: tuple[MemoryMatch, ...] = ()
         self._provider = provider
         self._cache = cache
         self._apply_glossary = apply_glossary
@@ -170,6 +177,7 @@ class LinguisticStages:
     def run(self, text: str, language_pair: LanguagePair, *, dry_run: bool = False,
             cache_only: bool | CacheOnlyRequest = False,
             chunk_limit: int = 3000) -> LinguisticOutcome:
+        self._suggestions = ()
         self._enter("unit_whitespace")
         parts = TextParts.from_text(text)
         if not parts.core:
@@ -195,6 +203,14 @@ class LinguisticStages:
             )
 
         self._enter("legacy_fuzzy_reuse")
+        if self._approved is not None:
+            self._suggestions = self._approved(parts.core, language_pair)
+            selected = next((match for match in self._suggestions if match.decision.auto_applied), None)
+            if selected is not None:
+                # A pinned linguistic_final has already received terminology.
+                return LinguisticOutcome(parts.restore(selected.target.strip()), LinguisticSource.APPROVED_MEMORY,
+                    raw_text=selected.target, retrieval_decision=selected.decision,
+                    retrieval_suggestions=tuple(m for m in self._suggestions if not m.decision.auto_applied))
         suggestion = _lookup_memory_suggestion(self._memory, parts.core, language_pair)
         if suggestion is not None and suggestion.applied:
             return self._finish(parts, suggestion.translated, LinguisticSource.APPLIED_MEMORY)
@@ -248,7 +264,8 @@ class LinguisticStages:
         self._enter("post_processing")
         application = self._apply_glossary(translated)
         return LinguisticOutcome(parts.restore(application.text), source, application.usage, suggestion, translated,
-                                 getattr(self._cache, "eligibility", None), cache_lookup_state, cache_miss_reason)
+                                 getattr(self._cache, "eligibility", None), cache_lookup_state, cache_miss_reason,
+                                 retrieval_suggestions=self._suggestions)
 
 
 class LegacyTextPipelineFacade(LinguisticStages):

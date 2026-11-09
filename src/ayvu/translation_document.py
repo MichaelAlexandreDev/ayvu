@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -46,11 +47,16 @@ from .cache_identity import (
     exact_entry_key,
     resolve_compatible_identities,
 )
+from .approved_memory import MemoryError, MemoryQuery, MemoryScope, ScopeKind, RetrievalMode, ValueKind, PipelineStage
+from .memory_retrieval import (
+    MemoryMatch, MemoryRetrieval, RetrievalDecision, RetrievalPolicy, RetrievalSource,
+    plan_memory_pin, structural_compatibility, snippet,
+)
 from .content import ContentDocument, TranslationUnit
 from .domain import LanguagePair
 from .job import JobState, TranslationJob
 from .job_events import (
-    CancellationAcknowledgement, JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobProgress,
+    CancellationAcknowledgement, JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobProgress, JobWarning,
 )
 from .job_execution import CancellationSource, JobEventSink
 from .provenance import (
@@ -115,6 +121,7 @@ class UnitSource(StrEnum):
     BLANK = "blank"
     EXACT_CACHE = "exact_cache"
     APPLIED_MEMORY = "applied_memory"
+    APPROVED_MEMORY = "approved_memory"
     PROVIDER = "provider"
     CACHE_ONLY_MISSING = "cache_only_missing"
     DRY_RUN = "dry_run"
@@ -125,13 +132,15 @@ _FROM_LINGUISTIC = {
     LinguisticSource.BLANK: UnitSource.BLANK,
     LinguisticSource.EXACT_CACHE: UnitSource.EXACT_CACHE,
     LinguisticSource.APPLIED_MEMORY: UnitSource.APPLIED_MEMORY,
+    LinguisticSource.APPROVED_MEMORY: UnitSource.APPROVED_MEMORY,
     LinguisticSource.PROVIDER: UnitSource.PROVIDER,
     LinguisticSource.CACHE_ONLY_MISSING: UnitSource.CACHE_ONLY_MISSING,
     LinguisticSource.DRY_RUN: UnitSource.DRY_RUN,
 }
 _PROVENANCE_OPERATIONS = {
     UnitSource.EXACT_CACHE: ("reuse_exact_cache", SourceKind.CACHE, ActorKind.SYSTEM),
-    UnitSource.APPLIED_MEMORY: ("apply_translation_memory", SourceKind.TRANSLATION_MEMORY, ActorKind.SYSTEM),
+    UnitSource.APPROVED_MEMORY: ("reuse_approved_memory", SourceKind.TRANSLATION_MEMORY, ActorKind.SYSTEM),
+    UnitSource.APPLIED_MEMORY: ("reuse_legacy_cache", SourceKind.CACHE, ActorKind.SYSTEM),
     UnitSource.PROVIDER: ("translate", SourceKind.PROVIDER, ActorKind.PROVIDER),
 }
 
@@ -148,6 +157,10 @@ class UnitTranslationResult:
     tokenized_text: str | None = None
     cache_lookup_state: CacheLookupState | None = None
     cache_miss_reason: CacheMissReason | None = None
+    retrieval_decision: RetrievalDecision | None = None
+    retrieval_suggestions: tuple[MemoryMatch, ...] = ()
+    value_kind: ValueKind | None = None
+    value_stage: PipelineStage | None = None
 
     def __repr__(self) -> str:
         return f"UnitTranslationResult(unit_id={self.unit_id!r}, source={self.source.value!r})"
@@ -186,13 +199,44 @@ class ExecutionContext:
         return f"ExecutionContext(job_id={self.job.job_id!r})"
 
 
-def _raw_payload(document: ContentDocument, plan: ResolvedTranslationPlan, raw: list[tuple[str, UnitSource, str | None]]) -> bytes:
+def _decision_metadata(decision: RetrievalDecision, source: UnitSource) -> dict:
+    key = decision.cache_identity
+    scope = decision.scope
+    return {
+        "source": decision.source.value, "auto_applied": decision.auto_applied,
+        "reason": decision.reason, "score": decision.score,
+        "entry_id": decision.entry_id, "revision_id": decision.revision_id,
+        "provenance_id": decision.provenance_id, "revision_number": decision.revision_number,
+        "cache_identity": None if key is None else {
+            "scope_kind": key.scope.scope.kind.value, "scope_id": key.scope.scope.scope_id,
+            "value_kind": key.value_kind.value, "semantic_fingerprint": key.semantic_fingerprint,
+            "source_content_digest": key.source_content_digest,
+        },
+        "lifecycle": decision.lifecycle.value, "reviewed": decision.reviewed, "dataset_eligible": False,
+        "value_stage": "linguistic_final" if source is UnitSource.APPROVED_MEMORY else "pre_glossary",
+        "output_kind": "linguistic_final" if source is UnitSource.APPROVED_MEMORY else "glossary_derived",
+        "output_stage": "linguistic_final" if source is UnitSource.APPROVED_MEMORY else "terminology_applied",
+        "approval_inherited_after_transformation": False,
+        "scope": (None if scope is None else [scope.kind.value, scope.owner_id] if isinstance(scope, MemoryScope)
+                  else [scope.scope.kind.value, scope.scope.scope_id]),
+    }
+
+
+def _raw_payload(document: ContentDocument, plan: ResolvedTranslationPlan,
+                 raw: list[tuple[str, UnitSource, str | None]], results=()) -> bytes:
+    decisions = {result.unit_id: result.retrieval_decision for result in results}
+    def entry(unit_id, source, text):
+        value = {"raw": text, "source": source.value, "unit_id": unit_id}
+        decision = decisions.get(unit_id)
+        if decision is not None:
+            value["decision"] = _decision_metadata(decision, source)
+        return value
     return json.dumps({
         "document_id": document.document_id,
         "raw_fingerprint": plan.raw_fingerprint,
         "revision_id": document.revision_id,
         "schema_version": RAW_RESULTS_VERSION,
-        "units": [{"raw": text, "source": source.value, "unit_id": unit_id} for unit_id, source, text in raw],
+        "units": [entry(unit_id, source, text) for unit_id, source, text in raw],
     }, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("ascii")
 
 
@@ -225,7 +269,8 @@ class DocumentTranslator:
     def __init__(self, plan: ResolvedTranslationPlan, provider: TranslationProvider,
                  apply_glossary: Callable[[str], GlossaryOutcome], artifacts: ArtifactService,
                  provenance: ProvenanceRepository, events: JobEventSink, *, exact_cache: ExactCachePort | None = None,
-                 memory: MemoryPort | None = None, clock: Callable[[], datetime],
+                 memory: MemoryPort | None = None, approved_memory: MemoryRetrieval | None = None,
+                 retrieval_policy: RetrievalPolicy = RetrievalPolicy(), clock: Callable[[], datetime],
                  new_id: Callable[[], str] = lambda: str(uuid4())) -> None:
         if type(plan) is not ResolvedTranslationPlan:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTERNAL, "invalid_plan"))
@@ -237,6 +282,8 @@ class DocumentTranslator:
         self._events = events
         self._exact_cache = exact_cache
         self._memory = memory
+        self._approved_memory = approved_memory
+        self._retrieval_policy = approved_memory.policy if approved_memory is not None else retrieval_policy
         self._clock = clock
         self._new_id = new_id
 
@@ -272,7 +319,9 @@ class DocumentTranslator:
         if cache_only is not None:
             # Cache-only is an exact cache operation; an artifact replay is another source.
             return self._execute(run, dry_run=dry_run, cache_only=cache_only)
-        replayed = self._replay(run) if replay_raw_results else None
+        # Retrieval eligibility/lifecycle must be checked again on every run.
+        replayed = self._replay(run) if (replay_raw_results and self._approved_memory is None
+                                       and not self._retrieval_policy.legacy_cache_enabled) else None
         if replayed is not None:
             return replayed
         return self._execute(run, dry_run=dry_run, cache_only=cache_only)
@@ -311,6 +360,9 @@ class DocumentTranslator:
                                   separators=(",", ":"))
         else:
             identity = json.dumps([document.document_id, document.revision_id, semantic_fingerprint], separators=(",", ":"))
+        if self._approved_memory is not None or self._retrieval_policy.legacy_cache_enabled:
+            # Never replay a final TM value as pre-glossary raw text, or bypass review withdrawal.
+            identity = json.dumps([identity, "retrieval_revalidated", execution_nonce], separators=(",", ":"))
         return ArtifactRequest(document.project_id, job.job_id, RAW_RESULTS_ROLE, RAW_RESULTS_STAGE, version,
                                f"sha256:{hashlib.sha256(identity.encode('ascii')).hexdigest()}", RAW_RESULTS_MEDIA_TYPE)
 
@@ -332,7 +384,7 @@ class DocumentTranslator:
         except (ArtifactIntegrityError, ArtifactPathError):
             self._artifacts.retire_if_corrupt(artifact.artifact_id)
             return None
-        raw = self._decode_raw(payload, run.document)
+        raw = self._decode_raw(payload, run.document, run.cache_scope)
         results = []
         for index, unit in enumerate(run.document.units):
             run.checkpoint("pipeline_before_unit")
@@ -341,7 +393,7 @@ class DocumentTranslator:
         self._record_replay(run, artifact)
         return run.result(tuple(results), artifact.artifact_id)
 
-    def _decode_raw(self, payload: bytes, document: ContentDocument) -> list[tuple[UnitSource, str | None]]:
+    def _decode_raw(self, payload: bytes, document: ContentDocument, scope: AuthorizedCacheScope):
         invalid = TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "invalid_raw_results"))
         try:
             data = json.loads(payload)
@@ -352,7 +404,8 @@ class DocumentTranslator:
                 raise invalid
             decoded = []
             for unit, entry in zip(document.units, data["units"]):
-                if type(entry) is not dict or set(entry) != {"raw", "source", "unit_id"} or entry["unit_id"] != unit.unit_id:
+                if (type(entry) is not dict or set(entry) not in ({"raw", "source", "unit_id"}, {"raw", "source", "unit_id", "decision"})
+                        or entry["unit_id"] != unit.unit_id):
                     raise invalid
                 source, raw = UnitSource(entry["source"]), entry["raw"]
                 template, _ = _template(unit)
@@ -360,10 +413,24 @@ class DocumentTranslator:
                 if source is UnitSource.BLANK:
                     if raw is not None or core:
                         raise invalid
-                elif (source not in _PROVENANCE_OPERATIONS or not isinstance(raw, str)
+                elif (source not in (UnitSource.EXACT_CACHE, UnitSource.PROVIDER) or not isinstance(raw, str)
                         or not protected_content_is_intact(core, raw)):
                     raise invalid
-                decoded.append((source, raw))
+                decision = None
+                if "decision" in entry:
+                    if source not in (UnitSource.EXACT_CACHE, UnitSource.PROVIDER):
+                        raise invalid
+                    cached = source is UnitSource.EXACT_CACHE
+                    fingerprint = self._plan.semantic_fingerprint
+                    if cached and fingerprint is None:
+                        raise invalid
+                    decision = RetrievalDecision(RetrievalSource.EXACT_CACHE if cached else RetrievalSource.PROVIDER,
+                        True, "eligible_exact_cache" if cached else "no_eligible_reuse", scope=scope if cached else None,
+                        cache_identity=exact_entry_key(scope, TRANSLATION_STAGE_AGGREGATE, fingerprint, unit.source_text)
+                                       if cached else None)
+                    if entry["decision"] != _decision_metadata(decision, source):
+                        raise invalid
+                decoded.append((source, raw, decision))
             return decoded
         except (ValueError, TypeError, RecursionError) as error:
             if isinstance(error, TranslationExecutionError):
@@ -384,7 +451,7 @@ class DocumentTranslator:
             run.progress(index + 1)
         if not complete:
             return run.result(tuple(results), None)  # Nothing partial is ever published.
-        artifact = run.publish(raw)
+        artifact = run.publish(raw, tuple(results))
         self._record_production(run, artifact, raw)
         return run.result(tuple(results), artifact.artifact_id)
 
@@ -407,7 +474,7 @@ class DocumentTranslator:
         for source, (operation, source_kind, actor) in _PROVENANCE_OPERATIONS.items():
             if not any(item[1] is source for item in raw):
                 continue
-            producer = _UNKNOWN_PRODUCER if source is UnitSource.APPLIED_MEMORY else self._plan.producer
+            producer = _UNKNOWN_PRODUCER if source in (UnitSource.APPLIED_MEMORY, UnitSource.APPROVED_MEMORY) else self._plan.producer
             parents.append(self._provenance.append(ProvenanceRequest(
                 document.project_id, job.job_id, operation, actor, source_kind, producer, subject=subject,
                 configuration_refs=self._references(),
@@ -559,8 +626,10 @@ class _PlanBoundCache:
 
 
 class _PlanBoundMemory:
-    def __init__(self, memory: MemoryPort, plan: ResolvedTranslationPlan, scope: AuthorizedCacheScope) -> None:
+    def __init__(self, memory: MemoryPort, plan: ResolvedTranslationPlan, scope: AuthorizedCacheScope, limit=20) -> None:
         self._memory = memory
+        self._limit = limit
+        self.last = None
         self._plan = plan
         self._scope = scope
 
@@ -569,7 +638,7 @@ class _PlanBoundMemory:
         if fingerprint is None:
             return None
         query = CompatibleMemoryQuery(
-            self._scope, TRANSLATION_STAGE_AGGREGATE, fingerprint, text, MAX_CACHE_ONLY_CANDIDATES,
+            self._scope, TRANSLATION_STAGE_AGGREGATE, fingerprint, text, self._limit,
         )
         try:
             candidate = self._memory.lookup(query)
@@ -579,6 +648,7 @@ class _PlanBoundMemory:
             raise CacheIdentityError("memory_repository_failed") from None
         if candidate is None or not candidate_matches_query(candidate, query):
             return None
+        self.last = candidate
         return TranslationMemoryMatch(candidate.original, candidate.translated, candidate.score, candidate.applied)
 
 
@@ -627,12 +697,15 @@ class _DocumentRun:
         translator = self.translator
         plan = translator._plan
         template, originals = _template(unit)
+        legacy_memory = (None if (translator._memory is None or not translator._retrieval_policy.legacy_cache_enabled)
+            else _PlanBoundMemory(translator._memory, plan, self.cache_scope, translator._retrieval_policy.limits.candidates))
         stages = LinguisticStages(
             _ContractProvider(translator, self, unit),
             _PlanBoundCache(translator._exact_cache, plan, self.cache_scope, self.cache_only, self.resolved_pin,
                             unit.source_text),
             translator._apply_glossary,
-            memory=None if translator._memory is None else _PlanBoundMemory(translator._memory, plan, self.cache_scope),
+            memory=legacy_memory,
+            approved=None if translator._approved_memory is None else lambda text, pair: self._approved(unit, pair),
             on_stage=self._stage_entered)
         try:
             outcome = stages.run(template, LanguagePair(source=plan.route.source, target=plan.route.target),
@@ -644,15 +717,80 @@ class _DocumentRun:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "protected_content_not_preserved")) from None
         except CacheIdentityError as error:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, error.code)) from None
+        except MemoryError:
+            raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "memory_retrieval_failed")) from None
         source = _FROM_LINGUISTIC[outcome.source]
+        decision = outcome.retrieval_decision
+        if source in (UnitSource.EXACT_CACHE, UnitSource.APPLIED_MEMORY, UnitSource.PROVIDER):
+            origin = {UnitSource.EXACT_CACHE: RetrievalSource.EXACT_CACHE,
+                      UnitSource.APPLIED_MEMORY: RetrievalSource.LEGACY_CACHE,
+                      UnitSource.PROVIDER: RetrievalSource.PROVIDER}[source]
+            reason = ("eligible_exact_cache" if source is UnitSource.EXACT_CACHE else
+                      "explicit_legacy_compatibility" if source is UnitSource.APPLIED_MEMORY else
+                      "no_eligible_reuse")
+            decision = RetrievalDecision(origin, True, reason,
+                score=None if legacy_memory is None or legacy_memory.last is None or source is not UnitSource.APPLIED_MEMORY else legacy_memory.last.score,
+                scope=self.cache_scope if source is not UnitSource.PROVIDER else None,
+                cache_identity=None if source is UnitSource.PROVIDER or plan.semantic_fingerprint is None else
+                    exact_entry_key(self.cache_scope, TRANSLATION_STAGE_AGGREGATE, plan.semantic_fingerprint,
+                        unit.source_text if source is UnitSource.EXACT_CACHE else legacy_memory.last.original))
+        suggestions = outcome.retrieval_suggestions
+        if outcome.memory_suggestion is not None:
+            match = outcome.memory_suggestion
+            legacy_decision = RetrievalDecision(RetrievalSource.LEGACY_CACHE, False, "legacy_review_required", match.score,
+                self.cache_scope, cache_identity=None if plan.semantic_fingerprint is None else
+                    exact_entry_key(self.cache_scope, TRANSLATION_STAGE_AGGREGATE, plan.semantic_fingerprint, match.original))
+            suggestions += (MemoryMatch(match.original, match.translated, snippet(match.original),
+                                        snippet(match.translated), legacy_decision),)
+        if suggestions:
+            self.emit(JobWarning("memory_review_suggestions"))
         # An untranslated unit expands back to its exact source text.
-        return UnitTranslationResult(unit.unit_id, source, _expand(outcome.text, originals), outcome.memory_suggestion is not None,
+        return UnitTranslationResult(unit.unit_id, source, _expand(outcome.text, originals), bool(suggestions),
                                      outcome.glossary_usage, outcome.text, outcome.cache_lookup_state,
-                                     outcome.cache_miss_reason), outcome
+                                     outcome.cache_miss_reason, decision, suggestions,
+                                     ValueKind.LINGUISTIC_FINAL if source is UnitSource.APPROVED_MEMORY else
+                                         ValueKind.GLOSSARY_DERIVED if decision is not None else None,
+                                     PipelineStage.LINGUISTIC_FINAL if source is UnitSource.APPROVED_MEMORY else
+                                         PipelineStage.TERMINOLOGY_APPLIED if decision is not None else None), outcome
 
-    def apply_raw(self, unit: TranslationUnit, entry: tuple[UnitSource, str | None]) -> UnitTranslationResult:
+    def _approved(self, unit: TranslationUnit, pair: LanguagePair) -> tuple[MemoryMatch, ...]:
+        memory = self.translator._approved_memory
+        if unit.content.protected_parts:
+            return ()
+        policy = self.translator._retrieval_policy
+        if max(len(unit.source_text.encode('utf-8')),
+               len(unicodedata.normalize('NFC', unit.source_text).encode('utf-8'))) > policy.limits.source_bytes:
+            return ()
+        options = dict(text=unit.source_text, languages=pair,
+            scopes=(MemoryScope(ScopeKind.PROJECT, self.document.project_id),),
+            pin=plan_memory_pin(self.translator._plan), limits=policy.limits)
+        def compatible(revision):
+            source = revision.value.source
+            if (self.translator._plan.semantic_fingerprint is None
+                    or (source.project_id, source.document_id, source.document_revision) !=
+                       (self.document.project_id, self.document.document_id, self.document.revision_id)):
+                return None  # Missing structural evidence: an unapproved review suggestion only.
+            return structural_compatibility(self.document, unit, revision)
+        exact = memory.query(MemoryQuery(**options), compatible=compatible)
+        if any(match.decision.auto_applied for match in exact):
+            return exact
+        fuzzy = memory.query(MemoryQuery(**options, mode=RetrievalMode.FUZZY), compatible=compatible)
+        # Exact suggestions remain visible; they never shadow a compatible fuzzy hit.
+        ids = {match.decision.revision_id for match in exact}
+        merged = list(exact) + [match for match in fuzzy if match.decision.revision_id not in ids]
+        merged.sort(key=lambda match: (not match.decision.auto_applied, -match.decision.score,
+                                       match.decision.entry_id, match.decision.revision_id))
+        bounded, used = [], 0
+        for match in merged:
+            size = len(match.source.encode('utf-8')) + len(match.target.encode('utf-8'))
+            if len(bounded) < policy.limits.candidates and used + size <= policy.limits.aggregate_bytes:
+                bounded.append(match)
+                used += size
+        return tuple(bounded)
+
+    def apply_raw(self, unit: TranslationUnit, entry) -> UnitTranslationResult:
         """Only post-processing runs again: no cache lookup and no provider."""
-        source, raw = entry
+        source, raw, decision = entry
         if source is UnitSource.BLANK:
             return UnitTranslationResult(unit.unit_id, UnitSource.BLANK, unit.source_text, tokenized_text=_template(unit)[0])
         template, originals = _template(unit)
@@ -660,15 +798,16 @@ class _DocumentRun:
         application = self.translator._apply_glossary(raw)
         tokenized = parts.restore(application.text)
         return UnitTranslationResult(unit.unit_id, UnitSource.ARTIFACT_REPLAY, _expand(tokenized, originals),
-                                     False, application.usage, tokenized)
+                                     False, application.usage, tokenized, retrieval_decision=decision,
+                                     value_kind=ValueKind.GLOSSARY_DERIVED, value_stage=PipelineStage.TERMINOLOGY_APPLIED)
 
-    def publish(self, raw: list[tuple[str, UnitSource, str | None]]) -> Artifact:
+    def publish(self, raw: list[tuple[str, UnitSource, str | None]], results=()) -> Artifact:
         translator = self.translator
         source = self.context.cancellation
         try:
             return translator._artifacts.publish(
                 translator._artifact_request(self.document, self.context.job, self.execution_nonce),
-                (_raw_payload(self.document, translator._plan, raw),),
+                (_raw_payload(self.document, translator._plan, raw, results),),
                 owner_token=self.context.owner_token, cancellation=None if source is None else source.token)
         except ArtifactCancelledError:
             self._stop(source.acknowledgement)

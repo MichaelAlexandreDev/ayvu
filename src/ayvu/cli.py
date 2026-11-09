@@ -948,17 +948,25 @@ def translate(
     translation_memory: bool = typer.Option(
         False,
         "--translation-memory/--no-translation-memory",
-        help="Reuse translations of similar text (fuzzy translation memory). Off by default.",
+        help="Enable translation memory: approved repository in rich/v2; legacy cache fuzzy reuse without a model label. Off by default.",
+    ),
+    tm_conservative_auto_apply: bool = typer.Option(
+        False, "--tm-conservative-auto-apply",
+        help="Rich/v2 only: allow approved fuzzy reuse at a threshold of at least 0.98, with exact structural evidence.",
+    ),
+    tm_legacy_cache_compatibility: bool = typer.Option(
+        False, "--tm-legacy-cache-compatibility",
+        help="Rich/v2 only: opt into machine/unreviewed cache compatibility; v1 rows without stage metadata are excluded.",
     ),
     tm_apply_threshold: float = typer.Option(
         0.95,
         "--tm-apply-threshold",
-        help="With --translation-memory, reuse a stored translation when similarity is at or above this (0-1).",
+        help="Similarity threshold (0-1). Rich/v2 fuzzy auto-apply also requires --tm-conservative-auto-apply and at least 0.98.",
     ),
     tm_suggest_threshold: float = typer.Option(
         0.80,
         "--tm-suggest-threshold",
-        help="With --translation-memory, record a review suggestion when similarity is in [suggest, apply).",
+        help="Minimum similarity for a review suggestion (0-1). Rich/v2 fuzzy matches are suggestions by default.",
     ),
 ) -> None:
     """Translate EPUB visible text while preserving EPUB structure."""
@@ -998,6 +1006,8 @@ def translate(
         enabled=translation_memory,
         apply_threshold=tm_apply_threshold,
         suggest_threshold=tm_suggest_threshold,
+        conservative_auto_apply=tm_conservative_auto_apply,
+        legacy_cache_compatibility=tm_legacy_cache_compatibility,
         mode=mode,
     )
     execution_controls = _resolve_execution_controls(
@@ -1636,13 +1646,21 @@ def _build_translation_memory_options(
     apply_threshold: float,
     suggest_threshold: float,
     mode: UserMode,
+    conservative_auto_apply: bool = False,
+    legacy_cache_compatibility: bool = False,
 ) -> TranslationMemoryOptions | None:
     if not enabled:
+        if conservative_auto_apply or legacy_cache_compatibility:
+            _print_expected_error("As opções de política de memória requerem --translation-memory.",
+                                  "Adicione --translation-memory.", mode)
+            raise typer.Exit(code=1)
         return None
 
     options = TranslationMemoryOptions(
         apply_threshold=apply_threshold,
         suggest_threshold=suggest_threshold,
+        conservative_auto_apply=conservative_auto_apply,
+        legacy_cache_compatibility=legacy_cache_compatibility,
     )
     try:
         options.validate()

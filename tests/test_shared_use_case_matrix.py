@@ -324,7 +324,7 @@ def normalized_cli_contract():
     return command_record(get_command(app))
 
 
-def test_frozen_post_predecessor_cli_contract_with_explicit_159_additions():
+def test_frozen_post_predecessor_cli_contract_with_explicit_159_and_162_additions():
     baseline = json.loads((ROOT / 'tests/fixtures/cli-post-predecessor.json').read_text())
     assert baseline['base_sha'] == '3edd2c2813c592418189670dbef1866c3026780e'
     current = normalized_cli_contract()
@@ -335,6 +335,28 @@ def test_frozen_post_predecessor_cli_contract_with_explicit_159_additions():
         assert added[0]['opts'] == ['--network-policy'] and added[0]['choices'] == ['none', 'loopback']
         assert added[0]['default'] is None and added[0]['required'] is False
         command['parameters'].remove(added[0])
+    # #162 explicitly changes these policy selectors and their help; the historical fixture stays frozen.
+    translate = current['commands']['translate']['parameters']
+    for name, option, help_text in (
+        ('tm_conservative_auto_apply', '--tm-conservative-auto-apply',
+         'Rich/v2 only: allow approved fuzzy reuse at a threshold of at least 0.98, with exact structural evidence.'),
+        ('tm_legacy_cache_compatibility', '--tm-legacy-cache-compatibility',
+         'Rich/v2 only: opt into machine/unreviewed cache compatibility; v1 rows without stage metadata are excluded.'),
+    ):
+        added = [parameter for parameter in translate if parameter['name'] == name]
+        assert added == [dict(name=name, kind='option', opts=[option], secondary_opts=[], required=False,
+            default=False, nargs=1, multiple=False, envvar=None, type='boolean', choices=None, is_flag=True, help=help_text)]
+        translate.remove(added[0])
+    changed_help = {
+        'translation_memory': 'Enable translation memory: approved repository in rich/v2; legacy cache fuzzy reuse without a model label. Off by default.',
+        'tm_apply_threshold': 'Similarity threshold (0-1). Rich/v2 fuzzy auto-apply also requires --tm-conservative-auto-apply and at least 0.98.',
+        'tm_suggest_threshold': 'Minimum similarity for a review suggestion (0-1). Rich/v2 fuzzy matches are suggestions by default.',
+    }
+    original_parameters = baseline['contract']['commands']['translate']['parameters']
+    for name, help_text in changed_help.items():
+        parameter = next(parameter for parameter in translate if parameter['name'] == name)
+        assert parameter['help'] == help_text
+        parameter['help'] = next(parameter['help'] for parameter in original_parameters if parameter['name'] == name)
     assert current == baseline['contract']
 
 

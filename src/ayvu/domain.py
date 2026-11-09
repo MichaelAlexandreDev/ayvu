@@ -194,6 +194,8 @@ class TranslationMemoryOptions:
     apply_threshold: float = 0.95
     suggest_threshold: float = 0.80
     max_candidates: int = 200
+    conservative_auto_apply: bool = False
+    legacy_cache_compatibility: bool = False
 
     def validate(self) -> None:
         if not 0.0 < self.suggest_threshold <= 1.0:

@@ -2,7 +2,7 @@
 
 Implementa [#161 / DESKTOP-130](https://github.com/DevStarrk1137/ayvu/issues/161).
 Os artefatos de #135, #138, #140 e #154 são utilizados sem alterar seus contratos
-ou migrações publicadas. Não há alteração de CLI, tradução, EPUB ou memória fuzzy.
+ou migrações publicadas. A integração de recuperação no pipeline e na CLI é descrita abaixo (#162).
 
 ## Contratos e armazenamento
 
@@ -40,9 +40,10 @@ O layout adicional é:
 
 O registro `MEMORY_MIGRATIONS` é independente de `PROJECT_MIGRATIONS` e do cache:
 versão 1 contém apenas infraestrutura; versão 2 cria `tm_revisions`, `tm_events`,
-`tm_approvals` e `tm_operations`. O runner de #135 controla criação, verificação,
+`tm_approvals` e `tm_operations`; a versão 3 acrescenta apenas índices de recuperação por
+escopo/idiomas/fonte e chave linguística, preservando os checksums publicados. O runner de #135 controla criação, verificação,
 permissões, backups, limites, lock e upgrades. O banco de projeto continua na
-versão 4. Nenhum startup existente abre esta memória automaticamente.
+versão 4. A tradução rich/v2 abre a memória somente com `--translation-memory` explícito.
 
 Não há leitura, cópia, promoção ou migração de `translations` ou `cache_entries_v2`.
 Limpeza, expiração e substituição do cache não alcançam este arquivo. Depreciação
@@ -167,6 +168,82 @@ são retornados por `current`. Erros tipados distinguem entrada ausente, conflit
 transição inválida, escopo negado, kind/stage incompatível, proveniência inválida,
 validação e falha de armazenamento; mensagens contêm apenas códigos fixos.
 
-Fuzzy retrieval, concordância e aplicação automática continuam reservados à #162.
-A interface existente `--translation-memory` continua ligada ao cache operacional.
-Este contrato não cria interface de revisão nem ponte automática entre stores.
+## Recuperação conservadora (#162 / DESKTOP-131)
+
+`MemoryQuery`, `RetrievalMode` e `RetrievalLimits` são contratos de domínio.
+`ApprovedMemoryRepository.retrieve` é a única fronteira de consultas do pipeline;
+`MemoryRetrieval` decide elegibilidade, similaridade, ranking e aplicação. O
+`DocumentTranslator` é o pipeline de segmentos de produção disponível nesta main
+(o nome histórico `SegmentTranslationPipeline` da issue não é uma classe existente).
+`RichTranslationRuntime` compõe os adaptadores reais; não há leitor SQL no pipeline
+nem consumidor Desktop alegado.
+
+A ordem fixa é cache exato v2 com identidade completa de #153/#154, memória aprovada
+exata, fuzzy aprovado, compatibilidade de cache opt-in, provedor. Cache-only permanece
+exclusivamente exato. `RetrievalPolicy` é compartilhada entre a aplicação e a CLI;
+os seletores da interface não calculam scores ou confiança.
+
+Só ponteiros atuais de `tm_approvals`, com evento mais recente `approved`, idiomas,
+escopo autorizado, políticas de busca/normalização fixadas e
+`linguistic_final`/`linguistic_final` entram na recuperação aprovada. Exato significa
+igualdade NFC da fonte canônica inteira, incluindo espaços, e não igualdade de
+`unit_id`, digest de conteúdo ou chave casefold. Fuzzy usa a razão Indel Unicode
+determinística existente, sobre NFC/casefold/whitespace versionados. Concordância
+busca substring dessa chave no conjunto limitado e nunca aplica automaticamente.
+
+O adaptador usa índices por escopo/idiomas e fonte/chave de busca. A busca aproximada
+examina **no máximo 64 linhas atuais por faixa e pin**, na faixa do primeiro ponto
+Unicode da chave, ordenadas por chave/sequence; ordena esse conjunto por distância
+de comprimento, número da revisão decrescente e ID estável antes de materializar
+valores. Isso limita o recall: não é busca exaustiva de substring ou fuzzy em toda
+a memória. A aplicação ordena hits automáticos primeiro, escopos na precedência
+explícita do chamador, score decrescente, revisão decrescente e IDs estáveis. Pins
+compatíveis são consultados antes dos incompatíveis. O runtime autoriza apenas o
+escopo do projeto atual; a API aceita outros escopos explicitamente autorizados.
+
+Cada consulta aceita 20 candidatos/256 KiB por padrão, no máximo 64/1 MiB, até
+64 KiB UTF-8 de fonte e alvo individualmente. O chamador só reduz esses tetos.
+`N+1` inválido falha na construção da consulta, antes do port. O SQL verifica
+comprimentos armazenados antes de `_load`; a aplicação também recusa ports que
+excedam contagem ou bytes. Snippets respeitam até 512 bytes UTF-8 por lado,
+sem cortar caracteres, e nunca substituem o valor integral na aplicação.
+
+A política padrão permite exato aprovado e mantém fuzzy como sugestão. A política
+conservadora explícita permite fuzzy com limiar pelo menos 0.98 e estrutura exata.
+Como #161 não armazena assinatura estrutural portátil, a aplicação exige conferir
+a unidade de origem no documento carregado, inclusive texto/digest/revisão, kind,
+constraints, extensions, locale, contexto e termos protegidos. Unidades de outro
+documento e markup ficam sem aplicação automática. Não se infere estrutura a
+partir de uma fonte visível que pode ter perdido tags.
+
+`plan_memory_pin(plan)` fixa pipeline (revisão e estágios), perfil (identidade
+semântica completa) e glossário (referência imutável das regras efetivas ordenadas,
+incluindo ausência explícita). Autores de revisões finais devem usar essas mesmas
+referências do plano real. Valor final compatível pula o glossário; qualquer pin
+divergente só produz sugestão `reviewed=False`, mantendo o estado original `approved`
+como informação de origem. Nada deriva ou aprova uma revisão automaticamente.
+
+`LegacyCacheCompatibility` é uma fonte separada, desligada por padrão. A opção
+`--tm-legacy-cache-compatibility` exige `--translation-memory` e runtime rico.
+A fonte usa somente linhas v2 com scope/kind/fingerprint e integridade completos;
+linhas v1 sem estágio são excluídas, mesmo com opt-in. O limiar legado de 0.95 pode
+ser utilizado nessa política explícita. Resultado de cache permanece
+`machine_candidate`/`reviewed=False`; score ou reaplicação não mudam isso. O adaptador
+não escreve no repositório governado. Sem rótulo de modelo, a CLI antiga continua
+com suas semânticas históricas; os novos seletores são recusados nesse runtime.
+
+`RetrievalDecision` distingue cache exato, memória aprovada, cache legado e provedor,
+com chave completa de cache ou entrada/revisão, score, escopo, estado, confiança,
+motivo e referência de proveniência sanitizada. `dataset_eligible` é sempre falso.
+As decisões são entregues por unidade e persistidas no artefato de resultados,
+com estágio explícito. Valores raw de cache/provedor/legado recebem o glossário
+exatamente uma vez. Decisões desses valores continuam sem revisão após a derivação.
+Artefatos que incluam recuperação são auditáveis, mas não são reutilizados como
+raw: cada operação revalida aprovação/pins, inclusive após depreciação. O cache
+exato operacional continua tendo precedência, independentemente do estado da TM.
+
+Sugestões geram `memory_review_suggestions`, encaminhado ao CLI e contado no
+relatório existente. Logs/eventos rotineiros contêm códigos, não valores, caminhos
+ou segredos. A API autorizada devolve os valores completos e snippets para uma
+futura visão de concordância. Esta issue não acrescenta editor de revisão, dataset,
+consentimento ou migração de cache para memória aprovada.
