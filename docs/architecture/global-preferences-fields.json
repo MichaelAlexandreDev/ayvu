@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "path": "version",
+      "owner": "schema",
+      "validation": "integer exactly 1",
+      "sensitivity": "metadata",
+      "default": 1,
+      "compatibility": "v1 meaning and missing-field defaults preserved; unknown fields block updates",
+      "consumer": "CLI and shared preferences use cases"
+    },
+    {
+      "path": "default_target_language",
+      "owner": "global_preference",
+      "validation": "language identifier, 1-35 ASCII characters; hyphen/underscore allowed",
+      "sensitivity": "metadata",
+      "default": "pt",
+      "compatibility": "v1 meaning and missing-field defaults preserved; unknown fields block updates",
+      "consumer": "CLI and shared preferences use cases"
+    },
+    {
+      "path": "books_dir",
+      "owner": "global_preference",
+      "validation": "nonempty local path string, <=4096 characters",
+      "sensitivity": "local_path",
+      "default": "~/Documentos/Livros",
+      "compatibility": "v1 meaning and missing-field defaults preserved; unknown fields block updates",
+      "consumer": "CLI and shared preferences use cases"
+    },
+    {
+      "path": "folders",
+      "owner": "global_preference",
+      "validation": "closed folder object; partial defaults",
+      "sensitivity": "metadata",
+      "default": {
+        "original": "Original",
+        "translated": "Traduzidos",
+        "preview": "Preview",
+        "reports": "Relatorios",
+        "processing": "Processando"
+      },
+      "compatibility": "v1 meaning and missing-field defaults preserved; unknown fields block updates",
+      "consumer": "CLI and shared preferences use cases"
+    },
+    {
+      "path": "reader_app",
+      "owner": "global_preference",
+      "validation": "null or command string <=1024 characters; credential syntax forbidden",
+      "sensitivity": "command",
+      "default": null,
+      "compatibility": "v1 meaning and missing-field defaults preserved; unknown fields block updates",
+      "consumer": "CLI and shared preferences use cases"
+    },
+    {
+      "path": "profiles",
+      "owner": "named_profile",
+      "validation": "legacy named-profile container, <=64 entries",
+      "sensitivity": "private_metadata",
+      "default": {},
+      "compatibility": "v1 meaning and missing-field defaults preserved; unknown fields block updates",
+      "consumer": "legacy named-profile selection"
+    },
+    {
+      "path": "folders.original",
+      "owner": "global_preference",
+      "validation": "nonempty folder name <=128 characters; no slash, backslash, colon, dot or traversal",
+      "sensitivity": "local_path",
+      "default": "Original",
+      "compatibility": "v1 folder role preserved",
+      "consumer": "library and translation output/processing composition"
+    },
+    {
+      "path": "folders.translated",
+      "owner": "global_preference",
+      "validation": "nonempty folder name <=128 characters; no slash, backslash, colon, dot or traversal",
+      "sensitivity": "local_path",
+      "default": "Traduzidos",
+      "compatibility": "v1 folder role preserved",
+      "consumer": "library and translation output/processing composition"
+    },
+    {
+      "path": "folders.preview",
+      "owner": "global_preference",
+      "validation": "nonempty folder name <=128 characters; no slash, backslash, colon, dot or traversal",
+      "sensitivity": "local_path",
+      "default": "Preview",
+      "compatibility": "v1 folder role preserved",
+      "consumer": "library and translation output/processing composition"
+    },
+    {
+      "path": "folders.reports",
+      "owner": "global_preference",
+      "validation": "nonempty folder name <=128 characters; no slash, backslash, colon, dot or traversal",
+      "sensitivity": "local_path",
+      "default": "Relatorios",
+      "compatibility": "v1 folder role preserved",
+      "consumer": "library and translation output/processing composition"
+    },
+    {
+      "path": "folders.processing",
+      "owner": "global_preference",
+      "validation": "nonempty folder name <=128 characters; no slash, backslash, colon, dot or traversal",
+      "sensitivity": "local_path",
+      "default": "Processando",
+      "compatibility": "v1 folder role preserved",
+      "consumer": "library and translation output/processing composition"
+    },
+    {
+      "path": "profiles.*",
+      "owner": "named_profile",
+      "validation": "unique trimmed nonempty name <=128 characters",
+      "sensitivity": "private_metadata",
+      "default": null,
+      "compatibility": "legacy named profile; no versioned project snapshot migration",
+      "consumer": "CLI profile selection"
+    },
+    {
+      "path": "profiles.*.target_language",
+      "owner": "named_profile",
+      "validation": "null or language identifier <=35 characters",
+      "sensitivity": "private_metadata",
+      "default": null,
+      "compatibility": "exact legacy optional field meaning; no provider/credential additions",
+      "consumer": "CLI translation profile resolution"
+    },
+    {
+      "path": "profiles.*.glossary",
+      "owner": "named_profile",
+      "validation": "null or path <=4096 characters; relative path remains relative",
+      "sensitivity": "local_path",
+      "default": null,
+      "compatibility": "exact legacy optional field meaning; no provider/credential additions",
+      "consumer": "CLI translation profile resolution"
+    },
+    {
+      "path": "profiles.*.style",
+      "owner": "named_profile",
+      "validation": "null or neutral/technical/literary/academic; remains inert",
+      "sensitivity": "private_metadata",
+      "default": null,
+      "compatibility": "exact legacy optional field meaning; no provider/credential additions",
+      "consumer": "CLI translation profile resolution"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "project_id",
+      "owner": "project"
+    },
+    {
+      "path": "profile_snapshot",
+      "owner": "project"
+    },
+    {
+      "path": "window_geometry",
+      "owner": "presentation"
+    },
+    {
+      "path": "token",
+      "owner": "credentials"
+    },
+    {
+      "path": "provider",
+      "owner": "provider"
+    },
+    {
+      "path": "network_policy",
+      "owner": "policy"
+    }
+  ]
+}

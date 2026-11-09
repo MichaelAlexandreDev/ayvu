@@ -1,31 +1,36 @@
 # Product security, privacy, and data flows
 
-Status: `Proposed`
+Status: `Accepted`
 
 Date: 2026-09-29
+
+Accepted: 2026-11-05 by the project maintainer, through explicit approval in the development session
 
 Related issue: [#129 — DESKTOP-008](https://github.com/MichaelAlexandreDev/ayvu/issues/129)
 
 Evidence baseline: `main` at `1a28b84` (PR #186). This is a source-based threat
 assessment, not a penetration test, security certification, or acceptance of
 residual risk. Controls described as proposed are not implemented by this
-document. Closing the documentation issue does not accept this model or any
-other proposed architecture decision.
+document. Accepting this model accepts its threat assessment and the ownership
+of the gaps it names; it does not accept any other proposed architecture
+decision.
 
 ## Scope and decision boundary
 
 The delivered product is the local Python CLI described in the
 [product scope](../product-scope.md). It reads EPUBs, translates through an HTTP
 service, maintains SQLite cache and JSON settings/checkpoints, exports Markdown
-and CSV, applies reviewed text, and can launch an external reader. The
+and CSV, inspects legacy review files, validates v2 review packages, and can
+launch an external reader. The CLI no longer applies positional v1 review text. The
 [accepted module boundaries](modular-monolith-boundaries.md) supply ownership;
 the [shared use-case matrix](shared-use-case-matrix.md) describes future seams.
 
 Desktop, local API, inbound/outbound MCP, plugins, AI assistance, managed models,
 durable projects/jobs, approved translation memory, and contributed training
-corpus are proposed boundaries. A configurable HTTP URL already permits remote
-translation today; destination classification and purpose-specific authorization
-are future controls. The current CLI has no account or multi-tenant boundary.
+corpus are proposed boundaries. #159 now enforces the request-scoped
+[HTTP none/loopback boundary](network-policy.md); remote URLs and HTTPS are denied.
+Broader purpose-specific authorization remains future work. The current CLI has
+no account or multi-tenant boundary.
 
 The original must remain immutable, derived outputs must preserve the supported
 EPUB structure, and only selected reader-visible text should reach translation.
@@ -110,22 +115,23 @@ flowchart LR
 | ID / owner | Entry and flow, grounded in current code | Existing check and remaining boundary |
 | --- | --- | --- |
 | B01 / Interfaces + Policies | CLI arguments/prompts and [config.py](../../src/ayvu/config.py) select paths, folders, profiles and reader command | Typer/path checks, folder-name validation and overwrite prompts exist; they are not a reusable scoped authorization decision |
-| B02 / Formats + Content | [epub_io.py](../../src/ayvu/epub_io.py): `inspect_epub`, `translate_epub`, `extract_markdown`, ZIP/container/OPF/spine lookup; [html_translate.py](../../src/ayvu/html_translate.py): `translate_html` | ZIP members are read and repackaged, not extracted wholesale to host paths; no intake budget or complete canonical-name/duplicate policy precedes parser reads |
-| B03 / Translation + Providers + Policies | [preflight.py](../../src/ayvu/preflight.py) resolves routes; [translator.py](../../src/ayvu/translator.py) performs GET languages and POST text/languages; routed translation may make two hops | Timeout, retry/backoff, rate limiting and response-shape checks exist; destination/proxy/redirect authorization and response-size budgets do not |
+| B02 / Formats + Content | [`content_use_cases.py`](../../src/ayvu/content_use_cases.py) and [`epub_format.py`](../../src/ayvu/epub_format.py) handle the active `inspect`/`extract` path; legacy `epub_io.py` still contains `inspect_epub`, `extract_markdown` and `translate_epub`; [`epub_archive.py`](../../src/ayvu/epub_archive.py) validates ZIP/container/OPF/spine lookup | The active adapter path applies archive size/member/name checks before parser reads and visible-content output uses full-plan validation with per-file staging. The legacy `epub_io` facade is outside the migrated CLI path and retains its own behavior |
+| B03 / Translation + Providers + Policies | [preflight.py](../../src/ayvu/preflight.py) resolves routes; [translator.py](../../src/ayvu/translator.py) performs GET languages and POST text/languages; routed translation may make two hops | Timeout, retry/backoff, rate limiting and response-shape checks exist. #159 enforces HTTP loopback or no transport, validated socket addresses, disabled ambient proxies/credentials and redirects; response-size budgets remain separate |
 | B04 / Knowledge | [cache.py](../../src/ayvu/cache.py) stores and imports/exports text; [translation_memory.py](../../src/ayvu/translation_memory.py) retrieves fuzzy candidates; [glossary.py](../../src/ayvu/glossary.py) loads/edits terms | SQL values are parameterized and import hashes validated; JSON import materializes the full payload without size or entry limits; hashes do not authenticate translations; cache has no provider identity or approved-TM lifecycle |
-| B05 / Review + Formats | [review_export.py](../../src/ayvu/review_export.py): `write_review_csv`; [review_import.py](../../src/ayvu/review_import.py): `read_review_csv`; `apply_reviewed_epub` reconstructs a derived EPUB | Required columns, duplicate IDs and source-text consistency have checks; row materialization is not bounded by an Ayvu budget; CSV spreadsheet formulas and full source-bound identity are not controlled |
+| B05 / Review + Formats | Bounded [review_import.py](../../src/ayvu/review_import.py) v1 inspection; [review_exchange.py](../../src/ayvu/review_exchange.py) v2 codec/mapper; [review_application.py](../../src/ayvu/review_application.py) and [review_composition.py](../../src/ayvu/review_composition.py) use cases/adapters | V2 has byte/row/column/cell/content/metadata limits, reversible formula escaping, opaque revision-bound identities and protected-part validation. CLI export/apply use v2 and D106 publication; v1 apply stops with `legacy_reexport_required`. Review packages contain sensitive text and remain local files |
 | B06 / Jobs + Infrastructure | [resume.py](../../src/ayvu/resume.py): `ResumeStateStore.save/load`; [cli.py](../../src/ayvu/cli.py): `_resume_translation` restores paths, URL and execution parameters | Version/field validation exists; write is direct and resume uses `overwrite=True`; no durable job identity, lease or source fingerprint authenticates that state |
-| B07 / current writers: Formats + Infrastructure + Policies; future artifact state: Artifacts + Provenance (lineage) | `epub_io._copy_epub_with_replacements`, Markdown extraction and CLI review/report/missing-text writers publish files | Normal output conflicts are checked; ZIP output opens in `w` mode; canonical aliases, race-safe handles and validate-before-publication staging are not enforced |
-| B08 / Library + Infrastructure | [library.py](../../src/ayvu/library.py): `scan_library`, `open_library_epub`, `_reader_command` | Selected path must be a file; launch uses argument vector, not a shell string; configured executable, inherited environment and reader behavior remain outside containment |
-| B09 / Interfaces + Policies | CLI terminal/progress/errors and `_render_markdown_report` consume names, warnings and provider/parser error text | Common mode hides some expected-error detail; there is no universal sanitization envelope; provider error bodies can reach reports |
+| B07 / current writers: Formats + Infrastructure + Policies; future artifact state: Artifacts + Provenance (lineage) | `epub_io._copy_epub_with_replacements`, the active [`markdown_writer.py`](../../src/ayvu/markdown_writer.py), and CLI review/report/missing-text writers publish files | Visible-content Markdown validates canonical targets and stages each file before atomic publication; other file-writing paths retain their separately documented conflict and staging guarantees |
+| B08 / Library + Infrastructure | [library_service.py](../../src/ayvu/library_service.py) and [library_adapters.py](../../src/ayvu/library_adapters.py) | Scan-local references, canonical containment and file identity are checked before an argv-based launch; the path may still change after that check. Configured executable, inherited environment and reader behavior remain outside containment |
+| B09 / Interfaces + Policies | CLI terminal/progress/errors and `_render_markdown_report` consume names, warnings and operation failures | `inspect`/`extract` now show bounded format reason codes in developer mode and omit parser exception text. Other legacy provider/parser/report paths retain their existing presentation and need separate review |
 | B10 / Maintainer + Infrastructure | [pyproject.toml](../../pyproject.toml), [uv.lock](../../uv.lock) and [CI](../../.github/workflows/tests.yml) install/build dependencies | Lock checks, pinned Actions and package smoke are delivered; these do not certify package safety or implement a model/plugin/update installer |
 
 HTML skips scripts/styles/code and other excluded nodes for translation; this
 is not active-content removal. Existing book markup/assets are preserved and a
-reader can interpret them. `html_translate` escapes translated/reviewed text
-before fragment reconstruction, but robust placeholder topology validation is
-future work. Treat malicious returned text as an integrity input, not as proof
-of code execution in Ayvu.
+reader can interpret them. The v2 review mapper treats edited cells as plain
+text and restores only issued protected parts after placeholder validation. The
+legacy v1 CLI exporter remains separate and is not formula-neutralized. Treat
+malicious imported or returned text as an integrity input, not as proof of code
+execution in Ayvu.
 
 ## Storage, recipients, retention, and deletion
 
@@ -142,9 +148,9 @@ upload, telemetry collector or model updater exists in the delivered code.
 | Glossary JSON | C1/C2; selected glossary/profile path or guided glossary directory | Terms/replacements retained until edited/removed; no corpus consent follows from glossary use |
 | Config JSON | C2/C4; `ConfigStore` chooses XDG config or home fallback | Folders, reader command and named profiles persist until changed/removed; contains paths, not implemented secret-store references |
 | Resume JSON | C2/C4 and possibly C3 in URL; configured processing folder | Absolute source/output/cache/glossary paths, endpoint and counters persist, including completed state; no lifecycle purge or cryptographic authority binding |
-| Review CSV | C1/C2; explicit review output | Original/translated text, file/document names and paths can be read by spreadsheet software or shared by operator; no automatic deletion or recipient revocation |
+| Review CSV | C1/C2; explicit review output | Legacy v1 includes original/translated text and internal document paths; v2 contains text but uses opaque document/locator identities. Both are local sensitive copies that may be opened/shared by the operator; no automatic deletion or recipient revocation |
 | Markdown, missing-text file, terminal | C1/C2, potentially reflected C3; configured/selected output and terminal | Reports include paths/errors; missing exports include untranslated content; scrollback, shell redirection, backups and copied files have independent retention |
-| HTTP service and intermediaries | C1 for submitted chunks, C2 for language/endpoint/request metadata, possible ambient C3 | Provider receives text on cache misses/probes; proxies/redirects may add recipients; server logging, training, backup and deletion are not controlled or attested by Ayvu |
+| HTTP service | C1 for submitted chunks, C2 for language/endpoint/request metadata | Under loopback the local provider receives text on cache misses or an explicit fixed public test sample; none denies before payload. Ambient proxies/credentials and redirects are disabled. Server logging, downstream egress, training, backup and deletion are not controlled or attested by Ayvu |
 | Process memory / external reader | C1–C5; Python heap, worker threads and reader process | May enter OS swap/core dumps or reader state; stopping the process is not proof of erasure |
 
 Local deletion is not secure erasure and does not revoke an already exported or
@@ -154,15 +160,16 @@ and secret values by default, and require separate consent for any sample.
 
 ## Proposed network and authority policy
 
-These modes classify future authorization, not current CLI switches:
+`none` and `loopback` are implemented by #159; the broader classes remain future
+authorization, without CLI permission or an inferred trust decision:
 
 | Mode | Proposed permitted authority | Current gap and implementation gate |
 | --- | --- | --- |
-| Strict offline | No Ayvu-controlled DNS, socket, HTTP, remote MCP, telemetry or update/download | `dry-run`/`cache-only` skip provider calls in `_run_translation`, but guided language discovery and diagnostic commands are separate network paths; [#159](https://github.com/MichaelAlexandreDev/ayvu/issues/159) owns transport enforcement |
-| Loopback-only | Explicit validated loopback endpoint; deny redirects and ambient proxy/credential inheritance | Default localhost URL alone is insufficient; an external server may itself send data elsewhere; #159 must state that limit |
-| Local network | Explicit LAN endpoint, operator and data-purpose decision | Reachable through today's URL; formal consent/classification is proposed; deny in strict/loopback modes |
-| Private remote | Explicitly approved remote operator, endpoint, data classes, retention and authentication | Reachable today; a private owner does not prove confidentiality; future remote authorization requires a separately reviewed policy |
-| Public remote | Explicit provider/model, purpose, data categories, retention/training terms, volume/cost and revocable choice | Reachable today; no inferred opt-in from book text, cache presence, tool descriptions, errors or an earlier unrelated approval |
+| Strict offline | `none`: zero DNS/socket/HTTP from Ayvu's current HTTP adapter | #159 enforces all current callers, before session and payload; external readers are outside its guarantee. Future MCP/telemetry/download clients must reuse an accepted boundary |
+| Loopback-only | `loopback`: only HTTP with validated canonical loopback hosts and socket addresses | #159 disables redirects and ambient proxies/credentials; an external server may itself send data elsewhere |
+| Local network | Explicit LAN endpoint, operator and data-purpose decision | Denied today; formal consent/classification remains proposed |
+| Private remote | Explicitly approved remote operator, endpoint, data classes, retention and authentication | Denied today; a private owner does not prove confidentiality; future remote authorization requires a separately reviewed policy |
+| Public remote | Explicit provider/model, purpose, data categories, retention/training terms, volume/cost and revocable choice | Denied today; no inferred opt-in from book text, cache presence, tool descriptions, errors or an earlier unrelated approval |
 
 An authorization must bind actor, action, project/source, destination, data
 classes, purpose and expiry. Missing/stale/out-of-scope decisions deny the action.
@@ -207,7 +214,9 @@ crash-before/after-rename tests. Owners:
 [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134) for source/project
 identity, [#137](https://github.com/MichaelAlexandreDev/ayvu/issues/137) for artifact
 reconciliation and [#144](https://github.com/MichaelAlexandreDev/ayvu/issues/144)
-for adapter safety. Legacy exposure remains until caller migrations
+for adapter safety. [Job artifacts](job-artifacts.md) now cover contained no-clobber
+publication and reconciliation, but no current writer uses them yet.
+Legacy exposure remains until caller migrations
 [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145),
 [#147](https://github.com/MichaelAlexandreDev/ayvu/issues/147) and
 [#149](https://github.com/MichaelAlexandreDev/ayvu/issues/149).
@@ -215,10 +224,11 @@ for adapter safety. Legacy exposure remains until caller migrations
 ### T02 — Hostile archives, imports and parser resource exhaustion (High)
 
 **B02/B05/B07; Formats + Content + Policies.** Crafted ZIP expansion, member
-counts, duplicate/canonical names, malformed XML/HTML, giant review documents or
-oversized cache-interchange JSON can exhaust RAM/CPU/disk or make references
-ambiguous. Cache import currently reads, parses and materializes the whole payload
-before applying rows. The current ZIP path reads members and repackages them; this
+counts, duplicate/canonical names, malformed XML/HTML, oversized review files or
+cache-interchange JSON can exhaust RAM/CPU/disk or make references ambiguous.
+Legacy review and v2 package readers enforce raw-byte, row, column, cell and
+decoded-content budgets; cache import still reads, parses and materializes its
+payload before applying rows. The current ZIP path reads members and repackages them; this
 is not evidence of host-path Zip Slip. A future extractor must nevertheless
 reject traversal before writing any member.
 
@@ -241,8 +251,8 @@ legacy entrypoints; the T01 migration gate also applies here.
 ### T03 — Unintended egress and confused network authority (High)
 
 **B03/B06; Providers + Policies.** URL choice, edited resume URL, redirect or
-ambient proxy can change who receives text. There is no destination policy in
-`LibreTranslateTranslator`; localhost is just its default. P: normalize and
+ambient proxy could change who receives text in the assessed baseline. #159 now
+enforces HTTP loopback/none in `LibreTranslateTranslator`. P: normalize and
 authorize the destination before transport, deny redirects and ambient
 proxies/credentials in restricted modes, bind future secrets to the destination.
 D: sanitized reason codes and denied-transport counters. R: stop with no silent
@@ -253,8 +263,8 @@ operator retention or downstream behavior.
 
 ### T04 — Reflected errors, paths and secret disclosure (High)
 
-**B03/B06/B09; Providers + Interfaces + Policies.** `_http_error` includes up to
-300 characters of the response body. HTML statistics and EPUB reports carry
+**B03/B06/B09; Providers + Interfaces + Policies.** #159 removes URL, raw transport
+exception and response body from HTTP errors. HTML statistics and EPUB reports carry
 errors to terminal/Markdown; connection errors and checkpoints can retain URL
 credentials or identifying paths. P: typed failures with allowlisted diagnostic
 fields and opaque references. D: synthetic secret/content sentinels through
@@ -264,6 +274,8 @@ claiming control of third-party copies. V/owners: #159 for HTTP sanitization,
 [#138](https://github.com/MichaelAlexandreDev/ayvu/issues/138) for provenance
 redaction and #145/#149 for migrated outcomes. A complete diagnostic-bundle
 lifecycle remains gated under G03 below; hiding a terminal detail is insufficient.
+The [provider contracts](provider-contracts.md) classify failures without reading those
+messages; HTTP consumers now receive bounded diagnostics as well.
 
 ### T05 — Cache poisoning, cross-configuration reuse and covert corpus (High)
 
@@ -284,20 +296,19 @@ No present-day cache operation is an automatic contribution to corpus.
 
 ### T06 — Review tampering, spreadsheet formulas and active content (High)
 
-**B02/B05/B08; Review + Formats + Interfaces.** A modified CSV may target the
-wrong source/revision or contain formula-like cells; CSV quoting alone does not
-make a spreadsheet treat a formula as inert. Provider text can corrupt
-placeholder topology. Existing EPUB active markup/assets may still execute or
-fetch resources in a reader even when Ayvu skipped them for translation.
-P: bind review identity/revision, validate constrained markup reconstruction and
-provide explicit spreadsheet-safe interchange without changing editorial text
-silently. D: reject foreign IDs, unknown placeholders, structural changes and
-oversized rows. R: preserve input and prior output, return conflicts instead of
-partial success claims. V: adversarial formula cells, foreign revisions,
-placeholder loss/duplication and original-byte survival under
-[#148](https://github.com/MichaelAlexandreDev/ayvu/issues/148), #149 and #143.
-Current escaping of replacements is useful; it is not a sanitizer for the whole
-book or a sandbox for an external reader.
+**B02/B05/B08; Review + Formats + Interfaces.** A modified legacy CSV may target
+the wrong source/revision or contain spreadsheet formulas. The v2 codec now
+binds identity/revision, applies reversible formula escaping, and validates
+constrained protected-part reconstruction before returning a plan. V1 apply is
+rejected. Existing EPUB active markup/assets may still execute or fetch
+resources in a reader even when Ayvu skipped them for translation. P: integrate
+the v2 package with application export/apply and publication policy. D: v2
+rejects foreign IDs, unknown placeholders, structural changes and oversized
+rows. R: parsing/mapping return no partial plan; current CLI creates no output
+for v1. V: adversarial codec, identity, placeholder, redaction, production
+extraction and staged reconstruction tests are in #148; final CLI export/apply
+and output preservation remain outside that issue's scope. This is not a
+sanitizer for the whole book or a sandbox for an external reader.
 
 ### T07 — Forged/stale checkpoints and interrupted state (High)
 
@@ -315,17 +326,17 @@ concurrency/interruption and zero provider/output effects on rejected recovery.
 
 ### T08 — Configured executable and reader side effects (High)
 
-**B01/B08; Library + Policies + Infrastructure.** Book text does not become
-shell syntax in `open_library_epub`: `Popen` receives an argv list. A configured
-untrusted executable or its inherited environment can still read files/send
-data; parser exploits and external-reader options remain an external boundary.
-P: explicit executable/open authorization, bounded argument validation and
-minimal process authority. D: record sanitized external-open outcome. R: report
-launch failure without retrying a different executable silently. V/owner:
-[#151](https://github.com/MichaelAlexandreDev/ayvu/issues/151) for process-port and
-authorization tests; #159 for the explicit limit on offline claims. OS isolation
-selection belongs to #167; a launched general-purpose reader is not thereby
-contained by Ayvu.
+**B01/B08; Library + Policies + Infrastructure.** The library service resolves an
+opaque entry against its latest scan and the local adapter revalidates canonical
+containment and identity before launch. The reader adapter supplies an argv list
+without a shell and appends the EPUB path as one argument. A same-user process can
+still change the path after validation and before the reader opens it. A configured
+executable or inherited environment can read files or send data; parser exploits
+and external-reader options remain an external boundary. Launch outcomes are
+normalized and failure does not silently retry a different configured executable.
+See [library discovery](library-discovery.md) for the cancellation and platform
+limits. #159 owns the limit on offline claims; OS isolation selection belongs to
+#167. A general-purpose reader is not contained by Ayvu.
 
 ### T09 — Prompt injection and excessive AI/MCP authority (High, proposed)
 
@@ -434,7 +445,7 @@ the threat register.
 | STRIDE: elevation of privilege | Book/tool asks to execute a reader command, resolve a secret or grant itself network access | No content authority in proposed design; T08/T09/T10, G01/G02 |
 | LINDDUN: linking | Stable text hash and language/timestamp pairs link copies across caches/exports | Hashes are not anonymous identifiers; T05/T11 |
 | LINDDUN: identifying | Author/title, source path or rare passage reveals person/work | Class C2 and content need minimization; T04/T11 |
-| LINDDUN: non-repudiation | Durable provenance ties an operator to sensitive reading/editing history | Audit accountability and privacy conflict; minimize/limit access and retention; T07/T11 |
+| LINDDUN: non-repudiation | Durable provenance could tie an operator to sensitive reading/editing history; [the current records](provenance.md) hold actor kinds and no person | Audit accountability and privacy conflict; minimize/limit access and retention; T07/T11 |
 | LINDDUN: detecting | Cache summary, checkpoint names or diagnostics reveal that a book/project exists | Metadata exposure remains sensitive; T04/T11, G03 |
 | LINDDUN: data disclosure | Export, backup or provider retains cleartext after local cache deletion | Copy and recipient lifecycle is independent; T03/T11 |
 | LINDDUN: unawareness | Operator assumes localhost never forwards data or cache use permits training | Explicit recipient/purpose disclosure required; T03/T05/T11 |
@@ -453,7 +464,8 @@ well as books.
 The current [workflow tests](../../tests/test_workflow_characterization.py)
 exercise the real CLI through fake HTTP and temporary EPUB/cache/checkpoint
 files: normal source preservation, archive/visible-text filtering, cache then
-glossary, interrupted resume, intermediate routing and review round-trip.
+glossary, interrupted resume, intermediate routing, v2 review mapping with
+staged reconstruction, and legacy v1 apply refusal.
 [EPUB tests](../../tests/test_epub_io.py),
 [HTML tests](../../tests/test_html_translate.py),
 [preflight tests](../../tests/test_preflight.py),
@@ -491,8 +503,10 @@ issues, using synthetic fixtures, fake transports/process launchers and
 
 ## Residual risks and human decisions
 
-- This model remains `Proposed`. No operator has accepted the current alias,
-  archive, egress or privacy gaps merely by merging it.
+- This model was accepted on 2026-11-05 by the project maintainer. Acceptance
+  records the assessment and the owners of each gap; it does not close the
+  current alias, archive, egress or privacy gaps, which stay open in their
+  owning issues.
 - #144 explicitly keeps legacy facades unchanged. G05 needs maintainer priority
   review; a separate urgent patch may be warranted before the migration chain.
 - Budgets, retention periods, remote provider approval, rights evidence and

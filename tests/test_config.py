@@ -173,6 +173,29 @@ def test_blank_default_language_is_rejected():
         AyvuConfig.from_dict({"version": 1, "default_target_language": " "})
 
 
+def test_legacy_errors_do_not_reflect_private_profile_names():
+    with pytest.raises(ConfigError) as caught:
+        AyvuConfig.from_dict({'profiles': {'private-canary': {'style': 'invalid'}}})
+    assert 'private-canary' not in str(caught.value)
+
+
+def test_legacy_value_parsing_rejects_credential_commands():
+    with pytest.raises(ConfigError) as caught:
+        AyvuConfig.from_dict({'reader_app': 'reader --token secret-canary'})
+    assert 'secret-canary' not in str(caught.value)
+
+
+def test_legacy_padded_language_values_preserve_their_meaning(tmp_path):
+    path = tmp_path / 'config.json'
+    path.write_text('{"version":1,"default_target_language":" pt_BR "}')
+    store = ConfigStore(path)
+    loaded = store.load()
+    assert loaded.default_target_language == ' pt_BR '
+    from dataclasses import replace
+    store.save(replace(loaded, reader_app='foliate'))
+    assert json.loads(path.read_text())['default_target_language'] == ' pt_BR '
+
+
 def test_translation_profiles_must_be_objects():
     with pytest.raises(ConfigError, match="profiles must be an object"):
         AyvuConfig.from_dict({"version": 1, "profiles": []})

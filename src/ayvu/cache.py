@@ -42,10 +42,13 @@ class CacheImportError(CacheError):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class CacheKey:
     text: str
     language_pair: LanguagePair
+
+    def __repr__(self) -> str:
+        return "CacheKey(<redacted>)"
 
     @property
     def original_text_hash(self) -> str:
@@ -61,7 +64,7 @@ class CacheSummaryRow:
     last_created_at: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class CacheEntry:
     source_lang: str
     target_lang: str
@@ -69,6 +72,9 @@ class CacheEntry:
     original_text: str
     translated_text: str
     created_at: str
+
+    def __repr__(self) -> str:
+        return "CacheEntry(<redacted>)"
 
     @classmethod
     def from_mapping(cls, value: object, index: int) -> "CacheEntry":
@@ -113,10 +119,13 @@ class CacheDeleteReport:
     deleted: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class CacheExportReport:
     path: Path
     exported: int
+
+    def __repr__(self) -> str:
+        return f"CacheExportReport(exported={self.exported})"
 
 
 @dataclass(frozen=True)
