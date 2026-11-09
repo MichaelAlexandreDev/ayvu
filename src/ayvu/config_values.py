@@ -84,6 +84,7 @@ class AyvuConfig:
     reader_app: str | None = None
     profiles: dict[str, TranslationProfile] = field(default_factory=dict)
     _preferences_revision: str | None = field(default=None, repr=False, compare=False)
+    translator_models: dict[str, str] = field(default_factory=dict, repr=False)
 
     @classmethod
     def default(cls) -> "AyvuConfig":
@@ -99,6 +100,7 @@ class AyvuConfig:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            **({"translator_models": dict(self.translator_models)} if self.translator_models else {}),
             "version": self.version,
             "default_target_language": self.default_target_language,
             "books_dir": str(self.books_dir),
@@ -145,6 +147,7 @@ def config_to_preferences(config: AyvuConfig) -> GlobalPreferences:
         profiles=tuple((name, NamedPreferenceProfile(
             profile.target_language, str(profile.glossary) if profile.glossary is not None else None,
             profile.style)) for name, profile in sorted(config.profiles.items())),
+        translator_models=tuple(config.translator_models.items()),
     )
 
 
@@ -154,6 +157,7 @@ def config_from_preferences(value: GlobalPreferences, revision: str | None = Non
         books_dir=Path(value.books_dir), folders=FolderNames(**{
             key: getattr(value.folders, key) for key in FolderNames.__dataclass_fields__}),
         reader_app=value.reader_app,
+        translator_models=dict(value.translator_models),
         profiles={name: TranslationProfile(profile.target_language,
                   Path(profile.glossary) if profile.glossary is not None else None, profile.style)
                   for name, profile in value.profiles}, _preferences_revision=revision,

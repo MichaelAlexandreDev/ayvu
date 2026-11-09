@@ -862,6 +862,59 @@ Ao abrir uma versão, o Ayvu verifica novamente se o EPUB continua o mesmo e den
 livros. Links para fora dessa pasta não entram na biblioteca; itens ignorados geram um aviso.
 Em `Reader app`, informe o executável e suas opções, sem interpretador de comandos como `sh`.
 
+## Pipeline rico e cache v2 (opcional)
+
+Para ativar em `translate`, tradução guiada e cada livro de um lote, adicione manualmente
+este campo ao **arquivo de configuração existente**, preservando os demais campos:
+
+```json
+{
+  "translator_models": {
+    "libretranslate": "meu-modelo-2026-11"
+  }
+}
+```
+
+O arquivo fica em `$XDG_CONFIG_HOME/ayvu/config.json`, ou `~/.config/ayvu/config.json`
+quando a variável não está definida. O rótulo aceita de 1 a 48 caracteres ASCII:
+letras minúsculas, números, `_` e `-`, começando por letra ou número. URLs, caminhos,
+espaços e texto livre são recusados antes de chamar o tradutor. Não há rótulo padrão.
+
+```bash
+uv run ayvu translate livro.epub --workers 1 --cache ./cache.sqlite
+```
+
+Com o rótulo, o runtime `rich/v2` usa `DocumentTranslator` e grava em
+`cache.sqlite.v2.sqlite`, no mesmo diretório do `--cache`. O arquivo v1 indicado por
+`--cache` permanece intacto: nenhuma entrada é lida, copiada ou promovida para v2.
+Por isso o primeiro uso rico traduz novamente textos que só estavam no v1. O cache v2
+é separado por projeto e identidade semântica; o glossário é aplicado depois do cache.
+
+O modelo é registrado na proveniência como `declared:meu-modelo-2026-11`: uma declaração
+sua, sem consulta nem descoberta de modelo no servidor. **Se você trocar o modelo do
+servidor e mantiver o rótulo, o Ayvu reutilizará resultados antigos sob esse rótulo.**
+Troque o rótulo junto com o modelo. Restaurar um rótulo permite reutilizar seu cache anterior.
+O rótulo aparece nos dados operacionais de proveniência e identidade do cache; não em logs,
+eventos, relatório de terminal ou checkpoint. Não coloque dados pessoais no rótulo.
+O checkpoint rico registra apenas a revisão de execução, para vincular a retomada ao job.
+
+Nesta primeira integração, `rich/v2` recusa `--workers` diferente de `1`,
+`--translation-memory`, `--cache-only` e `--require-full-cache`, com mensagem antes de
+qualquer chamada ao tradutor. A resolução offline atual não fixa a identidade de execução
+e a rota necessárias para oferecer cache-only rico com segurança. Para usar esses recursos
+do modo legado, remova `translator_models.libretranslate` da configuração.
+
+Uma falha do provedor para o runtime rico na primeira ocorrência e não publica EPUB parcial.
+Os segmentos concluídos ficam em v2; corrija o problema e execute `uv run ayvu resume livro.epub`.
+A retomada exige o mesmo runtime do job: adicionar ou remover o rótulo entre a falha e o
+resume é recusado como incompatibilidade `legacy/v1`/`rich/v2`. Restaure a configuração
+anterior para retomar. Replay de resultados brutos no resume continua reservado à issue #242.
+
+Sem rótulo, o runtime `legacy/v1`, suas mensagens, continuação após erros e cache-only com
+EPUB parcial continuam os mesmos. Remover o rótulo também permite voltar ao cache v1 intacto
+em novas traduções. Dry run, preview e outros fluxos sem projeto permanecem no v1.
+As políticas HTTP continuam as mesmas, sem novas requisições de descoberta.
+
 ## Configuração
 
 O Ayvu define um formato inicial para preferências locais. No modo comum, o primeiro uso pergunta o

@@ -15,16 +15,19 @@ command and the guided offer run through them, with the prompts they always had.
 
 ## What a resume is today
 
-A full re-execution over the v1 cache, under a new job linked to the old one. It is not a selective replay, because in
-production there is nothing to replay:
+A full re-execution under a new job linked to the old one. Sem rótulo, o runtime
+legado continua sobre o cache v1:
 
 - The v1 cache holds languages, a hash and two texts. Nothing says which provider, model or pipeline produced a text.
-- The lineage of a run records `unknown` for its producer, until [#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153).
-- A run produces one artifact, `translated_output`. No raw results exist, because the rich path does not run in production.
+- Legacy lineage records `unknown` for its producer.
+- A legacy run produces one artifact, `translated_output`.
 - The plan's fingerprint holds a digest of translator and address, and no model, route, capabilities or versions.
 
-So a cache hit avoids a call, and proves nothing. A result says so: `provider_calls_may_repeat` is true, and the reasons
-include `provenance_unproven`.
+No legado, um acerto evita uma chamada e não prova a origem: os motivos incluem
+`provenance_unproven`. Desde #252, o runtime rico opcional reexecuta sobre o arquivo
+v2 irmão de `--cache`, com produtor declarado e resultados brutos por documento.
+Os segmentos concluídos ficam em v2 após uma falha. Replay de artefatos brutos de
+produção continua desativado até #242; `provider_calls_may_repeat` continua verdadeiro.
 
 ## The three use cases
 
@@ -58,10 +61,18 @@ A file is a record of how a run was invoked, and it is never proof. It has to re
 
 A project with no job on that plan stays `legacy_only`. No project is created and no identity is made up to fit an old file.
 
-**A file that does not match loses the link and not the translation.** It runs on the current flow, as it does today, and
+O checkpoint rico grava apenas a revisão genérica de execução `2`, sem rótulo de
+modelo. O arquivo legado omite esse campo e continua significando revisão `1`, com
+os mesmos bytes anteriores. Para revisão diferente de `1`, a associação confere as
+duas variantes de overwrite contra o job e seu produtor na proveniência, não contra
+a configuração atual. Também usa os `output_roles` reais daquele pedido. Sem evidência
+de produtor ou sem coincidência do fingerprint, a entrada é recusada; nunca volta
+silenciosamente ao fluxo sem projeto/v1.
+
+**A legacy file that does not match loses the link and not the translation.** It runs on the current flow, as it does today, and
 the old job is settled by the next run of its plan or once its lease expires.
 
-New files record `profile_name`, the only part of the identity they lacked. An old file has none, so a run that used a
+Files record `profile_name`. An old file has none, so a run that used a
 profile stays `legacy_only`.
 
 ## Resuming a durable job
@@ -72,6 +83,8 @@ profile stays `legacy_only`.
    run would refuse itself. A resume differs from its parent in the overwrite flag, so its own guard says nothing about
    the parent's process. A plan held by a live process is refused as `job_in_progress`.
 2. **The ticket.** A revision that differs is `stale_revision`, and a job already continued is `continuation_exists`.
+   A revisão de execução do pedido também deve coincidir com a do pai; a recusa
+   `runtime_mismatch` nomeia `legacy/v1` e `rich/v2` na CLI, antes do provedor.
 3. **The parent's outcome.** It is settled as in [the use case](translate-project.md#crashes-and-interruptions), and a job
    that is still not terminal is `job_not_resumable`. A job that ended stays exactly as it ended.
 4. **The new job** is linked with `create_continuation`, which a unique constraint allows once per job.
@@ -114,10 +127,10 @@ dimension in `REUSE_DIMENSIONS` was recorded and is equal. One that differs is `
 nobody recorded is `provenance_unproven`, and it is never called a change. The earliest stage that fails is where work
 would start.
 
-In production the answer is always `translate`, because no raw artifact exists. **Nothing executes a selection yet.**
-Replaying raw results after a restart needs #153 for the evidence, and also a new operation: an expired lease cannot be
-released, renewed or acquired, a continuation does not own its parent's artifact, and reconciliation ends a `running` job
-before anything could reuse it.
+Em produção a seleção continua em `translate`: no legado não há artefato bruto;
+no rico a fronteira de recuperação ainda não verifica todas as dimensões necessárias.
+**Nada executa replay seletivo em produção.** A operação que restaura resultados
+brutos em uma continuação pertence à issue #242.
 
 ## What the CLI does with them
 
@@ -153,7 +166,9 @@ book was done.
 
 ## What this does not prove
 
-- What produced any text in the cache, until #153.
+- What produced a text in the legacy v1 cache. No modelo rico, `declared:<rótulo>`
+  é uma declaração do usuário, não uma identidade observada no servidor. Trocar o
+  modelo do servidor sem trocar o rótulo reutiliza resultados antigos.
 - Whether a call interrupted by a crash reached the provider. It is made again.
 - That a `legacy_only` book is the one it was, when no project recorded it.
 - Native Windows and network filesystems, as for the guard itself.

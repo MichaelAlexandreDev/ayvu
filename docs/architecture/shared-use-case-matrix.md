@@ -446,7 +446,7 @@ renderizar e selecionar caminhos continua sendo responsabilidade da apresenta√ß√
 | `AYVU-UC-004`, `AYVU-UC-006`, `AYVU-UC-009` | `_validate_with_progress`, `_print_validation_warnings`, `_print_report`, `_has_glossary_summary`, `_print_glossary_warnings`, `_resolve_review_output_path`, `_print_review_export_failure` |
 | `AYVU-UC-007` | `_print_interrupted_translation`, `_partial_chapter_value`, `_interrupted_output_message`, `_print_processing_translation_states` |
 | `AYVU-UI-004` | `_run_guided_main_flow` |
-| `AYVU-UC-015` | `_load_or_init_config`, `_load_existing_config_or_default`, `_init_default_language_config`, `_choose_initial_folder_names`, `_print_feature_folder_paths`, `_save_config` |
+| `AYVU-UC-015` | `_load_or_init_config`, `_load_existing_config_or_default`, `_refuse_invalid_translator_models`, `_init_default_language_config`, `_choose_initial_folder_names`, `_print_feature_folder_paths`, `_save_config` |
 | `AYVU-UI-004` | `_print_guided_main_menu`, `_handle_guided_main_choice` |
 | `AYVU-UC-004` | `_run_guided_translation` |
 | `AYVU-UC-006` | `_run_guided_preview` |

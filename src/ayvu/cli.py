@@ -165,6 +165,18 @@ _BOOK_BROKEN = (
     "Abra o livro em um leitor para conferir e tente outra cópia. O original não foi alterado.",
 )
 _TRANSLATION_FAILURES: dict[str, tuple[str, str]] = {
+    "runtime_mismatch": (
+        "Não é possível retomar entre runtimes diferentes: legacy/v1 e rich/v2.",
+        "Restaure a presença ou ausência do rótulo do modelo na configuração usada pelo job original.",
+    ),
+    "rich_translation_failed": (
+        "A tradução rich/v2 parou; nenhum EPUB parcial foi publicado.",
+        "Veja o código com --mode developer e use ayvu resume após corrigir a falha.",
+    ),
+    "provider_server_error": (
+        "O tradutor falhou durante a tradução rich/v2; nenhum EPUB parcial foi publicado.",
+        "Verifique o tradutor e use ayvu resume. Os segmentos concluídos permanecem no cache v2.",
+    ),
     **dict.fromkeys(("encrypted_content", "encrypted_member", "malformed_encryption", "protected_member"), _BOOK_PROTECTED),
     **dict.fromkeys(
         ("unsafe_member_name", "unsafe_manifest_href", "member_name_too_long", "duplicate_member", "entity_declaration"),
@@ -1834,6 +1846,7 @@ def _run_translation(
             retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
             output_path=output_path, overwrite=overwrite, processing_dir=_processing_dir(config),
             profile_name=identity_profile_name, preflight=run_translation_preflight,
+            translator_models=config.translator_models, project_backed=project_id is not None,
             network_policy=_selected_network_policy(network_policy),
             save_checkpoint=lambda **values: _checkpoint_action(checkpoint.start, **values),
             on_route=lambda route: _print_translation_route(route, mode=mode), on_ready=progress.start,
@@ -1874,6 +1887,8 @@ def _run_translation(
         batch_plan=batch_plan,
         cancellation=cancellation,
         on_project_result=record_job,
+        translator_name=translator_name,
+        translator_models=config.translator_models,
     )
     try:
         try:
@@ -1918,6 +1933,8 @@ def _run_translation(
             item_exit("interrupted", interrupted=True)
         raise typer.Exit(code=1) from exc
 
+    for notice in outcome.notices:
+        console.print(f"[yellow]Aviso da tradução:[/yellow] {notice}")
     if outcome.report is None:
         _print_translation_failure(replace(outcome, raised=None) if batch_plan is not None else outcome, output_path, mode)
         item_exit(outcome.failure if outcome.failure in ("output_conflict", "provider_failed") else "translation_failed")
@@ -2723,6 +2740,7 @@ def _run_guided_main_flow(ctx: typer.Context, mode: UserMode) -> bool:
 def _load_or_init_config(store: ConfigStore | None = None) -> AyvuConfig:
     store = store or configuration_store()
     snapshot = store.get_preferences()
+    _refuse_invalid_translator_models(snapshot)
     if snapshot.error:
         console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {snapshot.error}")
         console.print("Usando configuração padrão. Ajuste o arquivo de configuração se quiser alterar o idioma.")
@@ -2737,6 +2755,7 @@ def _load_or_init_config(store: ConfigStore | None = None) -> AyvuConfig:
 def _load_existing_config_or_default(store: ConfigStore | None = None) -> AyvuConfig:
     store = store or configuration_store()
     snapshot = store.get_preferences()
+    _refuse_invalid_translator_models(snapshot)
     if snapshot.error:
         console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {snapshot.error}")
         console.print("Usando configuração padrão. Ajuste o arquivo de configuração quando possível.")
@@ -2744,6 +2763,13 @@ def _load_existing_config_or_default(store: ConfigStore | None = None) -> AyvuCo
     if snapshot.read_only:
         console.print("[yellow]Configuração em somente leitura: campos desconhecidos impedem a gravação.[/yellow]")
     return config_from_preferences(snapshot.preferences, snapshot.revision)
+
+
+def _refuse_invalid_translator_models(snapshot) -> None:
+    if snapshot.error is not None and snapshot.error.field == "translator_models":
+        console.print("[red]Rótulo de modelo inválido em translator_models.[/red]")
+        console.print("Use de 1 a 48 caracteres: letras minúsculas, números, _ ou -, começando por letra ou número.")
+        raise typer.Exit(code=1)
 
 
 def _init_default_language_config(store: ConfigStore) -> AyvuConfig:

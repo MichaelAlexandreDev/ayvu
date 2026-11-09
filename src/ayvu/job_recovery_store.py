@@ -15,7 +15,7 @@ from pathlib import Path
 from .artifact import Artifact, ArtifactError
 from .artifact_store import SqliteArtifactRepository
 from .domain import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions
-from .job import JobError, JobStoreError
+from .job import JobError, JobStoreError, JobRequest
 from .job_execution import CancellationToken
 from .job_recovery import (
     RECOVERY_BETWEEN_CHUNKS, ArtifactIntegrity, InvocationView, OutputEvidence, RecoveryCancelled, RecoveryProgress, RecoveryReason,
@@ -30,10 +30,10 @@ from .project_store import (
     ConfigurationReferences, ProjectJsonRepository, canonical_source_path, configuration_references, file_digest, source_digest,
     translation_selections,
 )
-from .provenance import ProvenanceError
+from .provenance import ProvenanceError, ProducerIdentity
 from .provenance_store import SqliteProvenanceRepository
 from .resume import RUNNING_STATUS, TranslationResumeState
-from .translate_project import OUTPUT_ROLE, TranslateCommandError, TranslateProjectCommand, resolve_plan
+from .translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_plan
 
 RAW_RESULTS_ROLE = "raw_results"
 _PROVENANCE_PAGE = 64
@@ -51,12 +51,15 @@ def _options(state: TranslationResumeState) -> TranslationOptions:
         chapter_selection=selection, translation_memory=state.translation_memory_options())
 
 
-def plan_fingerprints(state: TranslationResumeState, project: ProjectManifest) -> tuple[str, ...]:
+def plan_fingerprints(state: TranslationResumeState, project: ProjectManifest, *,
+                      request: JobRequest | None = None, producer: ProducerIdentity | None = None) -> tuple[str, ...]:
     """The plans this file could have run under. The file holds the flag, and the run may have accepted a prompt instead."""
     options = _options(state)
     return tuple(
         resolve_plan(TranslateProjectCommand(project.project_id, project.source_sha256, options, OutputPlan(path=state.output_path),
-                                             overwrite=overwrite), project).input_fingerprint
+            overwrite=overwrite, execution_revision=state.execution_revision, producer=producer,
+            additional_output_roles=() if request is None else tuple(role for role in request.output_roles if role != OUTPUT_ROLE)),
+            project).input_fingerprint
         for overwrite in (False, True))
 
 
@@ -144,7 +147,36 @@ class LocalRecoveryEvidence:
             return InvocationView(entry.reference, False, problem=problem, unusable=True)
         association = _associate(state, self._manifests)
         project_id = None if association.project is None else association.project.project_id
+        if state.execution_revision != 1:
+            # A non-legacy checkpoint must never fall back to a project-free v1 invocation.
+            fingerprints = self._recorded_fingerprints(state, association.project)
+            return InvocationView(entry.reference, state.status == RUNNING_STATUS, _progress(state), project_id,
+                fingerprints, None if fingerprints else RecoveryReason.INCOMPATIBLE_PLAN, unusable=not bool(fingerprints))
         return InvocationView(entry.reference, state.status == RUNNING_STATUS, _progress(state), project_id, association.fingerprints, association.problem)
+
+    def _recorded_fingerprints(self, state: TranslationResumeState, project: ProjectManifest | None) -> tuple[str, ...]:
+        """Check the checkpoint against job-bound producer evidence, never today's configuration."""
+        if project is None:
+            return ()
+        try:
+            paths = self._projects.read_database_paths(project.project_id)
+            provenance = SqliteProvenanceRepository(self._runner, paths.database, project.project_id, clock=self._clock)
+            fingerprints = []
+            for snapshot in self.jobs(project.project_id):
+                job = snapshot.job
+                request = job.request
+                if request.command_type != TRANSLATE_COMMAND_TYPE or request.command_version != state.execution_revision:
+                    continue
+                nodes = provenance.list_by_job(job.job_id, limit=_PROVENANCE_PAGE).nodes
+                producers = {node.record.request.producer for node in nodes if node.record.request.producer.fully_identified}
+                if len(producers) != 1:
+                    continue
+                candidates = plan_fingerprints(state, project, request=request, producer=producers.pop())
+                if request.input_fingerprint in candidates:
+                    fingerprints.append(request.input_fingerprint)
+            return tuple(dict.fromkeys(fingerprints))
+        except (ProjectError, JobError, ProvenanceError, OSError, sqlite3.Error):
+            return ()
 
     def _manifest(self, project_id: str | None) -> ProjectManifest | None:
         return next((project for project in self._manifests if project.project_id == project_id), None)
@@ -239,7 +271,7 @@ class LocalRecoveryEvidence:
         return OutputEvidence(ArtifactIntegrity.PARTIAL if size < record.size else ArtifactIntegrity.CORRUPT, exists=True)
 
     def producer_identified(self, project_id: str, job_id: str) -> bool:
-        """False until #153: the current flow records ``unknown``, and a job with no record proves nothing either."""
+        """Legacy records remain unknown. Declared rich producers are identified; no record proves nothing."""
         try:
             paths = self._projects.read_database_paths(project_id)
             if not paths.database.exists():

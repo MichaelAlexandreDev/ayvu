@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
+from .provenance import ProvenanceValidationError, declared_model
 
 FOLDER_KEYS = ('original', 'translated', 'preview', 'reports', 'processing')
-TOP_KEYS = ('version', 'default_target_language', 'books_dir', 'folders', 'reader_app', 'profiles')
+TOP_KEYS = ('version', 'default_target_language', 'books_dir', 'folders', 'reader_app', 'profiles', 'translator_models')
 PROFILE_KEYS = ('target_language', 'glossary', 'style')
 STYLES = frozenset({'neutral', 'technical', 'literary', 'academic'})
 FIELD_NAMES = frozenset({*TOP_KEYS, 'configuration', 'revision', 'profiles.*',
@@ -90,6 +91,7 @@ class GlobalPreferences:
     folders: PreferenceFolders = PreferenceFolders()
     reader_app: str | None = None
     profiles: tuple[tuple[str, NamedPreferenceProfile], ...] = ()
+    translator_models: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
         if type(self.version) is not int:
@@ -112,6 +114,15 @@ class GlobalPreferences:
             if name != name.strip() or name in seen or type(profile) is not NamedPreferenceProfile:
                 raise PreferencesError('invalid', 'profiles')
             seen.add(name)
+        if (type(self.translator_models) is not tuple or len(self.translator_models) > 1
+                or any(type(pair) is not tuple or len(pair) != 2 or pair[0] != 'libretranslate'
+                       for pair in self.translator_models)):
+            raise PreferencesError('invalid', 'translator_models')
+        for _, label in self.translator_models:
+            try:
+                declared_model(label)
+            except ProvenanceValidationError:
+                raise PreferencesError('invalid', 'translator_models') from None
 
 
 def preferences_from_mapping(data: object) -> tuple[GlobalPreferences, bool]:
@@ -138,12 +149,16 @@ def preferences_from_mapping(data: object) -> tuple[GlobalPreferences, bool]:
             raise PreferencesError('invalid', 'profiles')
         unknown |= bool(set(profile) - set(PROFILE_KEYS))
         parsed[name] = NamedPreferenceProfile(**{key: profile[key] for key in PROFILE_KEYS if key in profile})
+    models = data.get('translator_models', {})
+    if not isinstance(models, dict):
+        raise PreferencesError('invalid', 'translator_models')
     result = GlobalPreferences(
         version=data.get('version', 1),
         default_target_language=data.get('default_target_language', 'pt'),
         books_dir=data.get('books_dir', '~/Documentos/Livros'),
         folders=PreferenceFolders(**{key: folders[key] for key in FOLDER_KEYS if key in folders}),
         reader_app=data.get('reader_app'), profiles=tuple(sorted(parsed.items())),
+        translator_models=tuple(models.items()),
     )
     return result, unknown
 
@@ -152,6 +167,7 @@ def preferences_to_mapping(value: GlobalPreferences) -> dict[str, object]:
     """Explicit authorized persistence payload; never use this for diagnostics."""
     value.__post_init__()
     return {
+        **({'translator_models': dict(value.translator_models)} if value.translator_models else {}),
         'version': value.version, 'default_target_language': value.default_target_language,
         'books_dir': value.books_dir,
         'folders': {key: getattr(value.folders, key) for key in FOLDER_KEYS},
