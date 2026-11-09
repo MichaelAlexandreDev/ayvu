@@ -244,7 +244,7 @@ class DocumentTranslator:
         return "DocumentTranslator()"
 
     def translate(self, document: ContentDocument, context: ExecutionContext, *, dry_run: bool = False,
-                  cache_only: CacheOnlyRequest | None = None) -> DocumentTranslationResult:
+                  cache_only: CacheOnlyRequest | None = None, replay_raw_results: bool = True) -> DocumentTranslationResult:
         if cache_only is not None and type(cache_only) is not CacheOnlyRequest:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "cache_only_mode_required"))
         self._check_identity(document, context)
@@ -272,7 +272,7 @@ class DocumentTranslator:
         if cache_only is not None:
             # Cache-only is an exact cache operation; an artifact replay is another source.
             return self._execute(run, dry_run=dry_run, cache_only=cache_only)
-        replayed = self._replay(run)
+        replayed = self._replay(run) if replay_raw_results else None
         if replayed is not None:
             return replayed
         return self._execute(run, dry_run=dry_run, cache_only=cache_only)

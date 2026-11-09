@@ -58,10 +58,14 @@ There are two paths through the same stages:
 | Legacy | `translate_text`, through `LegacyTextPipelineFacade` | None | None beyond the v1 cache |
 | Rich | `DocumentTranslator` | Real project, job, document and unit | Artifact, provenance and events |
 
-**The current translation uses only the legacy path**, so `translate_text` keeps its signature,
-results, messages and v1 cache key. [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145) keeps
-that path, as [the engine](#the-engine) explains, so nothing in production calls the rich path until
-[#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153) gives it a cache.
+**Produção seleciona o caminho rico explicitamente desde #252.** Adicione
+`"translator_models": {"libretranslate": "meu-modelo-2026-11"}` ao `config.json`
+existente. O rótulo aceita `[a-z0-9][a-z0-9_-]{0,47}` e entra na identidade como
+`declared:<rótulo>`, declarado pelo usuário; `unknown` continua inelegível.
+**Trocar o modelo do servidor sem trocar o rótulo reutiliza resultados antigos.**
+Não há descoberta de modelo nem novas requisições HTTP. Sem rótulo, `translate_text`
+mantém assinatura, resultados, mensagens e chave v1; dry run e preview também ficam no v1.
+Veja a [seleção do runtime](translate-project.md#seleção-explícita-do-runtime-252).
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -101,16 +105,15 @@ against the code before this extraction.
 ## The engine
 
 `TranslationEngine` reads a book through the format adapter, hands each unit to an executor and gives the results
-back to the adapter. It parses no markup and calls no provider. It exists because the rich path cannot replace the
-current translation yet:
+back to the adapter. It parses no markup and calls no provider. A composição escolhe entre:
 
-| Rich path | What the current flow needs |
+| Runtime rico explícito | Runtime legado sem rótulo |
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
-| The rich SQLite repository requires v2 identity | Running the CLI still reuses the v1 cache |
-| Replay needs a job it can run in | [A resume](job-recovery.md) is a full re-execution over the v1 cache |
+| Cache v2 em arquivo irmão separado, com identidade completa | Reutiliza o cache v1 existente |
+| Resume reexecuta sobre v2, sem replay de artefatos até #242 | [Resume](job-recovery.md) reexecuta sobre o v1 |
 
-#153 and #146 both depend on #145, so neither can come first. `ayvu.legacy_translation` is the named compatibility
+`ayvu.legacy_translation` is the named compatibility
 path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
 extraction needs a real project.
 
@@ -121,8 +124,10 @@ the bytes, the order of provider calls, the cache, the report, the progress and 
 
 [`TranslateProject`](translate-project.md) wraps the engine in a durable job.
 
-**Nothing in the current translation calls either of them yet.** Dry run and the preview stay on the current flow when
-callers migrate, because they create no project and so have no identity to give the adapter.
+Produção usa o engine dentro de `TranslateProject` em ambos os runtimes. No rico,
+`TranslationResources.prepare_document` executa o `DocumentTranslator` antes do consumo
+das unidades pelo engine; uma falha ali interrompe o livro. Dry run e preview ficam no
+fluxo sem projeto, pois não têm identidade para fornecer ao adaptador.
 
 ## The legacy facade
 
@@ -131,7 +136,8 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 
 The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
-The standalone cache now has a v2 boundary and repository; the CLI stays on the characterized v1 adapter. [`html_structure`](html-structure.md) has neither cache nor glossary.
+The standalone cache has a v2 boundary and repository; CLI runs without a declared model stay on the characterized v1 adapter.
+[`html_structure`](html-structure.md) has neither cache nor glossary.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.html_translate`, passed on each call.
 
@@ -216,11 +222,19 @@ Zero candidates miss, one is checked against the current semantic identity and m
 identity is ambiguous. Duplicates for one exact key are corruption. Neither mode uses discovery or
 transport. A rich result reports incomplete units when misses are allowed; it publishes no raw-results
 artifact for an incomplete document. The CLI keeps its current partial EPUB and `--require-full-cache`
-behavior behind the legacy adapter.
+behavior behind the legacy adapter. A integração rica de produção recusa `--cache-only`
+e `--require-full-cache`: a resolução offline atual não fixa sua identidade e rota com segurança.
 
 `SQLiteExactCache` implements the port for the rich path after `prepare_cache` runs before workers.
-The current CLI still selects `_LegacyV1Cache`, which cannot return a v2 hit or populate v2 provenance.
-Migration preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
+No rico, a CLI prepara `<nome de --cache>.v2.sqlite` antes do provedor, sem abrir nem
+alterar v1. O primeiro uso rico traduz de novo textos disponíveis apenas no v1. Exige
+`--workers 1`, recusa `--translation-memory` até #162 e para na primeira falha de provedor
+sem publicar EPUB parcial. O job fica retomável e os segmentos concluídos continuam no cache.
+O glossário é aplicado sobre valores brutos de v2. Remover o rótulo volta ao legado em novas
+execuções; resume entre runtimes diferentes é recusado e nomeia `legacy/v1` e `rich/v2`.
+A declaração fica na configuração e na proveniência/identidade operacional, fora de repr,
+eventos, logs e checkpoints. O replay de artefatos brutos fica desativado na produção até #242.
+Migration outside this production selection preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
 [standalone cache v2](standalone-cache-v2.md) for locking, recovery and limits.
 
 ## Replay

@@ -9,6 +9,49 @@ framework, store, format or provider: it receives them as ports from a compositi
 [resume](job-recovery.md) of a job it left behind. Dry run, preview and a resume file that recomputes to no job have no
 project to run in, so they keep the current flow behind `translate_without_project`.
 
+## Seleção explícita do runtime (#252)
+
+`ayvu.cli_composition` resolve `translator_models` para o tradutor escolhido e
+`ayvu.translate_project_composition` constrói `LegacyTranslationRuntime` ou
+`RichTranslationRuntime`. Sem rótulo, a composição e o fingerprint legados permanecem
+os mesmos. O rótulo válido (`[a-z0-9][a-z0-9_-]{0,47}`) produz o modelo
+`declared:<rótulo>`; `unknown` não foi tornado elegível. **Trocar o modelo do servidor
+sem atualizar o rótulo reutiliza resultados antigos sob a mesma declaração.**
+
+O runtime rico prepara `SQLiteExactCache` em `<nome de --cache>.v2.sqlite` antes de
+preparar o provedor; não abre nem migra o v1. Exige `--workers 1` e recusa
+`--translation-memory`, `--cache-only` e `--require-full-cache`. Não há identidade/rota
+offline fixada para oferecer cache-only rico nesta integração. Preflight sanitiza
+recusas do cache. A autorização HTTP existente é reutilizada, sem novas requisições.
+
+O port recebe um `RuntimeContext` com job real, cancelamento e canal de eventos.
+Antes de cada documento, a composição consulta o job atual para observar leases
+renovados, mantendo o token do dono original para não adotar a posse de outro processo.
+`TranslationResources.prepare_document` prepara as execuções de um documento antes de
+o engine consumir suas unidades. Só a composição conhece `DocumentTranslator` e seus
+repositórios. Exceções na preparação interrompem o livro; o engine e o caso de uso
+não selecionam runtime. O engine mantém o progresso de capítulos; eventos internos de
+progresso de documento não são intercalados com essa sequência. Avisos são encaminhados,
+e cancelamento é emitido uma vez no encerramento.
+
+O comando carrega identidade genérica de execução: revisão `1` no legado e `2` no
+rico, produtor opcional e papéis adicionais de saída. A revisão é gravada em
+`JobRequest.command_version`, com `translated_output` e `raw_results` em `output_roles`
+no rico; a proveniência `execution_identity` e os registros de resultado guardam o
+produtor declarado. O fingerprint do job inclui essas dimensões apenas quando declaradas.
+A continuação compara as revisões antes de criar o novo job e recusa `runtime_mismatch`;
+a CLI nomeia `legacy/v1` e `rich/v2`. O checkpoint rico guarda somente a revisão de
+execução `2`; o rótulo não é copiado. A recuperação refaz o fingerprint com o produtor
+já registrado no job, independentemente da configuração atual. Sem prova, recusa a
+associação em vez de rebaixar a entrada para v1. Checkpoints legados omitem o campo novo.
+
+Uma falha do provedor no rico deixa um job `failed`, retomável, sem EPUB parcial.
+Segmentos já concluídos permanecem em v2; o retry usa esses valores pré-glossário.
+O runtime aplica o glossário em cada execução, inclusive sobre acertos do cache.
+Resultados brutos são produzidos por documento, mas seu replay de produção permanece
+desativado até #242. Publicação, validação, relatório e exportação de revisão seguem
+os mesmos ports do caminho legado, preservando o EPUB original.
+
 | Module | Layer | Responsibility |
 | --- | --- | --- |
 | `ayvu.translate_project` | Application | The command and result, the ports, the plan and the job from creation to its outcome |
@@ -35,9 +78,9 @@ project to run in, so they keep the current flow behind `translate_without_proje
 | --- | --- | --- | --- |
 | Everything worked | `validated` | `validated` | Published |
 | Validation warnings | `partially_completed` | `validation_warnings` | Published, as today |
-| A text failed and stayed in the source language | `partially_completed` | `texts_failed` | Published, as today |
-| Cache-only, with gaps | `partially_completed` | `texts_missing` | Published, as today |
-| `--require-full-cache`, with gaps | `partially_completed` | `cache_incomplete` | None, as today |
+| A legacy text failed and stayed in the source language | `partially_completed` | `texts_failed` | Published, as today |
+| Legacy cache-only, with gaps | `partially_completed` | `texts_missing` | Published, as today |
+| Legacy `--require-full-cache`, with gaps | `partially_completed` | `cache_incomplete` | None, as today |
 | The lineage could not be written | `partially_completed` | `provenance_failed` | Published |
 | Publishing failed after the file became visible | `partially_completed` | `publication_uncommitted` | Published, and the failure is reported |
 | Provider, format, conflict or lease failure | `failed` | The failure's code | None |
@@ -128,8 +171,8 @@ as it would have. A worker that commits to cancelling wins over a failure in ano
 
 - **Dry run and preview are refused as commands.** They need no project and create none, and identity must never be
   made up to fit them, so they stay on the current flow behind `translate_without_project`.
-- **It claims nothing about the producer.** The lineage record says `unknown` for provider, model, adapter and pipeline,
-  because the v1 cache cannot say which produced a text. #153 replaces this.
+- **It receives producer identity from composition.** Legacy lineage keeps `unknown` because v1 cannot identify its
+  producer. Rich runs record the LibreTranslate adapter and the user-declared model; they do not probe the server.
 - **It does not decide what to resume.** A job that ended stays ended, and `execute` only links a new job to it when
   given a ticket. [Job recovery](job-recovery.md) decides. The resume file is still kept by the CLI, chapter by chapter,
   around the use case, because it is the only record of the address, the cache and the output.
@@ -145,5 +188,5 @@ compression limits) is refused by `check_book` on every path, including dry run,
 translator is asked and before a resume file is written. A book the adapter merely cannot read is still judged by the
 current preflight, with its current message.
 
-A provider's empty `translatedText` stays a success on this path, as it is today, because it still runs through the
-current translator. #153 settles it with the rich path.
+A provider's empty `translatedText` stays a success on the legacy path. Rich runs refuse it as `empty_result` and
+publish no partial EPUB.

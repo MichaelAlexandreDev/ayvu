@@ -32,8 +32,9 @@ from .job import (
 from .job_events import (
     CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobOutcome,
     JobProgress, JobWarning,
+    JobEventAcceptance,
 )
-from .job_execution import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMemoryJobEventLog
+from .job_execution import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMemoryJobEventLog, JobEventSink
 from .job_service import JobRepository
 from .project import ProjectError, ProjectManifest
 from .provenance import (
@@ -81,10 +82,16 @@ class TranslateProjectCommand:
     operation_id: str | None = None
     schema_version: int = TRANSLATE_COMMAND_VERSION
     accepted_output: AcceptedOutputPlan | None = field(default=None, repr=False, compare=False)
+    execution_revision: int = 1
+    producer: ProducerIdentity | None = field(default=None, repr=False)
+    additional_output_roles: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != TRANSLATE_COMMAND_VERSION:
             raise TranslateCommandError("unsupported_command_version")
+        if (type(self.execution_revision) is not int or not 1 <= self.execution_revision < 2**31
+                or (self.producer is not None and type(self.producer) is not ProducerIdentity)):
+            raise TranslateCommandError("invalid_execution_identity")
         try:
             validate_job_identity(self.project_id)
             if self.operation_id is not None:
@@ -154,6 +161,10 @@ def resolve_plan(command: TranslateProjectCommand, project: ProjectManifest) -> 
         "references": [project.profile_ref, project.provider_ref, project.policy_ref, project.glossary_ref, project.configuration_ref],
         "output": str(command.output.path), "overwrite": command.overwrite,
     }
+    if command.execution_revision != 1 or command.producer is not None or command.additional_output_roles:
+        producer = command.producer
+        inputs["execution"] = [command.execution_revision, command.additional_output_roles,
+                               None if producer is None else [producer.provider, producer.model, producer.adapter, producer.pipeline]]
     digest = hashlib.sha256(json.dumps(inputs, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
     return ExecutionPlan(command.project_id, command.source_sha256, f"sha256:{digest}")
 
@@ -174,12 +185,23 @@ class ProjectReader(Protocol):
     def load(self, project_id: str) -> ProjectManifest: ...
 
 
+@dataclass(frozen=True, repr=False)
+class RuntimeContext:
+    job: TranslationJob
+    cancellation: CancellationSource
+    events: JobEventSink
+    current_job: Callable[[], TranslationJob] | None = field(default=None, repr=False)
+
+    def __repr__(self) -> str:
+        return "RuntimeContext()"
+
+
 class TranslationRuntime(Protocol):
     """The language side: everything that knows a provider, a cache or a glossary."""
 
     def preflight(self) -> JobFailure | None: ...
     def facts(self) -> BookFacts: ...
-    def resources(self) -> AbstractContextManager[TranslationResources]: ...
+    def resources(self, context: RuntimeContext) -> AbstractContextManager[TranslationResources]: ...
     def classify(self, error: Exception) -> JobFailure: ...
 
 
@@ -233,6 +255,8 @@ class TranslateProjectPorts:
     source: FormatSource
     runtime: TranslationRuntime
     runs: RunGuard
+    runtime_safe_points: tuple[str, ...] = ()
+    recorded_producer: Callable[[TranslationJob], ProducerIdentity | None] | None = field(default=None, repr=False)
 
     def __repr__(self) -> str:
         return "TranslateProjectPorts()"
@@ -338,7 +362,8 @@ class TranslateProject:
 
     def cancellation(self, adapter_id: str = "epub") -> CancellationSource:
         """The source to give ``execute``, for a caller that may want to stop the run."""
-        return CancellationSource((TRANSLATE_BEFORE_START, *ENGINE_SAFE_POINTS, *self._ports.formats.safe_points(adapter_id)))
+        return CancellationSource(tuple(dict.fromkeys((TRANSLATE_BEFORE_START, *ENGINE_SAFE_POINTS,
+            *self._ports.formats.safe_points(adapter_id), *self._ports.runtime_safe_points))))
 
     def reconcile(self, project_id: str) -> tuple[str, ...]:
         """Gives a terminal outcome to every job whose owner is gone. Returns those jobs, oldest first."""
@@ -366,7 +391,8 @@ class TranslateProject:
             JobState.VALIDATING: (JobState.PARTIALLY_COMPLETED,),
         }[job.state]
         reason = INTERRUPTED_AFTER_PUBLICATION if artifact is not None else INTERRUPTED
-        self._append_provenance(job.request.project_id, job.job_id, reason, artifact, None, None)
+        producer = self._ports.recorded_producer(job) if self._ports.recorded_producer is not None else None
+        self._append_provenance(job.request.project_id, job.job_id, reason, artifact, None, None, producer)
         try:
             for state in path:
                 terminal = state in (JobState.CANCELLED, JobState.FAILED, JobState.PARTIALLY_COMPLETED)
@@ -378,12 +404,13 @@ class TranslateProject:
         return True
 
     def _append_provenance(self, project_id: str, job_id: str, reason: str, artifact: Artifact | None,
-                           configuration_ref: str | None, operation_id: str | None) -> bool:
+                           configuration_ref: str | None, operation_id: str | None,
+                           producer: ProducerIdentity | None = None) -> bool:
         references = () if configuration_ref is None else (ConfigurationRef("configuration", configuration_ref),)
         try:
             # The key allows one outcome per job, whichever run or reconciliation writes it first.
             self._ports.provenance.append(ProvenanceRequest(
-                project_id, job_id, TRANSLATE_COMMAND_TYPE, ActorKind.SYSTEM, SourceKind.PIPELINE, _UNKNOWN_PRODUCER,
+                project_id, job_id, TRANSLATE_COMMAND_TYPE, ActorKind.SYSTEM, SourceKind.PIPELINE, producer or _UNKNOWN_PRODUCER,
                 outcome_code=reason, configuration_refs=references, artifacts=() if artifact is None else (artifact.artifact_id,),
                 correlation_id=operation_id, idempotency_key=f"job:{job_id}:outcome"))
         except ProvenanceError:
@@ -391,7 +418,7 @@ class TranslateProject:
         return True
 
     def _append_unit_provenance(self, project_id: str, job_id: str, artifact: Artifact,
-                                engine: EngineResult, destination: object) -> bool:
+                                engine: EngineResult, destination: object, producer: ProducerIdentity | None = None) -> bool:
         """Record machine origins by stable unit, without retaining any source or translated text."""
         sources = {
             STATUS_CACHE: SourceKind.CACHE,
@@ -406,7 +433,7 @@ class TranslateProject:
         destination_digest = hashlib.sha256(str(destination_path).encode("utf-8")).hexdigest()
         try:
             self._ports.provenance.append(ProvenanceRequest(
-                project_id, job_id, "translate_output", ActorKind.SYSTEM, SourceKind.PIPELINE, _UNKNOWN_PRODUCER,
+                project_id, job_id, "translate_output", ActorKind.SYSTEM, SourceKind.PIPELINE, producer or _UNKNOWN_PRODUCER,
                 subject=SubjectRef("artifact_destination", 1, f"sha256:{destination_digest}"),
                 outcome_code="machine_translation_output", artifacts=(artifact.artifact_id,),
                 idempotency_key=f"destination:{job_id}"))
@@ -424,7 +451,7 @@ class TranslateProject:
                        "translation_failed" if status == STATUS_ERROR else "machine_translation")
             try:
                 self._ports.provenance.append(ProvenanceRequest(
-                    project_id, job_id, "translate_unit", ActorKind.SYSTEM, source_kind, _UNKNOWN_PRODUCER,
+                    project_id, job_id, "translate_unit", ActorKind.SYSTEM, source_kind, producer or _UNKNOWN_PRODUCER,
                     subject=SubjectRef("translation_unit", 1, unit_id), outcome_code=outcome,
                     artifacts=(artifact.artifact_id,), idempotency_key=f"machine:{job_id}:{unit_id}"))
             except ProvenanceError:
@@ -469,7 +496,8 @@ class TranslateProject:
         except FormatError:
             return refused(JobFailureFamily.CAPABILITY, "unknown_adapter")
         plan = resolve_plan(command, project)
-        request = JobRequest(command.project_id, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, plan.input_fingerprint, (OUTPUT_ROLE,))
+        request = JobRequest(command.project_id, TRANSLATE_COMMAND_TYPE, command.execution_revision,
+                             plan.input_fingerprint, (OUTPUT_ROLE, *command.additional_output_roles))
         fingerprints = (plan.input_fingerprint,)
         if continuation is not None:
             try:
@@ -531,6 +559,8 @@ class TranslateProject:
         """The new job, or the code that says why not. Runs holding the guards of both plans."""
         jobs = self._ports.jobs
         parent = jobs.get(ticket.job_id).job
+        if parent.request.command_version != request.command_version:
+            return "runtime_mismatch"
         if parent.revision != ticket.expected_revision:
             return "stale_revision"
         if jobs.get_continuation(parent.job_id) is not None:
@@ -616,6 +646,10 @@ class _Run:
             self._terminal(JobState.CANCELLED, "cancelled")
             return
         self._move(JobState.PREFLIGHT)
+        if self._command.producer is not None:
+            ports.provenance.append(ProvenanceRequest(
+                self._command.project_id, self._job.job_id, "execution_identity", ActorKind.SYSTEM, SourceKind.PIPELINE,
+                self._command.producer, outcome_code="execution_planned", idempotency_key=f"execution:{self._job.job_id}"))
         self._progress("preflight", "step", 0, 1)
         failure = ports.runtime.preflight()
         if failure is not None:
@@ -625,14 +659,26 @@ class _Run:
         self._move(JobState.RUNNING)
         options = self._command.options
         publication = ports.publications.publication(self._request, self._token, self._validate_staged)
-        with ports.runtime.resources() as resources:
+        context = RuntimeContext(self._job, self._cancellation, self,
+                                 current_job=lambda: ports.jobs.get(self._job.job_id).job)
+        with ports.runtime.resources(context) as resources:
             engine = TranslationEngine(ports.formats, resources.executor, pool=resources.pool, observer=self._engine_observer(),
-                                       cancellation=self._cancellation.token)
+                                       cancellation=self._cancellation.token, prepare_document=resources.prepare_document)
             self._engine = engine.run(EngineRequest(
                 self._command.adapter_id, ports.source, publication, self._command.project_id, ports.runtime.facts(),
                 options.translate_metadata, options.translate_alt_text, options.chapter_selection, options.fail_fast,
                 options.cache_only and options.require_full_cache, options.workers))
         self._conclude()
+
+    def emit(self, event: JobEvent) -> JobEventAcceptance:
+        """Forward warnings. The engine owns chapter progress and settlement owns cancellation.
+
+        Document-local unit progress cannot be interleaved with chapter progress: doing so
+        would return to a completed phase. Neither local sequence nor correlation is reused.
+        """
+        if isinstance(event.payload, JobWarning):
+            self._emit(event.payload)
+        return JobEventAcceptance.APPLIED
 
     def _engine_observer(self) -> EngineObserver:
         watching = self._observer.engine
@@ -752,11 +798,12 @@ class _Run:
 
     def _terminal(self, state: JobState, reason: str, failure: JobFailure | None = None) -> None:
         recorded = self._use_case._append_provenance(self._command.project_id, self._job.job_id, reason, self._artifact,
-                                                     self._project.configuration_ref, self._command.operation_id)
+                                                     self._project.configuration_ref, self._command.operation_id,
+                                                     self._command.producer)
         if self._artifact is not None and state in (JobState.VALIDATED, JobState.PARTIALLY_COMPLETED):
             recorded = self._use_case._append_unit_provenance(self._command.project_id, self._job.job_id,
                                                                self._artifact, self._engine,
-                                                               self._command.output.path) and recorded
+                                                               self._command.output.path, self._command.producer) and recorded
         self._recorded = self._recorded and recorded
         if not recorded and state in (JobState.VALIDATED, JobState.PARTIALLY_COMPLETED):
             # Review export requires complete machine lineage, including for partial output.

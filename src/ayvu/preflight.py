@@ -51,6 +51,7 @@ def run_translation_preflight(
     retry_backoff: float = 0.5,
     retry_backoff_max: float = 8.0,
     network_policy: NetworkPolicy | str | None = None,
+    cache_check: Callable[[Path], None] | None = None,
 ) -> TranslationPreflightResult:
     _check_language_pair(language_pair)
     glossary = _load_checked_glossary(glossary_path)
@@ -81,7 +82,7 @@ def run_translation_preflight(
             network_authorization=authorization,
         )
         translator = translator_factory()
-    _check_cache(cache_path)
+    (cache_check or _check_cache)(cache_path)
     _check_epub(epub_path)
     route: TranslationRoute | None = None
     if not dry_run and not cache_only:
