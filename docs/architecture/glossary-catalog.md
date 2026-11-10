@@ -18,7 +18,9 @@ represented as metadata statuses and cannot be read as content.
 
 The local adapter uses descriptor-relative operations and refuses links in the
 managed catalog. Creation uses an exclusive destination operation under a
-cross-process lock. Editing checks a revision derived from the source bytes and
+cross-process lock. Under that lock, the catalog is listed through a
+directory handle opened at that moment, so aliases created by another process are
+seen even on overlayfs, where an older handle can list stale entries. Editing checks a revision derived from the source bytes and
 observed identity/version metadata. A changed or replaced file causes a stale
 revision failure. If desired canonical bytes are already current and the revision
 matches, the adapter returns `already-current` without rewriting. An external

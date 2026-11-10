@@ -155,7 +155,18 @@ class ManagedGlossaryRepository:
             raise _Failure('unsafe-root')
 
     def _names(self, fd):
-        names = sorted(n for n in os.listdir(fd) if n.endswith('.json') and not n.startswith('.'))
+        # List through a handle opened now, under the lock. On overlayfs (Docker and some live
+        # systems), a directory handle opened before another process added a file can keep
+        # listing without it, so two aliases of one name could both be created.
+        fresh = os.open('.', os.O_RDONLY | os.O_DIRECTORY, dir_fd=fd)
+        try:
+            opened, now = os.fstat(fd), os.fstat(fresh)
+            if (opened.st_dev, opened.st_ino) != (now.st_dev, now.st_ino):
+                raise _Failure('unsafe-root')
+            listed = os.listdir(fresh)
+        finally:
+            os.close(fresh)
+        names = sorted(n for n in listed if n.endswith('.json') and not n.startswith('.'))
         if len(names) > LIMITS.catalog_entries:
             raise _Failure('catalog-too-large')
         return names
