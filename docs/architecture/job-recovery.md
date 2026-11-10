@@ -26,8 +26,10 @@ legado continua sobre o cache v1:
 No legado, um acerto evita uma chamada e não prova a origem: os motivos incluem
 `provenance_unproven`. Desde #252, o runtime rico opcional reexecuta sobre o arquivo
 v2 irmão de `--cache`, com produtor declarado e resultados brutos por documento.
-Os segmentos concluídos ficam em v2 após uma falha. Replay de artefatos brutos de
-produção continua desativado até #242; `provider_calls_may_repeat` continua verdadeiro.
+Os segmentos concluídos ficam em v2 após uma falha. Desde #242, uma continuação rica
+reaproveita os resultados brutos dos documentos que o job anterior concluiu, quando prova
+todas as dimensões iguais (veja abaixo). A inspeção continua dizendo
+`provider_calls_may_repeat`, porque sem rede não prova rota nem capacidades.
 
 ## The three use cases
 
@@ -127,10 +129,28 @@ dimension in `REUSE_DIMENSIONS` was recorded and is equal. One that differs is `
 nobody recorded is `provenance_unproven`, and it is never called a change. The earliest stage that fails is where work
 would start.
 
-Em produção a seleção continua em `translate`: no legado não há artefato bruto;
-no rico a fronteira de recuperação ainda não verifica todas as dimensões necessárias.
-**Nada executa replay seletivo em produção.** A operação que restaura resultados
-brutos em uma continuação pertence à issue #242.
+### Replay through a continuation (#242)
+
+Reuse happens **through the continuation**: the ended job stays exactly as it ended, keeps its ready records, and is
+never reopened or given a new lease. Reconciliation settles the job and touches only staged records, so a raw-results
+record of a finished document stays usable.
+
+`TranslateProject` hands the runtime the continuation chain, nearest first and at most 32 jobs of the same project,
+command and runtime. For each document, the rich runtime takes the nearest job that stored that document's raw results
+and runs `select_resume_stage` with real evidence: integrity from the verified bytes, ownership, schema, and the nine
+`REUSE_DIMENSIONS` recorded in the payload (version 2) against those of the plan resolved for this run.
+
+| Found | Result |
+| --- | --- |
+| Every dimension recorded and equal, and the payload's raw fingerprint matches | Replay: no cache lookup and no provider call |
+| A dimension differs | Redone; warnings `raw_results_incompatible_plan` and `raw_results_changed_<dimension>` |
+| A dimension not recorded, such as a version 1 payload, or equal dimensions with another raw fingerprint | Redone; `raw_results_provenance_unproven`, never called a change |
+| Missing, partial or corrupt record | Redone, with `raw_results_artifact_corrupt` when a record exists. The earlier record is left as it is |
+| An unidentified plan, translation memory, context or legacy compatibility | Redone, as before: each run revalidates |
+
+The nearest record decides: an older job is not tried after a change. In the legacy runtime there are no raw results.
+Inspection without network cannot resolve the route or capabilities, so `stages` still reports them unproven: the
+proof happens when the continuation runs.
 
 ## What the CLI does with them
 

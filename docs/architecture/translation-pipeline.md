@@ -111,7 +111,7 @@ back to the adapter. It parses no markup and calls no provider. A composição e
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
 | Cache v2 em arquivo irmão separado, com identidade completa | Reutiliza o cache v1 existente |
-| Resume reexecuta sobre v2, sem replay de artefatos até #242 | [Resume](job-recovery.md) reexecuta sobre o v1 |
+| Resume reaproveita os resultados brutos provados do job anterior (#242) | [Resume](job-recovery.md) reexecuta sobre o v1 |
 
 `ayvu.legacy_translation` is the named compatibility
 path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
@@ -233,7 +233,7 @@ sem publicar EPUB parcial. O job fica retomável e os segmentos concluídos cont
 O glossário é aplicado sobre valores brutos de v2. Remover o rótulo volta ao legado em novas
 execuções; resume entre runtimes diferentes é recusado e nomeia `legacy/v1` e `rich/v2`.
 A declaração fica na configuração e na proveniência/identidade operacional, fora de repr,
-eventos, logs e checkpoints. O replay de artefatos brutos fica desativado na produção até #242.
+eventos, logs e checkpoints. Uma continuação reaproveita resultados brutos provados do job anterior (#242).
 Migration outside this production selection preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
 [standalone cache v2](standalone-cache-v2.md) for locking, recovery and limits.
 
@@ -249,8 +249,10 @@ digest and size are checked, then its content is compared with the document unit
 | Missing, partial or corrupt file | The record is withdrawn, its file stays, and the work is redone |
 | Valid digest but content that does not match | Fails closed with `invalid_raw_results` |
 
-**Limit:** only the owning job can replay, so a continuation job redoes the work. A job's lease must
-also be live, so [a resume](job-recovery.md#whether-a-stage-can-be-reused) does not replay yet.
+Another job replays only when it is a continuation and every recorded dimension is proved equal; see
+[replay through a continuation](job-recovery.md#replay-through-a-continuation-242). Payload version 2 records those
+dimensions; a version 1 payload still replays in its own job but proves nothing to a continuation. A job's lease must
+be live.
 Because a phase cannot return in one event stream, a second run in the same stream needs its own
 `progress_phase`.
 

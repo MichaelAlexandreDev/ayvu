@@ -325,14 +325,15 @@ def rewrite_payload(env, artifact_id, mutate):
 
 
 @pytest.mark.parametrize('mutate', [
-    lambda data: data.update(schema_version=2), lambda data: data.update(raw_fingerprint='sha256:' + '0' * 64),
+    lambda data: data.update(schema_version=3), lambda data: data.update(raw_fingerprint='sha256:' + '0' * 64),
     lambda data: data.update(revision_id='rev:v1:' + '0' * 64), lambda data: data.update(document_id='doc:v1:' + '0' * 64),
     lambda data: data.update(extra=1), lambda data: data['units'].pop(), lambda data: data['units'].reverse(),
     lambda data: data['units'][0].update(unit_id='unit:v1:' + '0' * 64), lambda data: data['units'][0].update(source='unknown'),
     lambda data: data['units'][0].update(source='dry_run'), lambda data: data['units'][0].update(raw=7),
     lambda data: data['units'][0].update(raw=None), lambda data: data['units'][0].update(extra=1),
     lambda data: data['units'][0].update(raw='AYVU PROTECTED 3'),
-], ids=range(14))
+    lambda data: data.pop('dimensions'), lambda data: data.update(schema_version=1), lambda data: data.update(schema_version=True),
+], ids=range(17))
 def test_a_mismatched_payload_with_a_valid_digest_fails_closed(env, mutate):
     first = env.translate()
     rewrite_payload(env, first.artifact_id, mutate)

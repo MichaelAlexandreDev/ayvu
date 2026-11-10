@@ -9,6 +9,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- Retomada rica reaproveita resultados brutos (#242): uma continuação usa os documentos que
+  o job anterior concluiu, sem chamar tradutor nem cache, quando as nove dimensões
+  registradas são iguais. Mudança em uma delas refaz o documento e avisa qual foi
+  (`raw_results_changed_<dimensão>`); dimensão não registrada impede o reuso sem ser
+  chamada de mudança. O job anterior não é reaberto. Os resultados brutos passam à versão 2.
+
 - Recuperação conservadora de memória governada no runtime rich/v2 por
   `--translation-memory` (#162), após o cache exato v2. Concordância e fuzzy têm
   limites de candidatos/bytes e decisões com proveniência. Fuzzy sugere por padrão;

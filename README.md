@@ -938,7 +938,10 @@ Uma falha do provedor para o runtime rico na primeira ocorrência e não publica
 Os segmentos concluídos ficam em v2; corrija o problema e execute `uv run ayvu resume livro.epub`.
 A retomada exige o mesmo runtime do job: adicionar ou remover o rótulo entre a falha e o
 resume é recusado como incompatibilidade `legacy/v1`/`rich/v2`. Restaure a configuração
-anterior para retomar. Replay de resultados brutos no resume continua reservado à issue #242.
+anterior para retomar. A retomada reaproveita os documentos que o job anterior concluiu, sem
+chamar o tradutor nem o cache, quando prova que nada mudou: modelo, rota, capacidades,
+configuração, livro e versão do pipeline. Se algo mudou, ela traduz de novo e avisa o que foi,
+por exemplo `Aviso da tradução: raw_results_changed_provider`.
 
 Sem rótulo, o runtime `legacy/v1`, suas mensagens, continuação após erros e cache-only com
 EPUB parcial continuam os mesmos. Remover o rótulo também permite voltar ao cache v1 intacto

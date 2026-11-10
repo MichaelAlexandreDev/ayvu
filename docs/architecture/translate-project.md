@@ -54,8 +54,9 @@ associação em vez de rebaixar a entrada para v1. Checkpoints legados omitem o 
 Uma falha do provedor no rico deixa um job `failed`, retomável, sem EPUB parcial.
 Segmentos já concluídos permanecem em v2; o retry usa esses valores pré-glossário.
 O runtime aplica o glossário em cada execução, inclusive sobre acertos do cache.
-Resultados brutos são produzidos por documento, mas seu replay de produção permanece
-desativado até #242. Publicação, validação, relatório e exportação de revisão seguem
+Resultados brutos são produzidos por documento. Uma continuação recebe a cadeia de jobs
+anteriores em `RuntimeContext.reusable_jobs` e só reaproveita o que prova igual (#242,
+[recuperação](job-recovery.md#replay-through-a-continuation-242)). Publicação, validação, relatório e exportação de revisão seguem
 os mesmos ports do caminho legado, preservando o EPUB original.
 
 | Module | Layer | Responsibility |

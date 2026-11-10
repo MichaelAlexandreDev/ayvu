@@ -476,16 +476,18 @@ class _DocumentExecutor:
         self._documents += 1
         context = self._context
         job = context.current_job() if context.current_job is not None else context.job
+        # Raw results replay only from earlier jobs of this continuation chain, after every dimension is proved.
         result = self._translator.translate(document, ExecutionContext(
             job, context.job.lease.owner_token, context.cancellation,
-            progress_phase=f"document_{self._documents}"), replay_raw_results=False)
+            progress_phase=f"document_{self._documents}", reusable_jobs=context.reusable_jobs),
+            replay_raw_results=bool(context.reusable_jobs))
         executions = {}
         for unit, translated in zip(document.units, result.units, strict=True):
             template = html_unit_template(unit)
             tokenized = translated.tokenized_text
             if tokenized is None:
                 raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "missing_tokenized_result"))
-            status = (STATUS_CACHE if translated.source is UnitSource.EXACT_CACHE else
+            status = (STATUS_CACHE if translated.source in (UnitSource.EXACT_CACHE, UnitSource.ARTIFACT_REPLAY) else
                       STATUS_MEMORY if translated.source in (UnitSource.APPROVED_MEMORY, UnitSource.APPLIED_MEMORY) else
                       STATUS_MISSING if translated.source is UnitSource.CACHE_ONLY_MISSING else STATUS_TRANSLATED)
             kind = unit.content.kind.name
