@@ -373,7 +373,8 @@ def test_rlimit_cpu_is_per_process_not_cpu_rate_or_tree_quota(root):
     with spike.Session(root) as session:
         session.command('cpu')
         with pytest.raises(spike.Refusal, match='^worker_crashed$'):
-            session.receive(3.0)
+            # RLIMIT_CPU counts CPU time, so a busy runner needs far more wall time than 1 s.
+            session.receive(30.0)
         session.process.wait(timeout=spike.KILL_GRACE)
         assert session.process.returncode == -signal.SIGXCPU
 
