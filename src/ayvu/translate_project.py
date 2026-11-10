@@ -48,6 +48,8 @@ from .translation_engine import (
 
 TRANSLATE_COMMAND_TYPE = "translate_project"
 TRANSLATE_COMMAND_VERSION = 1
+# Matches the translation document's own bound on how far back a continuation looks.
+MAX_CONTINUATION_CHAIN = 32
 OUTPUT_ROLE = "translated_output"
 RECONSTRUCT_STAGE = "reconstruct"
 RECONSTRUCT_STAGE_VERSION = 1
@@ -199,6 +201,8 @@ class RuntimeContext:
     cancellation: CancellationSource
     events: JobEventSink
     current_job: Callable[[], TranslationJob] | None = field(default=None, repr=False)
+    # Earlier jobs of this continuation chain, nearest first. A runtime may reuse only what it proves from them.
+    reusable_jobs: tuple[str, ...] = ()
 
     def __repr__(self) -> str:
         return "RuntimeContext()"
@@ -668,7 +672,8 @@ class _Run:
         options = self._command.options
         publication = ports.publications.publication(self._request, self._token, self._validate_staged)
         context = RuntimeContext(self._job, self._cancellation, self,
-                                 current_job=lambda: ports.jobs.get(self._job.job_id).job)
+                                 current_job=lambda: ports.jobs.get(self._job.job_id).job,
+                                 reusable_jobs=self._continuation_chain())
         with ports.runtime.resources(context) as resources:
             engine = TranslationEngine(ports.formats, resources.executor, pool=resources.pool, observer=self._engine_observer(),
                                        cancellation=self._cancellation.token, prepare_document=resources.prepare_document)
@@ -677,6 +682,22 @@ class _Run:
                 options.translate_metadata, options.translate_alt_text, options.chapter_selection, options.fail_fast,
                 options.cache_only and options.require_full_cache, options.workers))
         self._conclude()
+
+    def _continuation_chain(self) -> tuple[str, ...]:
+        """The jobs this one continues, nearest first. Each ended before its continuation existed and stays as it ended."""
+        chain: list[str] = []
+        job = self._job
+        while job.continuation_of is not None and len(chain) < MAX_CONTINUATION_CHAIN:
+            try:
+                parent = self._ports.jobs.get(job.continuation_of).job
+            except JobError:
+                break
+            if (parent.request.project_id, parent.request.command_type, parent.request.command_version) != (
+                    self._job.request.project_id, TRANSLATE_COMMAND_TYPE, self._job.request.command_version):
+                break
+            chain.append(parent.job_id)
+            job = parent
+        return tuple(chain)
 
     def emit(self, event: JobEvent) -> JobEventAcceptance:
         """Forward warnings. The engine owns chapter progress and settlement owns cancellation.

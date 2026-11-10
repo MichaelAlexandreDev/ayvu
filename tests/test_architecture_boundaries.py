@@ -412,6 +412,7 @@ ALLOWED_INTERNAL_EDGES = {
     ('ayvu.context_execution', 'ayvu.provider_network'),
     ('ayvu.context_execution', 'ayvu.translation_context'),
     ('ayvu.translation_document', 'ayvu.context_execution'),
+    ('ayvu.translation_document', 'ayvu.job_recovery'),
     ('ayvu.translation_document', 'ayvu.translation_context'),
     ('ayvu.translate_project_composition', 'ayvu.context_execution'),
     ('ayvu.translate_project_composition', 'ayvu.translation_context'),

@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Callable, Protocol
@@ -56,7 +56,8 @@ from .content import ContentDocument, TranslationUnit
 from .context_execution import ContextExecution, plan_with_context
 from .translation_context import ContextError
 from .domain import LanguagePair
-from .job import JobState, TranslationJob
+from .job import JobState, JobValidationError, TranslationJob, validate_job_identity
+from .job_recovery import REUSE_DIMENSIONS, ArtifactIntegrity, ResumeStage, StageEvidence, select_resume_stage
 from .job_events import (
     CancellationAcknowledgement, JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobProgress, JobWarning,
 )
@@ -74,7 +75,12 @@ from .translation_pipeline import (
 from .translation_plan import ResolvedTranslationPlan
 from .translation_protection import TAG_TOKEN_PATTERN, TextParts, protected_content_is_intact
 
-RAW_RESULTS_VERSION = 1
+# Version 2 records the producing dimensions, so a continuation can prove or name what changed.
+RAW_RESULTS_VERSION = 2
+_RAW_RESULTS_VERSIONS = frozenset({1, RAW_RESULTS_VERSION})
+# How far back a continuation looks for raw results. A chain this long is already unusual.
+MAX_REUSABLE_JOBS = 32
+_MAX_ANCESTOR_ARTIFACTS = 1024
 RAW_RESULTS_ROLE = "raw_results"
 RAW_RESULTS_STAGE = "raw_cache_write"
 RAW_RESULTS_MEDIA_TYPE = "application/json"
@@ -196,6 +202,8 @@ class ExecutionContext:
     # A phase cannot return, so a job translating several documents gives each its own.
     progress_phase: str = "translate"
     cache_scope: AuthorizedCacheScope | None = None
+    # Earlier jobs of the same continuation chain, nearest first, whose raw results this job may prove and reuse.
+    reusable_jobs: tuple[str, ...] = ()
 
     def __repr__(self) -> str:
         return f"ExecutionContext(job_id={self.job.job_id!r})"
@@ -224,6 +232,48 @@ def _decision_metadata(decision: RetrievalDecision, source: UnitSource) -> dict:
     }
 
 
+def _canonical_value(value: object) -> object:
+    if isinstance(value, StrEnum):
+        return value.value
+    if is_dataclass(value) and not isinstance(value, type):
+        return {key: _canonical_value(item) for key, item in asdict(value).items()}
+    if isinstance(value, dict):
+        return {str(key): _canonical_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_canonical_value(item) for item in value]
+    return value
+
+
+def _dimension_digest(value: object) -> str:
+    data = json.dumps(_canonical_value(value), sort_keys=True, ensure_ascii=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(data.encode("ascii")).hexdigest()
+
+
+def reuse_dimensions(document: ContentDocument, plan: ResolvedTranslationPlan) -> dict[str, str]:
+    """One opaque digest per ``REUSE_DIMENSIONS`` name, from what produced raw text for this document."""
+    producer = plan.producer
+    raw_stages = [[item.stage_id, item.version] for item in plan.stages if item.stage_id != "post_processing"]
+    values = {
+        "input": [document.revision_id, document.source_fingerprint, document.source_locale],
+        "configuration": [plan.policy_ref, plan.configuration_revision, plan.glossary_ref if plan.glossary_native else None,
+                          plan.context_ref, plan.context_strategy, plan.context_revision, plan.prompt_strategy,
+                          plan.prompt_revision, plan.terminology_revision, plan.generation_parameters],
+        "provider": [producer.provider, producer.model, producer.adapter],
+        # Only the languages: each hop's producer and capabilities are already their own dimensions.
+        "route": [plan.route.source, plan.route.intermediate, plan.route.target,
+                  None if plan.route_hops is None else [[hop.source_locale, hop.target_locale] for hop in plan.route_hops]],
+        "capability": [plan.capabilities, plan.chunk_limit],
+        "format": [document.adapter, plan.format_constraints],
+        "locator": [document.project_id, document.document_id, document.logical_key,
+                    [unit.unit_id for unit in document.units]],
+        "pipeline": [producer.pipeline, plan.pipeline_revision, plan.segmentation_revision, plan.chunking_revision,
+                     plan.protection_revision, plan.normalization_revision, plan.schema_version],
+        "stage": raw_stages,
+    }
+    assert tuple(values) == REUSE_DIMENSIONS
+    return {name: _dimension_digest(value) for name, value in values.items()}
+
+
 def _raw_payload(document: ContentDocument, plan: ResolvedTranslationPlan,
                  raw: list[tuple[str, UnitSource, str | None]], results=()) -> bytes:
     decisions = {result.unit_id: result.retrieval_decision for result in results}
@@ -234,12 +284,23 @@ def _raw_payload(document: ContentDocument, plan: ResolvedTranslationPlan,
             value["decision"] = _decision_metadata(decision, source)
         return value
     return json.dumps({
+        "dimensions": reuse_dimensions(document, plan),
         "document_id": document.document_id,
         "raw_fingerprint": plan.raw_fingerprint,
         "revision_id": document.revision_id,
         "schema_version": RAW_RESULTS_VERSION,
         "units": [entry(unit_id, source, text) for unit_id, source, text in raw],
     }, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("ascii")
+
+
+def _json_object(payload: bytes | None) -> dict | None:
+    if payload is None:
+        return None
+    try:
+        data = json.loads(payload)
+    except (ValueError, RecursionError):
+        return None
+    return data if type(data) is dict else None
 
 
 def _template(unit: TranslationUnit) -> tuple[str, list[str]]:
@@ -290,6 +351,7 @@ class DocumentTranslator:
         self._clock = clock
         self._new_id = new_id
         self._translation_context = translation_context
+        self._ancestors: dict[str, dict[str, Artifact]] = {}
 
     def __repr__(self) -> str:
         return "DocumentTranslator()"
@@ -353,6 +415,15 @@ class DocumentTranslator:
             raise refuse("job_not_running")
         if job.lease is None or job.lease.owner_token != context.owner_token or job.lease.expired(self._clock()):
             raise refuse("lease_not_held")
+        reusable = context.reusable_jobs
+        if (type(reusable) is not tuple or len(reusable) > MAX_REUSABLE_JOBS or len(set(reusable)) != len(reusable)
+                or job.job_id in reusable):
+            raise refuse("invalid_reusable_jobs")
+        for job_id in reusable:
+            try:
+                validate_job_identity(job_id)
+            except JobValidationError:
+                raise refuse("invalid_reusable_jobs") from None
         route = self._plan.route
         for unit in document.units:
             locale = unit.content.source_locale
@@ -390,14 +461,14 @@ class DocumentTranslator:
             if found.reason != "artifact_not_found":
                 # A damaged ready record would block new work forever, so withdraw it. Its file stays.
                 self._artifacts.withdraw_corrupt(request)
-            return None
+            return self._replay_from_chain(run)
         artifact = found.artifact
         try:
             with self._artifacts.open_reusable(artifact.artifact_id, request) as stream:
                 payload = stream.read()
         except (ArtifactIntegrityError, ArtifactPathError):
             self._artifacts.retire_if_corrupt(artifact.artifact_id)
-            return None
+            return self._replay_from_chain(run)
         raw = self._decode_raw(payload, run.document, run.cache_scope)
         results = []
         for index, unit in enumerate(run.document.units):
@@ -407,12 +478,91 @@ class DocumentTranslator:
         self._record_replay(run, artifact)
         return run.result(tuple(results), artifact.artifact_id)
 
+    def _chain_artifacts(self, project_id: str, job_id: str) -> dict[str, Artifact]:
+        """The newest ready raw-results record of each document in one earlier job. Read only, once per job."""
+        known = self._ancestors.get(job_id)
+        if known is not None:
+            return known
+        found: dict[str, Artifact] = {}
+        try:
+            artifacts = self._artifacts.list_ready(job_id, limit=_MAX_ANCESTOR_ARTIFACTS)
+        except ArtifactError:
+            artifacts = ()
+        for artifact in artifacts:
+            request = artifact.request
+            if ((request.project_id, request.job_id, request.role, request.stage, request.media_type)
+                    != (project_id, job_id, RAW_RESULTS_ROLE, RAW_RESULTS_STAGE, RAW_RESULTS_MEDIA_TYPE)):
+                continue
+            payload = self._read_chain_payload(artifact)
+            data = _json_object(payload)
+            if data is not None and type(data.get("document_id")) is str:
+                found[data["document_id"]] = artifact  # Oldest first, so a redone document keeps its newest record.
+        self._ancestors[job_id] = found
+        return found
+
+    def _read_chain_payload(self, artifact: Artifact) -> bytes | None:
+        """Verified bytes of an earlier job's record, or None. That job is ended and its records are never changed."""
+        try:
+            with self._artifacts.open_reusable(artifact.artifact_id, artifact.request) as stream:
+                return stream.read()
+        except (ArtifactIntegrityError, ArtifactPathError, ArtifactError, OSError):
+            return None
+
+    def _replay_from_chain(self, run: _DocumentRun) -> DocumentTranslationResult | None:
+        """Reuse an earlier job's raw results only when ``select_resume_stage`` proves every dimension equal."""
+        reusable = run.context.reusable_jobs
+        if not reusable:
+            return None
+        document = run.document
+        for job_id in reusable:
+            artifact = self._chain_artifacts(document.project_id, job_id).get(document.document_id)
+            if artifact is None:
+                continue  # This job never finished this document; an earlier one may have.
+            payload = self._read_chain_payload(artifact)
+            data = _json_object(payload)
+            schema_valid = (data is not None and type(data.get("schema_version")) is int
+                            and data["schema_version"] in _RAW_RESULTS_VERSIONS and data.get("document_id") == document.document_id)
+            recorded = data.get("dimensions") if schema_valid else None
+            produced = (tuple((name, recorded.get(name)) for name in REUSE_DIMENSIONS)
+                        if type(recorded) is dict and all(type(value) is str for value in recorded.values()) else ())
+            evidence = (
+                StageEvidence(ResumeStage.TRANSLATE,
+                              ArtifactIntegrity.CORRUPT if payload is None else ArtifactIntegrity.VERIFIED,
+                              owned=artifact.request.job_id == job_id and artifact.request.project_id == document.project_id,
+                              schema_valid=schema_valid, expected=tuple(reuse_dimensions(document, self._plan).items()),
+                              produced=produced),
+                # The output is always built again from the replayed raw results.
+                StageEvidence(ResumeStage.RECONSTRUCT, ArtifactIntegrity.MISSING),
+            )
+            selection = select_resume_stage(evidence)
+            if selection.resume_from is not ResumeStage.RECONSTRUCT:
+                run.emit(JobWarning(f"raw_results_{selection.reason.value}"))
+                for name in selection.changed:
+                    run.emit(JobWarning(f"raw_results_changed_{name}"))
+                return None
+            try:
+                raw = self._decode_raw(payload, document, run.cache_scope)
+            except TranslationExecutionError:
+                # Every recorded dimension matched, so something unrecorded differs. Prove nothing and redo.
+                run.emit(JobWarning("raw_results_provenance_unproven"))
+                return None
+            results = []
+            for index, unit in enumerate(document.units):
+                run.checkpoint("pipeline_before_unit")
+                results.append(run.apply_raw(unit, raw[index]))
+                run.progress(index + 1)
+            self._record_replay(run, artifact)
+            return run.result(tuple(results), artifact.artifact_id)
+        return None
+
     def _decode_raw(self, payload: bytes, document: ContentDocument, scope: AuthorizedCacheScope):
         invalid = TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "invalid_raw_results"))
         try:
             data = json.loads(payload)
-            if (type(data) is not dict or set(data) != {"document_id", "raw_fingerprint", "revision_id", "schema_version", "units"}
-                    or data["schema_version"] != RAW_RESULTS_VERSION or data["document_id"] != document.document_id
+            keys = {"document_id", "raw_fingerprint", "revision_id", "schema_version", "units"}
+            if (type(data) is not dict or data.get("schema_version") not in _RAW_RESULTS_VERSIONS
+                    or set(data) != (keys if data["schema_version"] == 1 else keys | {"dimensions"})
+                    or type(data["schema_version"]) is not int or data["document_id"] != document.document_id
                     or data["revision_id"] != document.revision_id or data["raw_fingerprint"] != self._plan.raw_fingerprint
                     or type(data["units"]) is not list or len(data["units"]) != len(document.units)):
                 raise invalid
