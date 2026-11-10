@@ -5,6 +5,7 @@ import json
 import multiprocessing
 import os
 import stat
+from pathlib import Path
 
 import pytest
 
@@ -299,6 +300,33 @@ def test_concurrent_unicode_alias_creates_share_collision_domain(tmp_path):
     failures = _run_pair(_create_alias_worker, [(tmp_path, "Café.json"), (tmp_path, "CAFE\u0301.json")])
     assert sum(failure is None for failure in failures) == 1
     assert len(list_glossaries(ManagedGlossaryRepository(tmp_path)).value) == 1
+
+
+def test_aliases_are_listed_through_a_handle_opened_under_the_lock(tmp_path, monkeypatch):
+    """On overlayfs, a directory handle opened before another process added a file can list stale
+    entries. Emulate that: the handle opened on the root lists nothing, so only a fresh handle sees
+    the existing alias. Found by the Docker test stage (#261)."""
+    repo = ManagedGlossaryRepository(tmp_path)
+    assert create_glossary(repo, ref("Café.json"), (entry(),)).failure is None
+    real_open, real_listdir = os.open, os.listdir
+    root_handles = set()
+
+    def tracking_open(path, flags, *args, **kwargs):
+        descriptor = real_open(path, flags, *args, **kwargs)
+        if Path(path) == repo._root:
+            root_handles.add(descriptor)
+        return descriptor
+
+    def stale_listdir(path="."):
+        return [] if path in root_handles else real_listdir(path)
+
+    monkeypatch.setattr(os, "open", tracking_open)
+    monkeypatch.setattr(os, "listdir", stale_listdir)
+    result = create_glossary(repo, ref("CAFE\u0301.json"), (entry(),))
+    monkeypatch.undo()
+    assert root_handles
+    assert result.failure is not None
+    assert sorted(path.name for path in tmp_path.glob("*.json")) == ["Café.json"]
 
 
 def test_replacement_between_stat_and_open_is_rejected(tmp_path, monkeypatch):

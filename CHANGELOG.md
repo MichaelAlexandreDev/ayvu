@@ -244,6 +244,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Corrigido
 
+- Glossários gerenciados: duas criações simultâneas do mesmo nome em grafias
+  diferentes (por exemplo `Café.json` e `CAFE` com acento combinante) podiam ambas
+  vencer em overlayfs, usado pelo Docker, porque a listagem usava um descritor aberto
+  antes da trava. A listagem agora usa um descritor aberto sob a trava. Achado pela
+  etapa Docker da #261.
 - `--overwrite` com a saída igual ao original agora é recusado antes de qualquer
   escrita. Antes o comando terminava com `BadZipFile`.
 

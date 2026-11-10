@@ -1155,17 +1155,23 @@ def test_the_lease_is_renewed_while_a_long_call_blocks(world):
     command = world.command()
     use_case = world.use_case(command, lease_renewal=timedelta(milliseconds=1))
     jobs = use_case._ports.jobs
-    renewed = threading.Event()
+    blocking, renewed = threading.Event(), threading.Event()
     original = jobs.renew_lease
     def renew(*args):
+        # Only the renewal made while the call blocks reaches the store. Renewing every millisecond
+        # throughout kept the store busy on a slow machine, so publication failed as busy (#261).
+        if not blocking.is_set() or renewed.is_set():
+            return None
         result = original(*args)
         renewed.set()
         return result
     jobs.renew_lease = renew
     def block(text):
+        blocking.set()
         assert renewed.wait(timeout=30)
     world.translator.on_call = block
     assert use_case.execute(command).state is JobState.VALIDATED
+    assert renewed.is_set()
 
 
 def test_a_busy_store_during_renewal_is_tried_again(world):
