@@ -1,8 +1,8 @@
 # Pesquisa sintética de worker local — #167
 
-A [decisão](../../docs/architecture/adr-local-worker-isolation.md) permanece
-`Proposed`. Este diretório é descartável e não contém um runner utilizável por
-Ayvu. `probe.py` e `measure.py` usam apenas stdlib; somente testes importam
+A [decisão](../../docs/architecture/adr-local-worker-isolation.md) foi
+`Accepted` em 2026-11-10. Este diretório continua descartável e não contém
+um runner utilizável por Ayvu. `probe.py` e `measure.py` usam apenas stdlib; somente testes importam
 contratos de produção para verificar compatibilidade. Não executar com dados
 reais ou estender os comandos para aceitar paths, textos ou credenciais.
 
