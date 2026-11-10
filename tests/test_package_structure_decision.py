@@ -28,9 +28,9 @@ def source_files() -> set[str]:
     return {path.relative_to(SOURCE).as_posix() for path in SOURCE.rglob("*.py") if "__pycache__" not in path.parts}
 
 
-def test_the_decision_has_a_status_and_the_acceptance_gate():
-    assert re.search(r"^Status: (Proposed|Accepted)$", text(), re.M)
-    assert "## Gate de aceite" in text()
+def test_the_decision_is_accepted_with_a_record_and_a_gate():
+    assert re.search(r"^Status: Accepted$", text(), re.M)
+    assert "## Acceptance record" in text() and "## Acceptance gate" in text()
 
 
 def test_every_file_is_either_still_mapped_or_inside_a_target_package():
