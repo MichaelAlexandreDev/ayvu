@@ -47,6 +47,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Licença: o Ayvu deixa de ser MIT e passa a ser proprietário, com todos os direitos
+  reservados a S.Ralt. Versões até o commit `975dbe7` continuam MIT para quem as
+  recebeu. O pacote é marcado para não ser enviado ao PyPI por engano.
+
 - O transporte LibreTranslate fixa os sockaddrs loopback validados, ignora
   proxies/credenciais ambientes e `.netrc` e recusa todo redirect. URLs remotas,
   HTTPS, authorities ambíguas e credenciais na URL agora retornam recusa tipada,

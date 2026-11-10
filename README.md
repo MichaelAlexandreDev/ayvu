@@ -1079,3 +1079,9 @@ ayvu/
 - EPUBs com XHTML malformado podem depender do comportamento do parser.
 - Livros técnicos costumam exigir glossário para manter termos consistentes.
 - A qualidade final depende do servidor de tradução usado.
+
+## Licença
+
+Software proprietário, com todos os direitos reservados a S.Ralt. Veja `LICENSE`.
+Versões até o commit `975dbe7` foram publicadas sob a licença MIT.
+Componentes de terceiros mantêm suas próprias licenças; a EbookLib é AGPL.

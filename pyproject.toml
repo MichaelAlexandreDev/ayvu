@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,9 +9,13 @@ description = "CLI para traduzir EPUBs com tradutor local HTTP, preservando a es
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-  { name = "ayvu contributors" }
+  { name = "S.Ralt" }
 ]
-license = { text = "MIT" }
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+classifiers = [
+  "Private :: Do Not Upload"
+]
 dependencies = [
   "ebooklib>=0.18",
   "beautifulsoup4>=4.12",
