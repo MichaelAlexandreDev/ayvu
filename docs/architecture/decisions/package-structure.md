@@ -1,63 +1,74 @@
-# Estrutura de pacotes e regras de dependência
+# Package structure and dependency rules
 
-Status: Proposed
+Status: Accepted
 
 Decision-Date: `2026-11-10`
 
-Owners: owner/mantenedor do repositório Ayvu (aceite); a refatoração é executada pelo Claude Code,
-por decisão do owner em 2026-11-10.
+Owners: the Ayvu repository owner and maintainer (acceptance). Claude Code carries out the refactoring, by
+the owner's decision of 2026-11-10.
 
 Issue: [#267 — REF-02](https://github.com/MichaelAlexandreDev/ayvu/issues/267).
 
-Base: `main` em `7902aba`. A medição de partida está em [refactor-baseline.md](../refactor-baseline.md),
-reproduzível com `scripts/arch_metrics.py`.
+Base: `main` at `7902aba`. The starting measurements are in [refactor-baseline.md](../refactor-baseline.md),
+reproducible with `scripts/arch_metrics.py`.
 
-## Contexto
+## Acceptance record
 
-As [fronteiras do monólito modular](../modular-monolith-boundaries.md) já são `Accepted`. Elas nomeiam
-módulos (Projects, Jobs, Content, Translation, Knowledge, Formats, Providers, Review, Provenance,
-Artifacts, Policies) e camadas (Domain, Application, adaptadores, raízes de composição). As pastas, porém,
-não refletem isso:
-- `src/ayvu` tem 116 arquivos e 37.935 linhas, quase todos no mesmo nível;
-- 30 arquivos passam de 400 linhas e 8 de 800; 18 funções passam de 80 linhas;
-- 12 pares de grupos de módulos se importam nos dois sentidos.
+Accepted on 2026-11-10 by the repository owner, through explicit approval in the development session
+("eu aceito o REF-02"), with no restrictions on D1 to D14, the target tree, the file map or the sequence.
 
-Depois de estudar as alternativas, o owner indicou esta composição:
-- monólito modular por fora, hexagonal na medida dentro de cada módulo;
-- pipeline no centro da tradução;
-- plugins internos para tradutores, formatos e papéis de IA;
-- cliente-servidor só para o Lite servidor e o celular;
-- edições escolhidas na composição;
-- DDD estratégico;
-- migração por strangler fig.
+Two additions accepted at the same time:
+- **D15**, the language rule below.
+- **REF-20**, which reorganizes `docs/architecture/` after the code moves, and is added to the sequence.
 
-Respostas do owner em 2026-11-10:
-- o núcleo compartilhado se chama `kernel/`;
-- arquivos têm até 400 linhas, testes incluídos, e funções até 80;
-- `import-linter` verifica as fronteiras;
-- sem shims de compatibilidade;
-- a refatoração vem primeiro, sem issues novas de funcionalidade até ela terminar;
-- o runtime v1 deve ser aposentado, não mantido;
-- a ordem de camadas (D3) foi aceita como direção.
+This record was first proposed in Portuguese (PR #269). Under D15, it is kept in English from this change on.
+The translation changes no decision.
 
-## Decisões
+## Context
 
-### D1. Monólito modular, hexagonal na medida
-- Pastas por capacidade. Dentro de cada módulo, começar plano: `model.py`, `service.py`, `store.py`.
-- Um módulo só ganha subpacotes (`domain/`, `application/`, `adapters/`) quando passa de uns 6 arquivos
-  ou de 2.000 linhas.
-- Interface (porta) só onde existe, ou vai existir de verdade, mais de uma implementação.
+The [modular monolith boundaries](../modular-monolith-boundaries.md) are already `Accepted`. They name the
+modules (Projects, Jobs, Content, Translation, Knowledge, Formats, Providers, Review, Provenance, Artifacts,
+Policies) and the layers (Domain, Application, adapters, composition roots). The folders do not reflect
+them:
+- `src/ayvu` has 116 files and 37,935 lines, almost all on one level;
+- 30 files are over 400 lines and 8 over 800; 18 functions are over 80 lines;
+- 12 pairs of module groups import each other in both directions.
 
-### D2. Uma API pública por módulo
-- O `__init__.py` de cada módulo lista o que é público.
-- Outros módulos importam só essa API: `ayvu.knowledge.cache`, nunca `ayvu.knowledge.cache.admin_v2_store`.
-- Dentro do próprio módulo, os imports internos são livres.
+After studying the alternatives, the owner chose this composition:
+- a modular monolith outside, with hexagonal ports and adapters inside each module, in proportion;
+- a pipeline at the centre of translation;
+- internal plugins for translators, formats and AI roles;
+- client-server only for the Lite server and mobile;
+- editions chosen in composition;
+- strategic DDD;
+- a strangler-fig migration.
 
-### D3. Camadas com direção única
-Quem está embaixo nunca importa quem está em cima. Módulos na mesma linha não se importam entre si,
-salvo onde a linha diz o contrário.
+The owner's answers on 2026-11-10:
+- the shared core is named `kernel/`;
+- files are limited to 400 lines, tests included, and functions to 80;
+- `import-linter` checks the boundaries;
+- no compatibility shims;
+- the refactoring comes first, with no new feature issues until it ends;
+- the v1 runtime is to be retired, not kept;
+- the layer order (D3) is accepted.
 
-| Camada (de cima para baixo) | Módulos |
+## Decisions
+
+### D1. Modular monolith, hexagonal in proportion
+- Folders by capability. Inside each module, start flat: `model.py`, `service.py`, `store.py`.
+- A module grows subpackages (`domain/`, `application/`, `adapters/`) only past about 6 files or 2,000 lines.
+- A port (interface) only where more than one implementation exists or really will.
+
+### D2. One public API per module
+- Each module's `__init__.py` lists what is public.
+- Other modules import only that API: `ayvu.knowledge.cache`, never `ayvu.knowledge.cache.admin_v2_store`.
+- Imports inside a module are free.
+
+### D3. One-way layers
+A lower layer never imports a higher one. Modules on the same row do not import each other unless the row
+says otherwise.
+
+| Layer (top to bottom) | Modules |
 | --- | --- |
 | 1 | `interfaces` (cli, desktop, server) |
 | 2 | `composition` |
@@ -71,72 +82,80 @@ salvo onde a linha diz o contrário.
 | 10 | `content`, `provenance`, `network`, `preferences`, `library`, `application` |
 | 11 | `kernel` |
 
-`application/` guarda só os contratos realmente transversais que sobrarem de `cli_contracts.py`.
+`application/` holds only the truly cross-cutting contracts left over from `cli_contracts.py`.
 
-### D4. `kernel/` pequeno de propósito
-- Recebe identificadores, validação de UTC, cancelamento, falhas e avisos tipados, o executor de
-  migrações SQLite e os valores de domínio comuns (idiomas).
-- Só entra o que três ou mais módulos usam. O `kernel` não importa nenhum outro módulo do Ayvu.
+### D4. A deliberately small `kernel/`
+- It takes identifiers, UTC validation, cancellation, typed failures and warnings, the SQLite migration
+  runner and the common domain values (languages).
+- Only what three or more modules use goes in. `kernel` imports no other Ayvu module.
 
-### D5. A composição sai dos módulos
-- Os `*_composition.py` vão para `composition/builders/`. As raízes ficam em `composition/cli.py`,
-  `composition/desktop.py` e, no futuro, `composition/server.py`.
-- Uma raiz escolhe e constrói adaptadores. Não executa etapas de tradução nem acumula regra de negócio.
+### D5. Composition leaves the modules
+- The `*_composition.py` files go to `composition/builders/`. The roots go to `composition/cli.py`,
+  `composition/desktop.py` and, later, `composition/server.py`.
+- A root selects and builds adapters. It runs no translation stage and holds no business rule.
 
-### D6. Edições na composição
-- `composition/editions.py` declara o que cada edição liga (Lite, Free, AI).
-- Nenhum módulo testa a edição. Plugins pagos podem morar em pacotes fechados separados.
-- A definição das edições depende do owner e da #100 (REF-17).
+### D6. Editions in composition
+- `composition/editions.py` declares what each edition enables (Lite, Free, AI).
+- No module checks the edition. Paid plugins can live in separate closed packages.
+- Defining the editions depends on the owner and on #100 (REF-17).
 
-### D7. Runtime v1 em quarentena
-- O v1 é o padrão de hoje quando não há rótulo de modelo. Os arquivos do v1 vão para `v1/`.
-- `v1` pode importar qualquer módulo; nenhum módulo importa `v1`, só `composition`.
-- O owner decidiu aposentar o v1. Como e quando é a REF-18, depois de listar o que só o v1 faz.
+### D7. The v1 runtime in quarantine
+- v1 is today's default when no model label is set. Its files move to `v1/`.
+- `v1` may import any module; no module imports `v1`, only `composition`.
+- The owner decided to retire v1. How and when is REF-18, after listing what only v1 does.
 
-### D8. Sem shims
-- Mover um arquivo atualiza todos os imports na mesma PR. Nenhum arquivo fica só reexportando o novo lugar.
-- Os entrypoints (`ayvu`, `ayvu-desktop`) mudam de caminho no `pyproject.toml`; os comandos continuam iguais.
-- Justificativa: o repositório é privado, não está no PyPI e ninguém de fora importa o Ayvu.
+### D8. No shims
+- Moving a file updates every import in the same PR. No file is left only re-exporting the new place.
+- The entry points (`ayvu`, `ayvu-desktop`) change path in `pyproject.toml`; the commands stay the same.
+- Rationale: the repository is private, not on PyPI, and nobody outside imports Ayvu.
 
-### D9. Identidades persistidas congeladas
-- `tests/test_persisted_identities.py` (REF-01) congela as tags de domínio, as versões e os digests.
-- Nenhuma classe que entra em fingerprint é renomeada (`CreateCandidate`, `DeriveRevision`, `ReviewRevision`).
-- Mudar uma identidade exige migração, novo número de versão e uma decisão explícita na PR.
+### D9. Frozen persisted identities
+- `tests/test_persisted_identities.py` (REF-01) freezes the domain tags, versions and digests.
+- No class that enters a fingerprint is renamed (`CreateCandidate`, `DeriveRevision`, `ReviewRevision`).
+- Changing an identity needs a migration, a version bump and an explicit decision in the PR.
 
-### D10. Responsabilidade única com catraca de tamanho
-- Arquivo novo: até 400 linhas, testes incluídos. Função nova: até 80 linhas.
-- Os arquivos e funções maiores de hoje ficam numa lista com o tamanho atual e só podem diminuir.
-- O tamanho é o alarme. O critério é "este arquivo tem um motivo só para mudar?".
+### D10. Single responsibility with a size ratchet
+- New files: at most 400 lines, tests included. New functions: at most 80 lines.
+- Today's larger files and functions are listed with their current size and may only shrink.
+- Size is the alarm. The criterion is "does this file have one reason to change?".
 
-### D11. Fronteiras checadas pelo `import-linter`
-- Dependência só de desenvolvimento. Um contrato de camadas espelha a D3, e contratos de independência
-  separam os módulos da mesma camada.
-- As violações de hoje ficam numa lista de exceções que só diminui.
-- O `test_architecture_boundaries.py` é absorvido aos poucos.
+### D11. Boundaries checked by `import-linter`
+- A development dependency only. A layers contract mirrors D3, and independence contracts separate the
+  modules of one layer.
+- Today's violations are listed as exceptions that may only shrink.
+- `test_architecture_boundaries.py` is absorbed over time.
 
-### D12. Testes espelhando os pacotes
-- `tests/<modulo>/test_*.py`; fakes e fixtures compartilhados em `tests/support/`.
-- O `test_cli.py` é dividido junto com o `cli.py`, e o mapa `CORE_TEST_FILES` acompanha.
+### D12. Tests mirror the packages
+- `tests/<module>/test_*.py`; shared fakes and fixtures in `tests/support/`.
+- `test_cli.py` is split together with `cli.py`, and `CORE_TEST_FILES` follows.
 
-### D13. Processo
-- Uma migração aberta por vez.
-- Cada PR é só mecânica (mover e renomear imports) ou só de comportamento, nunca as duas.
-- `git mv` mantém o histórico.
-- Toda PR prova que nada mudou:
-  - a suíte nos dois modos e a etapa Docker;
-  - as comparações com o `main` (71 cenários de CLI, 42 de tradução e retomada, e2e com servidor HTTP real);
-  - o teste de identidades;
-  - `scripts/arch_metrics.py`, com os números descendo.
-- Nenhuma issue nova de funcionalidade até a refatoração terminar.
+### D13. Process
+- One migration open at a time.
+- Each PR is either mechanical (moving files and rewriting imports) or behavioural, never both.
+- `git mv` keeps history.
+- Every PR proves nothing changed:
+  - the suite in both modes and the Docker stage;
+  - the comparisons with `main` (71 CLI scenarios, 42 translate and resume scenarios, e2e with a real HTTP server);
+  - the identity test;
+  - `scripts/arch_metrics.py`, with the numbers going down.
+- No new feature issues until the refactoring ends.
 
-### D14. Manter a arquitetura com o tempo
-- **Checagens no CI:** catraca (D10), contratos de importação (D11) e checagem de API pública (D2).
-- **Guia "onde fica o código novo"** em `docs/architecture/` e no AGENTS.md, lido por pessoas e por agentes de IA.
-- **Checklist de PR** para o que ferramenta não pega: regra no módulo certo, duplicação, divisão só para passar no limite.
-- **Mudar uma regra é permitido, mas visível:** muda esta decisão e o contrato na mesma PR revisada.
-- **`scripts/arch_metrics.py` no checklist de release**, para acompanhar a tendência.
+### D14. Keeping the architecture over time
+- **CI checks:** the ratchet (D10), the import contracts (D11) and a public-API check (D2).
+- **A "where new code goes" guide** in `docs/architecture/` and AGENTS.md, read by people and AI agents.
+- **A PR checklist** for what tools miss: a rule in the wrong module, duplication, splitting only to pass a limit.
+- **Changing a rule is allowed but visible:** this decision and the contract change in the same reviewed PR.
+- **`scripts/arch_metrics.py` in the release checklist**, to follow the trend.
 
-## Árvore alvo
+### D15. Language of committed text
+- Everything committed to the repository is written in English: documentation, decision records, code
+  comments, commit messages and PR descriptions.
+- Text that is not committed (conversation, local drafts) is in Portuguese.
+- Existing Portuguese documents are translated during REF-20.
+- Text shown to users by the CLI is product UI, not documentation, and is outside this rule unless the
+  owner decides otherwise. Whether README and CHANGELOG follow it is to be confirmed by the owner.
+
+## Target tree
 
 ```text
 src/ayvu/
@@ -146,7 +165,7 @@ src/ayvu/
   library/         service, adapters
   provenance/      model, service, store
   content/         model, use_cases, protection
-  application/     contracts (só o transversal)
+  application/     contracts (cross-cutting only)
   jobs/            model, events, execution, service, store
   artifacts/       model, service, store, destination
   formats/         contracts, service, local; epub/ (archive, adapter, io, html_structure, validation); markdown/
@@ -160,25 +179,25 @@ src/ayvu/
   recovery/        service, store
   v1/              translation, html_translate, translator, cache, cache_format, cache_stream,
                    cache_admin_store, resume, resume_scan
-  composition/     cli, desktop, editions (futuro); builders/
-  interfaces/      cli/ (app, commands/, render, progress); desktop/; server/ (futuro)
+  composition/     cli, desktop, editions (later); builders/
+  interfaces/      cli/ (app, commands/, render, progress); desktop/; server/ (later)
 ```
 
-## Mapa arquivo por arquivo
+## File map
 
-Cada arquivo de produção em `7902aba` aparece uma vez. "dividir" marca os arquivos acima de 800 linhas,
-que a REF-14 e a REF-15 quebram por motivo de mudança, depois de movidos.
+Every production file at `7902aba` appears once. "split" marks files over 800 lines, which REF-14 and
+REF-15 break up by reason to change after they move.
 
-| Atual | Destino | Nota |
+| Current | Target | Note |
 | --- | --- | --- |
 | `__init__.py` | `__init__.py` |  |
-| `domain.py` | `kernel/values.py` | divide por dono quando surgir um |
+| `domain.py` | `kernel/values.py` | split by owner when one appears |
 | `migration_contracts.py` | `kernel/sqlite/contracts.py` |  |
 | `sqlite_migrations.py` | `kernel/sqlite/migrations.py` |  |
 | `network_policy.py` | `network/policy.py` |  |
 | `network_http.py` | `network/http.py` |  |
-| `preferences.py` | `preferences/model.py` | junta com `config_values.py` |
-| `config_values.py` | `preferences/model.py` | junta com `preferences.py` |
+| `preferences.py` | `preferences/model.py` | merged with `config_values.py` |
+| `config_values.py` | `preferences/model.py` | merged with `preferences.py` |
 | `preferences_service.py` | `preferences/service.py` |  |
 | `preferences_store.py` | `preferences/store.py` |  |
 | `config.py` | `preferences/config_facade.py` |  |
@@ -189,7 +208,7 @@ que a REF-14 e a REF-15 quebram por motivo de mudança, depois de movidos.
 | `provenance_store.py` | `provenance/store.py` |  |
 | `content.py` | `content/model.py` |  |
 | `content_use_cases.py` | `content/use_cases.py` |  |
-| `translation_protection.py` | `content/protection.py` | usado por formats e translation |
+| `translation_protection.py` | `content/protection.py` | used by formats and translation |
 | `job.py` | `jobs/model.py` | `is_slug`, `validate_job_identity` → `kernel/ids.py`; `validate_utc` → `kernel/clock.py` |
 | `job_events.py` | `jobs/events.py` | `JobFailure`, `JobFailureFamily`, `JobWarning`, `normalize_failure` → `kernel/failures.py` |
 | `job_execution.py` | `jobs/execution.py` | `CancellationToken`, `CancellationStatus`, `JobCancellationError` → `kernel/cancellation.py` |
@@ -198,23 +217,23 @@ que a REF-14 e a REF-15 quebram por motivo de mudança, depois de movidos.
 | `artifact.py` | `artifacts/model.py` |  |
 | `artifact_service.py` | `artifacts/service.py` |  |
 | `artifact_store.py` | `artifacts/store.py` |  |
-| `artifact_destination.py` | `artifacts/destination.py` | passa a chamar formats por uma porta |
+| `artifact_destination.py` | `artifacts/destination.py` | calls formats through a port |
 | `format_adapter.py` | `formats/contracts.py` |  |
 | `format_service.py` | `formats/service.py` |  |
 | `format_local.py` | `formats/local.py` |  |
 | `epub_archive.py` | `formats/epub/archive.py` |  |
 | `epub_format.py` | `formats/epub/adapter.py` |  |
-| `epub_io.py` | `formats/epub/io.py` | dividir; o CSV de revisão sai para review ou v1 |
+| `epub_io.py` | `formats/epub/io.py` | split; the review CSV moves to review or v1 |
 | `html_structure.py` | `formats/epub/html_structure.py` |  |
 | `validation.py` | `formats/epub/validation.py` |  |
 | `markdown_writer.py` | `formats/markdown/writer.py` |  |
-| `cache_identity.py` | `knowledge/cache/identity.py` | dividir |
+| `cache_identity.py` | `knowledge/cache/identity.py` | split |
 | `cache_schema.py` | `knowledge/cache/schema.py` |  |
 | `cache_repository.py` | `knowledge/cache/repository.py` |  |
 | `cache_interchange.py` | `knowledge/cache/interchange.py` |  |
 | `cache_admin.py` | `knowledge/cache/admin.py` |  |
 | `cache_admin_store.py` | `knowledge/cache/admin_store.py` |  |
-| `cache_admin_v2_store.py` | `knowledge/cache/admin_v2_store.py` | dividir |
+| `cache_admin_v2_store.py` | `knowledge/cache/admin_v2_store.py` | split |
 | `translation_memory.py` | `knowledge/memory/fuzzy.py` |  |
 | `approved_memory.py` | `knowledge/memory/approved/model.py` |  |
 | `approved_memory_service.py` | `knowledge/memory/approved/service.py` |  |
@@ -235,25 +254,25 @@ que a REF-14 e a REF-15 quebram por motivo de mudança, depois de movidos.
 | `project_profile_service.py` | `projects/profiles/service.py` |  |
 | `project_profile_store.py` | `projects/profiles/store.py` |  |
 | `profile_glossary_store.py` | `projects/profiles/glossary_store.py` |  |
-| `provider.py` | `translation/ports.py` | a porta do provedor pertence à tradução |
+| `provider.py` | `translation/ports.py` | translation owns the provider port |
 | `translation_plan.py` | `translation/plan.py` |  |
 | `translation_pipeline.py` | `translation/pipeline.py` |  |
 | `translation_engine.py` | `translation/engine.py` |  |
-| `translation_document.py` | `translation/document.py` | dividir |
+| `translation_document.py` | `translation/document.py` | split |
 | `chunking.py` | `translation/chunking.py` |  |
 | `preflight.py` | `translation/preflight.py` |  |
-| `translate_project.py` | `translation/project.py` | dividir |
+| `translate_project.py` | `translation/project.py` | split |
 | `translate_batch.py` | `translation/batch.py` |  |
 | `batch_output_policy.py` | `translation/batch_output.py` |  |
-| `memory_retrieval.py` | `translation/stages/memory_retrieval.py` | etapa do pipeline, não knowledge |
+| `memory_retrieval.py` | `translation/stages/memory_retrieval.py` | a pipeline stage, not knowledge |
 | `translation_context.py` | `translation/context/model.py` |  |
 | `context_execution.py` | `translation/context/execution.py` |  |
 | `context_source.py` | `translation/context/source.py` |  |
 | `review_application.py` | `review/application.py` |  |
-| `review_exchange.py` | `review/exchange.py` | dividir |
+| `review_exchange.py` | `review/exchange.py` | split |
 | `review_export.py` | `review/csv_export.py` |  |
 | `review_import.py` | `review/csv_import.py` |  |
-| `job_recovery.py` | `recovery/service.py` | orquestração de retomada, sai de jobs |
+| `job_recovery.py` | `recovery/service.py` | resume orchestration, out of jobs |
 | `job_recovery_store.py` | `recovery/store.py` |  |
 | `legacy_translation.py` | `v1/translation.py` |  |
 | `html_translate.py` | `v1/html_translate.py` |  |
@@ -264,7 +283,7 @@ que a REF-14 e a REF-15 quebram por motivo de mudança, depois de movidos.
 | `cache_admin_legacy_store.py` | `v1/cache_admin_store.py` |  |
 | `resume.py` | `v1/resume.py` |  |
 | `legacy_resume.py` | `v1/resume_scan.py` |  |
-| `cli_contracts.py` | `application/contracts.py` | cada erro ou contrato vai ao módulo dono; fica só o transversal |
+| `cli_contracts.py` | `application/contracts.py` | each error or contract goes to its owning module; only cross-cutting ones stay |
 | `cli_composition.py` | `composition/cli.py` |  |
 | `desktop/bootstrap/composition.py` | `composition/desktop.py` |  |
 | `cache_admin_composition.py` | `composition/builders/cache_admin.py` |  |
@@ -272,86 +291,86 @@ que a REF-14 e a REF-15 quebram por motivo de mudança, depois de movidos.
 | `glossary_catalog_composition.py` | `composition/builders/glossary.py` |  |
 | `project_profile_composition.py` | `composition/builders/profiles.py` |  |
 | `provider_composition.py` | `composition/builders/providers.py` |  |
-| `review_composition.py` | `composition/builders/review.py` | dividir; tem casos de uso dentro |
+| `review_composition.py` | `composition/builders/review.py` | split; it holds use cases |
 | `translate_batch_composition.py` | `composition/builders/translate_batch.py` |  |
 | `translate_project_composition.py` | `composition/builders/translate_project.py` |  |
-| `cli.py` | `interfaces/cli/app.py` | dividir em `interfaces/cli/commands/` e `render.py` (REF-14) |
+| `cli.py` | `interfaces/cli/app.py` | split into `interfaces/cli/commands/` and `render.py` (REF-14) |
 | `cli_progress.py` | `interfaces/cli/progress.py` |  |
-| `desktop_bootstrap.py` | `interfaces/desktop/bootstrap.py` | entrypoint `ayvu-desktop` |
+| `desktop_bootstrap.py` | `interfaces/desktop/bootstrap.py` | `ayvu-desktop` entry point |
 | `desktop/__init__.py` | `interfaces/desktop/__init__.py` |  |
 | `desktop/adapters/__init__.py` | `interfaces/desktop/adapters/__init__.py` |  |
 | `desktop/adapters/qt/__init__.py` | `interfaces/desktop/adapters/qt/__init__.py` |  |
-| `desktop/bootstrap/__init__.py` | — | removido: o pacote só guardava a raiz, que vai para `composition/desktop.py` |
+| `desktop/bootstrap/__init__.py` | — | removed: the package only held the root, which moves to `composition/desktop.py` |
 | `desktop/platform/__init__.py` | `interfaces/desktop/platform/__init__.py` |  |
 | `desktop/presentation/__init__.py` | `interfaces/desktop/presentation/__init__.py` |  |
 | `desktop/presentation/views/__init__.py` | `interfaces/desktop/presentation/views/__init__.py` |  |
 | `desktop/resources/__init__.py` | `interfaces/desktop/resources/__init__.py` |  |
 | `desktop/viewmodels/__init__.py` | `interfaces/desktop/viewmodels/__init__.py` |  |
 
-## Ciclos e quem os desfaz
+## Cycles and what removes them
 
-| Par | Causa | Desfeito por |
+| Pair | Cause | Removed by |
 | --- | --- | --- |
-| jobs ↔ projects | `job_recovery_store` usa projetos; `project_schema` usa jobs | REF-08 (`recovery/`) |
-| jobs ↔ provenance | `job_recovery_store` usa proveniência; proveniência usa identidades de job | REF-04 (kernel) e REF-08 |
-| artifacts ↔ jobs | `job_recovery_store` usa artefatos; artefatos usam identidades e cancelamento de job | REF-04 e REF-08 |
-| jobs ↔ translation | `job_recovery` chama `translate_project` | REF-08 |
-| interfaces ↔ jobs | `resume` usa `cli_contracts` | REF-04 (divisão do `cli_contracts`) |
-| interfaces ↔ providers | `provider_composition` usa `cli_contracts` | REF-04 e REF-05 |
-| interfaces ↔ translation | `preflight`, `batch_output_policy` e `translate_project_composition` usam `cli_contracts` | REF-04 e REF-05 |
-| content ↔ formats | `content_composition` monta formatos | REF-05 |
-| formats ↔ review | `epub_io` lê e escreve o CSV de revisão | REF-10 |
-| formats ↔ translation | `html_structure` e `html_translate` usam `translation_protection` e o pipeline | REF-06 (`html_translate` para v1) e REF-07 (`content/protection`) |
-| knowledge ↔ translation | `memory_retrieval` (em knowledge) usa `translation_plan` e `translation_protection` | REF-07 e REF-09 (`memory_retrieval` para o pipeline) |
-| artifacts ↔ formats | `artifact_destination` chama `format_local` e `format_service` | REF-08 (porta) |
+| jobs ↔ projects | `job_recovery_store` uses projects; `project_schema` uses jobs | REF-08 (`recovery/`) |
+| jobs ↔ provenance | `job_recovery_store` uses provenance; provenance uses job identities | REF-04 (kernel) and REF-08 |
+| artifacts ↔ jobs | `job_recovery_store` uses artifacts; artifacts use job identities and cancellation | REF-04 and REF-08 |
+| jobs ↔ translation | `job_recovery` calls `translate_project` | REF-08 |
+| interfaces ↔ jobs | `resume` uses `cli_contracts` | REF-04 (splitting `cli_contracts`) |
+| interfaces ↔ providers | `provider_composition` uses `cli_contracts` | REF-04 and REF-05 |
+| interfaces ↔ translation | `preflight`, `batch_output_policy` and `translate_project_composition` use `cli_contracts` | REF-04 and REF-05 |
+| content ↔ formats | `content_composition` assembles formats | REF-05 |
+| formats ↔ review | `epub_io` reads and writes the review CSV | REF-10 |
+| formats ↔ translation | `html_structure` and `html_translate` use `translation_protection` and the pipeline | REF-06 (`html_translate` to v1) and REF-07 (`content/protection`) |
+| knowledge ↔ translation | `memory_retrieval` (in knowledge) uses `translation_plan` and `translation_protection` | REF-07 and REF-09 (`memory_retrieval` to the pipeline) |
+| artifacts ↔ formats | `artifact_destination` calls `format_local` and `format_service` | REF-08 (a port) |
 
-## Sequência
+## Sequence
 
-| Issue | O que faz | Tamanho |
+| Issue | What it does | Size |
 | --- | --- | --- |
-| REF-03 | Catraca de tamanho, `import-linter` com as exceções de hoje, checagem de API pública | M |
-| REF-04 | Extrair o `kernel` e dividir o `cli_contracts` | M |
-| REF-05 | Tirar a composição de dentro dos módulos | M |
-| REF-06 | Quarentena do v1 | M |
-| REF-07 | Mover os módulos folha: network, preferences, library, provenance, content | M |
-| REF-08 | Mover jobs, artifacts e projects; criar `recovery/`; porta artifacts → formats | L |
-| REF-09 | Mover knowledge; `memory_retrieval` para o pipeline | M |
-| REF-10 | Mover formats; tirar a revisão do `epub_io` | M |
-| REF-11 | Mover providers e translation | M |
-| REF-12 | Mover review | S |
-| REF-13 | Interfaces: desktop e esqueleto do CLI; entrypoints | S |
-| REF-14 | Dividir o `cli.py` por grupo de comandos (cerca de 10 PRs) | L |
-| REF-15 | Dividir os módulos acima de 800 linhas (uma issue por família) | L |
-| REF-16 | Testes espelhando os pacotes; dividir o `test_cli.py` | M |
-| REF-17 | Raízes de composição por edição | M |
-| REF-18 | Inventário e aposentadoria do v1 | M |
-| REF-19 | Guia "onde fica o código novo", seção no AGENTS.md e checklist de PR | S |
+| REF-03 | Size ratchet, `import-linter` with today's exceptions, public-API check | M |
+| REF-04 | Extract `kernel` and split `cli_contracts` | M |
+| REF-05 | Move composition out of the modules | M |
+| REF-06 | Quarantine v1 | M |
+| REF-07 | Move the leaf modules: network, preferences, library, provenance, content | M |
+| REF-08 | Move jobs, artifacts and projects; create `recovery/`; a port from artifacts to formats | L |
+| REF-09 | Move knowledge; `memory_retrieval` to the pipeline | M |
+| REF-10 | Move formats; take review out of `epub_io` | M |
+| REF-11 | Move providers and translation | M |
+| REF-12 | Move review | S |
+| REF-13 | Interfaces: desktop and the CLI skeleton; entry points | S |
+| REF-14 | Split `cli.py` by command group (about 10 PRs) | L |
+| REF-15 | Split the modules over 800 lines (one issue per family) | L |
+| REF-16 | Tests mirroring the packages; split `test_cli.py` | M |
+| REF-17 | Composition roots per edition | M |
+| REF-18 | Inventory and retirement of v1 | M |
+| REF-19 | "Where new code goes" guide, AGENTS.md section and PR checklist | S |
+| REF-20 | Reorganize `docs/architecture/` by module, one decision header, index, English (D15) | M |
 
-## Alternativas rejeitadas
+## Rejected alternatives
 
-| Alternativa | Por que não |
+| Alternative | Why not |
 | --- | --- |
-| Só camadas técnicas (`domain/`, `services/`, `adapters/` globais) | Espalha cada capacidade por três pastas e não desfaz os ciclos entre capacidades |
-| Hexagonal completo em todo módulo | Burocracia para módulos simples, como preferências e biblioteca |
-| Vertical slices por funcionalidade | O Ayvu tem muita regra compartilhada (cache, glossário, pipeline); fatias duplicariam |
-| Microsserviços | Rede, deploy e consistência sem benefício para um app local de um mantenedor |
-| Shims de compatibilidade | Ninguém de fora importa o Ayvu; dobrariam os caminhos |
-| Reescrever do zero | Perde as correções acumuladas e fica meses sem entregar |
+| Technical layers only (global `domain/`, `services/`, `adapters/`) | Spreads each capability over three folders and removes no cycle between capabilities |
+| Full hexagonal in every module | Bureaucracy for simple modules such as preferences and library |
+| Vertical slices per feature | Ayvu shares a lot of rules (cache, glossary, pipeline); slices would duplicate them |
+| Microservices | Network, deployment and consistency costs with no benefit for a local app with one maintainer |
+| Compatibility shims | Nobody outside imports Ayvu; they would double every path |
+| Rewriting from scratch | Loses the fixes accumulated so far and delivers nothing for months |
 
-## Questões em aberto
+## Open questions
 
-1. A lista de funções de cada edição (REF-17) depende do owner.
-2. Como aposentar o v1 e o que fazer com os caches e retomadas antigos depende do inventário da REF-18.
-3. Se `application/` ainda precisar existir depois da REF-04, ou se tudo cabe nos módulos donos.
+1. The features of each edition (REF-17) depend on the owner.
+2. How to retire v1, and what happens to old caches and resume files, depends on the REF-18 inventory.
+3. Whether `application/` still needs to exist after REF-04, or everything fits in the owning modules.
+4. Whether README and CHANGELOG follow D15.
 
-## Gate de aceite
+## Acceptance gate
 
-O owner aceita, restringe ou rejeita cada decisão (D1 a D14), a árvore e a sequência, numa mudança
-revisada separada que troca `Status: Proposed` por `Status: Accepted` e registra a data e o que foi
-restringido. Merge, fechamento de issue ou publicação enquanto o registro está `Proposed` não satisfazem
-o gate. Nenhum arquivo de produção é movido antes do aceite.
+Met on 2026-11-10 (see the acceptance record). A later change to D1 to D15, the tree or the sequence needs
+a reviewed change to this record, together with any contract it affects.
 
-Checklist:
-- [ ] D1 a D14 aceitas, com restrições anotadas
-- [ ] árvore alvo e mapa arquivo por arquivo aceitos
-- [ ] sequência REF-03 a REF-19 aceita
+- [x] D1 to D14 accepted, with no restrictions
+- [x] target tree and file map accepted
+- [x] sequence REF-03 to REF-19 accepted, with REF-20 added
+- [x] D15 added

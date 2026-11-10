@@ -272,10 +272,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
-- Decisão proposta da estrutura de pacotes (REF-02, #267):
-  `docs/architecture/decisions/package-structure.md`, com as decisões D1 a D14, a árvore alvo,
-  o destino de cada arquivo atual, os ciclos e a issue que desfaz cada um. Fica `Proposed`
-  até o aceite do owner; nenhum arquivo é movido antes disso.
+- Decisão da estrutura de pacotes (REF-02, #267), aceita pelo owner em 2026-11-10:
+  `docs/architecture/decisions/package-structure.md`, com as decisões D1 a D15, a árvore alvo,
+  o destino de cada arquivo atual, os ciclos e a issue que desfaz cada um. A D15 manda escrever
+  em inglês o que for commitado; o registro foi traduzido sem mudar nenhuma decisão.
 - Base da refatoração (REF-01, #266): `tests/test_persisted_identities.py` congela as
   tags de domínio, as versões e um digest de referência de cada identidade persistida
   (cache v1 e v2, plano, perfil, contexto, decisão de rede, memória aprovada, resultados
