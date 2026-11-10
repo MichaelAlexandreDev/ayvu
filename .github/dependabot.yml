@@ -1,8 +1,16 @@
 version: 2
 
+# Version updates arrive as one pull request per ecosystem per week, to save CI minutes.
+# Security updates are not grouped, so each one still opens its own pull request.
+
 updates:
   - package-ecosystem: uv
     directory: "/"
+    groups:
+      python-version-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
     schedule:
       interval: weekly
       day: monday
@@ -15,6 +23,11 @@ updates:
 
   - package-ecosystem: github-actions
     directory: "/"
+    groups:
+      github-actions-version-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
     schedule:
       interval: weekly
       day: monday

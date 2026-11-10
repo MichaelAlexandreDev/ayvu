@@ -1,0 +1,21 @@
+# Stage 2 test images receive only what they need to install dependencies.
+# Everything is excluded first; the lines starting with "!" re-include the allowed files.
+*
+!pyproject.toml
+!uv.lock
+!docker/run-tests.sh
+
+# Already excluded by "*" above. Listed so that changing the first line cannot let them in.
+.ayvu-*/
+**/*.epub
+**/*.pdf
+**/*.sqlite
+**/*.sqlite3
+**/.cache/
+**/glossary.json
+.venv/
+.codex
+**/*AGENTS*.md
+**/CLAUDE.md
+**/GEMINI*.md
+.claude/

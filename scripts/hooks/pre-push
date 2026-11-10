@@ -1,0 +1,5 @@
+#!/bin/sh
+# Opt-in pre-push hook: runs stage 1 before every push. Install it with
+#   ln -s ../../scripts/hooks/pre-push .git/hooks/pre-push
+# and skip it for one push with `git push --no-verify`.
+exec "$(git rev-parse --show-toplevel)/scripts/check.sh"

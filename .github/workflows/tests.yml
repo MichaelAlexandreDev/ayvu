@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
   workflow_dispatch:
 
@@ -18,18 +20,74 @@ env:
   UV_VERSION: "0.12.8"
 
 jobs:
-  pytest:
-    name: pytest (Python ${{ matrix.python-version }})
+  # Stage 3 of the test stages (docs/release-workflow.md). The repository is private on the free
+  # plan, where Actions minutes are limited and every job is billed rounded up to a whole minute,
+  # so pull requests and pushes to main run a single job. Stages 1 and 2 run on the owner's machine.
+  ci-gate:
+    name: ci-gate
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Check dependency lock
+        run: uv lock --check
+
+      - name: Install dependencies
+        run: uv sync --extra dev --locked
+
+      # Pull requests run the tests marked core (CORE_TEST_FILES in tests/conftest.py).
+      # Pytest exits non-zero when nothing is collected, so an empty selection fails the gate.
+      - name: Run core tests
+        if: ${{ github.event_name == 'pull_request' }}
+        run: uv run --no-sync pytest -m core
+
+      - name: Run full suite
+        if: ${{ github.event_name != 'pull_request' }}
+        run: uv run --no-sync pytest
+
+      - name: Build wheel and source distribution
+        run: uv build --out-dir "${RUNNER_TEMP}/dist"
+
+      - name: Install wheel in an isolated environment
+        run: |
+          uv venv --python python --no-project "${RUNNER_TEMP}/ayvu-smoke"
+          uv pip install \
+            --python "${RUNNER_TEMP}/ayvu-smoke/bin/python" \
+            "${RUNNER_TEMP}"/dist/*.whl
+
+      - name: Run installed CLI
+        run: |
+          "${RUNNER_TEMP}/ayvu-smoke/bin/ayvu" --help
+
+  # A manual run or a release tag covers the oldest and the newest supported Python.
+  full-matrix:
+    name: full suite (Python ${{ matrix.python-version }})
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     strategy:
       fail-fast: false
       matrix:
-        # Pull requests run the oldest supported Python and main runs the newest, to halve CI minutes.
-        # The ruleset makes a pull request current before it merges, so main receives the tree its PR tested.
-        # A manual run covers both.
-        python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.11"]' || github.event_name == 'push' && '["3.14"]' || '["3.11", "3.14"]') }}
+        python-version: ["3.11", "3.14"]
 
     steps:
       - name: Check out repository
@@ -55,31 +113,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev --locked
 
-      - name: Run tests
+      - name: Run full suite
         run: uv run --no-sync pytest
-
-  package_smoke:
-    name: package smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.11"
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: true
-          cache-dependency-glob: uv.lock
 
       - name: Build wheel and source distribution
         run: uv build --out-dir "${RUNNER_TEMP}/dist"
@@ -94,23 +129,3 @@ jobs:
       - name: Run installed CLI
         run: |
           "${RUNNER_TEMP}/ayvu-smoke/bin/ayvu" --help
-
-  ci-gate:
-    name: ci-gate
-    if: ${{ always() }}
-    needs:
-      - pytest
-      - package_smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Verify required jobs
-        env:
-          PYTEST_RESULT: ${{ needs.pytest.result }}
-          PACKAGE_SMOKE_RESULT: ${{ needs.package_smoke.result }}
-        run: |
-          echo "pytest: ${PYTEST_RESULT}"
-          echo "package smoke: ${PACKAGE_SMOKE_RESULT}"
-          test "${PYTEST_RESULT}" = "success"
-          test "${PACKAGE_SMOKE_RESULT}" = "success"
