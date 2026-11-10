@@ -85,8 +85,12 @@ class TranslateProjectCommand:
     execution_revision: int = 1
     producer: ProducerIdentity | None = field(default=None, repr=False)
     additional_output_roles: tuple[str, ...] = ()
+    context_revision: str | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
+        if self.context_revision is not None and (type(self.context_revision) is not str
+                or not re.fullmatch(r'sha256:[0-9a-f]{64}', self.context_revision)):
+            raise TranslateCommandError('invalid_context_revision')
         if self.schema_version != TRANSLATE_COMMAND_VERSION:
             raise TranslateCommandError("unsupported_command_version")
         if (type(self.execution_revision) is not int or not 1 <= self.execution_revision < 2**31
@@ -167,6 +171,8 @@ def resolve_plan(command: TranslateProjectCommand, project: ProjectManifest) -> 
                                None if producer is None else [producer.provider, producer.model, producer.adapter, producer.pipeline]]
     if memory is not None and (memory.conservative_auto_apply or memory.legacy_cache_compatibility):
         inputs["memory_policy"] = [memory.conservative_auto_apply, memory.legacy_cache_compatibility]
+    if command.context_revision is not None:
+        inputs['translation_context'] = command.context_revision
     digest = hashlib.sha256(json.dumps(inputs, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
     return ExecutionPlan(command.project_id, command.source_sha256, f"sha256:{digest}")
 

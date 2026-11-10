@@ -163,6 +163,35 @@ def _sorted_identities(value: tuple, limit: int, code: str) -> tuple[str, ...]:
 
 
 @dataclass(frozen=True, repr=False)
+class ContextProvenance:
+    """Metadados fechados #164; nunca conteúdo ou impressão digital semântica."""
+    policy: str
+    selected: tuple[tuple[str, str], ...]
+    omissions: tuple[tuple[str, str], ...]
+    utf8_bytes: int
+
+    def __post_init__(self):
+        kinds = {'profile', 'current_unit', 'neighbor', 'terminology', 'protected_term'}
+        reasons = {'missing', 'limit', 'unsupported', 'neighbor_limit'}
+        if (self.policy != 'bounded_context_v1' or type(self.selected) is not tuple or len(self.selected) > 64
+                or type(self.omissions) is not tuple or len(self.omissions) > 65
+                or len(self.selected) + len(self.omissions) > 65
+                or type(self.utf8_bytes) is not int or not 0 <= self.utf8_bytes <= 32768):
+            raise ProvenanceValidationError('invalid_context_metadata')
+        for items, revisions in ((self.selected, True), (self.omissions, False)):
+            for pair in items:
+                if (type(pair) is not tuple or len(pair) != 2 or type(pair[0]) is not str or pair[0] not in kinds
+                        or type(pair[1]) is not str
+                        or (not isinstance(pair[1], str) or re.fullmatch('[0-9a-f]{64}', pair[1]) is None
+                            if revisions else pair[1] not in reasons)):
+                    raise ProvenanceValidationError('invalid_context_metadata')
+
+    def to_mapping(self):
+        return {'policy': self.policy, 'selected': [list(p) for p in self.selected],
+                'omissions': [list(p) for p in self.omissions], 'utf8_bytes': self.utf8_bytes}
+
+
+@dataclass(frozen=True, repr=False)
 class ProvenanceRequest:
     """One lineage fact. Reference tuples are stored sorted, so their order carries no meaning."""
 
@@ -182,6 +211,7 @@ class ProvenanceRequest:
     correlation_id: str | None = None
     operation_id: str | None = None
     idempotency_key: str | None = None
+    context_metadata: ContextProvenance | None = None
 
     def __post_init__(self) -> None:
         validate_identity(self.project_id)
@@ -212,6 +242,10 @@ class ProvenanceRequest:
             raise ProvenanceValidationError("invalid_job_sequence")
         if self.idempotency_key is not None and not _valid_opaque(self.idempotency_key):
             raise ProvenanceValidationError("invalid_idempotency_key")
+        if self.context_metadata is not None:
+            if type(self.context_metadata) is not ContextProvenance:
+                raise ProvenanceValidationError('invalid_context_metadata')
+            self.context_metadata.__post_init__()
 
     def __repr__(self) -> str:
         return f"ProvenanceRequest(operation={self.operation!r}, source_kind={self.source_kind.value!r})"
@@ -246,7 +280,7 @@ def _canonical(value: object) -> str:
 def _request_fields(request: ProvenanceRequest) -> dict:
     subject = request.subject
     producer = request.producer
-    return {
+    result = {
         "actor_kind": request.actor_kind.value,
         "artifacts": list(request.artifacts),
         "configuration_refs": [[item.kind, item.reference] for item in request.configuration_refs],
@@ -266,6 +300,9 @@ def _request_fields(request: ProvenanceRequest) -> dict:
                                                  "version": subject.version},
         "supersedes": request.supersedes,
     }
+    if request.context_metadata is not None:
+        result['context_metadata'] = request.context_metadata.to_mapping()
+    return result
 
 
 def request_identity(request: ProvenanceRequest) -> str:
@@ -294,6 +331,13 @@ def _strings(data: object) -> tuple:
 
 
 def _decode_request(data: object) -> ProvenanceRequest:
+    context_metadata = None
+    if type(data) is dict and 'context_metadata' in data:
+        data = dict(data)
+        raw = data.pop('context_metadata')
+        policy, selected, omissions, utf8_bytes = _fields(raw, 'policy', 'selected', 'omissions', 'utf8_bytes')
+        context_metadata = ContextProvenance(policy, tuple(tuple(p) for p in _strings(selected)),
+            tuple(tuple(p) for p in _strings(omissions)), utf8_bytes)
     (actor_kind, artifacts, configuration_refs, correlation_id, idempotency_key, job_id, job_sequence, operation,
      operation_id, outcome_code, parents, producer, project_id, source_kind, subject, supersedes) = _fields(
         data, "actor_kind", "artifacts", "configuration_refs", "correlation_id", "idempotency_key", "job_id",
@@ -310,7 +354,8 @@ def _decode_request(data: object) -> ProvenanceRequest:
         subject=decoded_subject, outcome_code=outcome_code,
         configuration_refs=tuple(ConfigurationRef(*entry) for entry in _strings(configuration_refs)),
         parents=_strings(parents), supersedes=supersedes, artifacts=_strings(artifacts), job_sequence=job_sequence,
-        correlation_id=correlation_id, operation_id=operation_id, idempotency_key=idempotency_key)
+        correlation_id=correlation_id, operation_id=operation_id, idempotency_key=idempotency_key,
+        context_metadata=context_metadata)
 
 
 def decode_record(text: str) -> ProvenanceRecord:

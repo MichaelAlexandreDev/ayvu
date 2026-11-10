@@ -53,6 +53,8 @@ from .memory_retrieval import (
     plan_memory_pin, structural_compatibility, snippet,
 )
 from .content import ContentDocument, TranslationUnit
+from .context_execution import ContextExecution, plan_with_context
+from .translation_context import ContextError
 from .domain import LanguagePair
 from .job import JobState, TranslationJob
 from .job_events import (
@@ -60,7 +62,7 @@ from .job_events import (
 )
 from .job_execution import CancellationSource, JobEventSink
 from .provenance import (
-    UNKNOWN, ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef,
+    UNKNOWN, ActorKind, ConfigurationRef, ContextProvenance, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef,
 )
 from .provenance_service import ProvenanceRepository
 from .provider import ProviderStatus, TranslationProviderRequest, UnitReference
@@ -271,6 +273,7 @@ class DocumentTranslator:
                  provenance: ProvenanceRepository, events: JobEventSink, *, exact_cache: ExactCachePort | None = None,
                  memory: MemoryPort | None = None, approved_memory: MemoryRetrieval | None = None,
                  retrieval_policy: RetrievalPolicy = RetrievalPolicy(), clock: Callable[[], datetime],
+                 translation_context: ContextExecution | None = None,
                  new_id: Callable[[], str] = lambda: str(uuid4())) -> None:
         if type(plan) is not ResolvedTranslationPlan:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTERNAL, "invalid_plan"))
@@ -286,6 +289,7 @@ class DocumentTranslator:
         self._retrieval_policy = approved_memory.policy if approved_memory is not None else retrieval_policy
         self._clock = clock
         self._new_id = new_id
+        self._translation_context = translation_context
 
     def __repr__(self) -> str:
         return "DocumentTranslator()"
@@ -295,6 +299,15 @@ class DocumentTranslator:
         if cache_only is not None and type(cache_only) is not CacheOnlyRequest:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "cache_only_mode_required"))
         self._check_identity(document, context)
+        if self._translation_context is not None:
+            try:
+                self._translation_context.validate(self._clock())
+                # Todas as unidades, inclusive as de um cache pin, precisam do
+                # binding exato antes da primeira leitura de qualquer porta.
+                for unit in document.units:
+                    self._translation_context.for_unit(document, unit, self._clock(), self._plan)
+            except ContextError as error:
+                raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, error.code)) from None
         scope = context.cache_scope
         if scope is None:
             scope = CacheAuthorizationPolicy(document.project_id).resolve()
@@ -321,7 +334,8 @@ class DocumentTranslator:
             return self._execute(run, dry_run=dry_run, cache_only=cache_only)
         # Retrieval eligibility/lifecycle must be checked again on every run.
         replayed = self._replay(run) if (replay_raw_results and self._approved_memory is None
-                                       and not self._retrieval_policy.legacy_cache_enabled) else None
+                                       and not self._retrieval_policy.legacy_cache_enabled
+                                       and self._translation_context is None) else None
         if replayed is not None:
             return replayed
         return self._execute(run, dry_run=dry_run, cache_only=cache_only)
@@ -360,7 +374,7 @@ class DocumentTranslator:
                                   separators=(",", ":"))
         else:
             identity = json.dumps([document.document_id, document.revision_id, semantic_fingerprint], separators=(",", ":"))
-        if self._approved_memory is not None or self._retrieval_policy.legacy_cache_enabled:
+        if self._approved_memory is not None or self._retrieval_policy.legacy_cache_enabled or self._translation_context is not None:
             # Never replay a final TM value as pre-glossary raw text, or bypass review withdrawal.
             identity = json.dumps([identity, "retrieval_revalidated", execution_nonce], separators=(",", ":"))
         return ArtifactRequest(document.project_id, job.job_id, RAW_RESULTS_ROLE, RAW_RESULTS_STAGE, version,
@@ -469,6 +483,14 @@ class DocumentTranslator:
     def _record_production(self, run: _DocumentRun, artifact: Artifact, raw: list) -> None:
         """One record per kind of origin in this document. Which unit came from where is in the artifact."""
         document, job = run.document, run.context.job
+        for unit_id, context in run.contexts.items():
+            self._provenance.append(ProvenanceRequest(
+                document.project_id, job.job_id, 'build_translation_context', ActorKind.SYSTEM, SourceKind.PIPELINE,
+                self._plan.producer, subject=SubjectRef('translation_unit', 1, unit_id),
+                artifacts=(artifact.artifact_id,), context_metadata=ContextProvenance(context.policy.value,
+                    tuple((e.kind.value, e.revision) for e in context.selected),
+                    tuple((o.source.kind.value, o.reason.value) for o in context.omitted), context.disclosure.utf8_bytes),
+                idempotency_key=self._idempotency_key(run, 'build_translation_context', artifact.artifact_id + unit_id)))
         subject = SubjectRef("content_revision", 1, document.revision_id)
         parents = []
         for source, (operation, source_kind, actor) in _PROVENANCE_OPERATIONS.items():
@@ -502,19 +524,29 @@ class DocumentTranslator:
 class _ContractProvider:
     """Presents the rich provider as text calls to the stages, checking each result against the plan."""
 
-    def __init__(self, translator: DocumentTranslator, run: _DocumentRun, unit: TranslationUnit) -> None:
+    def __init__(self, translator: DocumentTranslator, run: _DocumentRun, unit: TranslationUnit, plan=None, context=None) -> None:
         self._translator = translator
         self._run = run
         self._unit = unit
+        self._plan = plan or translator._plan
+        self._context = context
 
     def translate(self, text: str, source: str, target: str) -> str:
         self._run.checkpoint("pipeline_between_chunks")
-        plan = self._translator._plan
+        plan = self._plan
         document = self._run.document
+        if self._context is not None:
+            try:
+                execution = self._translator._translation_context
+                execution.for_unit(document, self._unit, self._translator._clock(), self._translator._plan)
+                execution.authorize(self._context, self._translator._clock())
+            except ContextError as error:
+                raise _ProviderStopped(JobFailure(JobFailureFamily.INPUT, error.code)) from None
         request = TranslationProviderRequest(
             self._translator._new_id(), text, source, target, route=plan.route,
             unit=UnitReference(document.document_id, document.revision_id, self._unit.unit_id),
-            policy_ref=plan.policy_ref)
+            policy_ref=plan.policy_ref,
+            features=() if self._context is None or self._context.feature is None else (self._context.feature,))
         result = execute(self._translator._provider, request)
         for warning in result.warnings:
             self._run.emit(warning)
@@ -665,6 +697,7 @@ class _DocumentRun:
         self.execution_nonce = str(uuid4())
         self.sequence = context.first_sequence
         self.correlation = JobCorrelation(document.project_id)
+        self.contexts = {}
 
     def emit(self, payload: object) -> None:
         translator = self.translator
@@ -696,11 +729,21 @@ class _DocumentRun:
                        cache_only: CacheOnlyRequest | None) -> tuple[UnitTranslationResult, LinguisticOutcome]:
         translator = self.translator
         plan = translator._plan
+        context = None
+        if translator._translation_context is not None:
+            try:
+                context = translator._translation_context.for_unit(self.document, unit, translator._clock(), plan)
+                plan = plan_with_context(plan, context)
+                self.contexts[unit.unit_id] = context
+            except ContextError as error:
+                raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, error.code)) from None
+            for warning in context.warnings:
+                self.emit(warning)
         template, originals = _template(unit)
         legacy_memory = (None if (translator._memory is None or not translator._retrieval_policy.legacy_cache_enabled)
             else _PlanBoundMemory(translator._memory, plan, self.cache_scope, translator._retrieval_policy.limits.candidates))
         stages = LinguisticStages(
-            _ContractProvider(translator, self, unit),
+            _ContractProvider(translator, self, unit, plan, context),
             _PlanBoundCache(translator._exact_cache, plan, self.cache_scope, self.cache_only, self.resolved_pin,
                             unit.source_text),
             translator._apply_glossary,
