@@ -36,3 +36,6 @@ GEMINI*.md
 
 # Private project workspaces
 .ayvu-*/
+
+# import-linter cache
+.import_linter_cache/

@@ -117,12 +117,15 @@ says otherwise.
 ### D10. Single responsibility with a size ratchet
 - New files: at most 400 lines, tests included. New functions: at most 80 lines.
 - Today's larger files and functions are listed with their current size and may only shrink.
+- Enforced by `tests/test_size_ratchet.py` with the ledger `tests/size_ratchet.json`; `scripts/size_ratchet.py --update` lowers entries after a file or function shrinks (REF-03).
 - Size is the alarm. The criterion is "does this file have one reason to change?".
 
 ### D11. Boundaries checked by `import-linter`
 - A development dependency only. A layers contract mirrors D3, and independence contracts separate the
   modules of one layer.
 - Today's violations are listed as exceptions that may only shrink.
+- The contracts live in `[tool.importlinter]` in `pyproject.toml` and run in `tests/test_import_contracts.py`. Every ignored import names its REF issue, and an ignore that stops matching fails the check (REF-03).
+- D2 is enforced by `tests/test_public_api.py`.
 - `test_architecture_boundaries.py` is absorbed over time.
 
 ### D12. Tests mirror the packages

@@ -70,6 +70,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
     "visible_text_and_tags": ("test_html_translate.py", "test_html_structure.py"),
     "chunk_order_and_spacing": ("test_chunking.py",),
     "persisted_identities": ("test_persisted_identities.py",),
+    "architecture_guardrails": ("test_size_ratchet.py", "test_import_contracts.py", "test_public_api.py"),
     "cache_keys_and_scope": (
         "test_cache.py", "test_cache_identity.py", "test_translation_cache_v2.py", "test_cache_repository_v2.py",
     ),

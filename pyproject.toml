@@ -32,7 +32,8 @@ desktop = [
 ]
 dev = [
   "pytest>=7.4",
-  "pyyaml>=6.0"
+  "pyyaml>=6.0",
+  "import-linter>=2.1"
 ]
 
 [project.scripts]
@@ -47,4 +48,418 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
   "core: the tests that pull requests run on GitHub; see CORE_TEST_FILES in tests/conftest.py",
+]
+
+# Import contracts for D3 and D11 of docs/architecture/decisions/package-structure.md (REF-03, #271).
+# Each ignored import is a violation that exists today, with the issue that removes it. An ignore that no
+# longer matches fails the check, so this list can only shrink.
+[tool.importlinter]
+root_package = "ayvu"
+
+[[tool.importlinter.contracts]]
+id = "layers"
+name = "D3: one-way layers (docs/architecture/decisions/package-structure.md)"
+type = "layers"
+containers = ["ayvu"]
+exhaustive = true
+layers = [
+  "(interfaces) : desktop : cli : cli_progress : cli_contracts : cli_composition : desktop_bootstrap",
+  "(composition)",
+  "(v1)",
+  "(recovery)",
+  "(translation) : translation_plan : translation_pipeline : translation_engine : translation_document : translation_protection : translation_context : context_execution : context_source : chunking : translate_project : translate_project_composition : translate_batch : translate_batch_composition : batch_output_policy : legacy_translation : preflight : (review) : review_application : review_exchange : review_export : review_import : review_composition",
+  "(projects) : project : project_service : project_store : project_schema : project_profiles : project_profile_service : project_profile_store : project_profile_composition : profile_glossary_store",
+  "(knowledge) : cache : cache_identity : cache_repository : cache_schema : cache_interchange : cache_legacy_format : cache_legacy_stream : cache_admin : cache_admin_store : cache_admin_v2_store : cache_admin_legacy_store : cache_admin_composition : translation_memory : memory_retrieval : approved_memory : approved_memory_service : approved_memory_store : glossary : glossary_catalog : glossary_catalog_store : glossary_catalog_composition : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_composition : provider_libretranslate : translator : (formats) : format_adapter : format_service : format_local : epub_archive : epub_format : epub_io : html_structure : html_translate : validation : markdown_writer",
+  "(artifacts) : artifact : artifact_service : artifact_store : artifact_destination",
+  "(jobs) : job : job_events : job_execution : job_service : job_store : job_recovery : job_recovery_store : resume : legacy_resume",
+  "content : content_use_cases : content_composition : provenance : provenance_service : provenance_store : (network) : network_policy : network_http : preferences : preferences_service : preferences_store : config : config_values : (library) : library_service : library_adapters : (application)",
+  "(kernel) : domain : migration_contracts : sqlite_migrations",
+]
+ignore_imports = [
+  "ayvu.batch_output_policy -> ayvu.cli_contracts",  # REF-04 (#272): cli_contracts is split by owner
+  "ayvu.content_use_cases -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
+  "ayvu.content_use_cases -> ayvu.job_events",  # REF-04 (#272): job primitives move to kernel
+  "ayvu.content_use_cases -> ayvu.job_execution",  # REF-04 (#272): job primitives move to kernel
+  "ayvu.preflight -> ayvu.cli_contracts",  # REF-04 (#272): cli_contracts is split by owner
+  "ayvu.provenance -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
+  "ayvu.provenance_store -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
+  "ayvu.content_composition -> ayvu.epub_format",  # REF-05 (#273): composition moves to composition/
+  "ayvu.content_composition -> ayvu.format_local",  # REF-05 (#273): composition moves to composition/
+  "ayvu.content_composition -> ayvu.format_service",  # REF-05 (#273): composition moves to composition/
+  "ayvu.content_composition -> ayvu.markdown_writer",  # REF-05 (#273): composition moves to composition/
+  "ayvu.provider_composition -> ayvu.cli_contracts",  # REF-05 (#273): composition moves to composition/
+  "ayvu.translate_project_composition -> ayvu.cli_contracts",  # REF-05 (#273): composition moves to composition/
+  "ayvu.html_translate -> ayvu.translation_pipeline",  # REF-06 (#274): v1 moves to v1/
+  "ayvu.html_translate -> ayvu.translation_protection",  # REF-06 (#274): v1 moves to v1/
+  "ayvu.resume -> ayvu.cli_contracts",  # REF-06 (#274): v1 moves to v1/
+  "ayvu.content_use_cases -> ayvu.format_adapter",  # REF-07 (#275): content use cases need a home above formats (open question)
+  "ayvu.content_use_cases -> ayvu.format_service",  # REF-07 (#275): content use cases need a home above formats (open question)
+  "ayvu.html_structure -> ayvu.translation_protection",  # REF-07 (#275): translation_protection moves to content/protection
+  "ayvu.artifact_destination -> ayvu.format_local",  # REF-08 (#276): artifacts call formats through a port
+  "ayvu.artifact_destination -> ayvu.format_service",  # REF-08 (#276): artifacts call formats through a port
+  "ayvu.job_recovery -> ayvu.translate_project",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.artifact",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.artifact_store",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.project",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.project_schema",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.project_store",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.translate_project",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.provenance_store -> ayvu.job_store",  # REF-08 (#276): decided when jobs moves
+  "ayvu.memory_retrieval -> ayvu.translation_plan",  # REF-09 (#277): memory_retrieval moves to translation/stages/
+  "ayvu.memory_retrieval -> ayvu.translation_protection",  # REF-09 (#277): memory_retrieval moves to translation/stages/
+  "ayvu.epub_io -> ayvu.review_export",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+  "ayvu.epub_io -> ayvu.review_import",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-translation"
+name = "D3: translation does not import the other modules of its layer (review)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.translation_plan",
+  "ayvu.translation_pipeline",
+  "ayvu.translation_engine",
+  "ayvu.translation_document",
+  "ayvu.translation_protection",
+  "ayvu.translation_context",
+  "ayvu.context_execution",
+  "ayvu.context_source",
+  "ayvu.chunking",
+  "ayvu.translate_project",
+  "ayvu.translate_project_composition",
+  "ayvu.translate_batch",
+  "ayvu.translate_batch_composition",
+  "ayvu.batch_output_policy",
+  "ayvu.legacy_translation",
+  "ayvu.preflight",
+]
+forbidden_modules = [
+  "ayvu.review_application",
+  "ayvu.review_exchange",
+  "ayvu.review_export",
+  "ayvu.review_import",
+  "ayvu.review_composition",
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-review"
+name = "D3: review does not import the other modules of its layer (translation)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.review_application",
+  "ayvu.review_exchange",
+  "ayvu.review_export",
+  "ayvu.review_import",
+  "ayvu.review_composition",
+]
+forbidden_modules = [
+  "ayvu.translation_plan",
+  "ayvu.translation_pipeline",
+  "ayvu.translation_engine",
+  "ayvu.translation_document",
+  "ayvu.translation_protection",
+  "ayvu.translation_context",
+  "ayvu.context_execution",
+  "ayvu.context_source",
+  "ayvu.chunking",
+  "ayvu.translate_project",
+  "ayvu.translate_project_composition",
+  "ayvu.translate_batch",
+  "ayvu.translate_batch_composition",
+  "ayvu.batch_output_policy",
+  "ayvu.legacy_translation",
+  "ayvu.preflight",
+]
+ignore_imports = [
+  "ayvu.review_composition -> ayvu.translate_project",  # REF-05 (#273): composition moves to composition/
+  "ayvu.review_composition -> ayvu.translation_engine",  # REF-05 (#273): composition moves to composition/
+  "ayvu.review_exchange -> ayvu.translation_protection",  # REF-07 (#275): translation_protection moves to content/protection
+  "ayvu.review_application -> ayvu.translate_project",  # REF-12 (#280): review depends on translation; D3 placement to revisit
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-knowledge"
+name = "D3: knowledge does not import the other modules of its layer (providers, formats)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.cache",
+  "ayvu.cache_identity",
+  "ayvu.cache_repository",
+  "ayvu.cache_schema",
+  "ayvu.cache_interchange",
+  "ayvu.cache_legacy_format",
+  "ayvu.cache_legacy_stream",
+  "ayvu.cache_admin",
+  "ayvu.cache_admin_store",
+  "ayvu.cache_admin_v2_store",
+  "ayvu.cache_admin_legacy_store",
+  "ayvu.cache_admin_composition",
+  "ayvu.translation_memory",
+  "ayvu.memory_retrieval",
+  "ayvu.approved_memory",
+  "ayvu.approved_memory_service",
+  "ayvu.approved_memory_store",
+  "ayvu.glossary",
+  "ayvu.glossary_catalog",
+  "ayvu.glossary_catalog_store",
+  "ayvu.glossary_catalog_composition",
+]
+forbidden_modules = [
+  "ayvu.provider",
+  "ayvu.provider_capabilities",
+  "ayvu.provider_discovery",
+  "ayvu.provider_service",
+  "ayvu.provider_network",
+  "ayvu.provider_composition",
+  "ayvu.provider_libretranslate",
+  "ayvu.translator",
+  "ayvu.format_adapter",
+  "ayvu.format_service",
+  "ayvu.format_local",
+  "ayvu.epub_archive",
+  "ayvu.epub_format",
+  "ayvu.epub_io",
+  "ayvu.html_structure",
+  "ayvu.html_translate",
+  "ayvu.validation",
+  "ayvu.markdown_writer",
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-providers"
+name = "D3: providers does not import the other modules of its layer (knowledge, formats)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.provider",
+  "ayvu.provider_capabilities",
+  "ayvu.provider_discovery",
+  "ayvu.provider_service",
+  "ayvu.provider_network",
+  "ayvu.provider_composition",
+  "ayvu.provider_libretranslate",
+  "ayvu.translator",
+]
+forbidden_modules = [
+  "ayvu.cache",
+  "ayvu.cache_identity",
+  "ayvu.cache_repository",
+  "ayvu.cache_schema",
+  "ayvu.cache_interchange",
+  "ayvu.cache_legacy_format",
+  "ayvu.cache_legacy_stream",
+  "ayvu.cache_admin",
+  "ayvu.cache_admin_store",
+  "ayvu.cache_admin_v2_store",
+  "ayvu.cache_admin_legacy_store",
+  "ayvu.cache_admin_composition",
+  "ayvu.translation_memory",
+  "ayvu.memory_retrieval",
+  "ayvu.approved_memory",
+  "ayvu.approved_memory_service",
+  "ayvu.approved_memory_store",
+  "ayvu.glossary",
+  "ayvu.glossary_catalog",
+  "ayvu.glossary_catalog_store",
+  "ayvu.glossary_catalog_composition",
+  "ayvu.format_adapter",
+  "ayvu.format_service",
+  "ayvu.format_local",
+  "ayvu.epub_archive",
+  "ayvu.epub_format",
+  "ayvu.epub_io",
+  "ayvu.html_structure",
+  "ayvu.html_translate",
+  "ayvu.validation",
+  "ayvu.markdown_writer",
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-formats"
+name = "D3: formats does not import the other modules of its layer (knowledge, providers)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.format_adapter",
+  "ayvu.format_service",
+  "ayvu.format_local",
+  "ayvu.epub_archive",
+  "ayvu.epub_format",
+  "ayvu.epub_io",
+  "ayvu.html_structure",
+  "ayvu.html_translate",
+  "ayvu.validation",
+  "ayvu.markdown_writer",
+]
+forbidden_modules = [
+  "ayvu.cache",
+  "ayvu.cache_identity",
+  "ayvu.cache_repository",
+  "ayvu.cache_schema",
+  "ayvu.cache_interchange",
+  "ayvu.cache_legacy_format",
+  "ayvu.cache_legacy_stream",
+  "ayvu.cache_admin",
+  "ayvu.cache_admin_store",
+  "ayvu.cache_admin_v2_store",
+  "ayvu.cache_admin_legacy_store",
+  "ayvu.cache_admin_composition",
+  "ayvu.translation_memory",
+  "ayvu.memory_retrieval",
+  "ayvu.approved_memory",
+  "ayvu.approved_memory_service",
+  "ayvu.approved_memory_store",
+  "ayvu.glossary",
+  "ayvu.glossary_catalog",
+  "ayvu.glossary_catalog_store",
+  "ayvu.glossary_catalog_composition",
+  "ayvu.provider",
+  "ayvu.provider_capabilities",
+  "ayvu.provider_discovery",
+  "ayvu.provider_service",
+  "ayvu.provider_network",
+  "ayvu.provider_composition",
+  "ayvu.provider_libretranslate",
+  "ayvu.translator",
+]
+ignore_imports = [
+  "ayvu.html_translate -> ayvu.cache",  # REF-06 (#274): v1 moves to v1/
+  "ayvu.html_translate -> ayvu.glossary",  # REF-06 (#274): v1 moves to v1/
+  "ayvu.html_translate -> ayvu.translation_memory",  # REF-06 (#274): v1 moves to v1/
+  "ayvu.html_translate -> ayvu.translator",  # REF-06 (#274): v1 moves to v1/
+  "ayvu.epub_io -> ayvu.cache",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+  "ayvu.epub_io -> ayvu.glossary",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+  "ayvu.epub_io -> ayvu.translation_memory",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+  "ayvu.epub_io -> ayvu.translator",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-content"
+name = "D3: content does not import the other modules of its layer (provenance, network, preferences, library, application)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.content",
+  "ayvu.content_use_cases",
+  "ayvu.content_composition",
+]
+forbidden_modules = [
+  "ayvu.provenance",
+  "ayvu.provenance_service",
+  "ayvu.provenance_store",
+  "ayvu.network_policy",
+  "ayvu.network_http",
+  "ayvu.preferences",
+  "ayvu.preferences_service",
+  "ayvu.preferences_store",
+  "ayvu.config",
+  "ayvu.config_values",
+  "ayvu.library_service",
+  "ayvu.library_adapters",
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-provenance"
+name = "D3: provenance does not import the other modules of its layer (content, network, preferences, library, application)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.provenance",
+  "ayvu.provenance_service",
+  "ayvu.provenance_store",
+]
+forbidden_modules = [
+  "ayvu.content",
+  "ayvu.content_use_cases",
+  "ayvu.content_composition",
+  "ayvu.network_policy",
+  "ayvu.network_http",
+  "ayvu.preferences",
+  "ayvu.preferences_service",
+  "ayvu.preferences_store",
+  "ayvu.config",
+  "ayvu.config_values",
+  "ayvu.library_service",
+  "ayvu.library_adapters",
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-network"
+name = "D3: network does not import the other modules of its layer (content, provenance, preferences, library, application)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.network_policy",
+  "ayvu.network_http",
+]
+forbidden_modules = [
+  "ayvu.content",
+  "ayvu.content_use_cases",
+  "ayvu.content_composition",
+  "ayvu.provenance",
+  "ayvu.provenance_service",
+  "ayvu.provenance_store",
+  "ayvu.preferences",
+  "ayvu.preferences_service",
+  "ayvu.preferences_store",
+  "ayvu.config",
+  "ayvu.config_values",
+  "ayvu.library_service",
+  "ayvu.library_adapters",
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-preferences"
+name = "D3: preferences does not import the other modules of its layer (content, provenance, network, library, application)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.preferences",
+  "ayvu.preferences_service",
+  "ayvu.preferences_store",
+  "ayvu.config",
+  "ayvu.config_values",
+]
+forbidden_modules = [
+  "ayvu.content",
+  "ayvu.content_use_cases",
+  "ayvu.content_composition",
+  "ayvu.provenance",
+  "ayvu.provenance_service",
+  "ayvu.provenance_store",
+  "ayvu.network_policy",
+  "ayvu.network_http",
+  "ayvu.library_service",
+  "ayvu.library_adapters",
+]
+ignore_imports = [
+  "ayvu.preferences -> ayvu.provenance",  # REF-07 (#275): decided when the leaf modules move
+]
+
+[[tool.importlinter.contracts]]
+id = "same-layer-library"
+name = "D3: library does not import the other modules of its layer (content, provenance, network, preferences, application)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.library_service",
+  "ayvu.library_adapters",
+]
+forbidden_modules = [
+  "ayvu.content",
+  "ayvu.content_use_cases",
+  "ayvu.content_composition",
+  "ayvu.provenance",
+  "ayvu.provenance_service",
+  "ayvu.provenance_store",
+  "ayvu.network_policy",
+  "ayvu.network_http",
+  "ayvu.preferences",
+  "ayvu.preferences_service",
+  "ayvu.preferences_store",
+  "ayvu.config",
+  "ayvu.config_values",
 ]
