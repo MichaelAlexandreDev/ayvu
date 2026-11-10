@@ -51,12 +51,10 @@ Abra o PR como draft quando ainda houver revisao ou discussao pendente antes do 
 
 Commits devem ser pequenos, descritivos e limitados ao escopo da issue. Evite misturar codigo e documentacao nao relacionada na mesma alteracao.
 
-Antes de mergear uma mudanca de codigo, rode as validacoes locais aplicaveis:
+Antes de mergear uma mudanca de codigo, rode a etapa 1 (veja abaixo):
 
 ```bash
-uv lock --check
-uv sync --extra dev --locked
-uv run --no-sync pytest
+scripts/check.sh
 ```
 
 Para mudancas apenas de documentacao, use pelo menos:
@@ -65,41 +63,98 @@ Para mudancas apenas de documentacao, use pelo menos:
 git diff --check
 ```
 
-## CI e Gate de Qualidade
+## Testes em Etapas e Gate de Qualidade
 
-O workflow `.github/workflows/tests.yml` valida pushes para `main` e pull
-requests, e pode ser disparado manualmente. Ele nao publica pacotes nem
-releases. O CI executa:
+O repositorio e privado no plano gratuito do GitHub. Nesse plano as Actions tem
+cerca de 2.000 minutos por mes, e cada job e cobrado arredondado para o minuto
+seguinte. Por isso os testes rodam em tres etapas, e so a ultima usa o GitHub.
 
-- verificacao de que `uv.lock` corresponde ao projeto;
-- instalacao reproduzivel com a versao de uv fixada;
-- suite completa no Ubuntu: Python 3.11 em pull requests, 3.14 em pushes para
-  `main` e as duas versoes num disparo manual. A regra do `main` exige a pull
-  request atualizada antes do merge, entao o `main` recebe a arvore que ela testou;
-- build de wheel e source distribution;
-- instalacao isolada do wheel e smoke test de `ayvu --help`;
-- job agregado e estavel chamado `ci-gate`.
+### Etapa 1: maquina local, antes de cada push
+
+```bash
+scripts/check.sh
+```
+
+O script roda `uv lock --check`, sincroniza o ambiente, executa a suite completa
+duas vezes (normal e com `GITHUB_ACTIONS=true`, porque o Typer e o Rich mudam a
+saida nesse ambiente) e termina com `git diff --check`. Ele para na primeira
+falha.
+
+O gancho `pre-push` e opcional e chama o mesmo script. Para instalar:
+
+```bash
+ln -s ../../scripts/hooks/pre-push .git/hooks/pre-push
+```
+
+Para pular o gancho em um push especifico, use `git push --no-verify`.
+
+### Etapa 2: Docker, sob demanda e antes de cada release
+
+```bash
+scripts/docker-tests.sh                 # todos os alvos
+scripts/docker-tests.sh fedora:system   # um alvo
+```
+
+Os alvos padrao sao Ubuntu 24.04 (Python do sistema, 3.11 e 3.14 via uv),
+Debian trixie, Fedora 43 e Arch, cada um com o Python do sistema, mais o alvo
+`constrained`, que roda os testes `core` com 1 CPU e 1 GB de memoria.
+
+- As imagens base e o uv sao fixados por digest.
+- A imagem recebe apenas `pyproject.toml`, `uv.lock` e `docker/run-tests.sh`
+  (veja `.dockerignore`). Nenhum arquivo do projeto fica na imagem.
+- O codigo chega no momento da execucao, como um tar dos arquivos que o git
+  rastreia ou rastrearia. Tudo o que o `.gitignore` exclui (livros, caches,
+  glossarios, `.ayvu-pessoal/`, arquivos de agente) nunca entra no container.
+- Os testes rodam sem rede (`--network none`), como usuario comum, e o container
+  e removido no fim.
+
+Windows e macOS nao rodam em Docker. Eles entram com o trabalho de release do
+Desktop.
+
+### Etapa 3: GitHub Actions
+
+O workflow `.github/workflows/tests.yml` nao publica pacotes nem releases.
+
+| Evento | Jobs | Testes |
+| --- | --- | --- |
+| Pull request | `ci-gate` | Os testes marcados `core`, no Python 3.11 |
+| Push para `main` | `ci-gate` | A suite completa, no Python 3.11 |
+| Disparo manual ou tag `v*` | `full-matrix` | A suite completa, no Python 3.11 e no 3.14 |
+
+Todo job tambem verifica o `uv.lock`, gera wheel e source distribution, instala
+o wheel isolado e roda `ayvu --help`.
+
+O marcador `core` e aplicado por `CORE_TEST_FILES`, em `tests/conftest.py`. Cada
+entrada nomeia uma invariante do projeto (EPUB original intacto, estrutura do
+ZIP e `mimetype`, texto visivel e tags, ordem dos chunks, cache, retomada,
+glossario, CLI, rede somente local, fronteiras de modulos, links da
+documentacao e as proprias etapas) e os arquivos de teste que a protegem.
+Para rodar o mesmo conjunto localmente, use `uv run --no-sync pytest -m core`.
+`tests/test_ci_stages.py` confere o mapa, os jobs de cada evento, o
+`.dockerignore` e este documento. Se a selecao `core` ficar vazia, o pytest sai
+com erro e o gate falha.
 
 As Actions sao referenciadas por SHA completo, com a versao legivel em
 comentario. O token do workflow tem somente `contents: read`, e o checkout nao
 mantem credenciais. Runs antigos do mesmo pull request ou ref sao cancelados e
 todos os jobs possuem timeout.
 
-O arquivo `.github/dependabot.yml` agenda atualizacoes semanais e revisaveis
-para o lock Python gerenciado por uv e para as Actions. Ele nao habilita merge
-automatico nem concede permissoes de escrita ao CI.
+O arquivo `.github/dependabot.yml` agenda atualizacoes semanais para o lock
+Python gerenciado por uv e para as Actions. As atualizacoes de versao chegam
+agrupadas, uma pull request por ecossistema por semana. As atualizacoes de
+seguranca continuam separadas. Nao ha merge automatico nem permissao de escrita
+no CI.
 
-Depois que esse workflow estiver em `main`, a protecao remota deve ser feita em
-uma acao separadamente autorizada:
+### Main sem protecao remota
 
-1. habilitar Dependabot alerts e Dependabot security updates;
-2. proteger `main` contra merge sem pull request;
-3. exigir o check estavel `ci-gate` antes do merge;
-4. impedir bypasses nao intencionais e confirmar as regras com a API do GitHub.
+Num repositorio privado do plano gratuito, a regra que protegia `main` nao e
+aplicada pelo GitHub. Nada impede tecnicamente um push direto ou um merge com o
+CI vermelho. A regra passa a ser de processo:
 
-Essas configuracoes remotas nao existem apenas por adicionar os arquivos ao
-repositorio. Ate serem habilitadas no GitHub, o workflow informa falhas, mas nao
-impede sozinho um push ou merge em `main`.
+1. nunca fazer push direto para `main`;
+2. mergear somente pull requests com `ci-gate` verde e a etapa 1 aprovada;
+3. como as pull requests rodam so os testes `core`, uma falha fora deles aparece
+   no push para `main`; ela e corrigida em seguida, com nova pull request.
 
 ## Milestones
 

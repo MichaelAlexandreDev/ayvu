@@ -272,6 +272,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Testes em três etapas (#261): `scripts/check.sh` na máquina local (com gancho
+  `pre-push` opcional), `scripts/docker-tests.sh` em Ubuntu, Debian, Fedora e Arch,
+  sem rede e sem arquivos privados, e um único job `ci-gate` no GitHub. Pull requests
+  rodam os testes marcados `core` e o `main` roda a suite completa; disparo manual e
+  tags `v*` cobrem Python 3.11 e 3.14. O Dependabot agrupa as atualizações de versão.
 - Progresso de traducao foi extraido para `src/ayvu/cli_progress.py`.
 - Responsabilidades do backend LibreTranslate foram separadas em classes e
   parsers menores.
