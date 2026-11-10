@@ -68,11 +68,14 @@ git diff --check
 ## CI e Gate de Qualidade
 
 O workflow `.github/workflows/tests.yml` valida pushes para `main` e pull
-requests. Ele nao publica pacotes nem releases. O CI executa:
+requests, e pode ser disparado manualmente. Ele nao publica pacotes nem
+releases. O CI executa:
 
 - verificacao de que `uv.lock` corresponde ao projeto;
 - instalacao reproduzivel com a versao de uv fixada;
-- suite completa no Ubuntu com Python 3.11 e 3.14;
+- suite completa no Ubuntu: Python 3.11 em pull requests, 3.14 em pushes para
+  `main` e as duas versoes num disparo manual. A regra do `main` exige a pull
+  request atualizada antes do merge, entao o `main` recebe a arvore que ela testou;
 - build de wheel e source distribution;
 - instalacao isolada do wheel e smoke test de `ayvu --help`;
 - job agregado e estavel chamado `ci-gate`.
