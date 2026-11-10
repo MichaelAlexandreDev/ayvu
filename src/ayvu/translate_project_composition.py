@@ -25,6 +25,8 @@ from .artifact_destination import DestinationFileOps, DestinationPublications, L
 from .cache_repository import SQLiteExactCache
 from .cache_schema import CacheSchemaError, SchemaState, classify_cache
 from .content import ContentDocument, TranslationUnit
+from .context_execution import ContextExecution
+from .translation_context import ContextError
 from .domain import OutputPlan, TranslationOptions
 from .epub_format import EPUB_REGISTRATION, epub_format_adapter
 from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB path
@@ -343,6 +345,7 @@ class ProjectTranslation:
     accepted_output: AcceptedOutputPlan | None = None
     model_label: str | None = None
     cache_path: Path | None = None
+    translation_context: ContextExecution | None = None
 
     def __repr__(self) -> str:
         return f"ProjectTranslation(project_id={self.project_id!r})"
@@ -369,20 +372,42 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
     destination = translation.output.path
     overwrite = translation.accepted_output.overwrite if translation.accepted_output is not None else translation.replace_existing
     try:
+        if translation.translation_context is not None:
+            if translation.model_label is None:
+                raise ContextError('context_capabilities')
+            execution_context = translation.translation_context
+            now = datetime.now(UTC)
+            execution_context.validate(now)
+            if any(r.snapshot.profile.project.value != translation.project_id
+                   or r.operation_id != translation.operation_id
+                   or r.snapshot.profile.target_language != translation.options.target
+                   for r in execution_context.requests):
+                raise ContextError('context_authorization')
+            context_binding = (cancellation.bind(CancellationSource(('pipeline_between_stages',)))
+                if cancellation is not None and not isinstance(cancellation, CancellationSource)
+                else nullcontext(cancellation))
+            with context_binding as source:
+                cancel_context = (None if source is None else
+                    lambda: source.token.checkpoint('pipeline_between_stages') is not None)
+                execution_context.prepare(now, cancel=cancel_context)
+            execution_context.authorize_prepared(datetime.now(UTC))
         if translation.model_label is not None:
             projects = ProjectJsonRepository(translation.processing_dir)
             paths = projects.resolve_database_paths(translation.project_id)
             runtime = RichTranslationRuntime(translation.source_path, translation.options, translation.prepare,
                 translation.cache_path, translation.model_label, paths.database, paths.backups,
-                projects.resolve_artifact_root(translation.project_id), translation.project_id)
+                projects.resolve_artifact_root(translation.project_id), translation.project_id,
+                translation_context=translation.translation_context)
             execution = {"execution_revision": 2, "producer": runtime.producer,
                          "additional_output_roles": (RAW_RESULTS_ROLE,)}
+            if translation.translation_context is not None:
+                execution['context_revision'] = translation.translation_context.job_revision
         guard = translation.accepted_output.publication_guard if translation.accepted_output is not None else translation.before_publish
         publication_options = {} if guard is None else {"before_publish": guard}
         use_case = open_translate_project(translation.processing_dir, translation.project_id, translation.source_path, destination,
                                           overwrite=overwrite, runtime=runtime, **publication_options)
-    except (ProjectError, JobError, ArtifactError, ProvenanceError, OSError, sqlite3.Error) as error:
-        code = str(error) if isinstance(error, (ProjectError, JobError, ArtifactError, ProvenanceError)) else "project_storage_unavailable"
+    except (ProjectError, JobError, ArtifactError, ProvenanceError, ContextError, OSError, sqlite3.Error) as error:
+        code = str(error) if isinstance(error, (ProjectError, JobError, ArtifactError, ProvenanceError, ContextError)) else "project_storage_unavailable"
         raise ProjectTranslationUnavailable(code) from None
     # The plan holds the canonical path, the form a resume file records. The destination stays as given, so a link stays a link.
     planned = (translation.accepted_output.execution_output if translation.accepted_output is not None
@@ -485,7 +510,7 @@ class _DocumentExecutor:
 class RichTranslationRuntime:
     """Only the composition knows the concrete repositories and LibreTranslate adapter."""
     def __init__(self, source_path, options, prepare, cache_path, label, database, backups, artifact_root, project_id,
-                 *, clock=lambda: datetime.now(UTC)) -> None:
+                 *, clock=lambda: datetime.now(UTC), translation_context: ContextExecution | None = None) -> None:
         self._source_path, self._options, self._prepare = source_path, options, prepare
         self._cache_path = v2_cache_path(cache_path)
         self._database, self._backups, self._artifact_root = database, backups, artifact_root
@@ -494,6 +519,7 @@ class RichTranslationRuntime:
         self.preflight_error = None
         self._prepared = None
         self._cache = None
+        self._translation_context = translation_context
 
     def __repr__(self) -> str:
         return "RichTranslationRuntime()"
@@ -501,6 +527,9 @@ class RichTranslationRuntime:
     def preflight(self) -> JobFailure | None:
         try:
             check_rich_options(self._options)
+            if self._translation_context is not None:
+                self._translation_context.validate(self._clock())
+                self._translation_context.authorize_prepared(self._clock())
             # Do not promote even a v1 database accidentally placed at the sibling name.
             if classify_cache(self._cache_path) not in (SchemaState.ABSENT, SchemaState.EMPTY, SchemaState.V2):
                 raise CacheSchemaError("cache_foreign")
@@ -549,7 +578,8 @@ class RichTranslationRuntime:
                     apply_threshold=options.translation_memory.apply_threshold)
         document_translator = DocumentTranslator(plan, provider,
             lambda text: apply_glossary_with_usage(text, prepared.glossary), artifacts, provenance, context.events,
-            exact_cache=self._cache, approved_memory=retrieval, memory=legacy, retrieval_policy=policy, clock=self._clock)
+            exact_cache=self._cache, approved_memory=retrieval, memory=legacy, retrieval_policy=policy, clock=self._clock,
+            translation_context=self._translation_context)
         executor = _DocumentExecutor(document_translator, context)
         try:
             yield TranslationResources(executor, prepare_document=executor.prepare_document)

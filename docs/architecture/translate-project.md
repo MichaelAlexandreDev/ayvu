@@ -24,6 +24,12 @@ preparar o provedor; não abre nem migra o v1. Exige `--workers 1` e recusa
 offline fixada para oferecer cache-only rico nesta integração. Preflight sanitiza
 recusas do cache. A autorização HTTP existente é reutilizada, sem novas requisições.
 
+Um consumidor de aplicação pode injetar `ProjectTranslation.translation_context`
+com snapshots e autorização explícitos. A [política de contexto limitado](translation-context.md)
+prepara e valida a divulgação antes dos repositórios/provider, revalida na saída
+de cada chamada e inclui o efeito no fingerprint do job somente quando declarado.
+Isso não cria autorização implícita a partir de um perfil ou configuração da CLI.
+
 O port recebe um `RuntimeContext` com job real, cancelamento e canal de eventos.
 Antes de cada documento, a composição consulta o job atual para observar leases
 renovados, mantendo o token do dono original para não adotar a posse de outro processo.
