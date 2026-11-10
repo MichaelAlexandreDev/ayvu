@@ -272,6 +272,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Travas de arquitetura (REF-03, #271), no conjunto `core`: catraca de tamanho (arquivos
+  até 400 linhas, funções até 80, com os maiores de hoje em `tests/size_ratchet.json`),
+  `import-linter` com as camadas da decisão de estrutura de pacotes e as 46 violações de
+  hoje, cada uma com a issue que a remove, e a checagem de API pública entre pacotes.
 - Decisão da estrutura de pacotes (REF-02, #267), aceita pelo owner em 2026-11-10:
   `docs/architecture/decisions/package-structure.md`, com as decisões D1 a D15, a árvore alvo,
   o destino de cada arquivo atual, os ciclos e a issue que desfaz cada um. A D15 manda escrever

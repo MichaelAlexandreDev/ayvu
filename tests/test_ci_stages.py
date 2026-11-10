@@ -24,7 +24,7 @@ RELEASE_DOC = ROOT / "docs" / "release-workflow.md"
 INVARIANTS = {
     "original_epub_unchanged", "zip_structure_and_mimetype", "visible_text_and_tags", "chunk_order_and_spacing",
     "cache_keys_and_scope", "resume", "glossary", "cli_entry_points", "local_only_network",
-    "module_boundaries", "documentation_links", "ci_stages", "persisted_identities",
+    "module_boundaries", "documentation_links", "ci_stages", "persisted_identities", "architecture_guardrails",
 }
 PINNED_ACTION = re.compile(r"^[\w.-]+/[\w.-]+@[0-9a-f]{40}$")
 

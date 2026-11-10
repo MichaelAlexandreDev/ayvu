@@ -128,7 +128,7 @@ O marcador `core` e aplicado por `CORE_TEST_FILES`, em `tests/conftest.py`. Cada
 entrada nomeia uma invariante do projeto (EPUB original intacto, estrutura do
 ZIP e `mimetype`, texto visivel e tags, ordem dos chunks, cache, retomada,
 glossario, CLI, rede somente local, fronteiras de modulos, links da
-documentacao, identidades persistidas e as proprias etapas) e os arquivos de teste que a protegem.
+documentacao, identidades persistidas, travas de arquitetura e as proprias etapas) e os arquivos de teste que a protegem.
 Para rodar o mesmo conjunto localmente, use `uv run --no-sync pytest -m core`.
 `tests/test_ci_stages.py` confere o mapa, os jobs de cada evento, o
 `.dockerignore` e este documento. Se a selecao `core` ficar vazia, o pytest sai
@@ -144,6 +144,20 @@ Python gerenciado por uv e para as Actions. As atualizacoes de versao chegam
 agrupadas, uma pull request por ecossistema por semana. As atualizacoes de
 seguranca continuam separadas. Nao ha merge automatico nem permissao de escrita
 no CI.
+
+### Travas de arquitetura
+
+Tres checagens fazem parte do conjunto `core` (REF-03, #271):
+
+- `tests/test_size_ratchet.py`: arquivos ate 400 linhas e funcoes ate 80, testes
+  incluidos. Os maiores de hoje ficam em `tests/size_ratchet.json` e so podem
+  diminuir. Depois de diminuir um deles, rode `scripts/size_ratchet.py --update`.
+- `tests/test_import_contracts.py`: roda `lint-imports` com os contratos de
+  `pyproject.toml` (`[tool.importlinter]`), que seguem as camadas da decisao de
+  estrutura de pacotes. Cada import ignorado nomeia a issue que o remove, e um
+  ignore que deixou de existir faz a checagem falhar.
+- `tests/test_public_api.py`: um pacote so usa outro pelo que o `__init__.py`
+  dele exporta.
 
 ### Main sem protecao remota
 
