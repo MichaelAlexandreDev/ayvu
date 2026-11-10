@@ -76,8 +76,9 @@ scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle
 [provider capabilities](provider-capabilities.md) (`DEC-008`) and
 [translation pipeline](translation-pipeline.md) (`DEC-007`).
 
-A pesquisa [workers locais e IPC](adr-local-worker-isolation.md) (#167) permanece
-`Proposed`, isolada de produção e sem alterar estas fronteiras aceitas.
+A decisão [workers locais e IPC](adr-local-worker-isolation.md) (#167) foi
+`Accepted` em 2026-11-10. Ainda não há runner em produção, e ela não altera
+estas fronteiras aceitas.
 
 ## Architecture dimensions
 

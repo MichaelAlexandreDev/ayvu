@@ -1,9 +1,10 @@
 # ADR: ciclo de vida e IPC de workers locais confiáveis — DESKTOP-136
 
-Status: `Proposed`
+Status: `Accepted`
 
 Data: 2026-11-06. Issue: [#167](https://github.com/DevStarrk1137/ayvu/issues/167).
-Não há aceite humano desta decisão nem autorização para habilitar um runner.
+Aceita em 2026-11-10 pelo mantenedor; ver o [registro de aceite](#registro-de-aceite).
+O aceite não habilita um runner em produção.
 
 ## Gate e comportamento preservado
 
@@ -281,7 +282,32 @@ Propostas de follow-up, cada qual revisável e sem criar issues remotas nesta se
 5. **M por plataforma — pesquisa nativa e packaging**: somente se #124 incorporar
    Windows/macOS; repetir toda a matriz, incluindo handles, árvore e morte do pai.
 6. **S — revisão humana desta ADR**: aceitar/rejeitar/restringir operações e riscos,
-   registrar autoria/data; até lá manter `Proposed` e sem habilitação em produção.
+   registrar autoria/data. Feito em 2026-11-10; ver o registro abaixo.
 
 Se rejeitada, remover `spikes/local-worker`, seus testes/registro/links e esta ADR;
 nenhuma migração de dados, rollback de CLI ou dependência terá sido necessária.
+
+## Registro de aceite
+
+Aceita em 2026-11-10 pelo mantenedor do projeto, por aprovação explícita na
+sessão de desenvolvimento, sem restrições à recomendação acima:
+
+- o Desktop executa trabalho pesado em um worker local separado, lançado por
+  `subprocess.Popen` com entrada fixa do pacote e IPC por `AF_UNIX socketpair`
+  anônimo herdado;
+- um worker por execução, em grupo de processos próprio, sem reutilização entre
+  jobs na v1, com stdout/stderr separados do protocolo;
+- somente comandos in-tree revisados e allowlisted são confiáveis; plugins,
+  executáveis, código e argv livres continuam proibidos;
+- o lançamento mínimo descrito acima é obrigatório, e nenhuma credencial passa
+  ao worker.
+
+O aceite não implementa nem habilita um runner. Os follow-ups 1 a 5 continuam
+issues separadas, cada uma com revisão própria. Seguem em aberto, sem dispensa:
+
+- um subprocesso confiável não é sandbox; a contenção pelo SO (follow-up 4)
+  ainda não foi decidida;
+- Windows e macOS continuam sem evidência nativa;
+- o teto de buffer nativo e o smoke do bundle são gates do supervisor Linux.
+
+`spikes/local-worker` continua sendo pesquisa descartável, fora de produção.
