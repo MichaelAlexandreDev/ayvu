@@ -6,7 +6,6 @@ import pytest
 
 from ayvu.batch_output_policy import OutputIntent
 from ayvu.cache import TranslationCache
-from ayvu.domain import LanguagePair, OutputPlan, TranslationOptions
 from ayvu.epub_io import detect_epub_language
 from ayvu.project_service import resolve_project
 from ayvu.project_store import ProjectJsonRepository, build_project_request
@@ -15,6 +14,7 @@ from ayvu.translate_batch_composition import LocalBatchItem, LocalTranslateBatch
 from ayvu.translate_project import TranslateObserver
 from ayvu.translate_project_composition import LegacyResources, ProjectTranslation, translate_in_project
 from test_workflow_characterization import _write_epub
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions
 
 
 class Translator:

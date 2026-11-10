@@ -8,10 +8,10 @@ from __future__ import annotations
 import pytest
 
 from ayvu.cache import CacheKey, TranslationCache
-from ayvu.domain import LanguagePair, TranslationMemoryOptions
 from ayvu.html_translate import translate_text
 from ayvu.translation_memory import TranslationMemory
 from ayvu.translator import Translator
+from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
 PAIR = LanguagePair(source='en', target='pt')
 

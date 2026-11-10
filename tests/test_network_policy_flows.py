@@ -11,13 +11,13 @@ from typer.testing import CliRunner
 
 from ayvu import cli, cli_composition
 from ayvu.config_values import AyvuConfig
-from ayvu.domain import LanguagePair, TranslationOptions
 from ayvu.cli_contracts import PreflightPolicyError
 from ayvu.network_policy import NetworkPolicy
 from ayvu.provider_discovery import DiscoveryOutcome
 from ayvu.provider_network import NetworkClass, ProviderOperation
 from ayvu.resume import ResumeStateStore, TranslationResumeState
 from test_network_policy import WireSocket, answer, deny_network, wire_reply
+from ayvu.kernel import LanguagePair, TranslationOptions
 
 LANGUAGES = [{"code": "en", "name": "English", "targets": ["pt"]},
              {"code": "pt", "name": "Português", "targets": ["en"]}]

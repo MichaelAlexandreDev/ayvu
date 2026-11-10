@@ -4,8 +4,6 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
-
-from ayvu.job_events import JobFailureFamily, JobOperationError, JobFailure
 from ayvu.job_execution import CancellationSource
 from ayvu.provider import (
     ConstraintsFeature, ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProviderRoute, ProviderStatus,
@@ -16,6 +14,7 @@ from ayvu.provider_service import (
     ProviderInstance, ProviderRegistry, ProviderRegistryError, UNKNOWN_PRODUCER, decide_features, execute,
 )
 from provider_fakes import FAKE_PRODUCER, FakeFactory, FakeProvider, failure, fake_instance, request, success
+from ayvu.kernel import JobFailureFamily, JobOperationError, JobFailure
 
 REQUIRED = ContextFeature((ContextItem('previous', 'x'),), Requirement.REQUIRED)
 ADVISORY = ConstraintsFeature((Constraint('max_chars', 5),), Requirement.ADVISORY)

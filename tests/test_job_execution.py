@@ -10,13 +10,11 @@ import pytest
 
 from ayvu.job import ALLOWED_TRANSITIONS, JobRequest, JobState, JobTerminalSummary, new_job
 from ayvu.job_events import (
-    CancellationRequest, JobCorrelation, JobEvent, JobEventAcceptance, JobEventError, JobEventKind, JobEventOrderError,
-    JobFailure, JobFailureFamily, JobOperationError, JobOutcome, JobProgress, JobWarning, encode_event,
-)
+    CancellationRequest, JobCorrelation, JobEvent, JobEventAcceptance, JobEventKind, JobEventOrderError, JobOutcome, JobProgress, encode_event)
 from ayvu.job_execution import (
-    CancellationSource, CancellationStatus, InMemoryJobEventLog, JobCancellationError,
-)
+    CancellationSource, CancellationStatus, InMemoryJobEventLog)
 from job_contract_fakes import SAFE_POINTS, FakeOperation, OutcomeAudit, ProgressView
+from ayvu.kernel import JobEventError, JobFailure, JobFailureFamily, JobOperationError, JobWarning, JobCancellationError
 
 JOB = str(UUID(int=2))
 PROJECT = str(UUID(int=3))

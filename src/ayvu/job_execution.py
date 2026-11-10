@@ -7,11 +7,10 @@ from enum import StrEnum
 from threading import Lock
 from typing import Protocol
 
-from .job import JobError, JobState, is_slug
+from .job import JobState
 from .job_events import (
-    CancellationAcknowledgement, CancellationRequest, JobEvent, JobEventAcceptance, JobEventError, JobEventOrderError,
-    JobEventSequence, JobOutcome,
-)
+    CancellationAcknowledgement, CancellationRequest, JobEvent, JobEventAcceptance, JobEventOrderError, JobEventSequence, JobOutcome)
+from .kernel import CancellationToken, JobCancellationError, JobEventError, is_slug
 
 DEFAULT_EVENT_LOG_CAPACITY = 16384
 
@@ -62,10 +61,6 @@ class InMemoryJobEventLog:
             return tuple(self._events[after_sequence:])
 
 
-class JobCancellationError(JobError):
-    pass
-
-
 class CancellationStatus(StrEnum):
     ACCEPTED = "accepted"
     ALREADY_REQUESTED = "already_requested"
@@ -84,19 +79,6 @@ class JobSettlement:
 
     outcome: JobOutcome
     first: bool
-
-
-class CancellationToken:
-    """The only view an operation gets: a request is visible at safe points and nowhere else."""
-
-    def __init__(self, source: CancellationSource) -> None:
-        self._source = source
-
-    def __repr__(self) -> str:
-        return "CancellationToken()"
-
-    def checkpoint(self, safe_point: str) -> CancellationAcknowledgement | None:
-        return self._source._observe(safe_point)
 
 
 class CancellationSource:

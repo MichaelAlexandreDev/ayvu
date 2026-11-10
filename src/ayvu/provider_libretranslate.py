@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Callable
-
-from .job_events import JobFailure, JobFailureFamily, normalize_failure
 from .provenance import NOT_APPLICABLE, UNKNOWN, ProducerIdentity
 from .provider import (
     DeadlineFeature, DeliveryState, ProviderError, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderRequest,
@@ -27,6 +25,7 @@ from .translator import (
     LibreTranslateTranslator, RouteResolutionError, RoutedTranslator, TranslationRoute, Translator, TranslatorError,
     TranslatorLanguage, resolve_translation_route,
 )
+from .kernel import JobFailure, JobFailureFamily, normalize_failure
 
 ADAPTER_ID = "libretranslate"
 ADAPTER_VERSION = 1

@@ -21,6 +21,7 @@ from ayvu.project_profiles import (
     ProfileRevision, ProjectReference, ProjectTranslationProfile, ProviderRequestProjection,
 )
 from ayvu.project_store import ProjectJsonRepository, build_project_request
+from ayvu.kernel import LanguagePair
 
 
 def plan(target='fr', glossary=True):
@@ -333,7 +334,6 @@ def test_migration_and_style_remain_inert_over_instrumented_libretranslate_trans
     import requests
     from ayvu.config import TranslationProfile
     from ayvu.cli import _resolve_target_language, _resolve_glossary_path
-    from ayvu.domain import LanguagePair
     from ayvu.translation_pipeline import LegacyTextPipelineFacade, LinguisticSource
     from ayvu.translator import LibreTranslateTranslator
     from test_translation_pipeline import Cache, Glossed

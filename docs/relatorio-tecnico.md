@@ -241,7 +241,7 @@ uv run ayvu --mode common translate livro.epub
 
 `src/ayvu/cli.py` concentra comandos Typer, argumentos, prompts, confirmações, progresso, relatórios e orquestração. Não deve receber regra pesada de EPUB, HTML ou HTTP.
 
-`src/ayvu/domain.py` guarda tipos de domínio compartilhados, como `LanguagePair`, `OutputPlan`, `TranslationOptions` e `UserMode`.
+`src/ayvu/kernel/values.py` guarda tipos de domínio compartilhados, como `LanguagePair`, `OutputPlan`, `TranslationOptions` e `UserMode`.
 
 `src/ayvu/epub_io.py` cuida de leitura, inspeção, extração, tradução estrutural e escrita do EPUB final.
 

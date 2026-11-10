@@ -25,10 +25,8 @@ from .format_service import FormatPublication, FormatService, FormatRegistry, Fo
 from .html_structure import html_unit_template
 from .job import JobRequest, JobState, JobTerminalSummary, MAX_LEASE_DURATION
 from .job_events import (
-    CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobOutcome,
-    JobProgress, JobWarning,
-)
-from .job_execution import CancellationSource, CancellationToken, InMemoryJobEventLog
+    CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress)
+from .job_execution import CancellationSource, InMemoryJobEventLog
 from .job_service import JobRepository
 from .job_store import SqliteJobRepository
 from .project import ProjectManifest
@@ -53,6 +51,7 @@ from .review_import import ReviewImportError, read_review_csv_bytes
 from .translate_project import TranslateProjectResult
 from .translate_project import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
 from .translation_engine import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
+from .kernel import JobFailure, JobFailureFamily, JobWarning, CancellationToken
 
 _MAX_PACKAGE_BYTES = 64 * 1024 * 1024
 _MAX_V1_BYTES = 32 * 1024 * 1024

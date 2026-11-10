@@ -14,11 +14,12 @@ from uuid import uuid4
 
 from .batch_output_policy import AcceptedItem, BatchOutputPolicy, OutputIntent
 from .job import JobState
-from .job_events import CancellationRequest, JobFailureFamily
+from .job_events import CancellationRequest
 from .job_execution import CancellationSource
 from .translate_batch import (BatchCommand, BatchItem, BatchValidationError, ItemOutcome, ItemStatus, TranslateBatch,
                               BatchCancellationCommand, BatchCancellationNotice)
 from .translate_project import TranslateProjectResult
+from .kernel import JobFailureFamily
 
 
 class BatchCancellationController:

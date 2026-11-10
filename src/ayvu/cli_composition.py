@@ -21,9 +21,9 @@ from .preflight import run_translation_preflight as _preflight
 from .resume import ResumeStateStore, TranslationResumeState
 from .translate_project import TranslateObserver
 from .translation_engine import EngineObserver
-from .job_events import JobWarning
 from .translate_project_composition import LegacyResources, ProjectTranslation
 from .translate_project_composition import selected_model
+from .kernel import JobWarning, automatic_output_candidate
 
 
 def configuration_store() -> ConfigStore:
@@ -277,7 +277,6 @@ def publish_cli_report(path: Path, text: str) -> Path:
 
 
 def report_destination(directory: Path, stem: str, suffix: str = '.md') -> Path:
-    from .domain import automatic_output_candidate
     directory.mkdir(parents=True, exist_ok=True)
     path = automatic_output_candidate(directory, stem, suffix, 1)
     index = 2

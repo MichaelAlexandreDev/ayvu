@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .content import TranslationUnit
-from .domain import TranslationOptions
 from .epub_archive import EpubArchive, EpubArchiveError, package_title, parse_package_for_edit
 from .epub_io import TranslationReport, _validate_worker_options
 from .format_service import FormatPublication, FormatService, FormatSource
@@ -25,6 +24,7 @@ from .translation_engine import (
     BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, TextStats, TranslationEngine,
     UnitExecution,
 )
+from .kernel import TranslationOptions
 
 EPUB_ADAPTER_ID = "epub"
 _REVIEW_KINDS = {ALT_TEXT_KIND: "alt"}

@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from ayvu.job import JobLease, JobRequest, JobState, JobTerminalSummary, TranslationJob
-from ayvu.job_events import JobFailure, JobFailureFamily
 from ayvu.job_recovery import (
     REUSE_DIMENSIONS, ArtifactIntegrity, CompatibilityStatus, InspectJobRecoverability, InvocationView, ListInterruptedJobs, OutputEvidence,
     RecoveryCancelled, RecoveryReason, RecoveryScan, RequestJobResume, RequiredDecision, ResumeRequest, ResumeStage, ResumeStatus, SourceState,
@@ -15,6 +14,7 @@ from ayvu.job_recovery import (
 )
 from ayvu.job_service import JobSnapshot
 from ayvu.translate_project import TranslateProjectResult
+from ayvu.kernel import JobFailure, JobFailureFamily
 
 NOW = datetime(2026, 11, 4, 12, tzinfo=UTC)
 PROJECT = "00000000-0000-4000-8000-000000000001"

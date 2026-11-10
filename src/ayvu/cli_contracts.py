@@ -4,11 +4,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
-from .domain import OutputPlan, TranslationOptions, TranslationMemoryOptions
 from .config_values import AyvuConfig
 from .preferences_service import PreferencesSnapshot, UpdatePreferencesResult
 from .job_recovery import ListInterruptedJobs, InspectJobRecoverability, RequestJobResume, RecoveryEntry
 from .translate_project import ContinuationTicket, TranslateProjectResult, AcceptedOutputPlan
+from .kernel import OutputPlan, TranslationOptions, TranslationMemoryOptions
 
 class GlossaryUsage(Protocol):
     applied_terms: dict[str, int]

@@ -42,7 +42,6 @@ from ayvu.content import (
     build_document,
 )
 from ayvu.job import JobLease, JobRequest, JobState, TranslationJob
-from ayvu.job_events import JobFailureFamily
 from ayvu.provenance import ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
 from ayvu.translation_document import (
@@ -53,6 +52,7 @@ from ayvu.translation_document import (
 )
 from ayvu.translation_plan import ResolvedTranslationPlan
 from ayvu.memory_retrieval import RetrievalPolicy
+from ayvu.kernel import JobFailureFamily
 
 PROJECT = str(UUID(int=0x4321))
 NOW = datetime(2026, 11, 5, 12, tzinfo=UTC)

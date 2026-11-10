@@ -8,7 +8,7 @@ import pytest
 from ayvu.artifact import ArtifactConflictError
 from ayvu.artifact_destination import LocalDestinationPayloads
 from ayvu.batch_output_policy import BatchOutputError, BatchOutputPolicy, OutputIntent
-from ayvu.domain import OutputPlan
+from ayvu.kernel import OutputPlan
 
 ARTIFACT = "00000000-0000-4000-8000-000000000001"
 

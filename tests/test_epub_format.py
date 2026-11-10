@@ -9,7 +9,6 @@ from lxml import etree
 from ayvu import epub_format, epub_io
 from ayvu.artifact import ArtifactStoreError
 from ayvu.cache import TranslationCache
-from ayvu.domain import LanguagePair, TranslationOptions
 from ayvu.epub_archive import EpubArchiveError
 from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter
 from ayvu.format_adapter import (
@@ -19,9 +18,9 @@ from ayvu.format_adapter import (
 from ayvu.format_local import LocalFormatSource, LocalOutputGuard
 from ayvu.format_service import FormatRegistry, FormatService, format_safe_points
 from ayvu.html_structure import html_unit_template
-from ayvu.job_events import JobFailureFamily
 from epub_fakes import OPF, TWO, XHTML, epub_bytes, members, opf_with, zip_bytes
 from format_contract import PROJECT, FormatAdapterContract, FormatEnv, FormatHarness, TriggerToken
+from ayvu.kernel import LanguagePair, TranslationOptions, JobFailureFamily
 
 
 def translation_of(unit, index):

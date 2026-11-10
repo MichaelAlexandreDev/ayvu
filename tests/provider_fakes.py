@@ -4,11 +4,10 @@ from __future__ import annotations
 from uuid import UUID
 
 import requests
-
-from ayvu.job_events import JobFailure, JobFailureFamily
 from ayvu.provenance import ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderStatus, TranslationProviderRequest, TranslationProviderResult
 from ayvu.provider_service import ProviderInstance
+from ayvu.kernel import JobFailure, JobFailureFamily
 
 REQUEST_ID = str(UUID(int=7))
 FAKE_PRODUCER = ProducerIdentity('fake_engine@1', 'fake_model@2', 'fake_adapter@1', 'not_applicable')

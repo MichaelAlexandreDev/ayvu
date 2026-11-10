@@ -19,17 +19,15 @@ from ayvu.content import (
     AdapterIdentity, Constraint, Locator, ProtectedPart, SemanticKind, SourceLocale, UnitContent, UNKNOWN_LOCALE, LocaleState,
     build_document,
 )
-from ayvu.domain import LanguagePair
 from ayvu.job import JobRequest, JobState
-from ayvu.job_events import JobEventKind, JobFailureFamily, JobWarning, encode_event
-from ayvu.job_execution import CancellationSource, InMemoryJobEventLog, JobCancellationError
+from ayvu.job_events import JobEventKind, encode_event
+from ayvu.job_execution import CancellationSource, InMemoryJobEventLog
 from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ayvu.provenance import SourceKind, UNKNOWN, ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
 from ayvu.provider_capabilities import Capability, ProviderRequirements
 from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
 from ayvu.provider_service import failed_result
-from ayvu.job_events import JobFailure
 from ayvu.translation_document import (
     PIPELINE_SAFE_POINTS, RAW_RESULTS_ROLE, SAFE_POINTS, DocumentTranslator, ExecutionContext, TranslationCancelled,
     TranslationExecutionError, UnitSource,
@@ -54,6 +52,7 @@ from ayvu.cache_identity import (
 from ayvu.translation_plan import ResolvedTranslationPlan, resolve_plan
 from ayvu.translator import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
 from provider_fakes import FakeSession, http_response
+from ayvu.kernel import LanguagePair, JobFailureFamily, JobWarning, JobCancellationError, JobFailure
 
 PROJECT = str(UUID(int=0x1234))
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)

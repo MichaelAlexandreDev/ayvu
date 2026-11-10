@@ -24,13 +24,13 @@ from ayvu.format_adapter import (
 )
 from ayvu.format_local import LocalFormatSource
 from ayvu.format_service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
-from ayvu.job_events import JobFailure, JobFailureFamily
 from ayvu.job_execution import CancellationSource
 from ayvu.markdown_writer import MarkdownDirectoryWriter
 from zipfile import ZIP_DEFLATED
 
 from epub_fakes import ONE, OPF, TWO, epub_bytes, opf_with
 from format_fakes import NOTES_REGISTRATION, NotesPorts, notes_adapter, notes_descriptor
+from ayvu.kernel import JobFailure, JobFailureFamily
 
 
 SOURCE_REF = SourceRef("test_source")

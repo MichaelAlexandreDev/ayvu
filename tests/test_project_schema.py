@@ -13,7 +13,7 @@ from ayvu.job_store import JOB_SCHEMA_STATEMENTS
 from ayvu.provenance_store import PROVENANCE_SCHEMA_STATEMENTS
 from ayvu.project_schema import PROJECT_MIGRATIONS, open_job_repository, project_migration_runner
 from ayvu.project_store import ProjectJsonRepository, build_project_request
-from ayvu.sqlite_migrations import APPLICATION_ID, SqliteMigrationRunner
+from ayvu.kernel.sqlite import APPLICATION_ID, SqliteMigrationRunner
 
 FIXTURES = Path(__file__).parent / 'fixtures' / 'migrations'
 PROJECT = str(UUID(int=1))

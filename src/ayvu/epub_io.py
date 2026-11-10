@@ -12,7 +12,6 @@ from ebooklib import ITEM_DOCUMENT
 from ebooklib import epub
 
 from .cache import TranslationCache
-from .domain import ChapterSelection, ChapterSelectionError, TranslationOptions
 from .epub_archive import package_title, parse_package_for_edit, serialize_package
 from .glossary import Glossary, GlossaryUsage
 from .html_translate import (
@@ -33,6 +32,7 @@ from .review_export import (
 from .review_import import LegacyReviewInspection, ReviewImportError
 from .translation_memory import TranslationMemory
 from .translator import Translator
+from .kernel import ChapterSelection, ChapterSelectionError, TranslationOptions
 
 
 ChapterStartCallback = Callable[[int, int, str], None]

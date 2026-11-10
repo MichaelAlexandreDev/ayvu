@@ -15,7 +15,7 @@ import stat
 import tempfile
 import time
 
-from .migration_contracts import MigrationError, MigrationPlan, MigrationResult
+from .contracts import MigrationError, MigrationPlan, MigrationResult
 
 APPLICATION_ID = 0x41595655
 MAX_DATABASE_BYTES = 64 * 1024 * 1024

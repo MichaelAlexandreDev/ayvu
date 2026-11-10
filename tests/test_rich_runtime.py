@@ -18,7 +18,6 @@ from ayvu.cache_identity import CacheEligibilityState, CacheIneligibleReason, Pu
 from ayvu.cache_schema import SchemaState, classify_cache
 from ayvu.config import ConfigStore
 from ayvu.config_values import AyvuConfig, config_from_preferences, config_to_preferences
-from ayvu.domain import LanguagePair, TranslationMemoryOptions, TranslationOptions
 from ayvu.glossary import load_glossary
 from ayvu.job_events import encode_event
 from ayvu.job_execution import CancellationSource
@@ -34,6 +33,7 @@ from ayvu.translator import LibreTranslateTranslator
 from test_cache_repository_v2 import entry
 from test_cli_translate_project import Session
 from test_translation_cache_v2 import Env, NOW, document
+from ayvu.kernel import LanguagePair, TranslationMemoryOptions, TranslationOptions, OutputPlan, JobFailure, JobFailureFamily
 
 PAIR = LanguagePair(source="en", target="pt")
 
@@ -106,8 +106,6 @@ def test_composition_refuses_a_present_invalid_label(label):
                                                      ("local-v1", composition.RichTranslationRuntime, 2)])
 def test_production_composition_constructs_only_the_selected_runtime(tmp_path, monkeypatch, label, expected, revision):
     from types import SimpleNamespace
-    from ayvu.domain import OutputPlan
-    from ayvu.job_events import JobFailure, JobFailureFamily
     from ayvu.translate_project import TranslateObserver, TranslateProjectResult
     opened, commands, preparations = [], [], []
     project_id = document().project_id
@@ -246,7 +244,6 @@ def test_a_held_preparation_lock_refuses_before_provider(tmp_path):
 
 def test_rich_preparation_keeps_the_book_policy_refusal_code(tmp_path):
     from ayvu.cli_contracts import BookRefused
-    from ayvu.job_events import JobFailureFamily
     def prepare():
         raise BookRefused("encrypted_content")
     subject = runtime(tmp_path, prepare=prepare)
@@ -328,7 +325,7 @@ def test_runtime_pipeline_cancellation_acknowledges_the_requested_point(tmp_path
 
 def test_selection_remains_in_composition():
     root = Path(__file__).resolve().parents[1] / "src" / "ayvu"
-    for name in ("translate_project.py", "translation_engine.py", "domain.py"):
+    for name in ("translate_project.py", "translation_engine.py", "kernel/values.py"):
         tree = ast.parse((root / name).read_text())
         imports = [node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
         assert not {"translate_project_composition", "cache_repository", "translation_document", "provider_libretranslate"} & set(imports)
@@ -387,7 +384,6 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
 @pytest.mark.parametrize("parent_version,new_version", [(1, 2), (2, 1)])
 def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp_path, monkeypatch, parent_version, new_version):
     from types import SimpleNamespace
-    from ayvu.domain import OutputPlan
     from ayvu.job import JobRequest, new_job
     from ayvu.translate_project import ContinuationTicket, TranslateProjectCommand
     from test_translate_batch_project_contract import _use_case, PROJECT, JOB, NOW, DIGEST, _options
@@ -404,8 +400,7 @@ def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp
 
 
 def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_not_events(tmp_path, monkeypatch):
-    from ayvu.domain import OutputPlan
-    from ayvu.job_events import JobEventSequence, JobFailure, JobFailureFamily
+    from ayvu.job_events import JobEventSequence
     from ayvu.translate_project import TranslateProjectCommand, resolve_plan as job_plan
     from ayvu.translation_engine import EngineResult
     from test_translate_batch_project_contract import _use_case, PROJECT, DIGEST, _options
@@ -511,7 +506,6 @@ def test_production_preparation_records_the_runtime_revision_without_copying_the
 def test_rich_checkpoint_associates_with_the_recorded_job_without_current_configuration(tmp_path, monkeypatch, evidence_state):
     from types import SimpleNamespace
     from uuid import UUID
-    from ayvu.domain import OutputPlan
     from ayvu.job import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
     from ayvu.job_service import JobSnapshot
     from ayvu.job_recovery import CompatibilityStatus

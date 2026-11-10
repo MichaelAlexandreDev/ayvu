@@ -11,8 +11,8 @@ from datetime import datetime
 from typing import Generic, Protocol, TypeVar
 
 from .cache_legacy_format import validate as _validate_legacy, LegacyFormatError
-from .job_events import JobFailure, JobFailureFamily, JobWarning
 from .cache_identity import AuthorizedCacheScope, CACHE_ENTRY_V2_LIMITS, CacheEntryV2Limits
+from .kernel import JobFailure, JobFailureFamily, JobWarning
 
 MAX_FILE_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 1_000_000

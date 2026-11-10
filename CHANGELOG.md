@@ -272,6 +272,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Núcleo compartilhado `ayvu.kernel` (REF-04, #272, primeira parte): identificadores,
+  validação de UTC, falhas e avisos tipados, o token de cancelamento e os valores de
+  domínio (`domain.py`) saem de `jobs` e da raiz; o executor de migrações SQLite vira
+  `ayvu.kernel.sqlite`. As classes mantêm os nomes, então os mesmos erros continuam sendo
+  capturados. 36 dependências de outros módulos em `jobs` deixam de existir.
 - Travas de arquitetura (REF-03, #271), no conjunto `core`: catraca de tamanho (arquivos
   até 400 linhas, funções até 80, com os maiores de hoje em `tests/size_ratchet.json`),
   `import-linter` com as camadas da decisão de estrutura de pacotes e as 46 violações de

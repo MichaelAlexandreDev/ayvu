@@ -55,12 +55,10 @@ from .memory_retrieval import (
 from .content import ContentDocument, TranslationUnit
 from .context_execution import ContextExecution, plan_with_context
 from .translation_context import ContextError
-from .domain import LanguagePair
-from .job import JobState, JobValidationError, TranslationJob, validate_job_identity
+from .job import JobState, TranslationJob
 from .job_recovery import REUSE_DIMENSIONS, ArtifactIntegrity, ResumeStage, StageEvidence, select_resume_stage
 from .job_events import (
-    CancellationAcknowledgement, JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobProgress, JobWarning,
-)
+    CancellationAcknowledgement, JobCorrelation, JobEvent, JobProgress)
 from .job_execution import CancellationSource, JobEventSink
 from .provenance import (
     UNKNOWN, ActorKind, ConfigurationRef, ContextProvenance, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef,
@@ -74,6 +72,7 @@ from .translation_pipeline import (
 )
 from .translation_plan import ResolvedTranslationPlan
 from .translation_protection import TAG_TOKEN_PATTERN, TextParts, protected_content_is_intact
+from .kernel import LanguagePair, JobValidationError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
 
 # Version 2 records the producing dimensions, so a continuation can prove or name what changed.
 RAW_RESULTS_VERSION = 2

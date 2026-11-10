@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .cache import TranslationCache
-from .domain import LanguagePair, LanguagePairError
 from .epub_io import inspect_epub
 from .glossary import Glossary, GlossaryError, load_glossary
 from .provider_composition import CliProviderSession
@@ -25,6 +24,7 @@ from .translator import (
     create_translator,
     validate_translator_name,
 )
+from .kernel import LanguagePair, LanguagePairError
 
 
 @dataclass(frozen=True)

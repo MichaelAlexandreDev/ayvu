@@ -1,6 +1,5 @@
 import pytest
-
-from ayvu.migration_contracts import MigrationError, MigrationPlan, MigrationResult
+from ayvu.kernel.sqlite import MigrationError, MigrationPlan, MigrationResult
 
 
 def test_ordered_contiguous_version_plan():

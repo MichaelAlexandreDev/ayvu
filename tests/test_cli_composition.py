@@ -17,13 +17,13 @@ from typer.testing import CliRunner
 from ayvu import cli, cli_composition as root
 from ayvu.cli_contracts import _BookHooks, _BookRequest, _BookOutcome
 from ayvu.config_values import AyvuConfig
-from ayvu.domain import LanguagePair, OutputPlan, TranslationOptions, UserMode
 from ayvu.epub_io import TranslationReport
 from ayvu.job import JobState
-from ayvu.job_events import JobFailure, JobFailureFamily, JobOutcome, JobTerminalSummary
+from ayvu.job_events import JobOutcome, JobTerminalSummary
 from ayvu.preflight import run_translation_preflight
 from ayvu.translate_project import OutputValidation, TranslateProjectResult
 from ayvu.translate_project_composition import ProjectTranslationRun
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode, JobFailure, JobFailureFamily
 
 
 @pytest.fixture(autouse=True)

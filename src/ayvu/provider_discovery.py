@@ -11,10 +11,6 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Callable, Protocol
 from uuid import uuid4
-
-from .job import JobError, validate_utc
-from .job_events import JobFailure, JobFailureFamily
-from .job_execution import CancellationToken
 from .provenance import ProducerIdentity
 from .provider import ProviderError, ProviderRoute, ProviderStatus, TranslationProviderRequest, TranslationProviderResult
 from .provider_capabilities import (
@@ -24,6 +20,7 @@ from .provider_capabilities import (
 from .provider_network import ProviderOperation, network_binding, network_refusal
 from .network_policy import NETWORK_DENIAL_CODES
 from .provider_service import ProviderInstance, TranslationProvider, UNKNOWN_PRODUCER, execute, failed_result
+from .kernel import JobError, validate_utc, JobFailure, JobFailureFamily, CancellationToken
 
 # Sent only by an explicit user request to test a provider, and never as a hidden probe.
 SYNTHETIC_TEST_TEXT = "Hello world"

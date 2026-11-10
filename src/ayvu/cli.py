@@ -41,24 +41,14 @@ from .cli_composition import (
     translation_checkpoint, _translate_without_project as execute_translate_without_project,
     _translate_in_project as execute_translate_in_project,
 )
-from .domain import (
-    ChapterSelection,
-    ChapterSelectionError,
-    DEFAULT_PERFORMANCE_PROFILE,
-    LanguagePair,
-    OutputPlan,
-    PERFORMANCE_PROFILES,
-    PerformanceProfile,
-    TranslationMemoryError,
-    TranslationMemoryOptions,
-    TranslationOptions,
-    UserMode,
-    default_preview_books_dir,
-    default_translated_books_dir,
-)
 from .glossary_catalog import (
     Entry as GlossaryEntry, GlossaryReference, list_glossaries, read_glossary,
     create_glossary, update_glossary,
+)
+from .kernel import (
+    ChapterSelection, ChapterSelectionError, DEFAULT_PERFORMANCE_PROFILE, LanguagePair, OutputPlan,
+    PERFORMANCE_PROFILES, PerformanceProfile, TranslationMemoryError, TranslationMemoryOptions,
+    TranslationOptions, UserMode, default_preview_books_dir, default_translated_books_dir,
 )
 
 GLOSSARY_RULE_TRANSLATE = "translate"

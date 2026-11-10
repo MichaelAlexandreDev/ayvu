@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from ayvu.batch_output_policy import BatchOutputError, BatchOutputPolicy, OutputIntent
-from ayvu.domain import OutputPlan
+from ayvu.kernel import OutputPlan
 
 
 def intent(root: Path, name: str, *, dry=False, overwrite=False):

@@ -14,9 +14,8 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
-
-from .job import JobError, is_slug, validate_utc
 from .provider import valid_reference
+from .kernel import JobError, is_slug, validate_utc
 
 CAPABILITY_SCHEMA_VERSION = 1
 FINGERPRINT_VERSION = 1

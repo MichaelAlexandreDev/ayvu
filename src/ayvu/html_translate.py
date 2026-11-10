@@ -4,7 +4,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from .cache import CacheKey, TranslationCache
-from .domain import LanguagePair
 from .glossary import Glossary, GlossaryUsage, apply_glossary_with_usage
 from .html_structure import (
     IGNORED_INLINE_TAGS,
@@ -19,6 +18,7 @@ from .translation_memory import TranslationMemory, TranslationMemoryMatch
 from .translation_pipeline import LegacyTextPipelineFacade, LinguisticSource
 from .translation_protection import TAG_TOKEN_PATTERN, protected_terms_are_intact as _protected_terms_are_intact
 from .translator import Translator
+from .kernel import LanguagePair
 
 
 MAX_PROTECTED_RECOVERY_CALLS = 64

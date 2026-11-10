@@ -20,7 +20,6 @@ from ayvu.cache_identity import (CacheAuthorizationPolicy, CacheProvenanceMetada
     TRANSLATION_STAGE_AGGREGATE, exact_entry_key)
 from ayvu.cache_repository import SQLiteExactCache
 from ayvu.content import ProtectedPart
-from ayvu.domain import LanguagePair
 from ayvu.job import JobState
 from ayvu.job_events import encode_event
 from ayvu.job_execution import InMemoryJobEventLog
@@ -36,6 +35,7 @@ from approved_memory_fixtures import (
 )
 from content_fixtures import PROJECT, epub_document, unit
 from test_translation_cache_v2 import Provider, make_plan
+from ayvu.kernel import LanguagePair, TranslationMemoryOptions, TranslationOptions
 
 
 @pytest.fixture
@@ -504,7 +504,6 @@ def test_known_structural_incompatibility_is_excluded_unknown_is_review_only(env
 
 
 def test_production_and_cli_policy_choose_the_same_conservative_defaults():
-    from ayvu.domain import TranslationMemoryOptions
     from ayvu.translate_project_composition import memory_policy
     assert memory_policy(TranslationMemoryOptions()) == RetrievalPolicy()
     assert not memory_policy(TranslationMemoryOptions()).legacy_cache_enabled
@@ -572,7 +571,6 @@ def test_chunk_and_unit_order_with_approved_blank_and_provider_sources(env, tmp_
 
 
 def test_resume_serialization_preserves_only_explicit_new_policy_choices(tmp_path):
-    from ayvu.domain import TranslationMemoryOptions, TranslationOptions
     from ayvu.resume import TranslationResumeState
     for legacy, auto in ((False, False), (True, False), (False, True)):
         options = TranslationMemoryOptions(apply_threshold=0.98, conservative_auto_apply=auto,

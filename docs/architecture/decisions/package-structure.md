@@ -63,6 +63,8 @@ The owner's answers on 2026-11-10:
 - Each module's `__init__.py` lists what is public.
 - Other modules import only that API: `ayvu.knowledge.cache`, never `ayvu.knowledge.cache.admin_v2_store`.
 - Imports inside a module are free.
+- A subpackage's `__init__.py` is also a public API (for example `ayvu.kernel.sqlite`). A plain submodule
+  of another package never is.
 
 ### D3. One-way layers
 A lower layer never imports a higher one. Modules on the same row do not import each other unless the row
@@ -88,6 +90,10 @@ says otherwise.
 - It takes identifiers, UTC validation, cancellation, typed failures and warnings, the SQLite migration
   runner and the common domain values (languages).
 - Only what three or more modules use goes in. `kernel` imports no other Ayvu module.
+- Implemented in REF-04 (#272). The moved classes keep their names (`JobError`, `JobValidationError`,
+  `JobEventError`, `JobFailure`, `JobWarning`, `JobCancellationError` and others), so callers catch the same
+  exception types as before. The SQLite migration runner is infrastructure, so it has its own API in
+  `ayvu.kernel.sqlite` instead of being re-exported by `ayvu.kernel`.
 
 ### D5. Composition leaves the modules
 - The `*_composition.py` files go to `composition/builders/`. The roots go to `composition/cli.py`,

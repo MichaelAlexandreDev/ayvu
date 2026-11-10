@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from rapidfuzz import fuzz, process
 
 from .cache import TranslationCache
-from .domain import LanguagePair, TranslationMemoryOptions
+from .kernel import LanguagePair, TranslationMemoryOptions
 
 
 @dataclass(frozen=True, repr=False)

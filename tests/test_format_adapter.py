@@ -17,12 +17,12 @@ from ayvu.format_adapter import (
 )
 from ayvu.format_local import LocalFormatSource, LocalOutputGuard
 from ayvu.format_service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
-from ayvu.job_events import JobFailure, JobFailureFamily
 from format_contract import PROJECT, CountingSource, FixedGuard, FormatAdapterContract, FormatEnv, FormatHarness
 from format_fakes import (
     CARDS_HEADER, CARDS_REGISTRATION, EVIDENCE, KIND, NOTES_REGISTRATION, CardsPorts, NotesPorts, all_fidelity, cards_adapter, cards_descriptor, notes_adapter,
     notes_descriptor, unsupported,
 )
+from ayvu.kernel import JobFailure, JobFailureFamily
 
 CARDS = CARDS_HEADER + b"#one\nfirst card\nsecond card\n#two\nthird card\n"
 ROOT = Path(__file__).parents[1]

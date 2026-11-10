@@ -12,12 +12,12 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import uuid4
 
-from .job import JobError, JobState, TranslationJob
-from .job_execution import CancellationSource, CancellationToken
+from .job import JobState, TranslationJob
+from .job_execution import CancellationSource
 from .job_service import JobSnapshot
-from .translate_project import (
-    INTERRUPTED, INTERRUPTED_AFTER_PUBLICATION, OWN_JOB_STATES, PUBLICATION_UNCOMMITTED, ContinuationTicket, TranslateProjectResult,
-)
+from .translate_project import (INTERRUPTED, INTERRUPTED_AFTER_PUBLICATION, OWN_JOB_STATES, PUBLICATION_UNCOMMITTED,
+    ContinuationTicket, TranslateProjectResult)
+from .kernel import JobError, CancellationToken
 
 RECOVERY_BETWEEN_CHUNKS = "recovery_between_chunks"
 RECOVERY_SAFE_POINTS = (RECOVERY_BETWEEN_CHUNKS,)

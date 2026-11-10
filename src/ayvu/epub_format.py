@@ -29,7 +29,7 @@ from .html_structure import (
     HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, HTML_SEGMENTER_VERSION, HtmlStructureError, extract_body_visible_text,
     extract_html_document, extract_visible_text, plain_text_content, reconstruct_html, restore_plain_text,
 )
-from .job_events import JobFailure, JobFailureFamily
+from .kernel import JobFailure, JobFailureFamily
 
 EPUB_ADAPTER = AdapterIdentity("epub", 1, HTML_SEGMENTER_VERSION)
 PACKAGE_LOCATOR_SCHEMA = "epub_package"

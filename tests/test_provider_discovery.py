@@ -24,6 +24,7 @@ from ayvu.provider_network import (
 from ayvu.provider_service import ProviderInstance
 from ayvu.translator import LibreTranslateTranslator
 from provider_fakes import FakeSession, http_response
+from ayvu.kernel import JobFailure, JobFailureFamily
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
 REFERENCE = 'config:' + 'a' * 64
@@ -542,7 +543,6 @@ def test_contract_modules_name_no_provider_and_read_no_url():
 
 
 def test_a_provider_that_cancels_is_reported_as_cancelled():
-    from ayvu.job_events import JobFailure, JobFailureFamily
     from ayvu.provider_service import failed_result
 
     class Cancelling(FakeAdapter):

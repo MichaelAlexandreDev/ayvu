@@ -32,7 +32,6 @@ FUNCTION_LIMIT = 80
 PACKAGE_ALIASES = {"desktop": "interfaces"}
 
 LEGACY_GROUPS = {
-    "kernel": ("domain", "migration_contracts", "sqlite_migrations"),
     "network": ("network_policy", "network_http"),
     "preferences": ("preferences", "preferences_service", "preferences_store", "config", "config_values"),
     "library": ("library_service", "library_adapters"),

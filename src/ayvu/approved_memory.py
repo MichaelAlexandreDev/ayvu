@@ -14,9 +14,8 @@ from types import MappingProxyType
 import unicodedata
 
 from .content import ContentDocument
-from .domain import LanguagePair
-from .job import JobError, validate_job_identity
 from .provenance import ConfigurationRef
+from .kernel import LanguagePair, JobError, validate_job_identity
 
 MAX_VALUE_BYTES = 64 * 1024
 NORMALIZATION_VERSION = "nfc-v1-ucd" + unicodedata.unidata_version

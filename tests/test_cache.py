@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from ayvu.cache import CacheImportError, CacheKey, TranslationCache, text_hash
-from ayvu.domain import LanguagePair
+from ayvu.kernel import LanguagePair
 
 
 def _cache_key(text: str, source: str = "en", target: str = "pt") -> CacheKey:

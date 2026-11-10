@@ -7,7 +7,6 @@ import pytest
 import requests
 
 from ayvu.content import Constraint, ProtectedPart
-from ayvu.job_events import JobFailureFamily
 from ayvu.job_execution import CancellationSource
 from ayvu.provenance import NOT_APPLICABLE, UNKNOWN
 from ayvu.provider import (
@@ -22,6 +21,7 @@ from ayvu.translator import (
     LibreTranslateTranslator, RequestRateLimiter, RoutedTranslator, TranslationRoute, Translator, TranslatorError,
 )
 from provider_fakes import FakeSession, http_response, request
+from ayvu.kernel import JobFailureFamily
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
 URL = 'http://localhost:5000/translate'

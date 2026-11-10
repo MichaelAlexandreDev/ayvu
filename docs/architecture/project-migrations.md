@@ -151,7 +151,7 @@ import sqlite3
 import sys
 
 from ayvu.project_schema import PROJECT_MIGRATIONS
-from ayvu.sqlite_migrations import APPLICATION_ID
+from ayvu.kernel.sqlite import APPLICATION_ID
 
 try:
     path = Path(sys.argv[1]).resolve(strict=True)

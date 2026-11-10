@@ -10,22 +10,13 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from enum import StrEnum
 from types import MappingProxyType
-from uuid import UUID
+from .kernel import JobError, JobValidationError, is_slug, validate_job_identity, validate_utc
 
 MAX_OUTPUT_ROLES = 16
 MAX_SUMMARY_COUNTERS = 16
 MAX_LEASE_DURATION = timedelta(hours=1)
-_SLUG = re.compile(r"[a-z][a-z0-9_]{0,63}")
 _FINGERPRINT = re.compile(r"sha256:[0-9a-f]{64}")
 _OWNER_TOKEN = re.compile(r"[0-9a-f]{64}")
-
-
-class JobError(ValueError):
-    """A bounded error: messages never include caller data."""
-
-
-class JobValidationError(JobError):
-    pass
 
 
 class JobNotFoundError(JobError):
@@ -90,26 +81,9 @@ ALLOWED_TRANSITIONS = MappingProxyType({
 })
 
 
-def validate_job_identity(value: str) -> None:
-    try:
-        if not isinstance(value, str) or str(UUID(value)) != value:
-            raise ValueError
-    except (ValueError, AttributeError, TypeError):
-        raise JobValidationError("invalid_job_identity") from None
-
-
-def validate_utc(value: datetime) -> None:
-    if not isinstance(value, datetime) or value.utcoffset() != timedelta(0):
-        raise JobValidationError("invalid_timestamp")
-
-
 def _validate_revision(value: int) -> None:
     if type(value) is not int or not 1 <= value < 2**63:
         raise JobValidationError("invalid_revision")
-
-
-def is_slug(value: object) -> bool:
-    return isinstance(value, str) and _SLUG.fullmatch(value) is not None
 
 
 @dataclass(frozen=True, repr=False)

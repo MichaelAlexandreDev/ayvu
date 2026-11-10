@@ -16,7 +16,7 @@ import requests.sessions
 
 from ayvu.artifact import Artifact, ArtifactRequest, ArtifactState
 from ayvu.job import JobState
-from ayvu.job_events import JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobOutcome, JobProgress
+from ayvu.job_events import JobCorrelation, JobEvent, JobOutcome, JobProgress
 from ayvu.job_execution import CancellationSource, InMemoryJobEventLog
 from ayvu.review_application import (
     ApplyReviewPackage,
@@ -24,10 +24,8 @@ from ayvu.review_application import (
     MAX_REVIEW_PACKAGE_BYTES,
     ReviewApplyCommand,
     ReviewApplicationError,
-    ReviewApplyResult,
     ReviewCounts,
     ReviewExportCommand,
-    ReviewExportResult,
     ReviewOperation,
     ReviewOperationResult,
     ReviewOutcome,
@@ -42,6 +40,7 @@ from ayvu.review_application import (
 from ayvu.review_composition import LocalReviewOperations, _OperationState
 from ayvu.translation_engine import EngineResult
 from ayvu.translate_project import TranslateProjectResult
+from ayvu.kernel import JobFailure, JobFailureFamily
 
 
 NOW = datetime(2026, 11, 5, 12, tzinfo=UTC)

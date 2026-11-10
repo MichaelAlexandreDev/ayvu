@@ -13,8 +13,8 @@ from ayvu.provenance import (
 )
 from ayvu.project_schema import PROJECT_MIGRATIONS
 from ayvu.provenance_store import MAX_LIST_LIMIT, MAX_TRAVERSAL_DEPTH, MAX_TRAVERSAL_RECORDS, SqliteProvenanceRepository
-from ayvu.sqlite_migrations import SqliteMigrationRunner
 from provenance_fakes import INPUT_FINGERPRINT, MACHINE, PROJECT, START, SyntheticLineage, subject
+from ayvu.kernel.sqlite import SqliteMigrationRunner
 
 MISSING = str(UUID(int=98))
 OTHER_PROJECT = str(UUID(int=99))
