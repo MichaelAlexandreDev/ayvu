@@ -272,6 +272,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Base da refatoração (REF-01, #266): `tests/test_persisted_identities.py` congela as
+  tags de domínio, as versões e um digest de referência de cada identidade persistida
+  (cache v1 e v2, plano, perfil, contexto, decisão de rede, memória aprovada, resultados
+  brutos), independente de onde o código more. `scripts/arch_metrics.py` mede arquivos
+  e funções grandes e os ciclos entre módulos; a medição inicial está em
+  `docs/architecture/refactor-baseline.md`.
 - Testes em três etapas (#261): `scripts/check.sh` na máquina local (com gancho
   `pre-push` opcional), `scripts/docker-tests.sh` em Ubuntu, Debian, Fedora e Arch,
   sem rede e sem arquivos privados, e um único job `ci-gate` no GitHub. Pull requests

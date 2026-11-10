@@ -128,7 +128,7 @@ O marcador `core` e aplicado por `CORE_TEST_FILES`, em `tests/conftest.py`. Cada
 entrada nomeia uma invariante do projeto (EPUB original intacto, estrutura do
 ZIP e `mimetype`, texto visivel e tags, ordem dos chunks, cache, retomada,
 glossario, CLI, rede somente local, fronteiras de modulos, links da
-documentacao e as proprias etapas) e os arquivos de teste que a protegem.
+documentacao, identidades persistidas e as proprias etapas) e os arquivos de teste que a protegem.
 Para rodar o mesmo conjunto localmente, use `uv run --no-sync pytest -m core`.
 `tests/test_ci_stages.py` confere o mapa, os jobs de cada evento, o
 `.dockerignore` e este documento. Se a selecao `core` ficar vazia, o pytest sai
