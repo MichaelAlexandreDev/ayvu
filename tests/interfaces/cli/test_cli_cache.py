@@ -1,6 +1,6 @@
 from ayvu.v1.cache import TranslationCache
 from ayvu.interfaces.cli.app import app
-from test_cli import _seed_cache_entry, runner
+from tests.support.cli_support import _seed_cache_entry, runner
 
 
 def test_cache_inspect_command_lists_entries_by_language_pair(tmp_path):

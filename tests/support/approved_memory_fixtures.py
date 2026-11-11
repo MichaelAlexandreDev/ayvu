@@ -20,7 +20,7 @@ from ayvu.jobs.store import SqliteJobRepository
 from ayvu.projects.schema import project_migration_runner
 from ayvu.provenance.model import ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
 from ayvu.provenance.store import SqliteProvenanceRepository
-from content_fixtures import PROJECT, epub_document, unit
+from tests.support.content_fixtures import PROJECT, epub_document, unit
 from ayvu.kernel import LanguagePair
 from ayvu.kernel.sqlite import APPLICATION_ID
 

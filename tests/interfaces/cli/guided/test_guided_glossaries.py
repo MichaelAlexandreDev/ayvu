@@ -1,6 +1,6 @@
 import json
 from ayvu.interfaces.cli.app import app
-from test_cli import isolated_config, runner
+from tests.support.cli_support import isolated_config, runner
 
 
 def test_root_command_creates_guided_glossary(isolated_config, tmp_path, monkeypatch):

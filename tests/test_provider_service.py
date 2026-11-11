@@ -13,7 +13,7 @@ from ayvu.content.model import Constraint
 from ayvu.providers.service import (
     ProviderInstance, ProviderRegistry, ProviderRegistryError, UNKNOWN_PRODUCER, decide_features, execute,
 )
-from provider_fakes import FAKE_PRODUCER, FakeFactory, FakeProvider, failure, fake_instance, request, success
+from tests.support.provider_fakes import FAKE_PRODUCER, FakeFactory, FakeProvider, failure, fake_instance, request, success
 from ayvu.kernel import JobFailureFamily, JobOperationError, JobFailure
 
 REQUIRED = ContextFeature((ContextItem('previous', 'x'),), Requirement.REQUIRED)

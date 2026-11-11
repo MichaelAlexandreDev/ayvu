@@ -5,7 +5,7 @@ import sqlite3
 from ayvu.knowledge.memory.approved.model import MemoryScope, MemoryState, ScopeKind
 from ayvu.knowledge.memory.approved.store import MEMORY_MIGRATIONS, memory_migration_runner, open_approved_memory
 from ayvu.v1.cache import CacheKey, TranslationCache
-from approved_memory_fixtures import MemoryEnvironment, PAIR, PROJECT_SCOPE, SCOPES
+from tests.support.approved_memory_fixtures import MemoryEnvironment, PAIR, PROJECT_SCOPE, SCOPES
 
 
 def test_real_bootstrap_create_reopen_and_query_without_cache(tmp_path):

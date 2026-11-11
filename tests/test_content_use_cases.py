@@ -28,64 +28,12 @@ from ayvu.jobs.execution import CancellationSource
 from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 from zipfile import ZIP_DEFLATED
 
-from epub_fakes import ONE, OPF, TWO, epub_bytes, opf_with
-from format_fakes import NOTES_REGISTRATION, NotesPorts, notes_adapter, notes_descriptor
+from tests.support.epub_fakes import ONE, OPF, TWO, epub_bytes, opf_with
+from tests.support.format_fakes import NOTES_REGISTRATION, NotesPorts, notes_adapter, notes_descriptor
 from ayvu.kernel import JobFailure, JobFailureFamily
 
-
-SOURCE_REF = SourceRef("test_source")
-
-
-def epub_service() -> FormatService:
-    registry = FormatRegistry()
-    registry.register(EPUB_REGISTRATION, epub_format_adapter())
-    return FormatService(registry)
-
-
-def write_epub(path: Path, data: bytes | None = None) -> Path:
-    path.write_bytes(epub_bytes() if data is None else data)
-    return path
-
-
-def export_request(source: Path, destination: Path, *, revision: SourceRevision | None = None,
-                   overwrite: bool = False, cancellation=None, progress=None) -> ExportVisibleContentRequest:
-    return ExportVisibleContentRequest(SOURCE_REF, LocalFormatSource(source), revision,
-                                       OutputDirectoryRef(str(destination)), overwrite, cancellation=cancellation,
-                                       progress=progress)
-
-
-class RecordingWriter:
-    def __init__(self, fail_ordinal: int | None = None, *, on_publish=None) -> None:
-        self.fail_ordinal = fail_ordinal
-        self.on_publish = on_publish
-        self.authorization = object()
-        self.authorize_calls = 0
-        self.plan_calls = 0
-        self.published = []
-        self.documents = ()
-
-    def authorize(self, destination, *, overwrite):
-        self.authorize_calls += 1
-        return WriterAuthorization(token=self.authorization)
-
-    def plan(self, authorization, source, documents):
-        self.plan_calls += 1
-        self.documents = documents
-        return WriterPlan(files=tuple(PlannedOutputFile(index, object()) for index in range(1, len(documents) + 1)))
-
-    def publish(self, authorization, planned, document, source, *, before_publish):
-        if self.on_publish is not None:
-            self.on_publish(planned.ordinal)
-        failure = before_publish()
-        if failure is not None:
-            return WriterPublication(failure=failure)
-        if self.fail_ordinal == planned.ordinal:
-            return WriterPublication(failure=JobFailure(JobFailureFamily.RESOURCE, "output_write_failed"))
-        self.published.append((planned.ordinal, document))
-        return WriterPublication(published_file=PublishedFileRef(planned.ordinal, f"{planned.ordinal:03d}-stub.md"))
-
-    def prepare_empty(self, authorization):
-        return None
+from tests.support.content_use_cases_support import RecordingWriter, SOURCE_REF, _export_changing_source_after, _no_hard_links, _notes_registry
+from tests.support.content_use_cases_support import epub_service, export_request, write_epub
 
 
 def test_inspection_uses_registry_and_keeps_the_source_read_only(minimal_epub_path, monkeypatch, tmp_path):
@@ -124,7 +72,7 @@ def test_cancellation_before_inspection_or_export_prevents_work(tmp_path):
     source_path = tmp_path / "book.epub"
     source_path.write_bytes(epub_bytes())
     source = LocalFormatSource(source_path)
-    from format_contract import CountingSource
+    from tests.support.format_contract_env import CountingSource
 
     inspect_case = InspectContent(epub_service())
     inspect_cancel = CancellationSource(inspect_case.safe_points("epub"))
@@ -153,7 +101,7 @@ def test_cancellation_before_inspection_or_export_prevents_work(tmp_path):
     source_path = tmp_path / "book.epub"
     source_path.write_bytes(epub_bytes())
     source = LocalFormatSource(source_path)
-    from format_contract import CountingSource
+    from tests.support.format_contract_env import CountingSource
 
     inspect_case = InspectContent(epub_service())
     inspect_cancel = CancellationSource(inspect_case.safe_points("epub"))
@@ -233,7 +181,7 @@ def test_export_negotiates_capability_before_reading_content(tmp_path):
     path = tmp_path / "book.notes"
     path.write_text("not visible content\n", encoding="utf-8")
     source = LocalFormatSource(path)
-    from format_contract import CountingSource
+    from tests.support.format_contract_env import CountingSource
 
     counted = CountingSource(source)
     writer = RecordingWriter()
@@ -243,12 +191,6 @@ def test_export_negotiates_capability_before_reading_content(tmp_path):
     assert (result.failure.family, result.failure.code) == (JobFailureFamily.CAPABILITY, "unsupported_operation")
     assert counted.reads == 1  # Bounded signature/extension detection only.
     assert writer.plan_calls == 0 and writer.published == []
-
-
-def _notes_registry() -> FormatRegistry:
-    registry = FormatRegistry()
-    registry.register(NOTES_REGISTRATION, notes_adapter())
-    return registry
 
 
 def test_export_plan_failure_marks_every_known_file_not_started(tmp_path):
@@ -551,7 +493,7 @@ def test_output_conflict_is_checked_before_source_read(tmp_path):
     out = tmp_path / "out"
     out.mkdir()
     (out / "unrelated").write_text("keep", encoding="utf-8")
-    from format_contract import CountingSource
+    from tests.support.format_contract_env import CountingSource
 
     source = CountingSource(LocalFormatSource(path))
     request = ExportVisibleContentRequest(SOURCE_REF, source, None, OutputDirectoryRef(str(out)))
@@ -702,19 +644,6 @@ def test_a_file_with_the_extension_that_is_no_book_is_reported_as_damaged(tmp_pa
     assert result.failure.code == "corrupt_archive"
 
 
-def _export_changing_source_after(path: Path, out: Path, change) -> object:
-    """Runs ``change`` once the first file is out, so what stops the second or third file is the recheck."""
-
-    class Writer(MarkdownDirectoryWriter):
-        def publish(self, authorization, planned, document, source, *, before_publish):
-            published = super().publish(authorization, planned, document, source, before_publish=before_publish)
-            if planned.ordinal == 1:
-                change()
-            return published
-
-    return ExportVisibleContent(epub_service(), Writer()).execute(export_request(path, out))
-
-
 def test_a_size_change_between_publications_stops_the_next_file(tmp_path):
     path = write_epub(tmp_path / "source.epub")
     original = path.read_bytes()
@@ -789,12 +718,6 @@ def test_overwriting_keeps_what_the_old_file_allowed(tmp_path):
     assert result.failure is None
     assert target.stat().st_mode & 0o777 == 0o604
     assert target.read_text() != "old"
-
-
-def _no_hard_links(code: int):
-    def link(*_args, **_kwargs):
-        raise OSError(code, "no hard links here")
-    return link
 
 
 @pytest.mark.parametrize("code", [errno.EPERM, errno.ENOTSUP])

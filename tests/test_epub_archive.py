@@ -8,16 +8,10 @@ from ebooklib import epub
 
 from ayvu.formats.epub import io as epub_io
 from ayvu.formats.epub.archive import DEFAULT_LIMITS, EpubArchive, EpubArchiveError, EpubLimits, declares_entities, resolve_internal_path
-from epub_fakes import CONTAINER, OPF, epub_bytes, members, opf_with, zip_bytes
+from tests.support.epub_fakes import CONTAINER, OPF, epub_bytes, members, opf_with, zip_bytes
 
-
-def opened(data, **options):
-    return EpubArchive(io.BytesIO(data), **options)
-
-
-def refused(data, code, **options):
-    with pytest.raises(EpubArchiveError, match=f"^{code}$"):
-        opened(data, **options)
+from tests.formats.epub.epub_archive_support import NO_REMOTE, copied, encryption, legacy_documents, opened
+from tests.formats.epub.epub_archive_support import refused
 
 
 def test_a_valid_epub_opens_and_states_its_structure():
@@ -239,11 +233,6 @@ def test_an_ordinary_doctype_is_allowed():
         assert archive.read_document("OEBPS/text/one.xhtml") == declared
 
 
-def encryption(uri, algorithm):
-    return (f'<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#"><enc:EncryptedData>'
-            f'<enc:EncryptionMethod Algorithm="{algorithm}"/><enc:CipherData><enc:CipherReference URI="{uri}"/></enc:CipherData></enc:EncryptedData></encryption>').encode()
-
-
 @pytest.mark.parametrize("uri,algorithm", [
     ("OEBPS/text/one.xhtml", "http://www.w3.org/2001/04/xmlenc#aes256-cbc"),
     ("OEBPS/text/one.xhtml", "http://www.idpf.org/2008/embedding"),
@@ -283,15 +272,6 @@ def test_a_checkpoint_can_stop_the_opening():
 
     with pytest.raises(Stop):
         opened(epub_bytes(), checkpoint=stop)
-
-
-# Copying
-
-def copied(data, replacements, **options):
-    output = io.BytesIO()
-    with opened(data) as archive:
-        archive.copy_to(output, replacements, **options)
-    return output.getvalue()
 
 
 def test_copying_keeps_every_member_as_it_was():
@@ -359,21 +339,6 @@ def test_the_source_stream_is_only_read():
     source = ReadOnly(epub_bytes())
     with EpubArchive(source) as archive:
         archive.copy_to(io.BytesIO(), {})
-
-
-# Agreement with the current flow
-
-def legacy_documents(path):
-    book = epub.read_epub(str(path))
-    opf = epub_io._get_opf_archive_path(path)
-    with ZipFile(path) as archive:
-        base = epub_io._opf_base_path(opf)
-        return ([item.archive_path for item in epub_io._translation_documents(book, archive, opf, base, False)],
-                [item.archive_path for item in epub_io._translation_documents(book, archive, opf, base, True)])
-
-
-# The current flow raises on a remote manifest item, which EPUB 3 allows, so these books hold none.
-NO_REMOTE = b'<item id="remote" href="https://example.test/a.mp3" media-type="audio/mpeg"/>'
 
 
 def test_the_documents_found_agree_with_the_current_flow(tmp_path):

@@ -10,11 +10,7 @@ import pytest
 from ayvu.kernel import LanguagePair
 from ayvu.kernel.sqlite import SqliteMigration, SqliteMigrationRunner
 
-
-def state(path):
-    with closing(sqlite3.connect(path)) as connection:
-        return connection.execute('PRAGMA user_version').fetchone()[0], connection.execute(
-            "SELECT name FROM sqlite_schema WHERE type='table' ORDER BY name").fetchall()
+from tests.kernel.sqlite.sqlite_migrations_support import _concurrent_migration, _crash_during_publication, _interrupted_upgrade, seeded, state
 
 
 def test_fresh_bootstrap_is_infrastructure_only_and_idempotent(tmp_path):
@@ -59,12 +55,6 @@ def test_sql_failure_rolls_back_entire_upgrade_and_retains_backup(tmp_path):
     assert state(path) == original
     assert state(backups / result.backup_name) == original
     assert 'private-canary' not in repr(result)
-
-
-def seeded(path, version=1):
-    fixture = Path(__file__).parent / 'fixtures' / 'migrations' / f'version-{version}.sql'
-    with closing(sqlite3.connect(path)) as connection:
-        connection.executescript(fixture.read_text())
 
 
 @pytest.mark.parametrize('prior', [0, 1])
@@ -175,15 +165,6 @@ def test_migration_sql_cannot_escape_transaction_or_change_ledger(tmp_path, stat
     assert result.backup_verified
 
 
-def _concurrent_migration(path, backups, barrier, queue):
-    registry = (SqliteMigration(1), SqliteMigration(2, (
-        'CREATE TABLE test_only_counter(value INTEGER)', 'INSERT INTO test_only_counter VALUES (1)',
-    )))
-    barrier.wait(timeout=10)
-    result = SqliteMigrationRunner(registry, busy_timeout=2).migrate(Path(path), Path(backups))
-    queue.put((result.status, result.error, result.applied))
-
-
 def test_two_processes_cannot_apply_one_migration_twice(tmp_path):
     path, backups = tmp_path / 'project.sqlite', tmp_path / 'backups'
     seeded(path)
@@ -212,20 +193,6 @@ def test_two_processes_cannot_apply_one_migration_twice(tmp_path):
                 process.join(timeout=5)
         queue.close()
         queue.join_thread()
-
-
-def _interrupted_upgrade(path, backups, ready):
-    class PausedRunner(SqliteMigrationRunner):
-        def _before_commit(self, connection):
-            ready.set()
-            # Parent kills the process after real SQL and before commit.
-            import time
-            time.sleep(20)
-    registry = (SqliteMigration(1), SqliteMigration(2, (
-        'CREATE TABLE test_only_blob(value BLOB)',
-        'INSERT INTO test_only_blob VALUES (zeroblob(4194304))',
-    )))
-    PausedRunner(registry).migrate(Path(path), Path(backups))
 
 
 def test_process_killed_before_commit_recovers_original_and_retains_backup(tmp_path):
@@ -311,18 +278,6 @@ def test_output_database_size_limit_is_enforced_before_commit(tmp_path, monkeypa
     assert not result.ok and result.error == 'resource_limit'
     assert result.backup_verified
     assert path.read_bytes() == before
-
-
-def _crash_during_publication(path, backups, ready, upgrading):
-    class PublicationRunner(SqliteMigrationRunner):
-        def _publish_unique(self, staged, final):
-            os.link(staged, final)
-            ready.set()
-            import time
-            time.sleep(20)
-    registry = ((SqliteMigration(1), SqliteMigration(2, ('CREATE TABLE test_only(value INTEGER)',)))
-                if upgrading else None)
-    PublicationRunner(registry).migrate(Path(path), Path(backups))
 
 
 @pytest.mark.parametrize('upgrading', [False, True])

@@ -30,13 +30,13 @@ from ayvu.translation.document import DocumentTranslator
 from ayvu.translation.document_contracts import PIPELINE_SAFE_POINTS, TranslationExecutionError
 from ayvu.translation.plan import ResolvedTranslationPlan, resolve_plan
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator
-from test_cache_repository_v2 import entry
-from test_cli_translate_project import Session
-from test_translation_cache_v2 import Env, NOW, document
+from tests.support.cache_repository_v2_support import entry
+from tests.support.cli_translate_project_support import Session
+from tests.support.translation_cache_v2_support import Env, NOW, document
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions, TranslationOptions, OutputPlan, JobFailure, JobFailureFamily
 from ayvu.translation import BookRefused
 
-PAIR = LanguagePair(source="en", target="pt")
+from tests.support.rich_runtime_support import PAIR, prepared_runtime, runtime
 
 
 @pytest.mark.parametrize("label", ["a", "model-2026_11", "0", "a" * 48])
@@ -129,12 +129,6 @@ def test_production_composition_constructs_only_the_selected_runtime(tmp_path, m
     assert preparations == [] and result.result.failure.code == "fixture_gate"
     assert (commands[0].producer is None) == (label is None)
     assert not composition.v2_cache_path(tmp_path / "cache.sqlite").exists()
-
-
-def runtime(tmp_path, *, options=None, prepare=None, label="local-v1"):
-    return composition.RichTranslationRuntime(tmp_path / "source.epub", options or TranslationOptions(language_pair=PAIR),
-        prepare or (lambda: composition.LegacyResources(None)), tmp_path / "cache.sqlite", label,
-        tmp_path / "project.sqlite", tmp_path / "backups", tmp_path / "artifacts", document().project_id, clock=lambda: NOW)
 
 
 @pytest.mark.parametrize("changes,message", [({"workers": 2}, "--workers 1"),
@@ -252,19 +246,6 @@ def test_rich_preparation_keeps_the_book_policy_refusal_code(tmp_path):
     assert isinstance(subject.preflight_error, BookRefused)
 
 
-def prepared_runtime(tmp_path, monkeypatch, *, label="local-v1", session=None, glossary=None):
-    """Unit harness: real document pipeline/cache/HTTP adapter, in-memory artifact and provenance ports."""
-    env = Env()
-    translator = LibreTranslateTranslator(retries=0)
-    translator.session = session or Session()
-    subject = runtime(tmp_path, label=label, prepare=lambda: composition.LegacyResources(translator, glossary))
-    assert subject.preflight() is None
-    monkeypatch.setattr(composition, "open_artifact_service", lambda *a, **kw: env.artifacts)
-    monkeypatch.setattr(composition, "open_provenance_repository", lambda *a, **kw: env.provenance)
-    context = RuntimeContext(env.job, CancellationSource((*composition.DOCUMENT_SAFE_POINTS, *LIBRETRANSLATE_SAFE_POINTS)), env.events)
-    return subject, context, env, translator.session
-
-
 def test_rich_resources_use_real_document_translator_and_cache_label_miss_restore_and_glossary(tmp_path, monkeypatch, caplog):
     glossary_path = tmp_path / "glossary.json"
     glossary_path.write_text('{"Hello": "Olá"}')
@@ -312,7 +293,7 @@ def test_first_middle_last_provider_failure_stops_and_retry_uses_cached_segments
 
 @pytest.mark.parametrize("point", PIPELINE_SAFE_POINTS)
 def test_runtime_pipeline_cancellation_acknowledges_the_requested_point(tmp_path, monkeypatch, point):
-    from test_translate_project import CancelAt
+    from tests.support.translate_project_support import CancelAt
     subject, context, env, session = prepared_runtime(tmp_path, monkeypatch)
     cancellation = CancelAt((*composition.DOCUMENT_SAFE_POINTS, *LIBRETRANSLATE_SAFE_POINTS), point)
     context = replace(context, cancellation=cancellation)
@@ -342,8 +323,8 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
     from ayvu.formats.local import LocalFormatSource
     from ayvu.formats.service import FormatPublication
     from ayvu.translation.engine import EngineRequest, TranslationEngine
-    from test_cli_translate_project import _book
-    from format_contract import FixedGuard
+    from tests.support.cli_translate_project_support import _book
+    from tests.support.format_contract_env import FixedGuard
 
     class Publisher:
         data = b""
@@ -386,7 +367,7 @@ def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp
     from types import SimpleNamespace
     from ayvu.jobs.model import JobRequest, new_job
     from ayvu.translation.project_contracts import ContinuationTicket, TranslateProjectCommand
-    from test_translate_batch_project_contract import _use_case, PROJECT, JOB, NOW, DIGEST, _options
+    from tests.support.translate_batch_project_contract_support import _use_case, PROJECT, JOB, NOW, DIGEST, _options
     use_case, jobs = _use_case()
     parent = new_job(JobRequest(PROJECT, "translate_project", parent_version, "sha256:" + "a" * 64), JOB, NOW)
     jobs.get = lambda _: SimpleNamespace(job=parent)
@@ -403,7 +384,7 @@ def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_
     from ayvu.jobs.events import JobEventSequence
     from ayvu.translation.project_contracts import TranslateProjectCommand, resolve_execution_plan as job_plan
     from ayvu.translation.engine import EngineResult
-    from test_translate_batch_project_contract import _use_case, PROJECT, DIGEST, _options
+    from tests.support.translate_batch_project_contract_support import _use_case, PROJECT, DIGEST, _options
     use_case, jobs = _use_case()
     producer = replace(LIBRETRANSLATE_PRODUCER, model=declared_model("private-model-canary-252"))
     legacy = TranslateProjectCommand(PROJECT, DIGEST, _options(), OutputPlan(tmp_path / "out.epub"))
@@ -471,7 +452,7 @@ def test_document_uses_the_renewed_lease_but_keeps_the_original_owner(tmp_path, 
 
 @pytest.mark.parametrize("revision", [1, 2])
 def test_checkpoint_stores_only_the_execution_revision_and_keeps_legacy_payload_unchanged(tmp_path, revision):
-    from test_job_recovery_integration import Scene
+    from tests.support.job_recovery_integration_support import Scene
     from ayvu.v1.resume import TranslationResumeState
     scene = Scene(tmp_path)
     path = scene.save_state(execution_revision=revision)
@@ -485,7 +466,7 @@ def test_checkpoint_stores_only_the_execution_revision_and_keeps_legacy_payload_
 def test_production_preparation_records_the_runtime_revision_without_copying_the_label(tmp_path, label):
     from types import SimpleNamespace
     from ayvu.composition.cli import prepare_translation
-    from test_cli_translate_project import _book
+    from tests.support.cli_translate_project_support import _book
     saved, preflights = [], []
     def preflight(**kwargs):
         preflights.append(kwargs)
@@ -510,7 +491,7 @@ def test_rich_checkpoint_associates_with_the_recorded_job_without_current_config
     from ayvu.jobs.service import JobSnapshot
     from ayvu.recovery.service import CompatibilityStatus
     from ayvu.translation.project_contracts import TranslateProjectCommand, resolve_execution_plan as job_plan
-    from test_job_recovery_integration import Scene
+    from tests.support.job_recovery_integration_support import Scene
     scene = Scene(tmp_path)
     project = scene.project()
     path = scene.save_state(execution_revision=2)

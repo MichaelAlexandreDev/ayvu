@@ -17,7 +17,7 @@ from ayvu.network.policy import NetworkPolicy
 from ayvu.providers.discovery import DiscoveryOutcome
 from ayvu.providers.network import NetworkClass, ProviderOperation
 from ayvu.v1.resume import ResumeStateStore, TranslationResumeState
-from test_network_policy import WireSocket, answer, deny_network, wire_reply
+from tests.support.network_policy_support import WireSocket, answer, deny_network, wire_reply
 from ayvu.kernel import LanguagePair, TranslationOptions
 from ayvu.translation.errors import PreflightPolicyError
 

@@ -1,5 +1,5 @@
 from ayvu.interfaces.cli.app import app
-from test_cli import _write_review_csv_file, runner
+from tests.support.cli_support import _write_review_csv_file, runner
 
 
 def test_apply_review_command_rejects_v1_before_opening_epub_or_reconstructing(tmp_path, monkeypatch):

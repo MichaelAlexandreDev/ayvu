@@ -21,7 +21,7 @@ from ayvu.translation.document_contracts import (
 from ayvu.translation.raw_results import RAW_RESULTS_VERSION, reuse_dimensions
 from ayvu.translation.document import DocumentTranslator
 from ayvu.translation.resume_reuse import REUSE_DIMENSIONS
-from test_translation_document import Env, Provider, cue, document, plan, rewrite_payload, upper_glossary
+from tests.support.translation_document_support import Env, Provider, cue, document, plan, rewrite_payload, upper_glossary
 from ayvu.kernel import JobWarning
 
 runner = CliRunner()
@@ -191,8 +191,8 @@ def test_a_job_cannot_list_itself_as_reusable(env):
 
 # ---------- Through the CLI, with the real project store and an instrumented transport.
 
-from test_cli_rich_runtime import Transport, config, invoke, records, text  # noqa: E402
-from test_cli_translate_project import _book, _jobs  # noqa: E402
+from tests.support.cli_rich_runtime_support import Transport, config, invoke, records, text
+from tests.support.cli_translate_project_support import _book, _jobs
 
 
 @pytest.fixture

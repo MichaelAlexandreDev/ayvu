@@ -1,7 +1,7 @@
 import json
 from ayvu.interfaces.cli.guided import library as cli_module
 from ayvu.interfaces.cli.app import app
-from test_cli import _library_config, isolated_config, runner
+from tests.support.cli_support import _library_config, isolated_config, runner
 
 
 def test_a_folder_pointing_outside_the_library_is_told_and_not_taken_for_an_empty_library(isolated_config, tmp_path):

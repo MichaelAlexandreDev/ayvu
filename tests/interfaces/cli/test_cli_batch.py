@@ -5,7 +5,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
 from ayvu.translation.preflight import PreflightError
 from ayvu.formats.epub.validation import ValidationResult
-from test_cli import isolated_config, FakeCache, _fake_translation, runner
+from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 
 
 def test_translate_command_batch_writes_outputs_and_markdown_reports(tmp_path, monkeypatch):

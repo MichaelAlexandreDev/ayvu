@@ -17,17 +17,8 @@ from ayvu.network.policy import NetworkPolicy, NetworkPolicyError, resolve_netwo
 from ayvu.network.http import NetworkAuthorization
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator, TranslatorError, TranslatorPolicyError
 
-
-@pytest.fixture(autouse=True)
-def isolated(tmp_path, monkeypatch):
-    monkeypatch.setenv("HOME", str(tmp_path / "home"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.chdir(tmp_path)
-
-
-def answer(host="127.0.0.1", port=5000):
-    family = socket.AF_INET6 if ":" in host else socket.AF_INET
-    return (family, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (host, port, 0, 0) if family == socket.AF_INET6 else (host, port))
+from tests.support.network_policy_support import WireSocket, answer, deny_network, install_wire, isolated
+from tests.support.network_policy_support import wire_reply
 
 
 @pytest.mark.parametrize("url,host,port", [
@@ -76,20 +67,6 @@ def test_closed_vocabulary_and_visible_compatibility_default():
     assert not resolve_network_policy(None, "http://192.168.1.2").allowed
 
 
-def deny_network(monkeypatch):
-    reached = []
-    def forbidden(*args, **kwargs):
-        reached.append("forbidden")
-        raise AssertionError("strict offline reached DNS/socket/HTTP/body")
-    for target, name in [(socket, "socket"), (socket, "create_connection"), (socket, "getaddrinfo"),
-                         (requests.Session, "send"), (requests.Session, "__init__"),
-                         (requests.adapters.HTTPAdapter, "send")]:
-        monkeypatch.setattr(target, name, forbidden)
-    monkeypatch.setattr("ayvu.providers.libretranslate.client.LibreTranslatePayload", forbidden)
-    monkeypatch.setattr(requests.models.PreparedRequest, "prepare_body", forbidden)
-    return reached
-
-
 @pytest.mark.parametrize("operation", ["translate", "languages"])
 def test_none_denies_before_every_production_network_and_body_boundary(monkeypatch, operation, caplog):
     reached = deny_network(monkeypatch)
@@ -136,40 +113,6 @@ def test_all_dns_answers_must_be_loopback_and_scope_free(answers, monkeypatch):
     with pytest.raises(NetworkPolicyError):
         authorization.authorize("languages")
     assert len(calls) == 1
-
-
-class WireSocket:
-    """A socket-shaped wire, with real Requests/urllib3 parsing, framing and adapter dispatch."""
-    def __init__(self, replies, connections, family):
-        self.replies = replies
-        self.connections = connections
-        self.family = family
-        self.sent = []
-        self.timeout = None
-
-    def settimeout(self, timeout): self.timeout = timeout
-    def setsockopt(self, *args): pass
-    def connect(self, sockaddr): self.connections.append((self.family, sockaddr, self.timeout))
-    def sendall(self, data): self.sent.append(bytes(data))
-    def makefile(self, *args, **kwargs): return io.BytesIO(self.replies.pop(0))
-    def close(self): pass
-
-
-def wire_reply(body, status=200, extra=""):
-    payload = body.encode()
-    return (f"HTTP/1.1 {status} Test\r\nContent-Type: application/json\r\nContent-Length: {len(payload)}\r\nConnection: close\r\n{extra}\r\n".encode() + payload)
-
-
-def install_wire(monkeypatch, replies):
-    sockets, connections = [], []
-    def create(family, kind, protocol=0):
-        assert kind == socket.SOCK_STREAM
-        wire = WireSocket(replies, connections, family)
-        sockets.append(wire)
-        return wire
-    monkeypatch.setattr(socket, "socket", create)
-    monkeypatch.setattr(socket, "create_connection", lambda *a, **k: pytest.fail("uncontrolled create_connection"))
-    return sockets, connections
 
 
 @pytest.mark.parametrize("host", ["127.9.8.7", "::1"])

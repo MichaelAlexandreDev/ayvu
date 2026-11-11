@@ -44,146 +44,14 @@ from ayvu.knowledge.cache.entries import (
 from ayvu.knowledge.cache.identity_values import CacheValueKind, TRANSLATION_STAGE_AGGREGATE
 from ayvu.translation.plan import ResolvedTranslationPlan, resolve_plan
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
-from provider_fakes import FakeSession, http_response
+from tests.support.provider_fakes import FakeSession, http_response
 from ayvu.kernel import LanguagePair, JobFailureFamily, JobWarning, JobCancellationError, JobFailure
 
-PROJECT = str(UUID(int=0x1234))
-NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
-PRODUCER = ProducerIdentity('engine@1', 'model@1', 'adapter@1', 'not_applicable')
-ROUTE = ProviderRoute('en', 'pt')
-GLOSSARY_A = 'glossary:' + 'a' * 64
-GLOSSARY_B = 'glossary:' + 'b' * 64
-ENGLISH = SourceLocale(LocaleState.EXPLICIT, 'en')
-ADAPTER = AdapterIdentity('subtitle', 1, 1)
-CANARIES = ('Call me Ishmael.', 'SECRET-GLOSSARY-VALUE')
-
-
-def plan(**changes):
-    values = {'producer': PRODUCER, 'route': ROUTE, 'capabilities': 'capfp:v1:' + '1' * 64, 'chunk_limit': 3000, 'glossary_ref': GLOSSARY_A, **changes}
-    return ResolvedTranslationPlan(**values)
-
-
-def locator(value):
-    return Locator('webvtt_cue', 1, value)
-
-
-def cue(value, text, order, **changes):
-    return UnitContent(locator(value), text, SemanticKind('subtitle_cue'), (order,), **changes)
-
-
-def document(*units, key='episode-1.vtt'):
-    return build_document(PROJECT, key, ADAPTER, ENGLISH, units or (cue('a', ' Hello there ', 1), cue('b', 'Good night', 2)))
-
-
-@dataclass
-class Glossed:
-    text: str
-    usage: object = 'usage'
-
-
-def upper_glossary(text):
-    return Glossed(text.upper())
-
-
-class Provider:
-    def __init__(self, respond=None, producer=PRODUCER, route=ROUTE, warnings=()):
-        self.respond = respond or (lambda text: f'[{text}]')
-        self.producer, self.route, self.warnings = producer, route, warnings
-        self.requests = []
-
-    def execute(self, request):
-        self.requests.append(request)
-        return TranslationProviderResult(request.request_id, ProviderStatus.SUCCEEDED, self.producer, DeliveryState.COMPLETED,
-                                         text=self.respond(request.text), route=self.route, warnings=self.warnings, usage=ProviderUsage())
-
-    def close(self):
-        pass
-
-
-class PlanCache:
-    def __init__(self):
-        self.stored = {}
-        self.calls = []
-
-    def lookup(self, key):
-        self.calls.append(('lookup', key))
-        entry = self.stored.get(key)
-        if entry is None:
-            return ExactCacheLookup(CacheLookupState.MISS, reason=CacheMissReason.ENTRY_NOT_FOUND)
-        return ExactCacheLookup(CacheLookupState.HIT, value=entry.value)
-
-    def resolve_compatible(self, scope, value_kind, source_digest, *, limit):
-        self.calls.append(('resolve', scope, value_kind, source_digest, limit))
-        return tuple(key for key in self.stored if key.scope == scope and key.value_kind is value_kind
-                     and key.source_content_digest == source_digest)
-
-    def put_if_absent(self, entry):
-        self.calls.append(('put_if_absent', entry.key))
-        winner = self.stored.get(entry.key)
-        if winner is None:
-            self.stored[entry.key] = entry
-            return PutIfAbsentResult(PutIfAbsentState.INSERTED)
-        if winner.value == entry.value and winner.provenance == entry.provenance:
-            return PutIfAbsentResult(PutIfAbsentState.IDEMPOTENT)
-        return PutIfAbsentResult(PutIfAbsentState.CONFLICT)
-
-
-class Env:
-    def __init__(self, tmp_path):
-        self.database, self.backups, self.root = tmp_path / 'project.sqlite', tmp_path / 'backups', tmp_path / 'artifacts'
-        self.now = NOW
-        self.count = 5000
-        self.jobs = open_job_repository(self.database, self.backups, PROJECT, clock=self.clock)
-        self.artifacts = open_artifact_service(self.database, self.backups, self.root, PROJECT, clock=self.clock, new_id=self.new_id)
-        self.provenance = open_provenance_repository(self.database, self.backups, PROJECT, clock=self.clock, new_id=self.new_id)
-        self.job = self.running_job()
-        self.log = InMemoryJobEventLog(self.job.job_id)
-        self.sequence = 1
-        self.runs = 0
-
-    def clock(self):
-        return self.now
-
-    def new_id(self):
-        self.count += 1
-        return str(UUID(int=self.count))
-
-    def running_job(self):
-        job = self.jobs.create(JobRequest(PROJECT, 'translate_epub', 1, 'sha256:' + 'e' * 64))
-        for state in (JobState.PREFLIGHT, JobState.RUNNING):
-            job = self.jobs.transition(job.job_id, state, expected_revision=job.revision)
-        return self.jobs.acquire_lease(job.job_id, timedelta(minutes=30))
-
-    def context(self, **changes):
-        # A phase cannot return in one event stream, so each run in these tests gets its own.
-        self.runs += 1
-        return ExecutionContext(**{'job': self.job, 'owner_token': self.job.lease.owner_token, 'first_sequence': self.sequence,
-                                   'progress_phase': f'run_{self.runs}', **changes})
-
-    def translator(self, provider=None, subject_plan=None, glossary=upper_glossary, **options):
-        return DocumentTranslator(subject_plan or plan(), provider or Provider(), glossary, self.artifacts, self.provenance, self.log,
-                                  clock=self.clock, new_id=self.new_id, **options)
-
-    def translate(self, subject=None, provider=None, subject_plan=None, glossary=upper_glossary, context=None, translator_options=None, **options):
-        result = self.translator(provider, subject_plan, glossary, **(translator_options or {})).translate(
-            subject or document(), context or self.context(), **options)
-        self.sequence = result.next_sequence
-        return result
-
-    def records(self):
-        return self.provenance.list_by_job(self.job.job_id, limit=100).nodes
-
-    def artifact_state(self, artifact_id):
-        with closing(sqlite3.connect(self.database)) as connection:
-            return connection.execute('SELECT state, reason_code FROM job_artifacts WHERE artifact_id = ?', (artifact_id,)).fetchone()
-
-    def final(self, artifact_id):
-        return self.root / 'ready' / f'{artifact_id}.bin'
-
-
-@pytest.fixture
-def env(tmp_path):
-    return Env(tmp_path)
+from tests.support.translation_document_support import ADAPTER, CANARIES, CORRUPTIONS, ENGLISH, Env
+from tests.support.translation_document_support import GLOSSARY_A, GLOSSARY_B, Glossed, NOW, PRODUCER
+from tests.support.translation_document_support import PROJECT, PlanCache, PlanMemory, Provider, ROUTE
+from tests.support.translation_document_support import cue, document, env, plan, rewrite_payload
+from tests.support.translation_document_support import tags, upper_glossary
 
 
 def test_non_html_units_run_end_to_end_and_results_are_per_unit(env):
@@ -301,21 +169,6 @@ def test_a_damaged_artifact_prevents_replay_and_the_work_is_redone(env, damage):
     assert [record.request.artifacts for record in stored] == [(first.artifact_id,), (second.artifact_id,)]
 
 
-def rewrite_payload(env, artifact_id, mutate):
-    """A payload changed and re-recorded, so it passes the digest and only its content can give it away."""
-    path = env.final(artifact_id)
-    data = json.loads(path.read_bytes())
-    mutate(data)
-    payload = json.dumps(data, ensure_ascii=True, sort_keys=True, separators=(',', ':')).encode()
-    path.write_bytes(payload)
-    import hashlib
-    with closing(sqlite3.connect(env.database)) as connection:
-        connection.execute('DROP TRIGGER job_artifacts_immutable')
-        connection.execute('UPDATE job_artifacts SET size = ?, digest = ? WHERE artifact_id = ?',
-                           (len(payload), 'sha256:' + hashlib.sha256(payload).hexdigest(), artifact_id))
-        connection.commit()
-
-
 @pytest.mark.parametrize('mutate', [
     lambda data: data.update(schema_version=3), lambda data: data.update(raw_fingerprint='sha256:' + '0' * 64),
     lambda data: data.update(revision_id='rev:v1:' + '0' * 64), lambda data: data.update(document_id='doc:v1:' + '0' * 64),
@@ -385,21 +238,6 @@ def test_the_generic_path_cannot_reach_the_legacy_cache():
         assert name not in source
 
 
-class PlanMemory:
-    def __init__(self, match):
-        self.match = match
-        self.calls = []
-
-    def lookup(self, query):
-        self.calls.append(query)
-        if self.match is None:
-            return None
-        return CompatibleMemoryCandidate(
-            self.match.original, self.match.translated, self.match.score, self.match.applied,
-            CacheCompatibilityIdentity(query.scope, query.value_kind, query.semantic_fingerprint),
-        )
-
-
 def test_applied_memory_skips_the_provider_and_is_recorded_as_unknown_producer(env):
     memory = PlanMemory(TranslationMemoryMatch('Good night', 'Boa noite', 0.99, True))
     provider = Provider()
@@ -444,11 +282,6 @@ def test_chunks_are_sent_in_order_with_cancellation_points_between_them(env):
     assert result.units[0].text == ''.join(f'[{request.text}]' for request in provider.requests)
 
 
-def tags(index):
-    # Spans become tag tokens, and the protection stage turns those into these before the provider.
-    return f'__AYVU_PROTECTED_{index}__'
-
-
 def test_protected_parts_never_reach_the_provider_and_are_restored(env):
     provider = Provider()
     subject = document(cue('a', 'Say <b>hi</b> now', 1, protected_parts=(ProtectedPart(4, 7, 'markup'), ProtectedPart(9, 13, 'markup'))))
@@ -456,15 +289,6 @@ def test_protected_parts_never_reach_the_provider_and_are_restored(env):
     assert '<b>' not in provider.requests[0].text and '__AYVU_TAG' not in provider.requests[0].text
     assert tags(0) in provider.requests[0].text and tags(1) in provider.requests[0].text
     assert result.units[0].text == '[Say <b>hi</b> now]'
-
-
-CORRUPTIONS = {
-    'missing': lambda text: text.replace(tags(0), ''),
-    'duplicated': lambda text: text.replace(tags(0), tags(0) + tags(0)),
-    'invented': lambda text: text + tags(5),
-    'reordered': lambda text: text.replace(tags(0), '@').replace(tags(1), tags(0)).replace('@', tags(1)),
-    'corrupted': lambda text: text.replace(tags(0), 'AYVU TAG 0'),
-}
 
 
 @pytest.mark.parametrize('kind', CORRUPTIONS)
@@ -600,10 +424,6 @@ def test_two_documents_in_one_job_use_their_own_phases(env):
     env.translate(document(key='one.vtt'), context=env.context(progress_phase='document_1'))
     env.translate(document(key='two.vtt'), context=env.context(progress_phase='document_2'))
     assert {event.payload.phase for event in env.log.replay()} == {'document_1', 'document_2'}
-
-
-def source_of(env):
-    return CancellationSource(SAFE_POINTS)
 
 
 @pytest.mark.parametrize('moment', ['before_first_unit', 'between_units', 'between_stages', 'between_chunks', 'before_publication'])
@@ -832,9 +652,6 @@ def test_content_stays_out_of_events_provenance_repr_errors_and_logs(env, canary
     assert not any(canary in text for text in texts)
     # The artifact is the one private place that holds it, by design.
     assert canary.encode() in env.final(result.artifact_id).read_bytes().replace(b'\\u', b'') or canary.upper().encode() in env.final(result.artifact_id).read_bytes()
-
-
-LANGUAGES = '[{"code": "en", "name": "English", "targets": ["pt"]}]'
 
 
 def test_the_production_libretranslate_adapter_runs_the_rich_path_over_fake_http(env):

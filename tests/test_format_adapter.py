@@ -17,15 +17,16 @@ from ayvu.formats.contracts import (
 )
 from ayvu.formats.local import LocalFormatSource, LocalOutputGuard
 from ayvu.formats.service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
-from format_contract import PROJECT, CountingSource, FixedGuard, FormatAdapterContract, FormatEnv, FormatHarness
-from format_fakes import (
-    CARDS_HEADER, CARDS_REGISTRATION, EVIDENCE, KIND, NOTES_REGISTRATION, CardsPorts, NotesPorts, all_fidelity, cards_adapter, cards_descriptor, notes_adapter,
-    notes_descriptor, unsupported,
-)
+from tests.support.format_contract_env import PROJECT, CountingSource, FixedGuard, FormatEnv, FormatHarness
+from tests.support.format_contract import FormatAdapterContract
+from tests.support.format_fakes import CARDS_HEADER, CARDS_REGISTRATION, EVIDENCE, KIND, NOTES_REGISTRATION, CardsPorts, NotesPorts, all_fidelity, cards_adapter, cards_descriptor, notes_adapter, notes_descriptor, unsupported
 from ayvu.kernel import JobFailure, JobFailureFamily
 
-CARDS = CARDS_HEADER + b"#one\nfirst card\nsecond card\n#two\nthird card\n"
-ROOT = Path(__file__).parents[1]
+from tests.formats.format_adapter_support import BrokenPublisher, CARDS, CONTRACT_MODULES, REQUIRED_ROWS, ROOT
+from tests.formats.format_adapter_support import cards, complete, detector, documents_of, envdir
+from tests.formats.format_adapter_support import extractor_returning, fake_document, map_rows, materialize, named
+from tests.formats.format_adapter_support import publish_with, registry_with, requirements, resolve, service_for
+from tests.formats.format_adapter_support import signed, with_method
 
 
 class TestNotesContract(FormatAdapterContract):
@@ -38,32 +39,6 @@ class TestCardsContract(FormatAdapterContract):
     @pytest.fixture
     def harness(self):
         return FormatHarness(cards_adapter(), CARDS_REGISTRATION, CARDS, CARDS_HEADER + b"#one\nchanged\n", ".cards")
-
-
-def registry_with(*pairs):
-    registry = FormatRegistry()
-    for registration, adapter in pairs:
-        registry.register(registration, adapter)
-    return registry
-
-
-def service_for(adapter=None, registration=CARDS_REGISTRATION):
-    return FormatService(registry_with((registration, adapter or cards_adapter())))
-
-
-@pytest.fixture
-def cards(tmp_path):
-    path = tmp_path / "book.cards"
-    path.write_bytes(CARDS)
-    return path
-
-
-def documents_of(path):
-    return service_for().extract("fake_cards", LocalFormatSource(path), ExtractionRequest(PROJECT)).documents
-
-
-def complete(documents):
-    return tuple(UnitTranslation(unit.unit_id, "text") for document in documents for unit in document.units)
 
 
 # The two fakes tell the truth, and the truth differs.
@@ -164,12 +139,6 @@ def test_limits_are_positive_integers_or_unknown(value):
     with pytest.raises(FormatError, match="^invalid_limit$"):
         FormatLimits(max_source_bytes=value)
     assert FormatLimits().max_documents is None
-
-
-# Negotiation
-
-def requirements(*fidelity, operations=(), scopes=frozenset(), experimental=False):
-    return FormatRequirements(operations, tuple(FidelityRequirement(aspect, level) for aspect, level in fidelity), scopes, experimental)
 
 
 @pytest.mark.parametrize("descriptor,needed,code", [
@@ -297,13 +266,6 @@ def test_an_adapter_needs_a_descriptor():
         FormatAdapter("cards")
 
 
-def with_method(name, method):
-    class Ports(CardsPorts):
-        pass
-    setattr(Ports, name, method)
-    return Ports()
-
-
 @pytest.mark.parametrize("returned", [
     "a document", ["a", "list"], ("not a document",),
 ], ids=["string", "list", "tuple-of-string"])
@@ -312,20 +274,6 @@ def test_an_extractor_returning_something_else_is_a_mismatch(cards, returned):
     adapter = FormatAdapter(cards_descriptor(), inspector=base, extractor=with_method("extract", lambda self, context, request: returned),
                             previewer=base, reconstructor=base, validator=base)
     assert service_for(adapter).extract("fake_cards", LocalFormatSource(cards), ExtractionRequest(PROJECT)).failure.code == "descriptor_mismatch"
-
-
-def extractor_returning(make):
-    base = CardsPorts()
-    return FormatAdapter(cards_descriptor(), inspector=base, extractor=with_method("extract", lambda self, context, request: make(context, request)),
-                         previewer=base, reconstructor=base, validator=base)
-
-
-def fake_document(context, request, **changes):
-    values = dict(project_id=request.project_id, logical_key="one", adapter=cards_descriptor().adapter, schema="fake_card", version=3,
-                  fingerprint=context.source_fingerprint)
-    values.update(changes)
-    return build_document(values["project_id"], values["logical_key"], values["adapter"], request.source_locale,
-                          [UnitContent(Locator(values["schema"], values["version"], "1"), "text", KIND, (1,))], source_fingerprint=values["fingerprint"])
 
 
 @pytest.mark.parametrize("changes", [
@@ -462,7 +410,7 @@ def test_interrupts_are_not_swallowed(cards):
 
 
 def test_an_adapter_that_swallows_cancellation_still_returns_nothing(cards):
-    from format_contract import TriggerToken
+    from tests.support.format_contract_env import TriggerToken
     from ayvu.formats.service import format_safe_points
 
     def extract(self, context, request):
@@ -515,22 +463,6 @@ def test_a_source_with_a_malformed_fingerprint_is_refused(cards):
             return "not a digest"
 
     assert service_for().inspect("fake_cards", Odd(LocalFormatSource(cards))).failure.code == "source_unreadable"
-
-
-# Materializing
-
-def materialize(tmp_path, cards, adapter=None, *, kind=ReconstructionRequest, guard=None, translations=None, requirements_=None, source=None):
-    env = FormatEnv(tmp_path / "env")
-    documents = documents_of(cards)
-    request = kind(documents, complete(documents) if translations is None else translations, requirements_ or FormatRequirements(allow_experimental=True))
-    publication = env.publication(guard)
-    method = service_for(adapter).reconstruct if kind is ReconstructionRequest else service_for(adapter).preview
-    return method("fake_cards", source or LocalFormatSource(cards), request, publication), env, publication
-
-
-@pytest.fixture
-def envdir(tmp_path):
-    return tmp_path
 
 
 def test_a_preview_can_hold_partial_results_and_a_reconstruction_cannot(envdir, cards):
@@ -644,24 +576,6 @@ def test_an_adapter_crashing_midway_is_reduced_to_a_code(envdir, cards):
     assert result.failure.code == "adapter_failed" and "Ishmael" not in repr(result) and not env.is_ready(publication)
 
 
-class BrokenPublisher:
-    def __init__(self, returned=None, error=None):
-        self.returned, self.error = returned, error
-
-    def publish(self, request, chunks, **options):
-        list(chunks)
-        if self.error:
-            raise self.error
-        return self.returned
-
-
-def publish_with(tmp_path, cards, publisher):
-    env = FormatEnv(tmp_path / "env")
-    documents = documents_of(cards)
-    return service_for().reconstruct("fake_cards", LocalFormatSource(cards), ReconstructionRequest(documents, complete(documents)),
-                                     replace(env.publication(), artifacts=publisher))
-
-
 def test_publication_failures_are_typed(envdir, cards):
     from ayvu.artifacts.model import ArtifactIntegrityError, ArtifactStoreError
 
@@ -683,25 +597,6 @@ def test_the_artifact_lease_is_still_enforced(envdir, cards):
     result = service_for().reconstruct("fake_cards", LocalFormatSource(cards), ReconstructionRequest(documents, complete(documents)), publication)
     assert result.artifact is None and not env.is_ready(publication)
     assert result.failure.family is JobFailureFamily.RESOURCE
-
-
-# Detection
-
-def detector(*pairs):
-    return registry_with(*pairs)
-
-
-def signed(name, signature=b"SAME", extensions=(".signed",)):
-    base = CardsPorts()
-    return (FormatRegistration(name, 2, (("fake_card", 3),)),
-            FormatAdapter(cards_descriptor(adapter=AdapterIdentity(name, 2, 1), extensions=extensions, signatures=(FormatSignature(((0, signature),)),)),
-                          inspector=base, extractor=base, previewer=base, reconstructor=base, validator=base))
-
-
-def named(name, extensions=(".plain",), media_types=()):
-    base = NotesPorts()
-    return (FormatRegistration(name, 1, (("fake_line", 1),)),
-            FormatAdapter(notes_descriptor(adapter=AdapterIdentity(name, 1, 1), extensions=extensions, media_types=media_types), inspector=base, extractor=base))
 
 
 @pytest.mark.parametrize("adapters,evidence,outcome,reason,candidates", [
@@ -926,11 +821,6 @@ def test_text_and_paths_stay_out_of_representations(cards):
     assert CARDS.decode() not in repr(documents)
 
 
-# Boundaries
-
-CONTRACT_MODULES = ("formats/contracts", "formats/service")
-
-
 def test_the_contract_imports_nothing_concrete():
     forbidden = {"ebooklib", "bs4", "lxml", "typer", "rich", "PySide6", "requests", "mcp", "sqlite3", "os", "shutil", "zipfile",
                  "ayvu.providers.libretranslate.client", "ayvu.providers", "ayvu.translation",
@@ -959,35 +849,6 @@ def test_getattr_in_the_service_only_reads_declared_port_fields():
     tree = ast.parse((ROOT / "src" / "ayvu" / "formats" / "service.py").read_text())
     calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "getattr"]
     assert [call.args[1].id for call in calls] == ["field"]
-
-
-# The compatibility map
-
-MAP = ROOT / "docs" / "architecture" / "format-compatibility.md"
-REQUIRED_ROWS = ("inspect", "language detection", "extract", "preview", "chapter selection", "metadata", "navigation", "image alt text", "review export", "review apply",
-                 "rebuild", "validation", "archive preservation", "mimetype storage", "visible text selection", "html reconstruction", "jobs", "resume", "output path", "translation")
-
-
-def map_rows():
-    rows = {}
-    for line in MAP.read_text().splitlines():
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if line.startswith("|") and len(cells) == 4 and not set(cells[0]) <= {"-", " "} and cells[0] != "Behavior":
-            rows[cells[0]] = cells[1:]
-    return rows
-
-
-def resolve(reference):
-    parts = reference.split(".")
-    for split in range(len(parts), 1, -1):
-        try:
-            value = importlib.import_module(".".join(parts[:split]))
-        except ImportError:
-            continue
-        for part in parts[split:]:
-            value = getattr(value, part)
-        return value
-    raise ImportError(reference)
 
 
 def test_the_map_covers_every_required_behavior():

@@ -20,7 +20,7 @@ from ayvu.providers.libretranslate.adapter import (
 )
 from ayvu.providers.service import observe_availability
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator, RequestRateLimiter, TranslatorError
-from provider_fakes import FakeSession, http_response, request
+from tests.support.provider_fakes import FakeSession, http_response, request
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
 LANGUAGES = json.dumps([

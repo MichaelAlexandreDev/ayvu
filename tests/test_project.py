@@ -6,10 +6,7 @@ import pytest
 from ayvu.projects.model import ProjectError, ProjectManifest, ProjectRequest
 from ayvu.projects.store import decode_manifest, encode_manifest
 
-
-def manifest():
-    request = ProjectRequest('/private/source.epub', 10, 'a' * 64, 'en', 'pt')
-    return ProjectManifest.create(request, '12345678-1234-4234-8234-123456789abc')
+from tests.support.project_support import manifest
 
 
 def test_manifest_canonical_round_trip_and_redacted_representation():

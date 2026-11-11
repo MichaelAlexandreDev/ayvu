@@ -9,26 +9,9 @@ from typer.testing import CliRunner
 
 from ayvu.interfaces.cli import app as cli, report as cli_report, run as cli_run
 import ayvu.composition.cli as composition
-from test_workflow_characterization import (
-    FakeLibreTranslateSession,
-    _direct_languages,
-    _install_cli_environment,
-    _write_epub,
-)
+from tests.support.workflow_characterization_support import FakeLibreTranslateSession, _direct_languages, _install_cli_environment, _write_epub
 
-
-@pytest.fixture(autouse=True)
-def isolated_cli(tmp_path, monkeypatch):
-    monkeypatch.setenv("HOME", str(tmp_path / "home"))
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.chdir(tmp_path)
-
-
-def _run(first, second, output, *extra):
-    return CliRunner().invoke(cli.app, [
-        "--mode", "developer", "translate", str(first), str(second),
-        "--output-dir", str(output), *extra,
-    ])
+from tests.interfaces.cli.translate_batch_integration_support import _run, isolated_cli
 
 
 def test_final_conflict_rejects_before_first_item(tmp_path, monkeypatch):
@@ -246,7 +229,7 @@ def test_common_refusal_has_no_empty_batch_summary(tmp_path, monkeypatch):
 
 
 def test_real_validation_warning_keeps_artifact_and_continues_batch(tmp_path, monkeypatch):
-    from test_cli_translate_project import _jobs
+    from tests.support.cli_translate_project_support import _jobs
 
     first = _write_epub(tmp_path / "first.epub", chapter_two='<p><a href="gone.xhtml">Broken link</a></p>')
     second = _write_epub(tmp_path / "second.epub")
@@ -267,7 +250,7 @@ def test_real_validation_warning_keeps_artifact_and_continues_batch(tmp_path, mo
 
 
 def test_real_cache_only_batch_writes_outputs_and_missing_reports_without_provider_calls(tmp_path, monkeypatch):
-    from test_workflow_characterization import _read_member
+    from tests.support.workflow_characterization_support import _read_member
 
     first = _write_epub(tmp_path / "first.epub")
     second = _write_epub(tmp_path / "second.epub")
@@ -365,8 +348,8 @@ def test_batch_workers_bound_provider_concurrency_and_do_not_overlap_books(tmp_p
 
 
 def test_real_failed_text_is_partial_and_batch_continues(tmp_path, monkeypatch):
-    from test_cli_translate_project import _jobs
-    from test_workflow_characterization import FailingSession, _read_member
+    from tests.support.cli_translate_project_support import _jobs
+    from tests.support.workflow_characterization_support import FailingSession, _read_member
 
     first = _write_epub(tmp_path / "first.epub", chapter_two='<p id="two">Fail only this text.</p>')
     second = _write_epub(tmp_path / "second.epub")
@@ -389,7 +372,7 @@ def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_
 
     from ayvu.projects.store import ProjectJsonRepository
     from ayvu.translation.batch import ItemStatus
-    from test_cli_translate_project import _jobs
+    from tests.support.cli_translate_project_support import _jobs
 
     first = _write_epub(tmp_path / "first.epub")
     second = _write_epub(tmp_path / "second.epub")

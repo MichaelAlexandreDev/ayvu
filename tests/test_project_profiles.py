@@ -25,29 +25,8 @@ from ayvu.projects.profiles.service import (
 )
 from ayvu.projects.profiles.store import decode_state, encode_state
 
-PROJECT = ProjectReference('00000000-0000-0000-0000-000000000001')
-PROFILE = ProfileReference('profile:' + '1' * 64)
-REV = ProfileRevision('a' * 64)
-
-
-def binding(revision='b', name='canary-glossary.json'):
-    return GlossaryBinding(GlossaryReference(name), ProfileRevision(revision * 64))
-
-
-def facts(target='pt', glossary=None, stage=ExecutionStage.TRANSLATE, native=False):
-    if stage is ExecutionStage.INSPECT:
-        return PlanFacts(stage, GlossaryStage.NONE, None)
-    request = ProviderRequestProjection(target, REV,
-        TerminologySupport.SUPPORTED if native else TerminologySupport.UNSUPPORTED,
-        glossary if native else None, REV if native else None)
-    return PlanFacts(stage, GlossaryStage.PROVIDER if native else
-                     GlossaryStage.POST_CACHE if glossary else GlossaryStage.NONE, request)
-
-
-def snapshot(profile=None, plan=None, overrides=ProfileOverrides(), default='pt', project_revision=3):
-    profile = profile or ProjectTranslationProfile()
-    return ResolvedProfileSnapshot(PROJECT, project_revision, PROFILE, profile, overrides,
-                                   default, plan or facts())
+from tests.support.project_profiles_support import PROFILE, PROJECT, Preferences, REV, binding
+from tests.support.project_profiles_support import facts, migrate, service, snapshot
 
 
 @pytest.mark.parametrize('change', [
@@ -201,74 +180,6 @@ def test_snapshot_identity_across_processes_and_mapping_order():
     assert completed.stdout.splitlines() == [value.reference.value, value.effects.raw_projection().hex()]
     assert replace(value, project_revision=4).reference != value.reference
     assert replace(value, overrides=ProfileOverrides('pt')).reference != value.reference
-
-
-class Projects:
-    def __init__(self):
-        self.state = ProjectProfileState(PROJECT, 1)
-        self.writes = 0
-        self.fail = False
-
-    def read(self, project):
-        assert project == PROJECT
-        return self.state
-
-    def publish(self, state, expected_revision, cancel, validate):
-        assert self.state.project_revision == expected_revision
-        validate()
-        if self.fail:
-            raise ProfileError('persistence')
-        if cancel and cancel():
-            raise ProfileError('cancelled')
-        self.writes += 1
-        self.state = state
-        return state
-
-
-class Glossaries:
-    def __init__(self):
-        self.resolved = binding()
-        self.block = None
-        self.requests = []
-        self.held = []
-
-    def resolve_legacy(self, path, cancel=None):
-        self.requests.append(path)
-        if self.block:
-            raise ProfileError('unresolved_glossary', self.block)
-        return self.resolved
-
-    @contextmanager
-    def hold(self, bindings, cancel=None):
-        self.held.append(bindings)
-        def validate():
-            for b in bindings:
-                if b != self.resolved:
-                    raise ProfileError('unresolved_glossary', 'stale')
-        validate()
-        yield validate
-
-
-class Preferences:
-    def __init__(self, profile=NamedPreferenceProfile('fr', 'legacy-private/path.json', 'literary')):
-        self.profile = profile
-        self.saved = 0
-
-    def load(self):
-        return PreferencesSnapshot(GlobalPreferences(profiles=(('private-name-canary', self.profile),)), 'a' * 64, True)
-
-    def save(self, *args):
-        self.saved += 1
-        raise AssertionError('Migration must never write preferences')
-
-
-@pytest.fixture
-def service():
-    return ProjectProfileService(Projects(), Glossaries())
-
-
-def migrate(service, prefs=None, expected=1):
-    return service.migrate(prefs or Preferences(), 'private-name-canary', PROJECT, expected, PROFILE)
 
 
 def test_migration_exact_owner_handoff_idempotence_and_divergent_name_conflict(service):

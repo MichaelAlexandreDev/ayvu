@@ -22,27 +22,10 @@ from ayvu.content.model import (
     encode_document, source_digest,
 )
 from ayvu.provenance.model import SubjectRef
-from content_fixtures import (
-    ENGLISH, EPUB, FINGERPRINT, PROJECT, epub_document, epub_locator, epub_units, layout_document, subtitle_document, unit,
-)
+from tests.support.content_fixtures import ENGLISH, EPUB, FINGERPRINT, PROJECT, epub_document, epub_locator, epub_units, layout_document, subtitle_document, unit
 
-FIXTURES = Path(__file__).parent / 'fixtures' / 'content'
-OTHER_PROJECT = str(UUID(int=0x9999))
-DOCUMENTS = {'epub': epub_document, 'subtitle': subtitle_document, 'layout': layout_document}
-ID_FORMAT = re.compile(r'unit:v1:[0-9a-f]{64}')
-
-
-def ids(document):
-    return [item.unit_id for item in document.units]
-
-
-def single(text='Hello', **changes):
-    return unit('body/p[1]', text, **changes)
-
-
-def build(*units, **changes):
-    return build_document(changes.pop('project_id', PROJECT), changes.pop('logical_key', 'chapter-1'),
-                          changes.pop('adapter', EPUB), changes.pop('source_locale', ENGLISH), units, **changes)
+from tests.content.content_support import CANARIES, DOCUMENTS, FIXTURES, ID_FORMAT, OTHER_PROJECT
+from tests.content.content_support import _tampered, base_units, build, ids, single
 
 
 # --- Determinism -----------------------------------------------------------------------------------------------------
@@ -61,7 +44,7 @@ def test_pinned_bytes_decode_and_encode_back_exactly(name):
 
 def test_separate_processes_produce_identical_bytes_digests_and_ids():
     script = (
-        'import hashlib; from content_fixtures import *; from ayvu.content.model import encode_document\n'
+        'import hashlib; from tests.support.content_fixtures import *; from ayvu.content.model import encode_document\n'
         'for d in (epub_document(), subtitle_document(), layout_document()):\n'
         '    print(hashlib.sha256(encode_document(d)).hexdigest(), d.revision_id, [u.unit_id for u in d.units],'
         ' [u.source_digest for u in d.units])\n')
@@ -69,7 +52,7 @@ def test_separate_processes_produce_identical_bytes_digests_and_ids():
     outputs = set()
     for seed in ('0', '1', '4242'):
         environment = {**os.environ, 'PYTHONHASHSEED': seed,
-                       'PYTHONPATH': os.pathsep.join((str(root / 'src'), str(root / 'tests')))}
+                       'PYTHONPATH': os.pathsep.join((str(root), str(root / 'src')))}
         result = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True, timeout=30, env=environment)
         assert result.returncode == 0, result.stderr
         outputs.add(result.stdout)
@@ -114,10 +97,6 @@ def test_text_alone_is_not_identity():
     left = build(unit('a', 'same')).units[0].unit_id
     assert left != build(unit('b', 'same')).units[0].unit_id
     assert left != build(unit('a', 'same'), logical_key='chapter-2').units[0].unit_id
-
-
-def base_units(**changes):
-    return [unit('title', 'Title', 'title', (1,)), unit('body', 'Text body', 'paragraph', (2,), **changes)]
 
 
 @pytest.mark.parametrize('name,change', [
@@ -491,12 +470,6 @@ def test_invalid_extension_headers_are_refused(namespace, version, required):
         Extension(namespace, version, '{}', required)
 
 
-def _tampered(mutate):
-    data = json.loads(encode_document(epub_document()))
-    mutate(data)
-    return json.dumps(data, sort_keys=True, separators=(',', ':')).encode()
-
-
 @pytest.mark.parametrize('mutate', [
     lambda data: data.update(extra=1),
     lambda data: data.pop('units'),
@@ -531,12 +504,6 @@ def test_decode_rejects_valid_json_in_a_non_canonical_form():
                     json.dumps(json.loads(payload), sort_keys=True, ensure_ascii=False).encode()):
         with pytest.raises(ContentSerializationError, match='^invalid_document$'):
             decode_document(variant)
-
-
-# --- Privacy and boundaries ------------------------------------------------------------------------------------------
-
-CANARIES = ('Call me Ishmael.', 'Me chame de Ishmael.', '/home/reader/private/book.epub',
-            'https://user:hunter2@example.test/x', 'sk-secret-token', 'C:\\Users\\reader\\book.epub')
 
 
 @pytest.mark.parametrize('canary', CANARIES)

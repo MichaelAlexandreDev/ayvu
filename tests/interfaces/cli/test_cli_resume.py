@@ -6,8 +6,8 @@ from ayvu.v1.epub import TranslationReport
 from ayvu.v1.resume import ResumeStateStore, TranslationResumeState
 from ayvu.formats.epub.validation import ValidationResult
 from ayvu.kernel import LanguagePair, TranslationOptions
-from test_cli import FakeCache, _fake_translation, runner
-from test_cli import isolated_config
+from tests.support.cli_support import FakeCache, _fake_translation, runner
+from tests.support.cli_support import isolated_config
 
 
 def _running_resume_state(

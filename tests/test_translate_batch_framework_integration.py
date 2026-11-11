@@ -13,7 +13,7 @@ from ayvu.translation.batch import BatchValidationError, ItemStatus
 from ayvu.composition.builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from ayvu.translation.project_contracts import TranslateObserver
 from ayvu.composition.builders.translate_project import LegacyResources, ProjectTranslation, translate_in_project
-from test_workflow_characterization import _write_epub
+from tests.support.workflow_characterization_support import _write_epub
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions
 
 

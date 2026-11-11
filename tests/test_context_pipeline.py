@@ -20,72 +20,12 @@ from ayvu.translation.document import DocumentTranslator
 from ayvu.translation.document_contracts import ExecutionContext, TranslationExecutionError, UnitSource
 from ayvu.translation.plan import resolve_plan
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator
-from provider_fakes import FakeSession, http_response
-from test_translation_document import document, cue, Provider, PlanCache, Glossed, NOW, PROJECT, PRODUCER, ROUTE
-from test_translation_context import request, entry, Source, egress_decision
+from tests.support.provider_fakes import FakeSession, http_response
+from tests.support.translation_document_support import document, cue, Provider, PlanCache, Glossed, NOW, PROJECT, PRODUCER, ROUTE
+from tests.support.translation_context_support import request, entry, Source, egress_decision
 from ayvu.kernel import normalize_failure, JobWarning, TranslationOptions, LanguagePair, OutputPlan, JobFailure, JobFailureFamily
 
-
-class Gate:
-    def __init__(self, change=lambda x: x):
-        self.change, self.calls = change, []
-
-    def decision(self, disclosure):
-        self.calls.append(disclosure)
-        return self.change(egress_decision(disclosure))
-
-
-class Artifacts:
-    def __init__(self):
-        self.published = []
-
-    def publish(self, request, chunks, *, owner_token, cancellation):
-        payload = b''.join(chunks)
-        artifact = Artifact(str(UUID(int=100 + len(self.published))), request, ArtifactState.READY, 1, NOW, NOW,
-            len(payload), 'sha256:' + hashlib.sha256(payload).hexdigest())
-        self.published.append((artifact, payload))
-        return artifact
-
-
-class Provenance:
-    def __init__(self):
-        self.records = []
-
-    def append(self, request):
-        record = ProvenanceRecord(str(UUID(int=500 + len(self.records))), NOW, request)
-        # Serialização real #138, inclusive o round trip que o SQLite usa.
-        assert decode_record(encode_record(record)) == record
-        self.records.append(record)
-        return record
-
-
-def running():
-    job = new_job(JobRequest(PROJECT, 'translate_project', 1, 'sha256:' + 'a' * 64), str(UUID(int=71)), NOW)
-    for state in (JobState.PREFLIGHT, JobState.RUNNING):
-        job = transition_job(job, state, expected_revision=job.revision, now=NOW)
-    return acquire_lease(job, 'a' * 64, NOW, timedelta(minutes=30))
-
-
-def scene(text='contexto', *, state=SupportState.SUPPORTED, gate=None, cache=None, provider=None, required=False):
-    d = document(cue('a', 'Hello world', 1))
-    e = entry(text, required=required)
-    r = request((e,), state=state)
-    r = replace(r, snapshot=replace(r.snapshot, unit=replace(r.snapshot.unit, document_id=d.document_id,
-        revision_id=d.revision_id, unit_id=d.units[0].unit_id), current=d.units[0]))
-    r = replace(r, authorization=replace(r.authorization, unit=r.snapshot.unit))
-    source = Source((ContextCandidate(e, text),))
-    gate = gate or Gate()
-    execution = ContextExecution(TranslationContextBuilder(source), (r,), gate)
-    execution.prepare(NOW)
-    p = resolve_plan(r.capabilities.snapshot, ProviderRequirements((Capability.PLAIN_TEXT_INPUT,)), PRODUCER, ROUTE,
-                     chunk_limit=3000)
-    job = running()
-    artifacts, provenance, events = Artifacts(), Provenance(), InMemoryJobEventLog(job.job_id)
-    provider, cache = provider or Provider(), cache or PlanCache()
-    translator = DocumentTranslator(p, provider, lambda t: Glossed(t + '!'), artifacts, provenance, events,
-        exact_cache=cache, translation_context=execution, clock=lambda: NOW)
-    context = ExecutionContext(job, job.lease.owner_token)
-    return SimpleNamespace(**locals())
+from tests.support.context_pipeline_support import Gate, scene
 
 
 def test_production_pipeline_binds_per_unit_cache_to_actual_context_and_keeps_glossary_after_raw():
@@ -242,7 +182,7 @@ def test_legacy_no_context_provenance_encoding_does_not_add_default_fields():
 
 def test_real_project_sqlite_context_pipeline_when_project_path_is_safe(tmp_path):
     # Sem skip: no sandbox conhecido, falha em unsafe_path antes da migração.
-    from test_translation_document import Env
+    from tests.support.translation_document_support import Env
     env = Env(tmp_path)
     s = scene()
     result = env.translate(s.d, s.provider, s.p, glossary=lambda t: Glossed(t),
@@ -255,7 +195,7 @@ def test_real_project_sqlite_context_pipeline_when_project_path_is_safe(tmp_path
 def test_context_warning_reaches_cli_presentation_with_isolated_user_paths(tmp_path, monkeypatch):
     from datetime import datetime, UTC
     from ayvu.jobs.events import JobCorrelation, JobEvent
-    from test_cli_translate_project import _canned, _report, _result
+    from tests.support.cli_translate_project_support import _canned, _report, _result
     monkeypatch.setenv('HOME', str(tmp_path / 'home'))
     monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path / 'config'))
     monkeypatch.chdir(tmp_path)
@@ -384,7 +324,7 @@ def test_pipeline_cache_ignores_unused_context_and_inert_profile_changes():
 def test_composition_binds_context_before_repositories_and_puts_effect_in_job_plan(tmp_path, monkeypatch):
     import ayvu.composition.builders.translate_project as composition
     from ayvu.translation.project_contracts import TranslateObserver, TranslateProjectResult
-    from test_translation_context import OPERATION
+    from tests.support.translation_context_support import OPERATION
     s = scene()
     # Relógio da fronteira real, sem rede nem projeto SQLite.
     monkeypatch.setattr(composition, 'datetime', SimpleNamespace(now=lambda _: NOW))
@@ -420,7 +360,7 @@ def test_composition_binds_context_before_repositories_and_puts_effect_in_job_pl
 def test_context_job_plan_changes_only_when_declared(tmp_path):
     from ayvu.translation.project_contracts import TranslateProjectCommand, resolve_execution_plan as resolve_plan
     # Reutiliza o manifesto mínimo já validado pelo contrato de projeto.
-    from test_project import manifest
+    from tests.support.project_support import manifest
     project = manifest()
     command = TranslateProjectCommand(project.project_id, 'a' * 64, TranslationOptions(language_pair=LanguagePair('en', 'pt')),
         OutputPlan(tmp_path / 'out.epub'))
@@ -437,8 +377,8 @@ def test_document_pipeline_uses_owned_profile_neighbors_and_managed_terminology(
     from ayvu.knowledge.glossary.catalog import Snapshot, Entry
     from ayvu.projects.profiles.model import ProjectReference, ProjectTranslationProfile
     from ayvu.translation.context.model import ContextCategory, ContextKind
-    from test_translation_context import binding, facts, profile_snapshot
-    from test_translation_document import locator
+    from tests.support.project_profiles_support import binding, facts, snapshot as profile_snapshot
+    from tests.support.translation_document_support import locator
     d = document(cue('a', 'Alice and Bob', 1, context=(ContextReference('next', locator('b')),)),
                  cue('b', 'Bob answers', 2, context=(ContextReference('previous', locator('a')),)))
     gloss = binding(name='managed.json')
@@ -535,7 +475,7 @@ def test_composition_cancellation_stops_before_candidate_loading_and_project_por
     import ayvu.composition.builders.translate_project as composition
     from ayvu.jobs.execution import CancellationSource
     from ayvu.translation.project_contracts import TranslateObserver
-    from test_translation_context import OPERATION
+    from tests.support.translation_context_support import OPERATION
     s = scene()
     s.source.calls.clear()
     monkeypatch.setattr(composition, 'datetime', SimpleNamespace(now=lambda _: NOW))

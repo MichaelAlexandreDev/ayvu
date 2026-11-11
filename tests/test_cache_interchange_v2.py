@@ -9,15 +9,9 @@ from ayvu.knowledge.cache.admin import CacheAdminError
 from ayvu.knowledge.cache.interchange import iter_records, validate_v2_entry, write_envelope
 from ayvu.knowledge.cache.repository import SQLiteExactCache
 from ayvu.knowledge.cache.schema import V2_COLUMNS, participating_connection
-from test_cache_repository_v2 import entry
+from tests.support.cache_repository_v2_support import entry
 
-
-def limits(**values):
-    return SimpleNamespace(**values)
-
-
-def legacy(text="abc"):
-    return dict(source_lang="en", target_lang="pt", original_text_hash=hashlib.sha256(text.encode()).hexdigest(), original_text=text, translated_text="olá", created_at="2020")
+from tests.knowledge.cache.cache_interchange_v2_support import InstrumentedInput, InstrumentedOutput, legacy, limits, v2row
 
 
 def test_streaming_legacy_and_empty_section():
@@ -63,17 +57,6 @@ def test_limits_boundary(name):
 @pytest.mark.parametrize("raw", [b'{"version":2,"namespaces":[],"extra":1}', b'{"version":2,"namespaces":[{"kind":"legacy-v1","entries":[{"a":1,"a":2}]}]}', b'{"version":2,"namespaces":[]}junk'])
 def test_closed_and_malformed_input(raw):
     with pytest.raises(CacheAdminError): list(iter_records(io.BytesIO(raw), limits()))
-
-
-@pytest.fixture
-def v2row(tmp_path):
-    path = tmp_path / "row.sqlite"
-    SQLiteExactCache(path).put_if_absent(entry())
-    with participating_connection(path) as conn:
-        row = conn.execute('SELECT ' + ','.join(V2_COLUMNS) + ' FROM cache_entries_v2').fetchone()
-    desc = dict(kind="v2", scope_kind=row[0], scope_id=row[1])
-    item = {name: value.decode() if isinstance(value, bytes) else value for name, value in zip(V2_COLUMNS[2:], row[2:])}
-    return desc, item
 
 
 @pytest.mark.parametrize("field", ["source_text", "value", "canonical_identity", "metadata", "provenance", "created_at"])
@@ -135,25 +118,6 @@ def test_invalid_wire_contract(raw):
     with pytest.raises(CacheAdminError): list(iter_records(io.BytesIO(raw), limits()))
 
 
-class InstrumentedInput(io.BytesIO):
-    def __init__(self, data):
-        super().__init__(data)
-        self.requests = []
-    def read(self, size=-1):
-        self.requests.append(size)
-        assert 0 < size <= 65536
-        return super().read(min(size, 13))
-
-
-class InstrumentedOutput(io.BytesIO):
-    def __init__(self):
-        super().__init__()
-        self.writes = []
-    def write(self, data):
-        self.writes.append(len(data))
-        return super().write(data)
-
-
 def test_streams_process_rows_incrementally_and_unicode():
     desc = {"kind": "legacy-v1"}
     produced = []
@@ -196,7 +160,7 @@ def test_large_canonical_identity_and_maximum_provenance_together(tmp_path):
     from dataclasses import replace
     from ayvu.knowledge.cache import CanonicalValue, CACHE_ENTRY_V2_LIMITS, exact_entry_key
     from ayvu.knowledge.cache.repository import _digest, _entry_digest
-    from test_translation_cache_v2 import make_plan
+    from tests.support.translation_cache_v2_support import make_plan
     operation = make_plan().semantic_operation
     parameters = tuple((f"k{i:02d}" + "k" * 990, CanonicalValue("string", "v" * 1000)) for i in range(29))
     extra_key = "z" * 900

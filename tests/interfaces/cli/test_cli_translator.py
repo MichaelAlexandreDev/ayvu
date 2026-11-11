@@ -1,7 +1,7 @@
 import pytest
 from ayvu.interfaces.cli.app import app
 from ayvu.providers.libretranslate.client import TranslatorError, TranslatorLanguage
-from test_cli import _fake_http, _http, runner
+from tests.support.cli_support import _fake_http, _http, runner
 
 
 def test_languages_command_lists_translator_languages(monkeypatch):

@@ -7,7 +7,7 @@ from ayvu.interfaces.cli.translate_options import _build_translation_memory_opti
 from ayvu.formats.epub.validation import ValidationResult
 from ayvu.kernel import TranslationMemoryOptions, UserMode
 from ayvu.interfaces.cli import translate_options as cli_translate_options
-from test_cli import isolated_config, FakeCache, _fake_translation, runner
+from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 
 
 def test_review_output_conflicts_redact_destination_path(tmp_path, capsys):

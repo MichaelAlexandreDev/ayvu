@@ -13,7 +13,7 @@ from ayvu.knowledge.cache.admin_store import CacheStorageError
 from ayvu.knowledge.cache.admin_v2_store import SQLiteCacheV2Store
 from ayvu.knowledge.cache.repository import SQLiteExactCache
 from ayvu.knowledge.cache.schema import prepare_cache, participating_connection
-from test_cache_repository_v2 import entry
+from tests.support.cache_repository_v2_support import entry
 
 
 def _capture(call):

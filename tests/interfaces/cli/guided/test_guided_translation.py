@@ -6,7 +6,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
 from ayvu.providers.libretranslate.client import TranslatorLanguage
 from ayvu.formats.epub.validation import ValidationResult
-from test_cli import FakeCache, _fake_translation, isolated_config, runner
+from tests.support.cli_support import FakeCache, _fake_translation, isolated_config, runner
 
 
 def test_root_command_generates_guided_preview_when_confirmed(tmp_path, monkeypatch):

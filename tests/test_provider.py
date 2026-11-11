@@ -11,7 +11,7 @@ from ayvu.providers.ports import (
     DeadlineFeature, DeliveryState, ProtectedPartsFeature, ProviderRoute, ProviderStatus, ProviderUsage,
     ProviderValidationError, Requirement, TranslationProviderResult, UnitReference, request_diagnostics, result_diagnostics,
 )
-from provider_fakes import FAKE_PRODUCER, REQUEST_ID, failure, request, success
+from tests.support.provider_fakes import FAKE_PRODUCER, REQUEST_ID, failure, request, success
 from ayvu.kernel import JobFailure, JobFailureFamily, JobWarning
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)

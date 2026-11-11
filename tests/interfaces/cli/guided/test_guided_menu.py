@@ -1,6 +1,6 @@
 import json
 from ayvu.interfaces.cli.app import app
-from test_cli import FakeNoLanguagesTranslator, isolated_config, runner
+from tests.support.cli_support import FakeNoLanguagesTranslator, isolated_config, runner
 
 
 def test_first_use_failed_save_retains_session_without_claiming_success(isolated_config, tmp_path, monkeypatch, minimal_epub_path):

@@ -16,7 +16,7 @@ from ayvu.composition.builders.cache_admin import cache_admin_services
 from ayvu.knowledge.cache.admin_store import CacheStorageError, LocalCacheFiles, SQLiteCacheStore
 from ayvu.knowledge.cache.admin_v2_store import SQLiteCacheV2Store
 from ayvu.knowledge.cache.repository import SQLiteExactCache
-from test_cache_repository_v2 import entry
+from tests.support.cache_repository_v2_support import entry
 
 
 def test_explicit_legacy_export_never_uses_whole_payload_ports(tmp_path, monkeypatch):
