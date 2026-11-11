@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.interfaces.cli.app as cli
+from ayvu.interfaces.cli import app as cli, report as cli_report
 import ayvu.composition.cli as composition
 
 
@@ -25,7 +25,7 @@ def isolated_cli(tmp_path, monkeypatch):
     for name in ("_load_existing_config_or_default", "_run_translation", "_translate_in_project", "translate_without_project",
                  "run_translation_preflight", "TranslationCache", "_save_markdown_report",
                  "_save_missing_texts"):
-        owner = composition if name in {"translate_without_project", "TranslationCache"} else cli
+        owner = composition if name in {"translate_without_project", "TranslationCache"} else (cli_report if name in {"_save_markdown_report", "_save_missing_texts"} else cli)
         monkeypatch.setattr(owner, name, forbidden(name))
     return tmp_path, calls
 
