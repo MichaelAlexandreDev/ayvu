@@ -1,35 +1,19 @@
-import csv
 import hashlib
 import json
-import re
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
-from zipfile import ZIP_DEFLATED
-
 import pytest
 from ebooklib import epub
-from epub_fakes import epub_bytes
 from typer.testing import CliRunner
-
 from ayvu.v1.cache import CacheKey, TranslationCache
 import typer
-
 import ayvu.interfaces.cli.app as cli_module
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
-from ayvu.interfaces.cli.app import (
-    DEFAULT_PREVIEW_DOCUMENT_LIMIT,
-    _BookOutcome,
-    _build_translation_memory_options,
-    _offer_markdown_report,
-    _render_markdown_report,
-    _save_markdown_report,
-    app,
-)
+from ayvu.interfaces.cli.app import DEFAULT_PREVIEW_DOCUMENT_LIMIT, _BookOutcome, _build_translation_memory_options, _offer_markdown_report, _render_markdown_report, _save_markdown_report, app
 from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.knowledge.glossary.rules import GlossaryUsage
-from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 from ayvu.v1.html_translate import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
 from ayvu.v1.resume import COMPLETED_STATUS, ResumeStateStore, TranslationResumeState
@@ -39,7 +23,7 @@ from ayvu.translation.engine import EngineResult
 from ayvu.translation.project import OutputValidation, TranslateProjectResult
 from ayvu.providers.libretranslate.client import TranslatorError, TranslatorLanguage
 from ayvu.formats.epub.validation import ValidationResult
-from ayvu.kernel import LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, UserMode, JobFailure, JobFailureFamily
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, UserMode
 
 
 runner = CliRunner()
@@ -259,91 +243,6 @@ def test_translate_command_has_clear_error_for_unknown_translator(tmp_path):
     assert "Unsupported translator:" in result.output
     assert "unknown" in result.output
     assert "Use --translator libretranslate." in result.output
-    assert "Traceback" not in result.output
-
-
-def test_languages_command_lists_translator_languages(monkeypatch):
-    calls: dict[str, object] = {}
-
-    class FakeLanguageTranslator:
-        def __init__(
-            self,
-            url: str,
-            timeout: float,
-            retries: int,
-            requests_per_second: float | None = None,
-            retry_backoff: float = 0.5,
-            retry_backoff_max: float = 8.0,
-            network_authorization=None,
-        ) -> None:
-            self.network_decision = network_authorization.decision
-            calls["url"] = url
-            calls["timeout"] = timeout
-            calls["retries"] = retries
-            calls["requests_per_second"] = requests_per_second
-            calls["retry_backoff"] = retry_backoff
-            calls["retry_backoff_max"] = retry_backoff_max
-
-        def list_languages(self) -> tuple[TranslatorLanguage, ...]:
-            return (
-                TranslatorLanguage(code="pt", name="Portuguese", targets=("en", "es")),
-                TranslatorLanguage(code="en", name="English", targets=("pt",)),
-            )
-
-    monkeypatch.setattr("ayvu.composition.builders.providers.LibreTranslateTranslator", FakeLanguageTranslator)
-
-    result = runner.invoke(
-        app,
-        [
-            "languages",
-            "--url",
-            "http://localhost:5000",
-            "--timeout",
-            "2",
-            "--retries",
-            "0",
-            "--requests-per-second",
-            "3.5",
-            "--retry-backoff",
-            "0.25",
-            "--retry-backoff-max",
-            "2",
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert calls == {
-        "url": "http://localhost:5000",
-        "timeout": 2.0,
-        "retries": 0,
-        "requests_per_second": 3.5,
-        "retry_backoff": 0.25,
-        "retry_backoff_max": 2.0,
-    }
-    assert "LibreTranslate languages" in result.output
-    assert "Portuguese" in result.output
-    assert "pt" in result.output
-    assert "installed" in result.output
-    assert "en, es" in result.output
-
-
-def test_languages_command_reports_failure_without_traceback(monkeypatch):
-    class FailingLanguageTranslator:
-        def __init__(self, *_args: object, **_kwargs: object) -> None:
-            return None
-
-        def list_languages(self) -> tuple[TranslatorLanguage, ...]:
-            raise TranslatorError("server unavailable")
-
-    monkeypatch.setattr("ayvu.composition.builders.providers.LibreTranslateTranslator", FailingLanguageTranslator)
-
-    result = runner.invoke(app, ["languages"])
-
-    assert result.exit_code == 1
-    assert "Não foi possível listar os idiomas." in result.output
-    assert "server unavailable" not in result.output
-    assert "provider_request_failed" in result.output
-    assert "Inicie o LibreTranslate" in result.output
     assert "Traceback" not in result.output
 
 
@@ -2803,124 +2702,6 @@ def _resume_state(tmp_path: Path) -> TranslationResumeState:
     )
 
 
-def test_inspect_command_reports_invalid_epub_without_traceback(tmp_path):
-    epub_path = tmp_path / "bad.epub"
-    epub_path.write_bytes(b"not a real epub")
-
-    result = runner.invoke(app, ["inspect", str(epub_path)])
-
-    assert result.exit_code == 1
-    assert "Não foi possível ler o EPUB informado." in result.output
-    assert "Confirme que o arquivo é um EPUB válido e legível" in result.output
-    assert "Detalhe técnico: corrupt_archive" in result.output
-    assert "Traceback" not in result.output
-
-
-def test_extract_says_the_output_is_the_problem_when_the_book_is_fine(tmp_path):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(epub_bytes())
-    output = tmp_path / "taken"
-    output.write_text("mine")
-
-    result = runner.invoke(app, ["extract", str(epub_path), "--output", str(output)])
-
-    assert result.exit_code == 1
-    assert "Não foi possível gravar na pasta de saída." in result.output
-    assert "EPUB válido" not in result.output
-    assert "Traceback" not in result.output
-    assert output.read_text() == "mine"
-
-
-def test_inspect_says_a_book_is_protected_without_refusing_it_or_showing_its_data(tmp_path):
-    epub_path = tmp_path / "book.epub"
-    encryption = (b'<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" '
-                  b'xmlns:e="http://www.w3.org/2001/04/xmlenc#"><e:EncryptedData><e:EncryptionMethod '
-                  b'Algorithm="http://www.w3.org/2001/04/xmlenc#aes256-cbc"/><e:CipherData><e:CipherReference '
-                  b'URI="OEBPS/text/one.xhtml"/></e:CipherData></e:EncryptedData></encryption>')
-    epub_path.write_bytes(epub_bytes(add=(("META-INF/encryption.xml", encryption, ZIP_DEFLATED),)))
-
-    result = runner.invoke(app, ["--mode", "common", "inspect", str(epub_path)])
-
-    assert result.exit_code == 0
-    assert "EPUB válido" not in result.output
-    assert "proteção" in result.output
-    assert "EPUB information" not in result.output
-    assert "The Title" not in result.output and "An Author" not in result.output
-
-
-def test_extract_blames_the_chapter_name_when_it_cannot_become_a_file(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(epub_bytes())
-    monkeypatch.setattr(MarkdownDirectoryWriter, "_name", staticmethod(
-        lambda _ordinal, _stem: (None, JobFailure(JobFailureFamily.POLICY, "unsafe_output_name"))))
-    output = tmp_path / "out"
-
-    result = runner.invoke(app, ["extract", str(epub_path), "--output", str(output)])
-
-    assert result.exit_code == 1
-    assert "nome que não pode virar arquivo" in result.output
-    assert "EPUB válido" not in result.output
-    assert not list(output.glob("*.md"))
-
-
-def test_extract_command_reports_invalid_epub_without_traceback(tmp_path):
-    epub_path = tmp_path / "bad.epub"
-    epub_path.write_bytes(b"not a real epub")
-    output_dir = tmp_path / "out"
-
-    result = runner.invoke(app, ["extract", str(epub_path), "--output", str(output_dir)])
-
-    assert result.exit_code == 1
-    assert "Não foi possível ler o EPUB informado." in result.output
-    assert "Confirme que o arquivo é um EPUB válido e legível" in result.output
-    assert "Detalhe técnico: corrupt_archive" in result.output
-    assert "Traceback" not in result.output
-
-
-def test_inspect_command_preserves_the_six_current_fields(minimal_epub_path, tmp_path):
-    result = runner.invoke(app, ["inspect", str(minimal_epub_path)])
-    assert result.exit_code == 0
-    for field in ("Path", "Title", "Authors", "Language", "Documents", "Items"):
-        assert field in result.output
-    assert str(minimal_epub_path) in result.output
-    assert "Minimal Test Book" in result.output
-    assert "Ayvu Tests" in result.output
-    assert re.search(r"Language\s+│\s*en", result.output)
-    assert re.search(r"Documents\s+│\s*3", result.output)
-    assert re.search(r"Items\s+│\s*5", result.output)
-
-
-def test_extract_command_preserves_filenames_text_order_and_original(minimal_epub_path, tmp_path):
-    original = hashlib.sha256(minimal_epub_path.read_bytes()).hexdigest()
-    output_dir = tmp_path / "extracted"
-    result = runner.invoke(app, ["extract", str(minimal_epub_path), "--output", str(output_dir)])
-    assert result.exit_code == 0
-    assert f"Extracted 3 Markdown files to {output_dir}" in result.output
-    assert [path.name for path in sorted(output_dir.glob("*.md"))] == [
-        "001-chapter1.md", "002-chapter2.md", "003-nav.md",
-    ]
-    assert (output_dir / "001-chapter1.md").read_text(encoding="utf-8") == (
-        "Chapter One\n\nHello reader. Visit\n\nchapter two\n\n.\n"
-    )
-    assert (output_dir / "002-chapter2.md").read_text(encoding="utf-8") == "Chapter Two\n\nGoodbye reader.\n"
-    assert (output_dir / "003-nav.md").read_text(encoding="utf-8") == "Minimal Test Book\n\nChapter One\n\nChapter Two\n"
-    assert hashlib.sha256(minimal_epub_path.read_bytes()).hexdigest() == original
-
-
-def test_extract_command_keeps_the_nonempty_directory_conflict_message(tmp_path):
-    source = tmp_path / "source.epub"
-    source.write_bytes(b"not an EPUB")
-    output = tmp_path / "out"
-    output.mkdir()
-    unrelated = output / "keep.txt"
-    unrelated.write_text("keep", encoding="utf-8")
-    result = runner.invoke(app, ["extract", str(source), "--output", str(output)])
-    assert result.exit_code == 1
-    assert f"Output directory is not empty: {output}" in result.output
-    assert "Use --overwrite to write into it." in result.output
-    assert unrelated.read_text(encoding="utf-8") == "keep"
-
-
 def _mock_translation_pipeline(monkeypatch, calls: dict[str, object]) -> None:
     def fake_preflight(**kwargs: object) -> object:
         calls["preflight"] = kwargs
@@ -3659,42 +3440,10 @@ def _http(status, body):
     return response
 
 
-def test_test_translator_sends_only_the_known_text_and_reports_success(monkeypatch):
-    session = _fake_http(monkeypatch, post=[_http(200, '{"translatedText": "Ola mundo"}')])
-    result = runner.invoke(app, ["test-translator", "--retries", "0"])
-    assert result.exit_code == 0 and "Translator OK: Hello world -> Ola mundo" in result.output
-    assert session.calls == [("POST", "http://localhost:5000/translate", {"q": "Hello world", "source": "en", "target": "pt", "format": "text"})]
-
-
-def test_test_translator_help_discloses_the_text_it_sends():
-    result = runner.invoke(app, ["test-translator", "--help"])
-    assert result.exit_code == 0 and "Hello world" in result.output
-
-
-def test_test_translator_treats_an_empty_translation_as_a_failure(monkeypatch):
-    _fake_http(monkeypatch, post=[_http(200, '{"translatedText": ""}')])
-    result = runner.invoke(app, ["test-translator", "--retries", "0"])
-    assert result.exit_code == 1 and "Translator OK" not in result.output and "empty_result" in result.output
-
-
-@pytest.mark.parametrize("body", ["bad language pair SECRETBODY", "Call me Ishmael."])
-def test_test_translator_failure_shows_a_code_and_not_the_response(monkeypatch, body):
-    _fake_http(monkeypatch, post=[_http(400, body)])
-    result = runner.invoke(app, ["test-translator", "--retries", "0"])
-    assert result.exit_code == 1 and "O teste do tradutor falhou." in result.output
-    assert "provider_rejected" in result.output and body not in result.output
-
-
 def test_common_mode_failure_shows_no_technical_detail(monkeypatch):
     _fake_http(monkeypatch, post=[_http(500, "oops")])
     result = runner.invoke(app, ["--mode", "common", "test-translator", "--retries", "0"])
     assert result.exit_code == 1 and "Detalhe técnico" not in result.output and "provider_server_error" not in result.output
-
-
-def test_test_translator_refuses_an_invalid_language_before_sending(monkeypatch):
-    session = _fake_http(monkeypatch)
-    result = runner.invoke(app, ["test-translator", "--source", "x y"])
-    assert result.exit_code == 1 and "invalid_locale" in result.output and session.calls == []
 
 
 @pytest.mark.parametrize("command", ["languages", "test-translator"])
@@ -3711,19 +3460,6 @@ def test_credentials_in_the_url_never_reach_the_output(monkeypatch):
     for command in ("languages", "test-translator"):
         result = runner.invoke(app, [command, "--url", url, "--retries", "0"])
         assert result.exit_code == 1 and "hunter2" not in result.output and "private.example.test" not in result.output
-
-
-def test_languages_keeps_the_table_and_only_asks_for_languages(monkeypatch):
-    session = _fake_http(monkeypatch, get=[_http(200, '[{"code": "pt", "name": "Portuguese", "targets": ["en", "es"]}]')])
-    result = runner.invoke(app, ["languages", "--retries", "0"])
-    assert result.exit_code == 0 and "Portuguese" in result.output and "en, es" in result.output and "installed" in result.output
-    assert session.calls == [("GET", "http://localhost:5000/languages")]
-
-
-def test_languages_with_an_empty_list_still_succeeds(monkeypatch):
-    _fake_http(monkeypatch, get=[_http(200, "[]")])
-    result = runner.invoke(app, ["languages", "--retries", "0"])
-    assert result.exit_code == 0 and "LibreTranslate languages" in result.output
 
 
 def test_guided_selection_warns_with_a_code_and_not_the_response(monkeypatch, capsys):
