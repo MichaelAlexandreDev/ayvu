@@ -6,9 +6,9 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Callable, Protocol
 
-from .preferences import GlobalPreferences, PreferencesError
-from .preferences import PreferencesRepository, get_preferences
-from .project_profiles import (
+from ...preferences import GlobalPreferences, PreferencesError
+from ...preferences import PreferencesRepository, get_preferences
+from .model import (
     MAX_HISTORY, MAX_PROFILES, GlossaryBinding, PlanFacts, ProfileError, ProfileOverrides,
     ProfileReference, ProfileRevision, ProjectReference, ProjectTranslationProfile,
     ResolvedProfileSnapshot, SnapshotReference, closed, version,

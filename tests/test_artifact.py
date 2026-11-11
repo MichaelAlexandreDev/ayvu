@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.artifact import (
+from ayvu.artifacts.model import (
     ARTIFACT_SCHEMA_VERSION, MAX_ARTIFACT_BYTES, Artifact, ArtifactConflictError, ArtifactRequest, ArtifactState,
     ArtifactValidationError, abandon, mark_ready, new_artifact, ready_location, record_payload, retire,
     reuse_mismatch, staging_location,

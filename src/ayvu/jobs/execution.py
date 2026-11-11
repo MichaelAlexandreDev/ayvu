@@ -7,10 +7,10 @@ from enum import StrEnum
 from threading import Lock
 from typing import Protocol
 
-from .job import JobState
-from .job_events import (
+from .model import JobState
+from .events import (
     CancellationAcknowledgement, CancellationRequest, JobEvent, JobEventAcceptance, JobEventOrderError, JobEventSequence, JobOutcome)
-from .kernel import CancellationToken, JobCancellationError, JobEventError, is_slug
+from ..kernel import CancellationToken, JobCancellationError, JobEventError, is_slug
 
 DEFAULT_EVENT_LOG_CAPACITY = 16384
 

@@ -19,8 +19,8 @@ filesystem paths are deliberately a privileged composition concern, not an
 application DTO. The manifest JSON v1 remains byte-for-byte unchanged by resolution.
 
 ```python
-from ayvu.project_schema import project_migration_runner
-from ayvu.project_store import ProjectJsonRepository
+from ayvu.projects.schema import project_migration_runner
+from ayvu.projects.store import ProjectJsonRepository
 
 repository = ProjectJsonRepository(configured_processing_root)
 paths = repository.resolve_database_paths(project_id)
@@ -32,7 +32,7 @@ still creates/reuses its existing JSON project; it does not automatically create
 the SQLite database. Future job services can explicitly request bootstrap through
 their own reviewed composition. The runner never chooses layout or reads an EPUB.
 
-The production history is `PROJECT_MIGRATIONS` in `ayvu.project_schema`, whose
+The production history is `PROJECT_MIGRATIONS` in `ayvu.projects.schema`, whose
 current schema is version 4. A bare `SqliteMigrationRunner()` only knows version 1
 and refuses a newer database with `newer_schema`, so production code must use
 `project_migration_runner()`. Application ID is `0x41595655`, and
@@ -150,7 +150,7 @@ from pathlib import Path
 import sqlite3
 import sys
 
-from ayvu.project_schema import PROJECT_MIGRATIONS
+from ayvu.projects.schema import PROJECT_MIGRATIONS
 from ayvu.kernel.sqlite import APPLICATION_ID
 
 try:

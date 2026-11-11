@@ -7,8 +7,8 @@ import pytest
 from ayvu.batch_output_policy import OutputIntent
 from ayvu.v1.cache import TranslationCache
 from ayvu.epub_io import detect_epub_language
-from ayvu.project_service import resolve_project
-from ayvu.project_store import ProjectJsonRepository, build_project_request
+from ayvu.projects.service import resolve_project
+from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.translate_batch import BatchValidationError, ItemStatus
 from ayvu.composition.builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from ayvu.translate_project import TranslateObserver

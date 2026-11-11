@@ -21,16 +21,16 @@ from threading import Event, Thread
 from typing import Protocol
 from uuid import uuid4
 
-from .artifact import Artifact, ArtifactError, ArtifactRequest
+from .artifacts import Artifact, ArtifactError, ArtifactRequest
 from .format_adapter import FormatError
 from .format_service import FormatPublication, FormatService, FormatSource
-from .job import (
+from .jobs import (
     MAX_LEASE_DURATION, JobLeaseError, JobRequest, JobState, JobTerminalSummary, TranslationJob)
-from .job_events import (
+from .jobs import (
     CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress, JobEventAcceptance)
-from .job_execution import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMemoryJobEventLog, JobEventSink
-from .job_service import JobRepository
-from .project import ProjectError, ProjectManifest
+from .jobs import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMemoryJobEventLog, JobEventSink
+from .jobs import JobRepository
+from .projects import ProjectError, ProjectManifest
 from .provenance import (
     UNKNOWN, ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef,
 )

@@ -13,16 +13,16 @@ from uuid import UUID
 import pytest
 import requests
 
-from ayvu.artifact import ArtifactState
-from ayvu.artifact_service import ARTIFACT_SAFE_POINTS
+from ayvu.artifacts.model import ArtifactState
+from ayvu.artifacts.service import ARTIFACT_SAFE_POINTS
 from ayvu.content.model import (
     AdapterIdentity, Constraint, Locator, ProtectedPart, SemanticKind, SourceLocale, UnitContent, UNKNOWN_LOCALE, LocaleState,
     build_document,
 )
-from ayvu.job import JobRequest, JobState
-from ayvu.job_events import JobEventKind, encode_event
-from ayvu.job_execution import CancellationSource, InMemoryJobEventLog
-from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
+from ayvu.jobs.model import JobRequest, JobState
+from ayvu.jobs.events import JobEventKind, encode_event
+from ayvu.jobs.execution import CancellationSource, InMemoryJobEventLog
+from ayvu.projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ayvu.provenance.model import SourceKind, UNKNOWN, ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
 from ayvu.provider_capabilities import Capability, ProviderRequirements
@@ -241,7 +241,7 @@ def test_replay_keeps_outer_whitespace_and_expands_protected_parts(env):
 
 
 def test_reusing_a_phase_in_one_event_stream_is_refused_by_the_ordering_rules(env):
-    from ayvu.job_events import JobEventOrderError
+    from ayvu.jobs.events import JobEventOrderError
     env.translate(context=env.context(progress_phase='same'))
     with pytest.raises(JobEventOrderError, match='^progress_regression$'):
         env.translate(subject_plan=plan(glossary_ref=GLOSSARY_B), context=env.context(progress_phase='same'))
@@ -786,7 +786,7 @@ def test_a_publication_conflict_is_reported_not_overwritten(env):
             return getattr(self.inner, name)
 
         def find_reusable(self, request):
-            from ayvu.artifact_service import ReuseResult
+            from ayvu.artifacts.service import ReuseResult
             return ReuseResult(None, 'artifact_not_found')
 
     translator = DocumentTranslator(plan(), Provider(), upper_glossary, Damaged(env.artifacts), env.provenance, env.log, clock=env.clock, new_id=env.new_id)

@@ -27,9 +27,9 @@ addressing, retention and cross-job reuse are not accepted here.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.artifact` | Domain | Identity, lifecycle, derived locations and the reuse predicate |
-| `ayvu.artifact_service` | Application | Ports, publication order, reuse and reconciliation |
-| `ayvu.artifact_store` | Infrastructure | SQLite repository, contained files and injectable file operations |
+| `ayvu.artifacts.model` | Domain | Identity, lifecycle, derived locations and the reuse predicate |
+| `ayvu.artifacts.service` | Application | Ports, publication order, reuse and reconciliation |
+| `ayvu.artifacts.store` | Infrastructure | SQLite repository, contained files and injectable file operations |
 | `ayvu.v1.resume_scan` | Infrastructure | Read-only view of a legacy checkpoint |
 
 ## Lifecycle

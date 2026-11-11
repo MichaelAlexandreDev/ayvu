@@ -19,17 +19,17 @@ from pathlib import Path
 from typing import BinaryIO, Callable, Iterable, Iterator
 from uuid import uuid4
 
-from .artifact import (
+from .model import (
     MAX_ARTIFACT_BYTES, Artifact, ArtifactConflictError, ArtifactError, ArtifactIntegrityError, ArtifactNotFoundError,
     ArtifactOwnershipError, ArtifactPathError, ArtifactRequest, ArtifactState, ArtifactStoreError,
     ArtifactValidationError, abandon, mark_ready, new_artifact, ready_location, record_payload, retire,
     validate_identity,
 )
-from .artifact_service import PayloadEvidence, StagedArtifact
-from .job import JobNotFoundError, TranslationJob
-from .job_store import load_job
-from .kernel import JobError
-from .kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
+from .service import PayloadEvidence, StagedArtifact
+from ..jobs import JobNotFoundError, TranslationJob
+from ..jobs.store import load_job
+from ..kernel import JobError
+from ..kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
 
 _READ_CHUNK = 1024 * 1024
 

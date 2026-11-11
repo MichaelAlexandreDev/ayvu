@@ -11,7 +11,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Literal
 
-from .artifact import ArtifactConflictError
+from .artifacts import ArtifactConflictError
 from .kernel import OutputPlan, automatic_output_candidate
 from .translation import BatchOutputError
 

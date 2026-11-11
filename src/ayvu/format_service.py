@@ -9,8 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import BinaryIO, Callable, Iterable, Protocol, runtime_checkable
 
-from .artifact import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactRequest, ArtifactState
-from .artifact_service import ARTIFACT_SAFE_POINTS
+from .artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactRequest, ArtifactState
+from .artifacts import ARTIFACT_SAFE_POINTS
 from .content import ContentDocument
 from .format_adapter import (
     FORMAT_CONTRACT_VERSION, MATERIALIZING_OPERATIONS, MAX_DETECTION_BYTES, AliasVerdict, DetectionEvidence, DetectionOutcome,

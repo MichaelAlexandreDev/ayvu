@@ -17,7 +17,7 @@ from uuid import uuid4
 
 import pytest
 
-from ayvu.job_events import JobEventSequence, decode_event
+from ayvu.jobs.events import JobEventSequence, decode_event
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('local_worker_spike', ROOT / 'spikes/local-worker/probe.py')
@@ -450,8 +450,8 @@ def bounded_case():
 def test_real_artifact_reconciliation_after_worker_crash_uses_existing_contract(root):
     from dataclasses import replace
     from datetime import datetime
-    from ayvu.artifact import ArtifactRequest, ArtifactState, abandon, new_artifact
-    from ayvu.artifact_service import ArtifactService, PayloadEvidence, StagedArtifact
+    from ayvu.artifacts.model import ArtifactRequest, ArtifactState, abandon, new_artifact
+    from ayvu.artifacts.service import ArtifactService, PayloadEvidence, StagedArtifact
 
     with spike.Session(root) as session:
         session.command('partial')

@@ -7,10 +7,10 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.artifact import Artifact, ArtifactRequest, ArtifactState
+from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.batch_output_policy import BatchOutputError
-from ayvu.job import JobState
-from ayvu.job_execution import CancellationSource
+from ayvu.jobs.model import JobState
+from ayvu.jobs.execution import CancellationSource
 from ayvu.translate_batch import BatchCommand, BatchValidationError, ItemOutcome, ItemStatus
 from ayvu.composition.builders.translate_batch import (
     BatchCancellationController, LocalBatchItem, LocalTranslateBatch, project_item_outcome,

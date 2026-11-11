@@ -30,7 +30,8 @@ from pathlib import Path
 
 import pytest
 
-from ayvu import approved_memory_service, cache_identity, project_profiles, provider_network
+from ayvu import approved_memory_service, cache_identity, provider_network
+from ayvu.projects.profiles import model as project_profiles
 from ayvu.content import model as content
 from ayvu.v1 import cache
 from ayvu import translation_context, translation_document, translation_plan

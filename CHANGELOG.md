@@ -272,6 +272,18 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Jobs, artefatos e projetos em pacotes (REF-08, #276, primeira parte): `ayvu.jobs`, `ayvu.artifacts`,
+  `ayvu.projects` e `ayvu.projects.profiles`. `artifacts.destination` deixa de importar formats: a
+  composição passa o guarda de saída e a publicação do formato. Os adaptadores (stores SQLite e JSON,
+  o esquema do projeto, a sessão HTTP, o acesso ao sistema de arquivos) passam a ser módulos públicos
+  próprios, e o `__init__` de cada pacote exporta só o modelo e os casos de uso. Assim, importar o
+  modelo não carrega mais SQLite nem HTTP, o que a REF-07 tinha passado a fazer em `provenance` e
+  `preferences`. Um teste garante isso.
+- Retomada em `ayvu.recovery` (REF-08, #276, segunda parte): `job_recovery` e `job_recovery_store`
+  viram `recovery.service` e `recovery.store`. As regras puras de reaproveitamento de estágio vão
+  para `resume_reuse`, porque o pipeline de tradução também as usa e fica abaixo de recovery.
+  `preferences` e `provenance` ganham linhas próprias nas camadas, seguindo os imports reais:
+  `provenance` lê o job que registra e por isso fica acima de jobs. Os ciclos caem de 11 para 6.
 - Módulos folha em pacotes (REF-07, #275): `ayvu.network` (`policy`, `http`), `ayvu.preferences`
   (`model`, que junta `preferences` e `config_values`, além de `service`, `store` e `config_facade`),
   `ayvu.library`, `ayvu.provenance` e `ayvu.content` (`model` e `protection`, que era

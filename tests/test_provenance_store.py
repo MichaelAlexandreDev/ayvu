@@ -11,7 +11,7 @@ from ayvu.provenance.model import (
     ActorKind, ProvenanceConflictError, ProvenanceLimitError, ProvenanceNotFoundError, ProvenanceRecord,
     ProvenanceReferenceError, ProvenanceStoreError, ProvenanceValidationError, SourceKind, encode_record,
 )
-from ayvu.project_schema import PROJECT_MIGRATIONS
+from ayvu.projects.schema import PROJECT_MIGRATIONS
 from ayvu.provenance.store import MAX_LIST_LIMIT, MAX_TRAVERSAL_DEPTH, MAX_TRAVERSAL_RECORDS, SqliteProvenanceRepository
 from provenance_fakes import INPUT_FINGERPRINT, MACHINE, PROJECT, START, SyntheticLineage, subject
 from ayvu.kernel.sqlite import SqliteMigrationRunner

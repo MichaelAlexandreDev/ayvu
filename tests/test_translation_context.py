@@ -14,7 +14,7 @@ from ayvu.context_execution import (
 )
 from ayvu.context_source import SnapshotContextCandidateSource, StoredContextRevision, snapshot_context_sources
 from ayvu.glossary_catalog import Entry, Snapshot
-from ayvu.project_profiles import ProjectReference, ProjectTranslationProfile
+from ayvu.projects.profiles.model import ProjectReference, ProjectTranslationProfile
 from ayvu.provider import Requirement, UnitReference
 from ayvu.provider_network import ResolvedProviderNetworkDecision, NetworkClass
 from ayvu.provider_capabilities import (

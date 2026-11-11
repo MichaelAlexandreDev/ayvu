@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Callable, Iterable, Iterator
 from uuid import uuid4
 
-from ..job import JobNotFoundError
-from ..job_store import load_job
+from ..jobs import JobNotFoundError
+from ..jobs.store import load_job
 from .model import (
     ProvenanceConflictError, ProvenanceError, ProvenanceLimitError, ProvenanceNotFoundError, ProvenanceRecord,
     ProvenanceReferenceError, ProvenanceRequest, ProvenanceStoreError, ProvenanceValidationError, SubjectRef,

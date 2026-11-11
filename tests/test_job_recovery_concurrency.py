@@ -12,10 +12,11 @@ from datetime import timedelta
 import pytest
 
 from ayvu.v1.cache import TranslationCache
-from ayvu.job import JobContinuationError, JobRequest, JobState
-from ayvu.job_recovery import CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStatus
-from ayvu.job_recovery_store import _options
-from ayvu.project_store import ProjectJsonRepository
+from ayvu.jobs.model import JobContinuationError, JobRequest, JobState
+from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
+from ayvu.resume_reuse import RecoveryReason
+from ayvu.recovery.store import _options
+from ayvu.projects.store import ProjectJsonRepository
 from ayvu.translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
 from ayvu.composition.builders.translate_project import (
     LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
@@ -196,7 +197,7 @@ def test_a_reader_probing_the_guard_does_not_refuse_a_run_starting(scene, monkey
     def reader_finishes(_seconds):
         fcntl.flock(reader, fcntl.LOCK_UN)
 
-    monkeypatch.setattr("ayvu.project_store.time.sleep", reader_finishes)
+    monkeypatch.setattr("ayvu.projects.store.time.sleep", reader_finishes)
     try:
         with guard.exclusive(fingerprint) as alone:
             assert alone

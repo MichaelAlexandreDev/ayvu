@@ -14,16 +14,16 @@ from ayvu.glossary_catalog import GlossaryReference
 from ayvu.preferences.model import GlobalPreferences, NamedPreferenceProfile, PreferencesError
 from ayvu.preferences.service import PreferencesSnapshot
 from ayvu.provenance.model import ProducerIdentity
-from ayvu.project_profiles import (
+from ayvu.projects.profiles.model import (
     ExecutionStage, GlossaryBinding, GlossaryStage, PlanFacts, ProfileError, ProfileOverrides,
     ProfileReference, ProfileRevision, ProjectReference, ProjectTranslationProfile,
     ProviderRequestProjection, ResolvedProfileSnapshot, SemanticEffect, SnapshotReference,
     TerminologySupport, canonical,
 )
-from ayvu.project_profile_service import (
+from ayvu.projects.profiles.service import (
     ProfileOutcome, ProfileRecord, ProjectProfileService, ProjectProfileState,
 )
-from ayvu.project_profile_store import decode_state, encode_state
+from ayvu.projects.profiles.store import decode_state, encode_state
 
 PROJECT = ProjectReference('00000000-0000-0000-0000-000000000001')
 PROFILE = ProfileReference('profile:' + '1' * 64)
@@ -193,7 +193,7 @@ def test_snapshot_identity_across_processes_and_mapping_order():
     data = value.to_mapping()
     reordered = dict(reversed(list(data.items())))
     assert ResolvedProfileSnapshot.from_mapping(reordered).reference == value.reference
-    script = ('import json,sys; from ayvu.project_profiles import ResolvedProfileSnapshot; '
+    script = ('import json,sys; from ayvu.projects.profiles.model import ResolvedProfileSnapshot; '
               's=ResolvedProfileSnapshot.from_mapping(json.load(sys.stdin)); '
               'print(s.reference.value); print(s.effects.raw_projection().hex())')
     completed = subprocess.run([sys.executable, '-c', script], input=json.dumps(reordered), text=True,
@@ -443,7 +443,7 @@ def test_contract_modules_have_no_concrete_or_presentation_imports():
     root = Path(__file__).resolve().parents[1] / 'src' / 'ayvu'
     forbidden = {'typer', 'rich', 'json', 'pathlib', 'os', 'sqlite3', 'PySide6',
                  'project_store', 'profile_glossary_store', 'project_profile_store', 'provider_libretranslate'}
-    for filename in ('project_profiles.py', 'project_profile_service.py'):
+    for filename in ('projects/profiles/model.py', 'projects/profiles/service.py'):
         tree = ast.parse((root / filename).read_text())
         imports = {n.module.split('.')[0] for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module}
         imports |= {a.name.split('.')[0] for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}

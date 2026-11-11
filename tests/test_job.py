@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.job import (
+from ayvu.jobs.model import (
     ALLOWED_TRANSITIONS, MAX_LEASE_DURATION, TERMINAL_STATES, JobContinuationError, JobLease, JobLeaseError, JobRequest, JobRevisionConflictError, JobState, JobTerminalSummary, JobTransitionError, TranslationJob, acquire_lease, new_job, release_lease, renew_lease, requires_reconciliation, transition_job)
 from ayvu.kernel import JobValidationError
 

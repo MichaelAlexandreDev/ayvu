@@ -12,32 +12,30 @@ from collections.abc import Iterable
 from typing import Callable
 from uuid import uuid4
 
-from ...artifact import (Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactError, ArtifactIntegrityError,
+from ...artifacts import (Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactError, ArtifactIntegrityError,
                        ArtifactRequest, ArtifactState)
-from ...artifact_destination import DestinationPublications, LocalDestinationPayloads
-from ...artifact_service import ArtifactService
-from ...artifact_store import LocalArtifactPayloads, SqliteArtifactRepository
+from ...artifacts.destination import DestinationPublications, LocalDestinationPayloads
+from ...artifacts import ArtifactService
+from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
 from ...content import ContentDocument
 from ...epub_format import EPUB_ADAPTER, epub_format_adapter
 from ...format_adapter import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
 from ...format_local import LocalFormatSource, LocalOutputGuard
 from ...format_service import FormatPublication, FormatService, FormatRegistry, FormatSource
 from ...html_structure import html_unit_template
-from ...job import JobRequest, JobState, JobTerminalSummary, MAX_LEASE_DURATION
-from ...job_events import (
+from ...jobs import JobRequest, JobState, JobTerminalSummary, MAX_LEASE_DURATION
+from ...jobs import (
     CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress)
-from ...job_execution import CancellationSource, InMemoryJobEventLog
-from ...job_service import JobRepository
-from ...job_store import SqliteJobRepository
-from ...project import ProjectManifest
-from ...project_schema import (
-    open_artifact_service, open_job_repository, open_provenance_repository, project_migration_runner,
-)
-from ...project_store import ProjectJsonRepository, file_digest
+from ...jobs import CancellationSource, InMemoryJobEventLog
+from ...jobs import JobRepository
+from ...jobs.store import SqliteJobRepository
+from ...projects import ProjectManifest
+from ...projects.schema import open_artifact_service, open_job_repository, open_provenance_repository, project_migration_runner
+from ...projects.store import ProjectJsonRepository, file_digest
 from ...provenance import (
     UNKNOWN, ActorKind, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef,
 )
-from ...provenance import SqliteProvenanceRepository
+from ...provenance.store import SqliteProvenanceRepository
 from ...review_application import (
     REVIEW_APPLY_COMMAND_TYPE, REVIEW_EXPORT_COMMAND_TYPE, REVIEW_SAFE_POINTS, ReviewApplicationError,
     ReviewCounts, ReviewOperation, ReviewOperationResult, ReviewPackageExport, ReviewPackageIdentity,
@@ -688,7 +686,7 @@ class LocalReviewOperations:
             owner_token = job.lease.owner_token
             job = jobs.transition(job.job_id, JobState.PREFLIGHT, expected_revision=job.revision)
             job = jobs.transition(job.job_id, JobState.RUNNING, expected_revision=job.revision)
-            publications = DestinationPublications(artifacts, payloads, Path(destination))
+            publications = DestinationPublications(artifacts, payloads, LocalOutputGuard(Path(destination)), FormatPublication)
             operation_id = self._new_id()
             if not key_registered:
                 operation = "review_export" if command_type == REVIEW_EXPORT_COMMAND_TYPE else "apply_review"

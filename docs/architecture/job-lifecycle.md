@@ -29,10 +29,10 @@ persist nothing. Checkpoints and artifacts were accepted separately in
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.job` | Domain | Immutable values, transition table, lease rules and typed errors |
-| `ayvu.job_service` | Application | `JobRepository` port and `JobSnapshot` |
-| `ayvu.job_store` | Infrastructure | SQLite adapter and the job schema SQL |
-| `ayvu.project_schema` | Infrastructure | Production migration registry and explicit repository bootstrap |
+| `ayvu.jobs.model` | Domain | Immutable values, transition table, lease rules and typed errors |
+| `ayvu.jobs.service` | Application | `JobRepository` port and `JobSnapshot` |
+| `ayvu.jobs.store` | Infrastructure | SQLite adapter and the job schema SQL |
+| `ayvu.projects.schema` | Infrastructure | Production migration registry and explicit repository bootstrap |
 
 ## Lifecycle
 

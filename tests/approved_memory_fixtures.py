@@ -15,9 +15,9 @@ from ayvu.approved_memory import (
 )
 from ayvu.approved_memory_service import ApprovedMemory, CreateCandidate, DeriveRevision, ReviewRevision
 from ayvu.approved_memory_store import SqliteApprovedMemoryRepository, memory_migration_runner, open_approved_memory
-from ayvu.job import JobRequest
-from ayvu.job_store import SqliteJobRepository
-from ayvu.project_schema import project_migration_runner
+from ayvu.jobs.model import JobRequest
+from ayvu.jobs.store import SqliteJobRepository
+from ayvu.projects.schema import project_migration_runner
 from ayvu.provenance.model import ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
 from ayvu.provenance.store import SqliteProvenanceRepository
 from content_fixtures import PROJECT, epub_document, unit

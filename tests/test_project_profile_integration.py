@@ -11,16 +11,16 @@ import pytest
 from ayvu.glossary_catalog import Entry, GlossaryReference
 from ayvu.glossary_catalog_store import ManagedGlossaryRepository
 from ayvu.preferences.store import JsonPreferencesRepository
-from ayvu.profile_glossary_store import LegacyGlossaryResolver
-from ayvu.project import ProjectConflictError
+from ayvu.projects.profiles.glossary_store import LegacyGlossaryResolver
+from ayvu.projects.model import ProjectConflictError
 from ayvu.composition.builders.profiles import project_profile_service
-from ayvu.project_profile_service import ProfileOutcome, ProjectProfileService
-from ayvu.project_profile_store import JsonProjectProfileRepository, STATE_KEY
-from ayvu.project_profiles import (
+from ayvu.projects.profiles.service import ProfileOutcome, ProjectProfileService
+from ayvu.projects.profiles.store import JsonProjectProfileRepository, STATE_KEY
+from ayvu.projects.profiles.model import (
     ExecutionStage, GlossaryStage, PlanFacts, ProfileError, ProfileOverrides, ProfileReference,
     ProfileRevision, ProjectReference, ProjectTranslationProfile, ProviderRequestProjection,
 )
-from ayvu.project_store import ProjectJsonRepository, build_project_request
+from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.kernel import LanguagePair
 
 

@@ -19,16 +19,16 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.artifact import ArtifactRequest, ArtifactState
-from ayvu.artifact_destination import DestinationFileOps, LocalDestinationPayloads
+from ayvu.artifacts.model import ArtifactRequest, ArtifactState
+from ayvu.artifacts.destination import DestinationFileOps, LocalDestinationPayloads
 from ayvu.v1.cache import TranslationCache
 from ayvu.epub_io import translate_epub
 from ayvu.glossary import load_glossary
-from ayvu.job import JobState, JobStoreError
-from ayvu.job_events import JobEventKind, encode_event
-from ayvu.job_execution import CancellationSource
-from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
-from ayvu.project_store import ProjectJsonRepository, build_project_request
+from ayvu.jobs.model import JobState, JobStoreError
+from ayvu.jobs.events import JobEventKind, encode_event
+from ayvu.jobs.execution import CancellationSource
+from ayvu.projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
+from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.provenance.model import ProvenanceStoreError
 from ayvu.translate_project import (
     OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_BEFORE_START, ContinuationTicket, OutputValidation, TranslateCommandError,
@@ -949,7 +949,7 @@ def test_a_job_left_behind_in_each_late_state_gets_one_terminal_outcome(world, s
 
 
 def _job_request(world, command):
-    from ayvu.job import JobRequest
+    from ayvu.jobs.model import JobRequest
     return JobRequest(world.project.project_id, "translate_project", 1, resolve_plan(command, world.project).input_fingerprint, (OUTPUT_ROLE,))
 
 
@@ -1342,7 +1342,7 @@ def test_the_journal_says_where_the_output_went_and_only_that(tmp_path):
                                      '{"version": 1, "destination": "relative", "replace": false}',
                                      '{"version": 1, "destination": "/x", "replace": "yes"}'])
 def test_a_damaged_journal_is_refused_and_never_followed(tmp_path, content):
-    from ayvu.artifact import ArtifactPathError
+    from ayvu.artifacts.model import ArtifactPathError
     payloads = LocalDestinationPayloads(tmp_path / "root")
     artifact = "00000000-0000-4000-8000-000000000001"
     journal = tmp_path / "root" / "publications"
@@ -1355,7 +1355,7 @@ def test_a_damaged_journal_is_refused_and_never_followed(tmp_path, content):
 
 
 def test_a_store_without_a_destination_can_only_settle(tmp_path):
-    from ayvu.artifact import ArtifactStoreError
+    from ayvu.artifacts.model import ArtifactStoreError
     payloads = LocalDestinationPayloads(tmp_path)
     artifact = "00000000-0000-4000-8000-000000000001"
     with pytest.raises(ArtifactStoreError):
@@ -1374,7 +1374,7 @@ def test_a_symlink_swapped_in_at_the_destination_does_not_count_as_the_output(tm
     moved = tmp_path / "moved.epub"
     destination.rename(moved)
     destination.symlink_to(moved)
-    from ayvu.artifact import ArtifactPathError
+    from ayvu.artifacts.model import ArtifactPathError
     with pytest.raises(ArtifactPathError):
         payloads.evidence(artifact, size, digest)
 

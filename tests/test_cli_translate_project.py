@@ -21,20 +21,20 @@ import pytest
 import requests
 from typer.testing import CliRunner
 
-import ayvu.artifact_destination as artifact_destination
+import ayvu.artifacts.destination as artifact_destination
 import ayvu.cli as cli_module
-import ayvu.job_store as job_store
+import ayvu.jobs.store as job_store
 import ayvu.composition.builders.review as review_composition
 import ayvu.composition.builders.translate_project as composition
 from ayvu.cli import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_failure, app
-from ayvu.project_schema import open_job_repository, open_provenance_repository
+from ayvu.projects.schema import open_job_repository, open_provenance_repository
 from ayvu.preflight import PreflightError
-from ayvu.project_store import ProjectJsonRepository, build_project_request
+from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.v1.resume import ResumeStateStore
 from ayvu.review_exchange import decode_review_package, encode_review_package
 from ayvu.epub_io import TranslationReport
-from ayvu.job import JobState, JobTerminalSummary
-from ayvu.job_events import JobOutcome
+from ayvu.jobs.model import JobState, JobTerminalSummary
+from ayvu.jobs.events import JobOutcome
 from ayvu.provenance.model import SourceKind
 from ayvu.review_application import ReviewApplyCommand, ReviewOutcome
 from ayvu.translate_project import TRANSLATE_COMMAND_TYPE, OutputValidation, TranslateObserver, TranslateProjectResult

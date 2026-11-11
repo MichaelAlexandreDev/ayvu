@@ -16,7 +16,7 @@ from ayvu.v1.cache import CacheKey, TranslationCache
 import typer
 
 import ayvu.cli as cli_module
-from ayvu.artifact import Artifact, ArtifactRequest, ArtifactState
+from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.cli import (
     DEFAULT_PREVIEW_DOCUMENT_LIMIT,
     _BookOutcome,
@@ -27,7 +27,7 @@ from ayvu.cli import (
     app,
 )
 from ayvu.epub_io import TranslationReport
-from ayvu.job import JobState
+from ayvu.jobs.model import JobState
 from ayvu.glossary import GlossaryUsage
 from ayvu.markdown_writer import MarkdownDirectoryWriter
 from ayvu.v1.html_translate import HtmlTranslationStats

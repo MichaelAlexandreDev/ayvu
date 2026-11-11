@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from enum import StrEnum
 from types import MappingProxyType
-from .kernel import JobError, JobValidationError, is_slug, validate_job_identity, validate_utc
+from ..kernel import JobError, JobValidationError, is_slug, validate_job_identity, validate_utc
 
 MAX_OUTPUT_ROLES = 16
 MAX_SUMMARY_COUNTERS = 16

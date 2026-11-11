@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from threading import Event
 from typing import Protocol
 
-from .artifact import Artifact
+from .artifacts import Artifact
 from .content import ContentDocument, TranslationUnit
 from .format_adapter import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
 from .format_service import FormatPublication, FormatService, FormatSource

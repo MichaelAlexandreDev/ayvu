@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from .project import ProjectConflictError, ProjectManifest, ProjectRequest, ProjectSourceError
+from .model import ProjectConflictError, ProjectManifest, ProjectRequest, ProjectSourceError
 
 
 @dataclass(frozen=True)

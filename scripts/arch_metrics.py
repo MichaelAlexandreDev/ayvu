@@ -32,10 +32,6 @@ FUNCTION_LIMIT = 80
 PACKAGE_ALIASES = {"desktop": "interfaces"}
 
 LEGACY_GROUPS = {
-    "projects": ("project", "project_service", "project_store", "project_schema", "project_profiles",
-                 "project_profile_service", "project_profile_store", "profile_glossary_store"),
-    "artifacts": ("artifact", "artifact_service", "artifact_store", "artifact_destination"),
-    "jobs": ("job", "job_events", "job_execution", "job_service", "job_store", "job_recovery", "job_recovery_store"),
     "knowledge": ("cache_identity", "cache_repository", "cache_schema", "cache_interchange", "cache_admin",
                   "cache_admin_store", "cache_admin_v2_store", "translation_memory", "memory_retrieval",
                   "approved_memory", "approved_memory_service", "approved_memory_store", "glossary",
@@ -47,7 +43,8 @@ LEGACY_GROUPS = {
                   "provider_session", "provider_libretranslate"),
     "translation": ("translation_plan", "translation_pipeline", "translation_engine", "translation_document",
                     "translation_context", "context_execution", "context_source", "chunking",
-                    "translate_project", "translate_batch", "batch_output_policy", "preflight"),
+                    "translate_project", "translate_batch", "batch_output_policy", "preflight",
+                    "resume_reuse"),
     "review": ("review_application", "review_exchange", "review_export", "review_import"),
     "interfaces": ("cli", "cli_progress", "cli_contracts", "desktop_bootstrap"),
 }

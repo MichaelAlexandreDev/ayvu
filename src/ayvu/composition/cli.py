@@ -13,11 +13,11 @@ from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, proje
 from .builders.translate_project import LegacyResources, ProjectTranslation, TranslationReport, selected_model
 from ..batch_output_policy import AcceptedItem, OutputIntent
 from ..v1.cache import TranslationCache
-from ..preferences import ConfigStore, default_glossaries_dir as _default_glossaries_dir
-from ..library import LocalLibraryFilesystem, ReaderLauncher
+from ..preferences.config_facade import ConfigStore, default_glossaries_dir as _default_glossaries_dir
+from ..library.adapters import LocalLibraryFilesystem, ReaderLauncher
 from ..library import LibraryService
-from ..project_service import resolve_project
-from ..project_store import ProjectJsonRepository, build_project_request, translation_selections
+from ..projects import resolve_project
+from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..preflight import run_translation_preflight as _preflight
 from ..v1.resume import ResumeStateStore, TranslationResumeState
 from ..translate_project import ContinuationTicket, TranslateObserver, TranslateProjectResult

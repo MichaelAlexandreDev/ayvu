@@ -7,14 +7,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .artifact import ArtifactStoreError
-from .artifact_service import ArtifactPayloadStore, ArtifactService
-from .artifact_store import ARTIFACT_SCHEMA_STATEMENTS, ArtifactFileOps, LocalArtifactPayloads, SqliteArtifactRepository
-from .job import JobStoreError
-from .job_store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
-from .provenance import ProvenanceStoreError
-from .provenance import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
-from .kernel.sqlite import SqliteMigration, SqliteMigrationRunner
+from ..artifacts import ArtifactStoreError
+from ..artifacts import ArtifactPayloadStore, ArtifactService
+from ..artifacts.store import ARTIFACT_SCHEMA_STATEMENTS, ArtifactFileOps, LocalArtifactPayloads, SqliteArtifactRepository
+from ..jobs import JobStoreError
+from ..jobs.store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
+from ..provenance import ProvenanceStoreError
+from ..provenance.store import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
+from ..kernel.sqlite import SqliteMigration, SqliteMigrationRunner
 
 PROJECT_MIGRATIONS = (
     SqliteMigration(1),

@@ -5,10 +5,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Callable
 from uuid import UUID
 
-from ayvu.job import JobState, JobTerminalSummary, TranslationJob, transition_job
-from ayvu.job_events import (
+from ayvu.jobs.model import JobState, JobTerminalSummary, TranslationJob, transition_job
+from ayvu.jobs.events import (
     JobCorrelation, JobEvent, JobEventKind, JobOutcome, JobProgress)
-from ayvu.job_execution import CancellationSource, JobEventSink, JobEventSource
+from ayvu.jobs.execution import CancellationSource, JobEventSink, JobEventSource
 from ayvu.kernel import JobFailure, JobWarning, normalize_failure
 
 SAFE_POINTS = ('before_document', 'after_document')

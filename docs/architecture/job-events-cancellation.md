@@ -11,8 +11,8 @@ own progress callbacks and `KeyboardInterrupt` handling. Nothing here is persist
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.job_events` | Domain | Event, progress, warning, failure and outcome values, ordering rules, canonical serialization |
-| `ayvu.job_execution` | Application | Sink and source ports, bounded in-memory log, cancellation source and token |
+| `ayvu.jobs.events` | Domain | Event, progress, warning, failure and outcome values, ordering rules, canonical serialization |
+| `ayvu.jobs.execution` | Application | Sink and source ports, bounded in-memory log, cancellation source and token |
 
 ## Events
 

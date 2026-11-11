@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
-from ayvu.job_execution import CancellationSource
+from ayvu.jobs.execution import CancellationSource
 from ayvu.provider import (
     ConstraintsFeature, ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProviderRoute, ProviderStatus,
     Requirement,

@@ -387,7 +387,7 @@ def test_real_failed_text_is_partial_and_batch_continues(tmp_path, monkeypatch):
 def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_path, monkeypatch):
     import sqlite3
 
-    from ayvu.project_store import ProjectJsonRepository
+    from ayvu.projects.store import ProjectJsonRepository
     from ayvu.translate_batch import ItemStatus
     from test_cli_translate_project import _jobs
 

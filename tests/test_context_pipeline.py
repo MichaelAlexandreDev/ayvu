@@ -7,11 +7,11 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.artifact import Artifact, ArtifactState
+from ayvu.artifacts.model import Artifact, ArtifactState
 from ayvu.context_execution import ContextExecution, ResolvedContextEgressDecision
-from ayvu.job import JobRequest, JobState, new_job, transition_job, acquire_lease
-from ayvu.job_events import encode_event
-from ayvu.job_execution import InMemoryJobEventLog
+from ayvu.jobs.model import JobRequest, JobState, new_job, transition_job, acquire_lease
+from ayvu.jobs.events import encode_event
+from ayvu.jobs.execution import InMemoryJobEventLog
 from ayvu.provenance.model import ProvenanceRecord, encode_record, decode_record
 from ayvu.provider import Requirement
 from ayvu.provider_capabilities import Capability, ProviderRequirements, SupportState
@@ -254,7 +254,7 @@ def test_real_project_sqlite_context_pipeline_when_project_path_is_safe(tmp_path
 
 def test_context_warning_reaches_cli_presentation_with_isolated_user_paths(tmp_path, monkeypatch):
     from datetime import datetime, UTC
-    from ayvu.job_events import JobCorrelation, JobEvent
+    from ayvu.jobs.events import JobCorrelation, JobEvent
     from test_cli_translate_project import _canned, _report, _result
     monkeypatch.setenv('HOME', str(tmp_path / 'home'))
     monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path / 'config'))
@@ -362,7 +362,7 @@ def test_all_unit_bindings_are_checked_before_a_pinned_cache_port():
 
 def test_pipeline_cache_ignores_unused_context_and_inert_profile_changes():
     def prepare(s, unused, style):
-        from ayvu.project_profiles import ProjectTranslationProfile
+        from ayvu.projects.profiles.model import ProjectTranslationProfile
         r = s.r
         e = entry(unused, index=2)
         profile = replace(r.snapshot.profile, profile_value=ProjectTranslationProfile(style=style))
@@ -435,7 +435,7 @@ def test_document_pipeline_uses_owned_profile_neighbors_and_managed_terminology(
     from ayvu.content.model import ContextReference
     from ayvu.context_source import snapshot_context_sources
     from ayvu.glossary_catalog import Snapshot, Entry
-    from ayvu.project_profiles import ProjectReference, ProjectTranslationProfile
+    from ayvu.projects.profiles.model import ProjectReference, ProjectTranslationProfile
     from ayvu.translation_context import ContextCategory, ContextKind
     from test_translation_context import binding, facts, profile_snapshot
     from test_translation_document import locator
@@ -533,7 +533,7 @@ def test_multiunit_preparation_validates_every_authorization_and_never_keeps_par
 def test_composition_cancellation_stops_before_candidate_loading_and_project_ports(tmp_path, monkeypatch, binding):
     from contextlib import contextmanager
     import ayvu.composition.builders.translate_project as composition
-    from ayvu.job_execution import CancellationSource
+    from ayvu.jobs.execution import CancellationSource
     from ayvu.translate_project import TranslateObserver
     from test_translation_context import OPERATION
     s = scene()

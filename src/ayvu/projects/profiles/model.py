@@ -12,9 +12,9 @@ import hashlib
 import re
 from uuid import UUID, uuid4
 
-from .glossary_catalog import GlossaryReference
-from .preferences import NamedPreferenceProfile, PreferencesError
-from .project import ProjectManifestError, validate_project_reference
+from ...glossary_catalog import GlossaryReference
+from ...preferences import NamedPreferenceProfile, PreferencesError
+from ..model import ProjectManifestError, validate_project_reference
 
 SCHEMA_VERSION = 1
 RESOLUTION_POLICY_VERSION = 1

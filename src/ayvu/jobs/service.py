@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Protocol
 
-from .job import JobRequest, JobState, JobTerminalSummary, TranslationJob
+from .model import JobRequest, JobState, JobTerminalSummary, TranslationJob
 
 
 @dataclass(frozen=True)
