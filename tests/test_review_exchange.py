@@ -15,13 +15,13 @@ from zipfile import ZipFile
 import pytest
 from bs4 import BeautifulSoup
 
-from ayvu.artifact import Artifact, ArtifactRequest, ArtifactState
+from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.content.model import UNKNOWN_LOCALE
 from ayvu.epub_format import EPUB_ADAPTER, EPUB_REGISTRATION, epub_format_adapter
 from ayvu.format_adapter import ContentScope, ExtractionRequest, UnitTranslation
 from ayvu.format_service import FormatRegistry, FormatService
 from ayvu.html_structure import extract_html_document, html_unit_template, reconstruct_html
-from ayvu.project import ProjectManifest, ProjectRequest
+from ayvu.projects.model import ProjectManifest, ProjectRequest
 from ayvu.review_exchange import (
     MAX_REVIEW_CELL_CHARS,
     MAX_REVIEW_COLUMNS,
@@ -719,11 +719,11 @@ def test_production_epub_extraction_review_mapping_and_staged_html_reconstructio
 
     monkeypatch.setattr("requests.Session.request", lambda *args, **kwargs: transport_calls.append((args, kwargs)))
     monkeypatch.setattr(socket.socket, "connect", lambda *args, **kwargs: socket_calls.append((args, kwargs)))
-    monkeypatch.setattr("ayvu.artifact_service.ArtifactService.publish",
+    monkeypatch.setattr("ayvu.artifacts.service.ArtifactService.publish",
                         lambda *args, **kwargs: publisher_calls.append((args, kwargs)))
     monkeypatch.setattr("ayvu.provenance.store.SqliteProvenanceRepository.append",
                         lambda *args, **kwargs: provenance_calls.append((args, kwargs)))
-    monkeypatch.setattr("ayvu.job_execution.InMemoryJobEventLog.emit",
+    monkeypatch.setattr("ayvu.jobs.execution.InMemoryJobEventLog.emit",
                         lambda *args, **kwargs: event_calls.append((args, kwargs)))
     monkeypatch.setattr("ayvu.html_structure.reconstruct_html", instrumented_reconstruct)
     monkeypatch.setattr(Path, "open", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("unexpected file IO")))

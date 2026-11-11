@@ -11,14 +11,14 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.artifact import (Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactIntegrityError,
+from ayvu.artifacts.model import (Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactIntegrityError,
     ArtifactNotFoundError, ArtifactOwnershipError, ArtifactPathError, ArtifactRequest, ArtifactState,
     ArtifactStoreError, ArtifactValidationError)
-from ayvu.artifact_service import ARTIFACT_SAFE_POINTS, ArtifactService
-from ayvu.artifact_store import ArtifactFileOps, LocalArtifactPayloads, SqliteArtifactRepository
-from ayvu.job import JobRequest, JobState
-from ayvu.job_execution import CancellationSource
-from ayvu.project_schema import PROJECT_MIGRATIONS, open_artifact_service, open_job_repository
+from ayvu.artifacts.service import ARTIFACT_SAFE_POINTS, ArtifactService
+from ayvu.artifacts.store import ArtifactFileOps, LocalArtifactPayloads, SqliteArtifactRepository
+from ayvu.jobs.model import JobRequest, JobState
+from ayvu.jobs.execution import CancellationSource
+from ayvu.projects.schema import PROJECT_MIGRATIONS, open_artifact_service, open_job_repository
 from ayvu.kernel import JobCancellationError
 from ayvu.kernel.sqlite import SqliteMigrationRunner
 
@@ -352,7 +352,7 @@ def test_only_bytes_are_accepted_as_chunks(env, chunks):
 
 
 def test_size_limit_stops_the_write(env, monkeypatch):
-    monkeypatch.setattr('ayvu.artifact_store.MAX_ARTIFACT_BYTES', 4)
+    monkeypatch.setattr('ayvu.artifacts.store.MAX_ARTIFACT_BYTES', 4)
     consumed = []
 
     def chunks():

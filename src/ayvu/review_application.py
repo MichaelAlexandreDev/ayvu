@@ -13,9 +13,9 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Protocol
 
-from .artifact import Artifact, ArtifactState
-from .job import JobState
-from .job_events import JobEvent
+from .artifacts import Artifact, ArtifactState
+from .jobs import JobState
+from .jobs import JobEvent
 from .translate_project import TranslateProjectResult
 from .kernel import is_slug, validate_job_identity, JobFailure, CancellationToken
 

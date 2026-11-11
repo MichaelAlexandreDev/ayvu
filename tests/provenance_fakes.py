@@ -4,9 +4,9 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from ayvu.artifact import ArtifactRequest
-from ayvu.job import JobRequest, JobState
-from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
+from ayvu.artifacts.model import ArtifactRequest
+from ayvu.jobs.model import JobRequest, JobState
+from ayvu.projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ayvu.provenance.model import ActorKind, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
 
 PROJECT = str(UUID(int=1))

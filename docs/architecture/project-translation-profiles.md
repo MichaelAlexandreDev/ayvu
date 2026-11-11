@@ -8,8 +8,8 @@ snapshots nem as projeções descritas aqui.
 
 ## Donos e esquema fechado
 
-`project_profiles.py` contém valores imutáveis e a política de resolução v1;
-`project_profile_service.py` contém histórico, portas e casos de uso. Ambos
+`projects/profiles/model.py` contém valores imutáveis e a política de resolução v1;
+`projects/profiles/service.py` contém histórico, portas e casos de uso. Ambos
 são contratos da aplicação, sem JSON, filesystem, SQLite, provedor ou interface.
 A referência do glossário continua pertencendo a `glossary_catalog`; não é
 substituída por UUID, hash de caminho ou novo registro de identidade.
@@ -52,7 +52,7 @@ Exemplo para um chamador autorizado, com repositório de preferências já compo
 
 ```python
 from ayvu.composition.builders.profiles import project_profile_service
-from ayvu.project_profiles import ProfileReference, ProjectReference
+from ayvu.projects.profiles.model import ProfileReference, ProjectReference
 
 service = project_profile_service(processing_root, managed_glossary_root)
 destination = ProfileReference.new()  # conserve este token para repetir a operação
@@ -148,7 +148,7 @@ exige nova política/esquema e contribuição raw explícita, sem reinterpretar 
 
 ## Publicação, retenção e privacidade
 
-`project_profile_store` usa o mesmo lock de workspace e CAS da #134. O manifesto
+`projects.profiles.store` usa o mesmo lock de workspace e CAS da #134. O manifesto
 continua v1: `x-translation-profiles` aponta para um registro local imutável
 `profiles:<digest>`. A identidade imutável original do projeto não é alterada.
 O registro guarda heads, revisões anteriores, recibos e snapshots; uma atualização

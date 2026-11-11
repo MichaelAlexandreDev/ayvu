@@ -8,7 +8,7 @@ from typing import Callable
 
 from .content import ContentDocument
 from .glossary_catalog import Snapshot, _valid_entries
-from .project_profiles import ResolvedProfileSnapshot, GlossaryStage
+from .projects.profiles import ResolvedProfileSnapshot, GlossaryStage
 from .provider import Requirement, UnitReference
 from .translation_context import (
     ContextCandidate, ContextEntryRevision, ContextError, ContextKind, ContextPolicyVersion, ContextSnapshot,

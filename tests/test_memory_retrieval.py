@@ -14,20 +14,20 @@ from ayvu.approved_memory import (
     Candidate, MAX_VALUE_BYTES, MemoryQuery, MemoryScope, MemoryScopeError, MemorySource, MemoryState,
     MemoryValidationError, PipelineStage, RetrievalLimits, RetrievalMode, ScopeKind, TargetValue, ValueKind,
 )
-from ayvu.artifact_service import ArtifactService
-from ayvu.artifact_store import LocalArtifactPayloads, SqliteArtifactRepository
+from ayvu.artifacts.service import ArtifactService
+from ayvu.artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
 from ayvu.cache_identity import (CacheAuthorizationPolicy, CacheProvenanceMetadata, ExactCacheEntry,
     TRANSLATION_STAGE_AGGREGATE, exact_entry_key)
 from ayvu.cache_repository import SQLiteExactCache
 from ayvu.content.model import ProtectedPart
-from ayvu.job import JobState
-from ayvu.job_events import encode_event
-from ayvu.job_execution import InMemoryJobEventLog
+from ayvu.jobs.model import JobState
+from ayvu.jobs.events import encode_event
+from ayvu.jobs.execution import InMemoryJobEventLog
 from ayvu.memory_retrieval import (
     LegacyCacheCompatibility, MemoryRetrieval, RetrievalPolicy, RetrievalSource,
     plan_memory_pin, similarity, snippet, structural_compatibility,
 )
-from ayvu.project_schema import project_migration_runner
+from ayvu.projects.schema import project_migration_runner
 from ayvu.provider import ProviderRoute
 from ayvu.translation_document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
 from approved_memory_fixtures import (

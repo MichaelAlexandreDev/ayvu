@@ -17,12 +17,12 @@ import ayvu.cli as cli
 import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.preferences.model import AyvuConfig
-from ayvu.job import JobState
-from ayvu.job_events import JobEventSequence, encode_event
+from ayvu.jobs.model import JobState
+from ayvu.jobs.events import JobEventSequence, encode_event
 from ayvu.preferences.model import PreferencesError
 from ayvu.preferences.service import PreferencesSnapshot
-from ayvu.project_schema import open_provenance_repository
-from ayvu.project_store import ProjectJsonRepository, build_project_request
+from ayvu.projects.schema import open_provenance_repository
+from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.review_exchange import decode_review_package
 from ayvu.translate_project import ContinuationTicket, TRANSLATE_BEFORE_START, TranslateObserver
 from ayvu.translation_engine import ENGINE_SAFE_POINTS
@@ -206,7 +206,7 @@ def test_invalid_label_presentation_gate_even_when_storage_is_unavailable(tmp_pa
 
 def test_runtime_warning_reaches_the_cli(tmp_path, monkeypatch):
     from uuid import UUID
-    from ayvu.job_events import JobCorrelation, JobEvent
+    from ayvu.jobs.events import JobCorrelation, JobEvent
     from test_cli_translate_project import _canned, _report, _result
     event = JobEvent(str(UUID(int=1)), str(UUID(int=2)), 1, datetime.now(UTC),
                      JobCorrelation(str(UUID(int=3))), JobWarning("provider_advisory"))
@@ -415,7 +415,7 @@ def test_cli_tm_conservative_threshold_gate_is_explicit_and_precedes_transport(t
 
 def test_memory_review_warning_reaches_current_cli_presentation(tmp_path, monkeypatch):
     from uuid import UUID
-    from ayvu.job_events import JobCorrelation, JobEvent
+    from ayvu.jobs.events import JobCorrelation, JobEvent
     from test_cli_translate_project import _canned, _report, _result
     event = JobEvent(str(UUID(int=1)), str(UUID(int=2)), 1, datetime.now(UTC),
         JobCorrelation(str(UUID(int=3))), JobWarning('memory_review_suggestions'))

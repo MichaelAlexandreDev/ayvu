@@ -13,7 +13,7 @@ import re
 from typing import Callable, Protocol
 
 from .content import TranslationUnit, source_digest
-from .project_profiles import ResolvedProfileSnapshot, canonical
+from .projects.profiles import ResolvedProfileSnapshot, canonical
 from .provider import ContextFeature, ContextItem, Requirement, UnitReference, valid_reference
 from .provider_capabilities import Capability, ProviderCapabilitySnapshot, SupportState, LimitSemantics, LimitUnit
 from .cache_identity import OpaqueSemanticRevision

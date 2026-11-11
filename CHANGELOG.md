@@ -272,6 +272,13 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Jobs, artefatos e projetos em pacotes (REF-08, #276, primeira parte): `ayvu.jobs`, `ayvu.artifacts`,
+  `ayvu.projects` e `ayvu.projects.profiles`. `artifacts.destination` deixa de importar formats: a
+  composição passa o guarda de saída e a publicação do formato. Os adaptadores (stores SQLite e JSON,
+  o esquema do projeto, a sessão HTTP, o acesso ao sistema de arquivos) passam a ser módulos públicos
+  próprios, e o `__init__` de cada pacote exporta só o modelo e os casos de uso. Assim, importar o
+  modelo não carrega mais SQLite nem HTTP, o que a REF-07 tinha passado a fazer em `provenance` e
+  `preferences`. Um teste garante isso.
 - Módulos folha em pacotes (REF-07, #275): `ayvu.network` (`policy`, `http`), `ayvu.preferences`
   (`model`, que junta `preferences` e `config_values`, além de `service`, `store` e `config_facade`),
   `ayvu.library`, `ayvu.provenance` e `ayvu.content` (`model` e `protection`, que era

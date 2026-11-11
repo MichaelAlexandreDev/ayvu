@@ -5,10 +5,10 @@ from contextlib import contextmanager
 import os
 from pathlib import Path
 
-from .glossary_catalog import GlossaryReference, Snapshot, read_glossary
-from .glossary_catalog_store import ManagedGlossaryRepository, _Failure, _key
-from .project_profile_service import check_cancel
-from .project_profiles import GlossaryBinding, ProfileError, ProfileRevision
+from ...glossary_catalog import GlossaryReference, Snapshot, read_glossary
+from ...glossary_catalog_store import ManagedGlossaryRepository, _Failure, _key
+from .service import check_cancel
+from .model import GlossaryBinding, ProfileError, ProfileRevision
 
 
 def _blocked(code: str) -> ProfileError:

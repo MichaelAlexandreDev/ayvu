@@ -6,13 +6,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from ayvu.job import JobLease, JobRequest, JobState, JobTerminalSummary, TranslationJob
+from ayvu.jobs.model import JobLease, JobRequest, JobState, JobTerminalSummary, TranslationJob
 from ayvu.job_recovery import (
     REUSE_DIMENSIONS, ArtifactIntegrity, CompatibilityStatus, InspectJobRecoverability, InvocationView, ListInterruptedJobs, OutputEvidence,
     RecoveryCancelled, RecoveryReason, RecoveryScan, RequestJobResume, RequiredDecision, ResumeRequest, ResumeStage, ResumeStatus, SourceState,
     StageEvidence, classify_job, select_resume_stage,
 )
-from ayvu.job_service import JobSnapshot
+from ayvu.jobs.service import JobSnapshot
 from ayvu.translate_project import TranslateProjectResult
 from ayvu.kernel import JobFailure, JobFailureFamily
 
@@ -224,7 +224,7 @@ def test_a_finished_job_with_warnings_is_not_an_interruption_unless_a_file_says_
 
 @pytest.mark.parametrize("error, reason", [("version_gap", RecoveryReason.UNSUPPORTED_SCHEMA), ("io", RecoveryReason.PROJECT_UNAVAILABLE)])
 def test_a_project_store_that_cannot_be_read_is_one_entry_and_not_the_end(error, reason):
-    from ayvu.job import JobStoreError
+    from ayvu.jobs.model import JobStoreError
     entries = ListInterruptedJobs(Evidence(LEGACY, jobs=JobStoreError(error))).execute().entries
     assert entries[0].compatibility is CompatibilityStatus.LEGACY_ONLY
     assert entries[1].reasons == (reason,) and not entries[1].resumable

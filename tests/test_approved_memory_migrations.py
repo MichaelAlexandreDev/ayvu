@@ -69,8 +69,8 @@ def test_production_initialization_never_promotes_representative_legacy_rows(tmp
 
 
 def test_real_projects_directory_resolution_preserves_original_manifest_and_project_database(tmp_path):
-    from ayvu.project_store import ProjectJsonRepository, build_project_request
-    from ayvu.project_schema import open_provenance_repository
+    from ayvu.projects.store import ProjectJsonRepository, build_project_request
+    from ayvu.projects.schema import open_provenance_repository
     original = tmp_path / 'original.epub'
     original.write_bytes(b'synthetic original')
     projects = ProjectJsonRepository(tmp_path / 'processing')

@@ -12,9 +12,9 @@ import time
 
 import pytest
 
-from ayvu.project import ProjectConflictError, ProjectError, ProjectSourceError
-from ayvu.project_service import resolve_project
-from ayvu.project_store import (
+from ayvu.projects.model import ProjectConflictError, ProjectError, ProjectSourceError
+from ayvu.projects.service import resolve_project
+from ayvu.projects.store import (
     ProjectStoreError,
     ProjectJsonRepository, build_project_request, canonical_source_path, configuration_references, decode_manifest, encode_manifest,
     file_digest, source_digest, translation_selections,
@@ -105,7 +105,7 @@ def test_failed_update_preserves_prior_bytes(project_input, monkeypatch, failure
     before = path.read_bytes()
     def fail(*args):
         raise OSError('secret-canary-path')
-    monkeypatch.setattr('ayvu.project_store.os.' + failure, fail)
+    monkeypatch.setattr('ayvu.projects.store.os.' + failure, fail)
     with pytest.raises(ProjectError) as caught:
         repository.save(replace(project, locations=('reports',)), expected_revision=1)
     assert 'secret-canary' not in str(caught.value)
@@ -238,7 +238,7 @@ def test_creation_failure_cleans_own_stage_and_retry_succeeds(project_input, mon
     with monkeypatch.context() as context:
         def fail(*args):
             raise OSError('synthetic-disk-failure')
-        context.setattr('ayvu.project_store.os.' + failure, fail)
+        context.setattr('ayvu.projects.store.os.' + failure, fail)
         with pytest.raises(ProjectError):
             repository.resolve(request)
     assert not list(repository.root.glob('.staging-*'))

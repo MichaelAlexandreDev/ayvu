@@ -640,9 +640,9 @@ def test_only_selected_unit_text_is_persisted_with_references_not_document_paths
 
 def test_cross_project_read_and_write_require_explicit_scope_and_provenance_mapping(env):
     from ayvu.content.model import build_document
-    from ayvu.job import JobRequest
-    from ayvu.job_store import SqliteJobRepository
-    from ayvu.project_schema import project_migration_runner
+    from ayvu.jobs.model import JobRequest
+    from ayvu.jobs.store import SqliteJobRepository
+    from ayvu.projects.schema import project_migration_runner
     from ayvu.provenance.model import ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
     from ayvu.provenance.store import SqliteProvenanceRepository
     from content_fixtures import ENGLISH, EPUB, unit

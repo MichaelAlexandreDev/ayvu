@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from ayvu.project import ProjectError, ProjectManifest, ProjectRequest
-from ayvu.project_store import decode_manifest, encode_manifest
+from ayvu.projects.model import ProjectError, ProjectManifest, ProjectRequest
+from ayvu.projects.store import decode_manifest, encode_manifest
 
 
 def manifest():

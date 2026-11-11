@@ -7,10 +7,10 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.job import (
+from ayvu.jobs.model import (
     JobContinuationError, JobLeaseError, JobNotFoundError, JobRequest, JobRevisionConflictError, JobState, JobStoreError, JobTerminalSummary, JobTransitionError)
-from ayvu.job_store import MAX_LIST_LIMIT, SqliteJobRepository
-from ayvu.project_schema import PROJECT_MIGRATIONS, open_job_repository
+from ayvu.jobs.store import MAX_LIST_LIMIT, SqliteJobRepository
+from ayvu.projects.schema import PROJECT_MIGRATIONS, open_job_repository
 from ayvu.kernel import JobValidationError
 from ayvu.kernel.sqlite import SqliteMigrationRunner
 

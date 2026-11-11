@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.artifact import ArtifactConflictError
-from ayvu.artifact_destination import LocalDestinationPayloads
+from ayvu.artifacts.model import ArtifactConflictError
+from ayvu.artifacts.destination import LocalDestinationPayloads
 from ayvu.batch_output_policy import BatchOutputError, BatchOutputPolicy, OutputIntent
 from ayvu.kernel import OutputPlan
 

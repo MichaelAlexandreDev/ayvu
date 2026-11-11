@@ -7,7 +7,7 @@ import pytest
 import requests
 
 from ayvu.content.model import Constraint, ProtectedPart
-from ayvu.job_execution import CancellationSource
+from ayvu.jobs.execution import CancellationSource
 from ayvu.provenance.model import NOT_APPLICABLE, UNKNOWN
 from ayvu.provider import (
     ConstraintsFeature, ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProtectedPartsFeature, ProviderRoute,

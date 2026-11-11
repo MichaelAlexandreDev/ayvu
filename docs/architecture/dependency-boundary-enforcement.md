@@ -28,23 +28,23 @@ entries fail, so a rename cannot silently discard protection.
 | `ayvu` | Independent package surface | Package metadata |
 | `domain`, `chunking` | Domain | Shared values, Translation |
 | `project` | Domain | Project identity and immutable manifest values |
-| `project_service` | Application | Project repository port and resolution policy |
-| `project_store` | Infrastructure | Atomic local manifest storage and source fingerprinting |
+| `projects.service` | Application | Project repository port and resolution policy |
+| `projects.store` | Infrastructure | Atomic local manifest storage and source fingerprinting |
 | `preferences` | Domain | Immutable v1 preference/profile values and validation |
 | `preferences.service` | Application | Shared get/update requests, outcomes and repository port |
 | `preferences.store` | Infrastructure | Bounded JSON, expected revisions and atomic publication |
 | `migration_contracts` | Domain | Content-free schema version plans, errors and outcomes |
 | `sqlite_migrations` | Infrastructure | SQLite bootstrap, verified backups and transactional migration runner |
-| `project_schema` | Infrastructure | Production migration registry and explicit job, artifact and provenance bootstrap |
+| `projects.schema` | Infrastructure | Production migration registry and explicit job, artifact and provenance bootstrap |
 | `job` | Domain | Job values, transition table, lease rules and typed errors |
-| `job_service` | Application | `JobRepository` port and job snapshot |
-| `job_store` | Infrastructure | SQLite job adapter and job schema SQL |
-| `job_events` | Domain | Job events, outcomes, ordering rules and canonical serialization |
-| `job_execution` | Application | Event ports, bounded in-memory log and cooperative cancellation |
+| `jobs.service` | Application | `JobRepository` port and job snapshot |
+| `jobs.store` | Infrastructure | SQLite job adapter and job schema SQL |
+| `jobs.events` | Domain | Job events, outcomes, ordering rules and canonical serialization |
+| `jobs.execution` | Application | Event ports, bounded in-memory log and cooperative cancellation |
 | `v1.resume_scan` | Infrastructure | Read-only view of a legacy checkpoint |
 | `artifact` | Domain | Artifact identity, lifecycle, derived locations and reuse predicate |
-| `artifact_service` | Application | Artifact ports, publication order, reuse and reconciliation |
-| `artifact_store` | Infrastructure | SQLite artifact records and contained local payload files |
+| `artifacts.service` | Application | Artifact ports, publication order, reuse and reconciliation |
+| `artifacts.store` | Infrastructure | SQLite artifact records and contained local payload files |
 | `content` | Domain | Content documents, translation units, deterministic identity and canonical serialization |
 | `provenance` | Domain | Lineage record values, explicit unknowns and canonical serialization |
 | `provenance.service` | Application | Provenance repository port and query results |
@@ -64,7 +64,7 @@ entries fail, so a rename cannot silently discard protection.
 | `job_recovery` | Application | Listing, inspecting and resuming interrupted translations |
 | `job_recovery_store` | Infrastructure | The read-only evidence recovery decides from |
 | `composition.builders.translate_project` | Composition | The current language work and validator behind those ports |
-| `artifact_destination` | Infrastructure | Publishing a job's output to the file the user chose |
+| `artifacts.destination` | Infrastructure | Publishing a job's output to the file the user chose |
 | `v1.translator` | Provider adapter with transitional embedded port | Providers |
 | `content.protection` | Domain | Protected terms, placeholders and their integrity checks |
 | `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |

@@ -65,6 +65,11 @@ The owner's answers on 2026-11-10:
 - Imports inside a module are free.
 - A subpackage's `__init__.py` is also a public API (for example `ayvu.kernel.sqlite`). A plain submodule
   of another package never is.
+- Adapters are public modules of their own (REF-08, #276): the modules that do I/O, such as
+  `jobs/store.py`, `artifacts/destination.py`, `projects/schema.py` or `network/http.py`. The package's
+  `__init__.py` exports only the model and the use cases. So code that needs a job's state or an artifact
+  record does not load SQLite, HTTP or the filesystem code, the same reason `ayvu.kernel.sqlite` has its own
+  API. `tests/test_public_api.py` lists the adapter modules and checks that no package import loads them.
 
 ### D3. One-way layers
 A lower layer never imports a higher one. Modules on the same row do not import each other unless the row
@@ -238,7 +243,7 @@ REF-15 break up by reason to change after they move.
 | `artifact.py` | `artifacts/model.py` |  |
 | `artifact_service.py` | `artifacts/service.py` |  |
 | `artifact_store.py` | `artifacts/store.py` |  |
-| `artifact_destination.py` | `artifacts/destination.py` | calls formats through a port |
+| `artifact_destination.py` | `artifacts/destination.py` | calls formats through a port: composition passes the output guard and the format publication in (REF-08) |
 | `format_adapter.py` | `formats/contracts.py` |  |
 | `format_service.py` | `formats/service.py` |  |
 | `format_local.py` | `formats/local.py` |  |

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from lxml import etree
 
 from ayvu import epub_format, epub_io
-from ayvu.artifact import ArtifactStoreError
+from ayvu.artifacts.model import ArtifactStoreError
 from ayvu.v1.cache import TranslationCache
 from ayvu.epub_archive import EpubArchiveError
 from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter

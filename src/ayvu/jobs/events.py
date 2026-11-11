@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
-from .job import (
+from .model import (
     TERMINAL_STATES, JobState, JobTerminalSummary, TranslationJob)
-from .kernel import (
+from ..kernel import (
     MAX_METRIC, JobError, JobEventError, JobFailure, JobFailureFamily, JobWarning, is_slug, valid_metric,
     validate_diagnostics, validate_job_identity, validate_utc,
 )

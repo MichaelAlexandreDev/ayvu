@@ -12,24 +12,21 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .artifact import Artifact, ArtifactError
-from .artifact_store import SqliteArtifactRepository
-from .job import JobStoreError, JobRequest
+from .artifacts import Artifact, ArtifactError
+from .artifacts.store import SqliteArtifactRepository
+from .jobs import JobStoreError, JobRequest
 from .job_recovery import (
     RECOVERY_BETWEEN_CHUNKS, ArtifactIntegrity, InvocationView, OutputEvidence, RecoveryCancelled, RecoveryProgress, RecoveryReason,
     RecoveryScan, ResumeStage, SourceState, StageEvidence,
 )
-from .job_service import JobSnapshot
-from .job_store import MAX_LIST_LIMIT, SqliteJobRepository
+from .jobs import JobSnapshot
+from .jobs.store import MAX_LIST_LIMIT, SqliteJobRepository
 from .v1.resume_scan import LegacyStateEntry, scan_legacy_states
-from .project import ProjectError, ProjectManifest, ProjectSourceError
-from .project_schema import project_migration_runner
-from .project_store import (
-    ConfigurationReferences, ProjectJsonRepository, canonical_source_path, configuration_references, file_digest, source_digest,
-    translation_selections,
-)
+from .projects import ProjectError, ProjectManifest, ProjectSourceError
+from .projects.schema import project_migration_runner
+from .projects.store import ConfigurationReferences, ProjectJsonRepository, canonical_source_path, configuration_references, file_digest, source_digest, translation_selections
 from .provenance import ProvenanceError, ProducerIdentity
-from .provenance import SqliteProvenanceRepository
+from .provenance.store import SqliteProvenanceRepository
 from .v1.resume import RUNNING_STATUS, TranslationResumeState
 from .translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_plan
 from .kernel import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions, JobError, CancellationToken

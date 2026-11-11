@@ -13,17 +13,17 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.artifact import ArtifactRequest
-from ayvu.artifact_service import ARTIFACT_SAFE_POINTS
+from ayvu.artifacts.model import ArtifactRequest
+from ayvu.artifacts.service import ARTIFACT_SAFE_POINTS
 from ayvu.format_adapter import (
     MATERIALIZING_OPERATIONS, AliasVerdict, DetectionOutcome, ExtractionRequest, FormatOperation, FormatRequirements, OperationSupport,
     PreviewRequest, ReconstructionRequest, UnitTranslation,
 )
 from ayvu.format_local import LocalFormatSource, LocalOutputGuard
 from ayvu.format_service import FORMAT_BEFORE_WORK, FormatAdapter, FormatPublication, FormatRegistration, FormatRegistry, FormatService, format_safe_points
-from ayvu.job import JobRequest, JobState
-from ayvu.job_execution import CancellationSource
-from ayvu.project_schema import open_artifact_service, open_job_repository
+from ayvu.jobs.model import JobRequest, JobState
+from ayvu.jobs.execution import CancellationSource
+from ayvu.projects.schema import open_artifact_service, open_job_repository
 from ayvu.kernel import JobFailureFamily
 
 PROJECT = "00000000-0000-4000-8000-000000000127"

@@ -19,8 +19,8 @@ from ayvu.cache_schema import SchemaState, classify_cache
 from ayvu.preferences.config_facade import ConfigStore
 from ayvu.preferences.model import AyvuConfig, config_from_preferences, config_to_preferences
 from ayvu.glossary import load_glossary
-from ayvu.job_events import encode_event
-from ayvu.job_execution import CancellationSource
+from ayvu.jobs.events import encode_event
+from ayvu.jobs.execution import CancellationSource
 from ayvu.preferences.model import GlobalPreferences, PreferencesError, preferences_from_mapping, preferences_to_mapping
 from ayvu.provenance.model import ProducerIdentity, ProvenanceValidationError, declared_model
 from ayvu.provider import ProviderRoute
@@ -337,7 +337,7 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
     import io
     from uuid import uuid4
     from zipfile import ZipFile
-    from ayvu.artifact import ArtifactRequest, mark_ready, new_artifact, record_payload
+    from ayvu.artifacts.model import ArtifactRequest, mark_ready, new_artifact, record_payload
     from ayvu.format_adapter import AliasVerdict
     from ayvu.format_local import LocalFormatSource
     from ayvu.format_service import FormatPublication
@@ -384,7 +384,7 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
 @pytest.mark.parametrize("parent_version,new_version", [(1, 2), (2, 1)])
 def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp_path, monkeypatch, parent_version, new_version):
     from types import SimpleNamespace
-    from ayvu.job import JobRequest, new_job
+    from ayvu.jobs.model import JobRequest, new_job
     from ayvu.translate_project import ContinuationTicket, TranslateProjectCommand
     from test_translate_batch_project_contract import _use_case, PROJECT, JOB, NOW, DIGEST, _options
     use_case, jobs = _use_case()
@@ -400,7 +400,7 @@ def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp
 
 
 def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_not_events(tmp_path, monkeypatch):
-    from ayvu.job_events import JobEventSequence
+    from ayvu.jobs.events import JobEventSequence
     from ayvu.translate_project import TranslateProjectCommand, resolve_plan as job_plan
     from ayvu.translation_engine import EngineResult
     from test_translate_batch_project_contract import _use_case, PROJECT, DIGEST, _options
@@ -506,8 +506,8 @@ def test_production_preparation_records_the_runtime_revision_without_copying_the
 def test_rich_checkpoint_associates_with_the_recorded_job_without_current_configuration(tmp_path, monkeypatch, evidence_state):
     from types import SimpleNamespace
     from uuid import UUID
-    from ayvu.job import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
-    from ayvu.job_service import JobSnapshot
+    from ayvu.jobs.model import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
+    from ayvu.jobs.service import JobSnapshot
     from ayvu.job_recovery import CompatibilityStatus
     from ayvu.translate_project import TranslateProjectCommand, resolve_plan as job_plan
     from test_job_recovery_integration import Scene

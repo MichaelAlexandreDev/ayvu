@@ -14,10 +14,10 @@ from uuid import UUID
 import pytest
 import requests.sessions
 
-from ayvu.artifact import Artifact, ArtifactRequest, ArtifactState
-from ayvu.job import JobState
-from ayvu.job_events import JobCorrelation, JobEvent, JobOutcome, JobProgress
-from ayvu.job_execution import CancellationSource, InMemoryJobEventLog
+from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
+from ayvu.jobs.model import JobState
+from ayvu.jobs.events import JobCorrelation, JobEvent, JobOutcome, JobProgress
+from ayvu.jobs.execution import CancellationSource, InMemoryJobEventLog
 from ayvu.review_application import (
     ApplyReviewPackage,
     ExportReviewPackage,

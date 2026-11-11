@@ -12,9 +12,9 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import uuid4
 
-from .job import JobState, TranslationJob
-from .job_execution import CancellationSource
-from .job_service import JobSnapshot
+from .jobs import JobState, TranslationJob
+from .jobs import CancellationSource
+from .jobs import JobSnapshot
 from .translate_project import (INTERRUPTED, INTERRUPTED_AFTER_PUBLICATION, OWN_JOB_STATES, PUBLICATION_UNCOMMITTED,
     ContinuationTicket, TranslateProjectResult)
 from .kernel import JobError, CancellationToken

@@ -19,11 +19,11 @@ from pathlib import Path
 from uuid import uuid4
 from urllib.parse import urlsplit
 
-from .project import (
+from .model import (
     ProjectError, ProjectManifest, ProjectManifestError, ProjectNotFoundError,
     ProjectRequest, ProjectSourceError, ProjectConflictError,
 )
-from .project_service import ProjectResolution, select_project
+from .service import ProjectResolution, select_project
 
 MAX_MANIFEST_BYTES = 32 * 1024
 MAX_PROJECTS = 1024

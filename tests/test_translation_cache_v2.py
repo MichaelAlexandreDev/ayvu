@@ -8,8 +8,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from ayvu.artifact import new_artifact
-from ayvu.artifact_service import ReuseResult
+from ayvu.artifacts.model import new_artifact
+from ayvu.artifacts.service import ReuseResult
 from ayvu.cache_identity import (
     CacheAuthorizationPolicy,
     CacheCompatibilityIdentity,
@@ -41,7 +41,7 @@ from ayvu.content.model import (
     UnitContent,
     build_document,
 )
-from ayvu.job import JobLease, JobRequest, JobState, TranslationJob
+from ayvu.jobs.model import JobLease, JobRequest, JobState, TranslationJob
 from ayvu.provenance.model import ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
 from ayvu.translation_document import (

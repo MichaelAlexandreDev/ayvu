@@ -7,12 +7,12 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.job import JobRequest, JobState, JobStoreError
-from ayvu.artifact_store import ARTIFACT_SCHEMA_STATEMENTS
-from ayvu.job_store import JOB_SCHEMA_STATEMENTS
+from ayvu.jobs.model import JobRequest, JobState, JobStoreError
+from ayvu.artifacts.store import ARTIFACT_SCHEMA_STATEMENTS
+from ayvu.jobs.store import JOB_SCHEMA_STATEMENTS
 from ayvu.provenance.store import PROVENANCE_SCHEMA_STATEMENTS
-from ayvu.project_schema import PROJECT_MIGRATIONS, open_job_repository, project_migration_runner
-from ayvu.project_store import ProjectJsonRepository, build_project_request
+from ayvu.projects.schema import PROJECT_MIGRATIONS, open_job_repository, project_migration_runner
+from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.kernel.sqlite import APPLICATION_ID, SqliteMigrationRunner
 
 FIXTURES = Path(__file__).parent / 'fixtures' / 'migrations'
@@ -160,15 +160,15 @@ def test_jobs_created_at_version_two_survive_the_artifact_upgrade(tmp_path):
     path, backups = tmp_path / 'project.sqlite', tmp_path / 'backups'
     seeded(path, 2)
     registry_at_two = SqliteMigrationRunner(PROJECT_MIGRATIONS[:2])
-    from ayvu.job_store import SqliteJobRepository
+    from ayvu.jobs.store import SqliteJobRepository
     job = SqliteJobRepository(registry_at_two, path, PROJECT).create(request())
     jobs = open_job_repository(path, backups, PROJECT)
     assert jobs.get(job.job_id).job == job
 
 
 def test_open_artifact_service_reports_a_failed_migration_as_a_typed_error(tmp_path):
-    from ayvu.artifact import ArtifactStoreError
-    from ayvu.project_schema import open_artifact_service
+    from ayvu.artifacts.model import ArtifactStoreError
+    from ayvu.projects.schema import open_artifact_service
     path = tmp_path / 'project.sqlite'
     path.write_bytes(b'not a sqlite database: private-canary')
     with pytest.raises(ArtifactStoreError) as caught:
@@ -177,7 +177,7 @@ def test_open_artifact_service_reports_a_failed_migration_as_a_typed_error(tmp_p
 
 
 def test_open_provenance_repository_reports_a_failed_migration_as_a_typed_error(tmp_path):
-    from ayvu.project_schema import open_provenance_repository
+    from ayvu.projects.schema import open_provenance_repository
     from ayvu.provenance.model import ProvenanceStoreError
     path = tmp_path / 'project.sqlite'
     path.write_bytes(b'not a sqlite database: private-canary')

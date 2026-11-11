@@ -16,10 +16,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .artifact import Artifact, ArtifactState
+from .artifacts import Artifact, ArtifactState
 from .content import ContentDocument, TranslationUnit
 from .format_adapter import FormatDescriptor, UnitTranslation
-from .project import ProjectManifest
+from .projects import ProjectManifest
 from .content import INTERNAL_MARKER_PATTERN, TAG_TOKEN_PATTERN
 
 

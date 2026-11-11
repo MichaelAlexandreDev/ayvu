@@ -11,6 +11,9 @@ its root and not every edition's wiring. The quarantined v1 modules are the othe
 from __future__ import annotations
 
 import ast
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "src" / "ayvu"
@@ -20,11 +23,16 @@ SOURCE = Path(__file__).resolve().parents[1] / "src" / "ayvu"
 # Empty at the start: the only package today, desktop/, is not reached into.
 ALLOWED: dict[str, str] = {}
 
-# Plain modules that are a public API by themselves: the composition roots, and the v1 modules, which are
-# quarantined until REF-18 retires them, so no package API is designed for them (D7).
+# Plain modules that are a public API by themselves: the composition roots (D5); the v1 modules, quarantined
+# until REF-18 retires them (D7); and the adapters, which do I/O, so that importing a package's model and use
+# cases never loads SQLite, HTTP or the filesystem code behind them (D2, like ayvu.kernel.sqlite).
+ADAPTER_MODULES = frozenset({
+    "network.http", "preferences.store", "preferences.config_facade", "provenance.store", "jobs.store",
+    "artifacts.store", "artifacts.destination", "projects.store", "projects.schema", "projects.profiles.store",
+    "projects.profiles.glossary_store", "library.adapters"})
 PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (
     "translation", "html_translate", "translator", "cache", "cache_format", "cache_stream", "cache_admin_store",
-    "resume", "resume_scan")})
+    "resume", "resume_scan")} | ADAPTER_MODULES)
 
 
 def packages(root: Path = SOURCE) -> set[str]:
@@ -98,6 +106,20 @@ def test_no_module_reaches_into_another_package():
     current = violations()
     new = {key: why for key, why in current.items() if key not in ALLOWED}
     assert not new, "D2: use the package's __init__.py exports instead:\n" + "\n".join(f"{k}: {v}" for k, v in new.items())
+
+
+def test_a_package_api_loads_no_adapter_or_io_library():
+    """Importing a package's __init__ must not pull in an adapter module, SQLite or HTTP."""
+    names = sorted(".".join(path.relative_to(SOURCE).parts[:-1]) for path in SOURCE.rglob("__init__.py")
+                   if path.parent != SOURCE and path.relative_to(SOURCE).parts[0] not in {"composition", "v1", "desktop"}
+                   and "sqlite" not in path.relative_to(SOURCE).parts)
+    adapters = sorted(f"ayvu.{name}" for name in ADAPTER_MODULES)
+    code = ("import importlib, sys\nfor name in sys.argv[2:]:\n    importlib.import_module('ayvu.' + name)\n"
+            "bad = sorted(m for m in sys.modules if m in ('sqlite3', 'requests') or m in sys.argv[1].split(','))\n"
+            "print(','.join(bad))")
+    result = subprocess.run([sys.executable, "-c", code, ",".join(adapters), *names], capture_output=True, text=True,
+                            env={**os.environ, "PYTHONPATH": str(SOURCE.parent)}, timeout=60, check=True)
+    assert names and result.stdout.strip() == ""
 
 
 def test_the_allowed_list_only_shrinks():

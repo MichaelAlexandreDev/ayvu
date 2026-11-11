@@ -16,15 +16,13 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import BinaryIO
 
-from .artifact import (
+from .model import (
     MAX_ARTIFACT_BYTES, Artifact, ArtifactConflictError, ArtifactError, ArtifactIntegrityError, ArtifactNotFoundError,
     ArtifactPathError, ArtifactRequest, ArtifactState, ArtifactStoreError, ArtifactValidationError, validate_identity,
 )
-from .artifact_service import ArtifactService, PayloadEvidence
-from .artifact_store import ArtifactFileOps, _translated_errors
-from .format_local import LocalOutputGuard
-from .format_service import FormatPublication
-from .kernel import CancellationToken
+from .service import ArtifactService, PayloadEvidence
+from .store import ArtifactFileOps, _translated_errors
+from ..kernel import CancellationToken
 
 _READ_CHUNK = 1024 * 1024
 _MAX_JOURNAL_BYTES = 64 * 1024
@@ -322,19 +320,25 @@ class LocalDestinationPayloads:
 
 
 class DestinationPublications:
-    """One job's output on its way to its destination, and what past runs left behind in this project."""
+    """One job's output on its way to its destination, and what past runs left behind in this project.
 
-    def __init__(self, artifacts: ArtifactService, payloads: LocalDestinationPayloads, destination: Path) -> None:
+    The output guard and the format publication come from composition, so artifacts never import formats.
+    ``publication`` is called as ``publication(publisher, request, owner_token, guard)``.
+    """
+
+    def __init__(self, artifacts: ArtifactService, payloads: LocalDestinationPayloads, guard: object,
+                 publication: Callable[[object, ArtifactRequest, str, object], object]) -> None:
         self._artifacts = artifacts
         self._payloads = payloads
-        self._guard = LocalOutputGuard(destination)
+        self._guard = guard
+        self._publication = publication
 
     def __repr__(self) -> str:
         return "DestinationPublications()"
 
-    def publication(self, request: ArtifactRequest, owner_token: str, on_staged: Callable[[object], None]) -> FormatPublication:
+    def publication(self, request: ArtifactRequest, owner_token: str, on_staged: Callable[[object], None]) -> object:
         self._payloads.on_staged = on_staged
-        return FormatPublication(self, request, owner_token, self._guard)
+        return self._publication(self, request, owner_token, self._guard)
 
     def publish(self, request: ArtifactRequest, chunks: Iterable[bytes], *, owner_token: str,
                 cancellation: CancellationToken | None = None) -> Artifact:

@@ -15,11 +15,11 @@ from pathlib import Path
 from typing import Callable, Iterator
 from uuid import uuid4
 
-from .job import (
+from .model import (
     JobContinuationError, JobLease, JobNotFoundError, JobRequest, JobRevisionConflictError, JobState, JobStoreError, JobTerminalSummary, TranslationJob, acquire_lease, new_job, release_lease, renew_lease, requires_reconciliation, transition_job)
-from .job_service import JobSnapshot
-from .kernel import JobError, JobValidationError, validate_job_identity
-from .kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
+from .service import JobSnapshot
+from ..kernel import JobError, JobValidationError, validate_job_identity
+from ..kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
 
 MAX_LIST_LIMIT = 1024
 

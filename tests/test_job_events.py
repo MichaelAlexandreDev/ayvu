@@ -4,8 +4,8 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.job import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
-from ayvu.job_events import (
+from ayvu.jobs.model import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
+from ayvu.jobs.events import (
     MAX_EVENT_BYTES, CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobEventAcceptance, JobEventKind, JobEventOrderError, JobEventSequence, JobOutcome, JobProgress, decode_event, encode_event)
 from ayvu.kernel import (
     DIAGNOSTIC_KEYS, JobEventError, JobFailure, JobFailureFamily, JobOperationError, JobWarning,
@@ -164,7 +164,7 @@ def test_serialized_diagnostics_have_a_byte_limit(monkeypatch):
 
 
 def test_encoded_size_limit_is_enforced(monkeypatch):
-    monkeypatch.setattr('ayvu.job_events.MAX_EVENT_BYTES', 16)
+    monkeypatch.setattr('ayvu.jobs.events.MAX_EVENT_BYTES', 16)
     with pytest.raises(JobEventError, match='^event_too_large$'):
         encode_event(event())
 

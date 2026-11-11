@@ -18,8 +18,8 @@ from typing import Protocol
 from ...approved_memory import MemoryScope, ScopeKind
 from ...approved_memory_store import open_approved_memory
 from ...memory_retrieval import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
-from ...artifact import ArtifactError
-from ...artifact_destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
+from ...artifacts import ArtifactError
+from ...artifacts.destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
 from ...cache_repository import SQLiteExactCache
 from ...cache_schema import CacheSchemaError, SchemaState, classify_cache
 from ...content import ContentDocument, TranslationUnit
@@ -34,18 +34,18 @@ from ...epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB
     resolve_chapter_selection,
     translate_epub,
 )
-from ...format_local import LocalFormatSource
-from ...format_service import FormatRegistry, FormatService
+from ...format_local import LocalFormatSource, LocalOutputGuard
+from ...format_service import FormatPublication, FormatRegistry, FormatService
 from ...glossary import apply_glossary_with_usage, effective_glossary_reference
 from ...html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
-from ...job import JobState
-from ...job_execution import CancellationSource
+from ...jobs import JobState
+from ...jobs import CancellationSource
 from ...job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from ...job_recovery_store import LocalRecoveryEvidence
 from ...v1.translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
-from ...project import ProjectError
-from ...project_schema import open_artifact_service, open_job_repository, open_provenance_repository
-from ...project_store import ProjectJsonRepository
+from ...projects import ProjectError
+from ...projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
+from ...projects.store import ProjectJsonRepository
 from ...provenance import ProvenanceError, declared_model
 from ...provider import ProviderRoute
 from ...provider_capabilities import Capability, ProviderRequirements
@@ -280,7 +280,7 @@ def open_translate_project(processing_dir: Path, project_id: str, source_path: P
         nodes = provenance.list_by_job(job.job_id, limit=1).nodes
         return nodes[0].record.request.producer if nodes else None
     safe_points = DOCUMENT_SAFE_POINTS if isinstance(runtime, RichTranslationRuntime) else ()
-    ports = TranslateProjectPorts(projects, jobs, provenance, epub_format_service(), DestinationPublications(artifacts, payloads, destination),
+    ports = TranslateProjectPorts(projects, jobs, provenance, epub_format_service(), DestinationPublications(artifacts, payloads, LocalOutputGuard(destination), FormatPublication),
                                   LegacyOutputValidator(destination), LocalFormatSource(source_path), runtime, projects.run_guard(project_id),
                                   runtime_safe_points=safe_points, recorded_producer=recorded_producer)
     return TranslateProject(ports, clock=clock, **tuning)

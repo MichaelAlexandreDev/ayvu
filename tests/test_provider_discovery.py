@@ -6,7 +6,7 @@ from uuid import UUID
 import pytest
 import requests
 
-from ayvu.job_execution import CancellationSource
+from ayvu.jobs.execution import CancellationSource
 from ayvu.provenance.model import ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, TranslationProviderResult
 from ayvu.provider_capabilities import (

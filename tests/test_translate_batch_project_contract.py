@@ -11,8 +11,8 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
-from ayvu.job import JobState, acquire_lease, new_job, release_lease, transition_job
-from ayvu.job_events import encode_event
+from ayvu.jobs.model import JobState, acquire_lease, new_job, release_lease, transition_job
+from ayvu.jobs.events import encode_event
 from ayvu.translate_batch import ItemStatus
 from ayvu.composition.builders.translate_batch import BatchCancellationController, project_item_outcome
 from ayvu.translate_project import (TranslateCommandError, TranslateObserver, TranslateProject,

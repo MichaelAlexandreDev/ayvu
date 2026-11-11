@@ -1,10 +1,8 @@
-"""The local book library: discovery, description and opening a book in a reader."""
+"""The local book library and its use cases. Filesystem discovery and the reader launcher are the adapter module library.adapters."""
 from __future__ import annotations
 
-from .adapters import LocalLibraryFilesystem, ReaderLauncher
 from .service import Book, DescribeRequest, LibraryService, ListRequest, OpenRequest, ScanRequest
 
 __all__ = [
-    "Book", "DescribeRequest", "LibraryService", "ListRequest", "LocalLibraryFilesystem", "OpenRequest",
-    "ReaderLauncher", "ScanRequest",
+    "Book", "DescribeRequest", "LibraryService", "ListRequest", "OpenRequest", "ScanRequest",
 ]

@@ -13,10 +13,10 @@ import os
 from pathlib import Path
 import tempfile
 
-from .project import ProjectError
-from .project_store import ProjectJsonRepository, _read_regular, _safe_components, encode_manifest
-from .project_profile_service import ProjectProfileState, check_cancel
-from .project_profiles import ProfileError, ProjectReference, digest
+from ..model import ProjectError
+from ..store import ProjectJsonRepository, _read_regular, _safe_components, encode_manifest
+from .service import ProjectProfileState, check_cancel
+from .model import ProfileError, ProjectReference, digest
 
 STATE_KEY = 'x-translation-profiles'
 MAX_STATE_BYTES = 8 * 1024 * 1024

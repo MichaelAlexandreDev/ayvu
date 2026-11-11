@@ -8,10 +8,10 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.job import ALLOWED_TRANSITIONS, JobRequest, JobState, JobTerminalSummary, new_job
-from ayvu.job_events import (
+from ayvu.jobs.model import ALLOWED_TRANSITIONS, JobRequest, JobState, JobTerminalSummary, new_job
+from ayvu.jobs.events import (
     CancellationRequest, JobCorrelation, JobEvent, JobEventAcceptance, JobEventKind, JobEventOrderError, JobOutcome, JobProgress, encode_event)
-from ayvu.job_execution import (
+from ayvu.jobs.execution import (
     CancellationSource, CancellationStatus, InMemoryJobEventLog)
 from job_contract_fakes import SAFE_POINTS, FakeOperation, OutcomeAudit, ProgressView
 from ayvu.kernel import JobEventError, JobFailure, JobFailureFamily, JobOperationError, JobWarning, JobCancellationError
@@ -405,7 +405,7 @@ def test_nonterminal_recovery_condition_has_no_outcome_and_blocks_nothing():
 def test_contract_modules_import_no_presentation_or_infrastructure():
     root = Path(__file__).parents[1] / 'src' / 'ayvu'
     forbidden = {'typer', 'rich', 'requests', 'sqlite3', 'PySide6', 'PyQt6', 'bs4', 'ebooklib', 'lxml', 'os', 'pathlib'}
-    for name in ('job_events.py', 'job_execution.py'):
+    for name in ('jobs/events.py', 'jobs/execution.py'):
         tree = ast.parse((root / name).read_text())
         roots = set()
         for node in ast.walk(tree):

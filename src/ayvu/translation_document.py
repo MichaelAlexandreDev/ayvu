@@ -16,8 +16,8 @@ from enum import StrEnum
 from typing import Callable, Protocol
 from uuid import uuid4
 
-from .artifact import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactPathError, ArtifactRequest
-from .artifact_service import ARTIFACT_SAFE_POINTS, ArtifactService
+from .artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactPathError, ArtifactRequest
+from .artifacts import ARTIFACT_SAFE_POINTS, ArtifactService
 from .cache_identity import (
     MAX_CACHE_ONLY_CANDIDATES,
     AuthorizedCacheScope,
@@ -55,11 +55,11 @@ from .memory_retrieval import (
 from .content import ContentDocument, TranslationUnit
 from .context_execution import ContextExecution, plan_with_context
 from .translation_context import ContextError
-from .job import JobState, TranslationJob
+from .jobs import JobState, TranslationJob
 from .job_recovery import REUSE_DIMENSIONS, ArtifactIntegrity, ResumeStage, StageEvidence, select_resume_stage
-from .job_events import (
+from .jobs import (
     CancellationAcknowledgement, JobCorrelation, JobEvent, JobProgress)
-from .job_execution import CancellationSource, JobEventSink
+from .jobs import CancellationSource, JobEventSink
 from .provenance import (
     UNKNOWN, ActorKind, ConfigurationRef, ContextProvenance, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef,
 )

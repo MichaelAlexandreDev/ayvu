@@ -1,7 +1,6 @@
-"""Global preferences: the version-1 values, the repository port and the JSON store behind the CLI facade."""
+"""Global preferences: the version-1 values and the repository port. The JSON store and the CLI facade are the adapter modules preferences.store and preferences.config_facade."""
 from __future__ import annotations
 
-from .config_facade import ConfigStore, default_glossaries_dir
 from .model import (
     AyvuConfig, ConfigError, DEFAULT_BOOKS_DIR, FolderNames, GlobalPreferences, NamedPreferenceProfile,
     PreferencesError, TranslationProfile, config_from_preferences,
@@ -9,8 +8,7 @@ from .model import (
 from .service import PreferencesRepository, PreferencesSnapshot, UpdatePreferencesResult, get_preferences
 
 __all__ = [
-    "AyvuConfig", "ConfigError", "ConfigStore", "DEFAULT_BOOKS_DIR", "FolderNames", "GlobalPreferences",
+    "AyvuConfig", "ConfigError", "DEFAULT_BOOKS_DIR", "FolderNames", "GlobalPreferences",
     "NamedPreferenceProfile", "PreferencesError", "PreferencesRepository", "PreferencesSnapshot",
-    "TranslationProfile", "UpdatePreferencesResult", "config_from_preferences", "default_glossaries_dir",
-    "get_preferences",
+    "TranslationProfile", "UpdatePreferencesResult", "config_from_preferences", "get_preferences",
 ]

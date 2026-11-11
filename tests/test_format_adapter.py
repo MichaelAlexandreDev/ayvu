@@ -420,7 +420,7 @@ def test_a_safe_point_of_another_operation_is_undeclared(cards):
 
 
 def test_a_token_that_never_declared_the_safe_point_is_a_failure(cards):
-    from ayvu.job_execution import CancellationSource
+    from ayvu.jobs.execution import CancellationSource
 
     token = CancellationSource(("something_else",)).token
     result = service_for().extract("fake_cards", LocalFormatSource(cards), ExtractionRequest(PROJECT), cancellation=token)
@@ -663,7 +663,7 @@ def publish_with(tmp_path, cards, publisher):
 
 
 def test_publication_failures_are_typed(envdir, cards):
-    from ayvu.artifact import ArtifactIntegrityError, ArtifactStoreError
+    from ayvu.artifacts.model import ArtifactIntegrityError, ArtifactStoreError
 
     assert publish_with(envdir, cards, BrokenPublisher(error=ArtifactStoreError("disk_full"))).failure.code == "disk_full"
     failed = publish_with(envdir / "env", cards, BrokenPublisher(error=ArtifactIntegrityError("digest_mismatch")))
@@ -934,7 +934,7 @@ CONTRACT_MODULES = ("format_adapter", "format_service")
 def test_the_contract_imports_nothing_concrete():
     forbidden = {"ebooklib", "bs4", "lxml", "typer", "rich", "PySide6", "requests", "mcp", "sqlite3", "os", "shutil", "zipfile",
                  "ayvu.v1.translator", "ayvu.provider", "ayvu.provider_service", "ayvu.translation_pipeline", "ayvu.translation_document",
-                 "ayvu.artifact_store", "ayvu.job_store", "ayvu.v1.cache", "ayvu.glossary", "ayvu.v1.html_translate", "ayvu.epub_io", "ayvu.format_local"}
+                 "ayvu.artifacts.store", "ayvu.jobs.store", "ayvu.v1.cache", "ayvu.glossary", "ayvu.v1.html_translate", "ayvu.epub_io", "ayvu.format_local"}
     for name in CONTRACT_MODULES:
         tree = ast.parse((ROOT / "src" / "ayvu" / f"{name}.py").read_text())
         for node in ast.walk(tree):

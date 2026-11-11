@@ -68,10 +68,10 @@ layers = [
   "v1",
   "(recovery)",
   "(translation) : translation_plan : translation_pipeline : translation_engine : translation_document : translation_context : context_execution : context_source : chunking : translate_project : translate_batch : batch_output_policy : preflight : (review) : review_application : review_exchange : review_export : review_import",
-  "(projects) : project : project_service : project_store : project_schema : project_profiles : project_profile_service : project_profile_store : profile_glossary_store",
+  "projects",
   "(knowledge) : cache_identity : cache_repository : cache_schema : cache_interchange : cache_admin : cache_admin_store : cache_admin_v2_store : translation_memory : memory_retrieval : approved_memory : approved_memory_service : approved_memory_store : glossary : glossary_catalog : glossary_catalog_store : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_libretranslate : provider_session : (formats) : format_adapter : format_service : format_local : epub_archive : epub_format : epub_io : html_structure : validation : markdown_writer",
-  "(artifacts) : artifact : artifact_service : artifact_store : artifact_destination",
-  "(jobs) : job : job_events : job_execution : job_service : job_store : job_recovery : job_recovery_store",
+  "artifacts",
+  "jobs : job_recovery : job_recovery_store",
   "content : content_use_cases : network : preferences : library : (application)",
   "provenance",
   "kernel",
@@ -91,19 +91,17 @@ ignore_imports = [
   "ayvu.preflight -> ayvu.v1.translator",  # REF-11 (#279): preflight moves to translation/ with the HTTP client out of v1
   "ayvu.provider_libretranslate -> ayvu.v1.translator",  # REF-11 (#279): the LibreTranslate HTTP client moves to providers/
   "ayvu.provider_session -> ayvu.v1.translator",  # REF-11 (#279): the LibreTranslate HTTP client moves to providers/
-  "ayvu.provenance.store -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
+  "ayvu.provenance.store -> ayvu.jobs",  # REF-08 (#276): provenance reads the job it records; layers to revisit with recovery/
+  "ayvu.provenance.store -> ayvu.jobs.store",  # REF-08 (#276): provenance reads the job it records; layers to revisit with recovery/
   "ayvu.content_use_cases -> ayvu.format_adapter",  # REF-07 (#275): content use cases need a home above formats (open question)
   "ayvu.content_use_cases -> ayvu.format_service",  # REF-07 (#275): content use cases need a home above formats (open question)
-  "ayvu.artifact_destination -> ayvu.format_local",  # REF-08 (#276): artifacts call formats through a port
-  "ayvu.artifact_destination -> ayvu.format_service",  # REF-08 (#276): artifacts call formats through a port
   "ayvu.job_recovery -> ayvu.translate_project",  # REF-08 (#276): resume orchestration moves to recovery/
-  "ayvu.job_recovery_store -> ayvu.artifact",  # REF-08 (#276): resume orchestration moves to recovery/
-  "ayvu.job_recovery_store -> ayvu.artifact_store",  # REF-08 (#276): resume orchestration moves to recovery/
-  "ayvu.job_recovery_store -> ayvu.project",  # REF-08 (#276): resume orchestration moves to recovery/
-  "ayvu.job_recovery_store -> ayvu.project_schema",  # REF-08 (#276): resume orchestration moves to recovery/
-  "ayvu.job_recovery_store -> ayvu.project_store",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.artifacts",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.artifacts.store",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.projects",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.projects.schema",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.projects.store",  # REF-08 (#276): resume orchestration moves to recovery/
   "ayvu.job_recovery_store -> ayvu.translate_project",  # REF-08 (#276): resume orchestration moves to recovery/
-  "ayvu.provenance.store -> ayvu.job_store",  # REF-08 (#276): decided when jobs moves
   "ayvu.memory_retrieval -> ayvu.translation_plan",  # REF-09 (#277): memory_retrieval moves to translation/stages/
   "ayvu.epub_io -> ayvu.review_export",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
   "ayvu.epub_io -> ayvu.review_import",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats

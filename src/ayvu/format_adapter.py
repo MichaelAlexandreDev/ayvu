@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 
-from .artifact import Artifact
+from .artifacts import Artifact
 from .content import UNKNOWN_LOCALE, AdapterIdentity, ContentDocument, SourceLocale
 from .kernel import is_slug, JobFailure
 

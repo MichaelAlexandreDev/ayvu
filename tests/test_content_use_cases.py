@@ -24,7 +24,7 @@ from ayvu.format_adapter import (
 )
 from ayvu.format_local import LocalFormatSource
 from ayvu.format_service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
-from ayvu.job_execution import CancellationSource
+from ayvu.jobs.execution import CancellationSource
 from ayvu.markdown_writer import MarkdownDirectoryWriter
 from zipfile import ZIP_DEFLATED
 
