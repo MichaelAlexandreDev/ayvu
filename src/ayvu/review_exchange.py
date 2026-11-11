@@ -20,7 +20,7 @@ from .artifact import Artifact, ArtifactState
 from .content import ContentDocument, TranslationUnit
 from .format_adapter import FormatDescriptor, UnitTranslation
 from .project import ProjectManifest
-from .translation_protection import INTERNAL_MARKER_PATTERN, TAG_TOKEN_PATTERN
+from .content import INTERNAL_MARKER_PATTERN, TAG_TOKEN_PATTERN
 
 
 REVIEW_PACKAGE_SCHEMA_VERSION = 2

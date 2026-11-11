@@ -10,7 +10,7 @@ import pytest
 
 from ayvu.glossary_catalog import Entry, GlossaryReference
 from ayvu.glossary_catalog_store import ManagedGlossaryRepository
-from ayvu.preferences_store import JsonPreferencesRepository
+from ayvu.preferences.store import JsonPreferencesRepository
 from ayvu.profile_glossary_store import LegacyGlossaryResolver
 from ayvu.project import ProjectConflictError
 from ayvu.composition.builders.profiles import project_profile_service
@@ -332,7 +332,7 @@ def test_migration_and_style_remain_inert_over_instrumented_libretranslate_trans
     # Real requests prepares the payload; only its final send boundary is replaced.
     # Migration, snapshot publication and cache replay must not reach transport.
     import requests
-    from ayvu.config import TranslationProfile
+    from ayvu.preferences.config_facade import TranslationProfile
     from ayvu.cli import _resolve_target_language, _resolve_glossary_path
     from ayvu.translation_pipeline import LegacyTextPipelineFacade, LinguisticSource
     from ayvu.v1.translator import LibreTranslateTranslator

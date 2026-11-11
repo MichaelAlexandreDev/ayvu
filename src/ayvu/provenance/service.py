@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from .provenance import ProvenanceRecord, ProvenanceRequest, SubjectRef
+from .model import ProvenanceRecord, ProvenanceRequest, SubjectRef
 
 
 @dataclass(frozen=True)

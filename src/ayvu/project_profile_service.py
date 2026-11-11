@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import Callable, Protocol
 
 from .preferences import GlobalPreferences, PreferencesError
-from .preferences_service import PreferencesRepository, get_preferences
+from .preferences import PreferencesRepository, get_preferences
 from .project_profiles import (
     MAX_HISTORY, MAX_PROFILES, GlossaryBinding, PlanFacts, ProfileError, ProfileOverrides,
     ProfileReference, ProfileRevision, ProjectReference, ProjectTranslationProfile,

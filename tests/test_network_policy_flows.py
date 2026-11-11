@@ -11,8 +11,8 @@ from typer.testing import CliRunner
 
 from ayvu import cli
 from ayvu.composition import cli as cli_composition
-from ayvu.config_values import AyvuConfig
-from ayvu.network_policy import NetworkPolicy
+from ayvu.preferences.model import AyvuConfig
+from ayvu.network.policy import NetworkPolicy
 from ayvu.provider_discovery import DiscoveryOutcome
 from ayvu.provider_network import NetworkClass, ProviderOperation
 from ayvu.v1.resume import ResumeStateStore, TranslationResumeState
@@ -191,8 +191,8 @@ def test_resume_uses_saved_endpoint_but_current_request_policy(minimal_epub_path
 
 
 def test_external_reader_launch_is_outside_http_offline_receipt(tmp_path, monkeypatch, capsys):
-    from ayvu.library_adapters import LocalLibraryFilesystem, ReaderLauncher
-    from ayvu.library_service import LibraryService
+    from ayvu.library.adapters import LocalLibraryFilesystem, ReaderLauncher
+    from ayvu.library.service import LibraryService
     root = tmp_path / "books"
     (root / "Original").mkdir(parents=True)
     (root / "Original" / "Book.epub").write_bytes(b"characterization")

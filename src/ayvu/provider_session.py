@@ -14,7 +14,7 @@ from .provider_libretranslate import ADAPTER_ID, ADAPTER_VERSION, LibreTranslate
 from .provider_network import NetworkClass, ProviderOperation, ResolvedProviderNetworkDecision, network_binding
 from .provider_service import ProviderInstance
 from .v1.translator import LibreTranslateTranslator
-from .network_policy import NetworkPolicy, resolve_network_policy
+from .network import NetworkPolicy, resolve_network_policy
 
 CLI_INSTANCE_ID = "libretranslate_cli"
 _ISSUER = "cli_composition"  # the issuer name since #158, a value and not a module path

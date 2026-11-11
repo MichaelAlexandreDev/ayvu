@@ -1,5 +1,5 @@
 """Contract tests for the framework-neutral library service."""
-from ayvu.library_service import Candidate, LibraryService, MAX_ENTRIES, MAX_WARNINGS, Warning
+from ayvu.library.service import Candidate, LibraryService, MAX_ENTRIES, MAX_WARNINGS, Warning
 
 
 class Filesystem:
@@ -134,7 +134,7 @@ def test_invalid_name_warning_does_not_discard_valid_entries():
 
 
 def make_local(tmp_path, *, reader='reader --new-window'):
-    from ayvu.library_adapters import LocalLibraryFilesystem, ReaderLauncher
+    from ayvu.library.adapters import LocalLibraryFilesystem, ReaderLauncher
     root = tmp_path / 'library'
     (root / 'Original').mkdir(parents=True)
     (root / 'Traduzidos').mkdir()
@@ -212,7 +212,7 @@ def test_stat_failure_is_isolated_and_does_not_leak_exception(tmp_path, monkeypa
 
 
 def test_platform_selection_and_launch_errors_do_not_launch_real_process():
-    from ayvu.library_adapters import ReaderLauncher
+    from ayvu.library.adapters import ReaderLauncher
     calls = []
     assert ReaderLauncher(None, runner=calls.append, which=lambda name: name if name == 'gio' else None,
                           platform='linux').launch('/tmp/book.epub', lambda: False, lambda: True) == 'opened'
@@ -227,7 +227,7 @@ def test_platform_selection_and_launch_errors_do_not_launch_real_process():
 
 
 def test_revalidation_occurs_immediately_before_process_creation(tmp_path):
-    from ayvu.library_adapters import ReaderLauncher
+    from ayvu.library.adapters import ReaderLauncher
     calls = []
     launcher = ReaderLauncher('reader', runner=calls.append)
     assert launcher.launch(str(tmp_path / 'book.epub'), lambda: False, lambda: False) == 'unauthorized'
@@ -235,7 +235,7 @@ def test_revalidation_occurs_immediately_before_process_creation(tmp_path):
 
 
 def test_macos_reader_selection_uses_injected_process(tmp_path):
-    from ayvu.library_adapters import ReaderLauncher
+    from ayvu.library.adapters import ReaderLauncher
     calls = []
     path = str(tmp_path / 'book.epub')
     launcher = ReaderLauncher(runner=calls.append, which=lambda name: name if name == 'open' else None,
@@ -245,7 +245,7 @@ def test_macos_reader_selection_uses_injected_process(tmp_path):
 
 
 def test_typed_requests_use_only_current_opaque_references():
-    from ayvu.library_service import ScanRequest, ListRequest, DescribeRequest, OpenRequest
+    from ayvu.library.service import ScanRequest, ListRequest, DescribeRequest, OpenRequest
     fs = Filesystem([Candidate('Book', 'original', 'opaque-token')])
     fs.paths['opaque-token'] = '/private/Book.epub'
     launcher = Launcher()
@@ -311,7 +311,7 @@ def test_real_uninterpretable_filename_is_a_warning(tmp_path):
 
 def test_authorization_checks_non_epub_and_traversal_even_with_matching_identity(tmp_path):
     from dataclasses import replace
-    from ayvu.library_adapters import LocalLibraryFilesystem, _identity
+    from ayvu.library.adapters import LocalLibraryFilesystem, _identity
     root, _, _ = make_local(tmp_path)
     path = root / 'Original' / 'Book.epub'
     path.write_bytes(b'')
@@ -375,7 +375,7 @@ def test_discovery_and_detail_do_not_open_files_write_or_access_network(tmp_path
 
 def test_process_port_rejects_a_shell_string_before_invoking_runner():
     import pytest
-    from ayvu.library_adapters import ProcessLauncher
+    from ayvu.library.adapters import ProcessLauncher
     calls = []
     port = ProcessLauncher(calls.append)
     with pytest.raises(ValueError, match='invalid process arguments'):
@@ -384,7 +384,7 @@ def test_process_port_rejects_a_shell_string_before_invoking_runner():
 
 
 def test_configured_shells_are_rejected_before_revalidation_or_process():
-    from ayvu.library_adapters import ReaderLauncher
+    from ayvu.library.adapters import ReaderLauncher
     calls = []
     revalidated = []
     for command in ('sh -c echo', '/bin/bash -c echo', 'dash -c echo', 'zsh -c echo',

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
-from .library_service import Candidate, Warning, MAX_WARNINGS
+from .service import Candidate, Warning, MAX_WARNINGS
 
 
 @dataclass(frozen=True)

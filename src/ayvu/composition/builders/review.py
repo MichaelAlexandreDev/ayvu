@@ -37,7 +37,7 @@ from ...project_store import ProjectJsonRepository, file_digest
 from ...provenance import (
     UNKNOWN, ActorKind, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef,
 )
-from ...provenance_store import SqliteProvenanceRepository
+from ...provenance import SqliteProvenanceRepository
 from ...review_application import (
     REVIEW_APPLY_COMMAND_TYPE, REVIEW_EXPORT_COMMAND_TYPE, REVIEW_SAFE_POINTS, ReviewApplicationError,
     ReviewCounts, ReviewOperation, ReviewOperationResult, ReviewPackageExport, ReviewPackageIdentity,

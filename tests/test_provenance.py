@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.provenance import (
+from ayvu.provenance.model import (
     MAX_ARTIFACTS, MAX_CONFIGURATION_REFS, MAX_PARENTS, MAX_RECORD_BYTES, NOT_APPLICABLE, UNKNOWN, ActorKind,
     ConfigurationRef, ProducerIdentity, ProvenanceRecord, ProvenanceRequest, ProvenanceValidationError, SourceKind,
     SubjectRef, decode_record, encode_record, request_identity,
@@ -214,7 +214,7 @@ def test_largest_allowed_record_fits_the_size_limit():
 
 
 def test_oversized_record_is_refused(monkeypatch):
-    monkeypatch.setattr('ayvu.provenance.MAX_RECORD_BYTES', 16)
+    monkeypatch.setattr('ayvu.provenance.model.MAX_RECORD_BYTES', 16)
     with pytest.raises(ProvenanceValidationError, match='^record_too_large$'):
         encode_record(record())
 

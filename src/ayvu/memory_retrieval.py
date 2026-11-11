@@ -24,7 +24,7 @@ from .cache_identity import AuthorizedCacheScope, ExactEntryKey
 from .content import ContentDocument, TranslationUnit
 from .provenance import ConfigurationRef
 from .translation_plan import ResolvedTranslationPlan
-from .translation_protection import protected_content_is_intact, special_term_spans
+from .content import protected_content_is_intact, special_term_spans
 
 
 class RetrievalSource(StrEnum):

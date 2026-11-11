@@ -17,7 +17,7 @@ from typer.testing import CliRunner
 from ayvu import cli
 from ayvu.composition import cli as root
 from ayvu.composition.cli import _BookHooks, _BookRequest, _BookOutcome
-from ayvu.config_values import AyvuConfig
+from ayvu.preferences.model import AyvuConfig
 from ayvu.epub_io import TranslationReport
 from ayvu.job import JobState
 from ayvu.job_events import JobOutcome, JobTerminalSummary
@@ -303,7 +303,9 @@ def test_preview_translation_does_not_validate_twice(tmp_path, monkeypatch):
 
 
 def test_compatibility_facades_export_identical_contracts():
-    from ayvu import config, config_values, preflight, batch_output_policy
+    from ayvu import preflight, batch_output_policy
+    from ayvu.preferences import config_facade as config
+    from ayvu.preferences import model as config_values
     from ayvu.v1 import resume
     from ayvu.composition.builders import providers as provider_composition
     from ayvu import cli, providers, translation

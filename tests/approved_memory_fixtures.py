@@ -18,8 +18,8 @@ from ayvu.approved_memory_store import SqliteApprovedMemoryRepository, memory_mi
 from ayvu.job import JobRequest
 from ayvu.job_store import SqliteJobRepository
 from ayvu.project_schema import project_migration_runner
-from ayvu.provenance import ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
-from ayvu.provenance_store import SqliteProvenanceRepository
+from ayvu.provenance.model import ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
+from ayvu.provenance.store import SqliteProvenanceRepository
 from content_fixtures import PROJECT, epub_document, unit
 from ayvu.kernel import LanguagePair
 from ayvu.kernel.sqlite import APPLICATION_ID

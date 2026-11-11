@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from ayvu.content import (
+from ayvu.content.model import (
     AdapterIdentity, Constraint, ContextReference, Extension, LocaleState, Locator, ProtectedPart, SemanticKind,
     SourceLocale, UnitContent, UNKNOWN_LOCALE, build_document,
 )

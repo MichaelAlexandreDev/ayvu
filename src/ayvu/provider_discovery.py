@@ -18,7 +18,7 @@ from .provider_capabilities import (
     ProviderDescriptor, ProviderRequirements, negotiate,
 )
 from .provider_network import ProviderOperation, network_binding, network_refusal
-from .network_policy import NETWORK_DENIAL_CODES
+from .network import NETWORK_DENIAL_CODES
 from .provider_service import ProviderInstance, TranslationProvider, UNKNOWN_PRODUCER, execute, failed_result
 from .kernel import JobError, validate_utc, JobFailure, JobFailureFamily, CancellationToken
 

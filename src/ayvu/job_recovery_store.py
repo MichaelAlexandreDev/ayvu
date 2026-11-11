@@ -29,7 +29,7 @@ from .project_store import (
     translation_selections,
 )
 from .provenance import ProvenanceError, ProducerIdentity
-from .provenance_store import SqliteProvenanceRepository
+from .provenance import SqliteProvenanceRepository
 from .v1.resume import RUNNING_STATUS, TranslationResumeState
 from .translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_plan
 from .kernel import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions, JobError, CancellationToken

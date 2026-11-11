@@ -131,7 +131,7 @@ def test_preflight_passes_execution_controls_to_translator_factory(monkeypatch, 
     assert calls["args"] == ("libretranslate",)
     kwargs = calls["kwargs"]
     assert isinstance(kwargs.pop("rate_limiter"), RequestRateLimiter)
-    from ayvu.network_http import NetworkAuthorization
+    from ayvu.network.http import NetworkAuthorization
     assert isinstance(kwargs.pop("network_authorization"), NetworkAuthorization)
     assert kwargs == {
         "url": "http://localhost:5000",

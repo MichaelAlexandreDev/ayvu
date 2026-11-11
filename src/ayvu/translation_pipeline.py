@@ -21,7 +21,7 @@ from .chunking import split_text
 from .memory_retrieval import MemoryMatch, RetrievalDecision
 from .translation_memory import TranslationMemoryMatch
 from .translation_plan import LINGUISTIC_STAGES
-from .translation_protection import (
+from .content import (
     INTERNAL_MARKER_PATTERN, PROTECTED_TOKEN_PATTERN, TAG_TOKEN_PATTERN, ProtectedSpan, TextParts,
     protect_special_terms, protected_content_is_intact, special_term_spans,
 )

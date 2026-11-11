@@ -29,7 +29,7 @@ from ayvu.job_events import JobEventKind, encode_event
 from ayvu.job_execution import CancellationSource
 from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ayvu.project_store import ProjectJsonRepository, build_project_request
-from ayvu.provenance import ProvenanceStoreError
+from ayvu.provenance.model import ProvenanceStoreError
 from ayvu.translate_project import (
     OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_BEFORE_START, ContinuationTicket, OutputValidation, TranslateCommandError,
     TranslateObserver, TranslateProject, TranslateProjectCommand, TranslateProjectPorts, resolve_plan,

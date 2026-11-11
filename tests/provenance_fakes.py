@@ -7,7 +7,7 @@ from uuid import UUID
 from ayvu.artifact import ArtifactRequest
 from ayvu.job import JobRequest, JobState
 from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
-from ayvu.provenance import ActorKind, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
+from ayvu.provenance.model import ActorKind, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
 
 PROJECT = str(UUID(int=1))
 INPUT_FINGERPRINT = 'sha256:' + 'e' * 64

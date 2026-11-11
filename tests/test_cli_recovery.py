@@ -12,7 +12,7 @@ import pytest
 from typer.testing import CliRunner
 
 from ayvu.cli import app
-from ayvu.config import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
+from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.job import JobState
 from ayvu.v1.resume import ResumeStateStore
 from test_cli_translate_project import ENCRYPTED_DOCUMENT, Session, _args, _book, _jobs, _only_job

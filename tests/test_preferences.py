@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.preferences import GlobalPreferences
-from ayvu.preferences_service import GetPreferences, UpdatePreferences, get_preferences, update_preferences
+from ayvu.preferences.model import GlobalPreferences
+from ayvu.preferences.service import GetPreferences, UpdatePreferences, get_preferences, update_preferences
 
 
 def test_framework_free_consumer_uses_repository_contract():
-    from ayvu.preferences_service import PreferencesSnapshot
+    from ayvu.preferences.service import PreferencesSnapshot
     class Repository:
         def load(self):
             return PreferencesSnapshot(GlobalPreferences(), 'missing', False)
@@ -26,7 +26,7 @@ def test_framework_free_consumer_uses_repository_contract():
 
 
 def test_failed_update_keeps_intent_and_reports_persistence_separately():
-    from ayvu.preferences import PreferencesError
+    from ayvu.preferences.model import PreferencesError
     class Repository:
         def save(self, preferences, expected_revision):
             raise PreferencesError('conflict')
@@ -39,7 +39,7 @@ def test_failed_update_keeps_intent_and_reports_persistence_separately():
 
 
 def test_field_classification_is_complete_executable_contract():
-    from ayvu.preferences import NamedPreferenceProfile, preferences_to_mapping
+    from ayvu.preferences.model import NamedPreferenceProfile, preferences_to_mapping
     contract = json.loads((Path(__file__).parents[1] /
         'docs/architecture/global-preferences-fields.json').read_text())
     fields = {entry['path']: entry for entry in contract['fields']}

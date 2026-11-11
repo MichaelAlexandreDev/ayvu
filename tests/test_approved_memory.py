@@ -16,7 +16,7 @@ from ayvu.approved_memory import (
 from ayvu.approved_memory_service import CreateCandidate, ReviewRevision
 from ayvu.approved_memory_store import MEMORY_MIGRATIONS, SqliteApprovedMemoryRepository, memory_migration_runner
 from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.provenance import ActorKind, ConfigurationRef
+from ayvu.provenance.model import ActorKind, ConfigurationRef
 from approved_memory_fixtures import (
     IMPORT_SCOPE, NOW, PAIR, PIN, PROJECT, PROJECT_SCOPE, SCOPES, USER_SCOPE, WORK_SCOPE,
     MemoryEnvironment, document, final, source,
@@ -502,7 +502,7 @@ def test_storage_failures_and_database_immutability_are_typed(env):
 
 
 def test_visible_source_omits_only_structural_markup_and_keeps_stable_content_reference():
-    from ayvu.content import ProtectedPart
+    from ayvu.content.model import ProtectedPart
     from ayvu.html_structure import html_unit_template, review_text_from_template
     from content_fixtures import epub_document, unit
     text = 'Hello <em>world</em> __AYVU_TAG_0__'
@@ -521,7 +521,7 @@ def test_visible_source_omits_only_structural_markup_and_keeps_stable_content_re
 
 
 def test_format_projection_preserves_breaks_and_omits_hidden_inline_content():
-    from ayvu.content import ProtectedPart
+    from ayvu.content.model import ProtectedPart
     from ayvu.html_structure import html_unit_template, review_text_from_template
     from content_fixtures import epub_document, unit
     text = 'Hello<br/><script>UNRELATED SECRET</script>world'
@@ -639,12 +639,12 @@ def test_only_selected_unit_text_is_persisted_with_references_not_document_paths
 
 
 def test_cross_project_read_and_write_require_explicit_scope_and_provenance_mapping(env):
-    from ayvu.content import build_document
+    from ayvu.content.model import build_document
     from ayvu.job import JobRequest
     from ayvu.job_store import SqliteJobRepository
     from ayvu.project_schema import project_migration_runner
-    from ayvu.provenance import ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
-    from ayvu.provenance_store import SqliteProvenanceRepository
+    from ayvu.provenance.model import ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
+    from ayvu.provenance.store import SqliteProvenanceRepository
     from content_fixtures import ENGLISH, EPUB, unit
     other_id = str(UUID(int=555))
     other_scope = MemoryScope(ScopeKind.PROJECT, other_id)
@@ -708,7 +708,7 @@ def test_approval_lock_contention_is_typed_conflict_and_retry_keeps_exact_operat
 
 @pytest.mark.parametrize('imported', [False, True])
 def test_provenance_storage_failure_is_distinct_from_missing_evidence(env, monkeypatch, imported):
-    from ayvu.provenance import ProvenanceStoreError
+    from ayvu.provenance.model import ProvenanceStoreError
     origin = env.evidence('tm_import', str(uuid4())).record_id if imported else None
     command = env.creation(scope=IMPORT_SCOPE if imported else PROJECT_SCOPE, import_origin=origin)
     failed_id = origin if imported else command.value.provenance_id

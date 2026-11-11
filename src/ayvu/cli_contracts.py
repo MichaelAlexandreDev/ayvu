@@ -2,8 +2,8 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Protocol
-from .config_values import AyvuConfig
-from .preferences_service import PreferencesSnapshot, UpdatePreferencesResult
+from .preferences import AyvuConfig
+from .preferences import PreferencesSnapshot, UpdatePreferencesResult
 from .job_recovery import ListInterruptedJobs, InspectJobRecoverability, RequestJobResume, RecoveryEntry
 from .translate_project import AcceptedOutputPlan
 from .kernel import TranslationMemoryOptions

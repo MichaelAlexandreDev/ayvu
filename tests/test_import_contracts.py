@@ -32,7 +32,7 @@ def test_the_layers_contract_follows_the_decision_and_is_exhaustive():
     assert layers["type"] == "layers" and layers["exhaustive"] is True and layers["containers"] == ["ayvu"]
     first = [layer.split(" : ")[0] for layer in layers["layers"]]
     assert first == ["(interfaces)", "composition", "v1", "(recovery)", "(translation)", "(projects)",
-                     "(knowledge)", "(artifacts)", "(jobs)", "content", "kernel"]
+                     "(knowledge)", "(artifacts)", "(jobs)", "content", "provenance", "kernel"]
 
 
 def test_every_ignored_import_names_the_issue_that_removes_it():

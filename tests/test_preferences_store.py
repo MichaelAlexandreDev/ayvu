@@ -5,9 +5,9 @@ import os
 
 import pytest
 
-from ayvu.preferences import GlobalPreferences
-from ayvu.preferences_service import GetPreferences, UpdatePreferences, get_preferences, update_preferences
-from ayvu.preferences_store import JsonPreferencesRepository
+from ayvu.preferences.model import GlobalPreferences
+from ayvu.preferences.service import GetPreferences, UpdatePreferences, get_preferences, update_preferences
+from ayvu.preferences.store import JsonPreferencesRepository
 
 
 def test_missing_get_is_read_only_and_update_keeps_v1_format(tmp_path):
@@ -82,7 +82,7 @@ def test_legacy_underscore_language_round_trips_on_unrelated_update(tmp_path):
     'reader --refresh-token secret-canary',
 ])
 def test_credential_commands_never_enter_persistence(tmp_path, command):
-    from ayvu.preferences import PreferencesError
+    from ayvu.preferences.model import PreferencesError
     with pytest.raises(PreferencesError) as caught:
         replace(GlobalPreferences(), reader_app=command)
     assert 'secret-canary' not in str(caught.value)
@@ -116,7 +116,7 @@ def test_atomic_failure_preserves_old_bytes_and_unpersisted_intent(tmp_path, mon
     loaded = get_preferences(repository)
     def fail(*args):
         raise error_type('private-canary-path')
-    monkeypatch.setattr('ayvu.preferences_store.os.' + operation, fail)
+    monkeypatch.setattr('ayvu.preferences.store.os.' + operation, fail)
     result = update_preferences(repository, UpdatePreferences(
         replace(loaded.preferences, default_target_language='es'), loaded.revision))
     assert not result.persisted and result.error.code == code
@@ -164,14 +164,14 @@ def test_independent_writers_with_same_revision_have_one_winner(tmp_path):
 
 
 def test_lock_contention_has_deterministic_busy_outcome(tmp_path, monkeypatch):
-    from ayvu.preferences_store import _exclusive_lock
+    from ayvu.preferences.store import _exclusive_lock
     path = tmp_path / 'config.json'
     repository = JsonPreferencesRepository(path)
     loaded = get_preferences(repository)
     with _exclusive_lock(tmp_path / '.config.json.lock'):
         with monkeypatch.context() as patch:
             clock = iter([0, 10])
-            patch.setattr('ayvu.preferences_store.time.monotonic', lambda: next(clock))
+            patch.setattr('ayvu.preferences.store.time.monotonic', lambda: next(clock))
             result = update_preferences(repository, UpdatePreferences(loaded.preferences, loaded.revision))
     assert result.error.code == 'busy'
     assert not path.exists()
@@ -196,7 +196,7 @@ def test_unsafe_config_entries_are_rejected_without_touching_target(tmp_path, ki
 def test_permission_outcome_does_not_echo_raw_exception(tmp_path, monkeypatch):
     def fail(*args):
         raise PermissionError('private-canary-path')
-    monkeypatch.setattr('ayvu.preferences_store.os.open', fail)
+    monkeypatch.setattr('ayvu.preferences.store.os.open', fail)
     loaded = get_preferences(JsonPreferencesRepository(tmp_path / 'config.json'))
     assert loaded.error.code == 'permission'
     assert 'private-canary' not in str(loaded.error) + repr(loaded)
@@ -217,7 +217,7 @@ def test_post_publication_sync_failure_requires_reload(tmp_path, monkeypatch):
             raise OSError('synthetic-post-publication-failure')
         return original(fd)
     with monkeypatch.context() as patch:
-        patch.setattr('ayvu.preferences_store.os.fsync', fail_second)
+        patch.setattr('ayvu.preferences.store.os.fsync', fail_second)
         result = update_preferences(repository, UpdatePreferences(
             replace(loaded.preferences, default_target_language='es'), loaded.revision))
     assert not result.persisted

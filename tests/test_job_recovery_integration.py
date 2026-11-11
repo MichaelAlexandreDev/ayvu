@@ -19,7 +19,7 @@ from typer.testing import CliRunner
 
 from ayvu.v1.cache import TranslationCache
 from ayvu.cli import EXISTING_OUTPUT_OVERWRITE_OPTION, app
-from ayvu.config import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
+from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.job import JobRequest, JobState
 from ayvu.job_recovery import (
     CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStage, ResumeStatus,

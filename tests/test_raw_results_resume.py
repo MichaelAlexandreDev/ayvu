@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 import ayvu.cli as cli
 import ayvu.composition.builders.translate_project as composition
 from ayvu.job_execution import InMemoryJobEventLog
-from ayvu.provenance import ProducerIdentity
+from ayvu.provenance.model import ProducerIdentity
 from ayvu.provider import ProviderRoute
 from ayvu.translation_document import (
     MAX_REUSABLE_JOBS, RAW_RESULTS_VERSION, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,

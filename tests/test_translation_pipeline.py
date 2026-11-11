@@ -13,7 +13,7 @@ from ayvu.translation_memory import TranslationMemoryMatch
 from ayvu.translation_pipeline import (
     DEFAULT_MAX_RECOVERY_CALLS, LEGACY_TEXT_STAGES, LegacyTextPipelineFacade, LinguisticSource,
 )
-from ayvu.translation_protection import protect_special_terms, protected_content_is_intact
+from ayvu.content.protection import protect_special_terms, protected_content_is_intact
 from ayvu.kernel import LanguagePair
 
 PAIR = LanguagePair(source='en', target='pt')
@@ -224,7 +224,7 @@ def imported_roots(name):
     return roots
 
 
-@pytest.mark.parametrize('name', ['translation_pipeline.py', 'translation_protection.py'])
+@pytest.mark.parametrize('name', ['translation_pipeline.py', 'content/protection.py'])
 def test_the_pipeline_imports_no_format_provider_or_storage(name):
     roots = imported_roots(name)
     assert not roots & {'bs4', 'ebooklib', 'lxml', 'requests', 'sqlite3', 'typer', 'rich', 'xml', 'html', 'zipfile', 'os'}
@@ -233,7 +233,10 @@ def test_the_pipeline_imports_no_format_provider_or_storage(name):
 
 def test_the_facade_cannot_create_durable_state():
     roots = imported_roots('translation_pipeline.py')
-    assert not roots & {'.artifact', '.artifact_service', '.provenance', '.provenance_service', '.content', '.job', '.job_store'}
+    assert not roots & {'.artifact', '.artifact_service', '.provenance', '.provenance_service', '.job', '.job_store'}
+    taken = {alias.name for node in ast.walk(ast.parse((ROOT / 'translation_pipeline.py').read_text()))
+             if isinstance(node, ast.ImportFrom) and node.level and node.module == 'content' for alias in node.names}
+    assert taken and taken <= set(vars(sys.modules['ayvu.content.protection']))  # never the model
     subject, _ = facade()
     assert not {name for name in vars(subject) if 'project' in name or 'job' in name or 'unit' in name}
 

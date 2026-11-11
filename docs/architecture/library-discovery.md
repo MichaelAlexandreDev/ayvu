@@ -7,8 +7,8 @@ A CLI exibe esse limite antes de lançar o processo, inclusive com
 `--network-policy none`; o resultado de abertura não representa contenção de
 rede do leitor. A política não é passada como promessa de isolamento ao filho.
 
-The guided Library flow composes [`LibraryService`](../../src/ayvu/library_service.py)
-with the local adapters in [`library_adapters.py`](../../src/ayvu/library_adapters.py).
+The guided Library flow composes [`LibraryService`](../../src/ayvu/library/service.py)
+with the local adapters in [`library/adapters.py`](../../src/ayvu/library/adapters.py).
 The service uses separate discovery, authorization and launcher protocols and does not import a UI, EPUB
 parser or process API. A consumer supplies adapters and must explicitly authorize
 external opening; discovery alone does not launch a reader.

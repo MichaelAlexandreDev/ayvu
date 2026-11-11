@@ -49,7 +49,7 @@ from ayvu.cache_identity import (
     resolve_compatible_identities,
     source_content_digest,
 )
-from ayvu.provenance import ProducerIdentity
+from ayvu.provenance.model import ProducerIdentity
 
 PROJECT = str(UUID(int=0x1234))
 PRODUCER = ProducerIdentity("provider@1", "model@1", "adapter@1", "pipeline@1")

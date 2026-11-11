@@ -11,9 +11,9 @@ import pytest
 
 from ayvu.cache_identity import OpaqueSemanticRevision, SemanticOperationV2, SemanticRouteHop
 from ayvu.glossary_catalog import GlossaryReference
-from ayvu.preferences import GlobalPreferences, NamedPreferenceProfile, PreferencesError
-from ayvu.preferences_service import PreferencesSnapshot
-from ayvu.provenance import ProducerIdentity
+from ayvu.preferences.model import GlobalPreferences, NamedPreferenceProfile, PreferencesError
+from ayvu.preferences.service import PreferencesSnapshot
+from ayvu.provenance.model import ProducerIdentity
 from ayvu.project_profiles import (
     ExecutionStage, GlossaryBinding, GlossaryStage, PlanFacts, ProfileError, ProfileOverrides,
     ProfileReference, ProfileRevision, ProjectReference, ProjectTranslationProfile,

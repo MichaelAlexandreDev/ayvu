@@ -10,7 +10,7 @@ import pytest
 from ayvu.job import JobRequest, JobState, JobStoreError
 from ayvu.artifact_store import ARTIFACT_SCHEMA_STATEMENTS
 from ayvu.job_store import JOB_SCHEMA_STATEMENTS
-from ayvu.provenance_store import PROVENANCE_SCHEMA_STATEMENTS
+from ayvu.provenance.store import PROVENANCE_SCHEMA_STATEMENTS
 from ayvu.project_schema import PROJECT_MIGRATIONS, open_job_repository, project_migration_runner
 from ayvu.project_store import ProjectJsonRepository, build_project_request
 from ayvu.kernel.sqlite import APPLICATION_ID, SqliteMigrationRunner
@@ -178,7 +178,7 @@ def test_open_artifact_service_reports_a_failed_migration_as_a_typed_error(tmp_p
 
 def test_open_provenance_repository_reports_a_failed_migration_as_a_typed_error(tmp_path):
     from ayvu.project_schema import open_provenance_repository
-    from ayvu.provenance import ProvenanceStoreError
+    from ayvu.provenance.model import ProvenanceStoreError
     path = tmp_path / 'project.sqlite'
     path.write_bytes(b'not a sqlite database: private-canary')
     with pytest.raises(ProvenanceStoreError) as caught:

@@ -31,7 +31,7 @@ from ayvu.cache_identity import (
     TRANSLATION_STAGE_AGGREGATE,
     exact_entry_key,
 )
-from ayvu.content import (
+from ayvu.content.model import (
     AdapterIdentity,
     LocaleState,
     Locator,
@@ -42,7 +42,7 @@ from ayvu.content import (
     build_document,
 )
 from ayvu.job import JobLease, JobRequest, JobState, TranslationJob
-from ayvu.provenance import ProducerIdentity
+from ayvu.provenance.model import ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
 from ayvu.translation_document import (
     DocumentTranslator,

@@ -375,10 +375,10 @@ do resultado retorna à seleção, rede, autoridade ou comando.
 | A04 | Request adiciona `path=/synthetic/book.epub` ou `url=https://example.invalid` | C2/C3: chave extra/capacidade proibida, pedido inteiro inválido; não abrir nem resolver. |
 | A05 | Request adiciona `command=echo synthetic`, `tool=upload` ou `server=mcp` | C2/C3: sem campo executável, `denied/invalid_request`. |
 | A06 | Request adiciona `credential=synthetic` ou `secret_ref=synthetic` | C2/C3: credencial/ref proibida; nem resolução nem egress. |
-| A07 | Request tenta `authority`, `network_policy`, `purpose_grant` ou `destination` | C2/C3/N1: objeto/keys rejeitados, sem ampliar gate independente. |
+| A07 | Request tenta `authority`, `network.policy`, `purpose_grant` ou `destination` | C2/C3/N1: objeto/keys rejeitados, sem ampliar gate independente. |
 | A08 | Resultado inclui `approved=true` | C4/C5: `failed/invalid_result`, nenhum T2/T3. |
 | A09 | Resultado inclui `actor_kind=human` ou `actor_kind=policy_engine` | C4/C5/P1: ator forjado rejeitado; proveniência permanece máquina. |
-| A10 | Resultado inclui `mutation_command`, `purpose_grant`, `network_policy`, `secret_ref`, `tool_call` ou `destination` | C4/C5: cada chave isolada é inválida, sem comando, mudança de grant/rede ou arquivo. |
+| A10 | Resultado inclui `mutation_command`, `purpose_grant`, `network.policy`, `secret_ref`, `tool_call` ou `destination` | C4/C5: cada chave isolada é inválida, sem comando, mudança de grant/rede ou arquivo. |
 | A11 | Resultado inclui campo extra no envelope, item, ou referência estruturada; ou chave duplicada | C2/C4/C5: falha integral fechada, sem aproveitar itens válidos. |
 | A12 | Resultado usa outro request_id, papel, categoria, unidade ou evidence_ref não selecionada | C2/C4/P1: binding inválido, `failed/invalid_result`; não carregar nova evidência. |
 | A13 | Resultado T tem 65 itens; resultado L tem 32 KiB + 1 byte; rationale tem 1 KiB + 1 byte | C7/J1: `failed/resource_limit`, sem truncagem ou entrega parcial. |

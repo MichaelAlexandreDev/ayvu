@@ -22,7 +22,7 @@ from .content import (
     TranslationUnit, UnitContent, build_document,
 )
 from .format_adapter import UnitTranslation
-from .translation_protection import INTERNAL_MARKER_PATTERN, TAG_TOKEN_PATTERN
+from .content import INTERNAL_MARKER_PATTERN, TAG_TOKEN_PATTERN
 
 IGNORED_TAGS = {"script", "style", "code", "pre", "kbd", "samp", "svg", "math"}
 # Ignored tags that may appear inline inside a block. Their whole markup is kept

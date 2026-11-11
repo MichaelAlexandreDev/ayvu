@@ -7,7 +7,7 @@ import pytest
 import requests
 
 from ayvu.job_execution import CancellationSource
-from ayvu.provenance import ProducerIdentity
+from ayvu.provenance.model import ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, TranslationProviderResult
 from ayvu.provider_capabilities import (
     NOT_PROBED, AvailabilityState, Capability, CapabilityFact, EvidenceSource, LanguageEvidence, NegotiationDecision,

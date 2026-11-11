@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from bs4 import BeautifulSoup
 
-from ayvu.content import AdapterIdentity, ContentDocument, LocaleState, SourceLocale
+from ayvu.content.model import AdapterIdentity, ContentDocument, LocaleState, SourceLocale
 from ayvu.format_adapter import UnitTranslation
 from ayvu.html_structure import (
     HTML_ADAPTER, HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, HtmlStructureError, extract_html_document, extract_visible_text, html_unit_template,
@@ -209,7 +209,7 @@ def test_the_segmenter_version_must_match():
 
 
 def test_a_document_from_another_segmenter_version_is_refused():
-    from ayvu.content import build_document
+    from ayvu.content.model import build_document
 
     other = build_document(PROJECT, "chapter.xhtml", AdapterIdentity("html_structure", 1, 2), SourceLocale(LocaleState.UNKNOWN),
                            [unit.content for unit in extract(FIXTURES["plain"]).units])
@@ -218,7 +218,7 @@ def test_a_document_from_another_segmenter_version_is_refused():
 
 
 def test_a_document_with_another_locator_is_refused():
-    from ayvu.content import Locator, SemanticKind, UnitContent, build_document
+    from ayvu.content.model import Locator, SemanticKind, UnitContent, build_document
 
     other = build_document(PROJECT, "chapter.xhtml", HTML_ADAPTER, SourceLocale(LocaleState.UNKNOWN),
                            [UnitContent(Locator("webvtt_cue", 1, "a"), "x", SemanticKind("paragraph"), (1,))])

@@ -16,7 +16,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from ayvu.artifact import Artifact, ArtifactRequest, ArtifactState
-from ayvu.content import UNKNOWN_LOCALE
+from ayvu.content.model import UNKNOWN_LOCALE
 from ayvu.epub_format import EPUB_ADAPTER, EPUB_REGISTRATION, epub_format_adapter
 from ayvu.format_adapter import ContentScope, ExtractionRequest, UnitTranslation
 from ayvu.format_service import FormatRegistry, FormatService
@@ -721,7 +721,7 @@ def test_production_epub_extraction_review_mapping_and_staged_html_reconstructio
     monkeypatch.setattr(socket.socket, "connect", lambda *args, **kwargs: socket_calls.append((args, kwargs)))
     monkeypatch.setattr("ayvu.artifact_service.ArtifactService.publish",
                         lambda *args, **kwargs: publisher_calls.append((args, kwargs)))
-    monkeypatch.setattr("ayvu.provenance_store.SqliteProvenanceRepository.append",
+    monkeypatch.setattr("ayvu.provenance.store.SqliteProvenanceRepository.append",
                         lambda *args, **kwargs: provenance_calls.append((args, kwargs)))
     monkeypatch.setattr("ayvu.job_execution.InMemoryJobEventLog.emit",
                         lambda *args, **kwargs: event_calls.append((args, kwargs)))

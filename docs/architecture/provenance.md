@@ -26,8 +26,8 @@ datasets, quality scoring and telemetry are not accepted here.
 | Module | Layer | Responsibility |
 | --- | --- | --- |
 | `ayvu.provenance` | Domain | Record values, explicit unknowns, canonical serialization and typed errors |
-| `ayvu.provenance_service` | Application | `ProvenanceRepository` port and query results |
-| `ayvu.provenance_store` | Infrastructure | SQLite adapter and the schema SQL |
+| `ayvu.provenance.service` | Application | `ProvenanceRepository` port and query results |
+| `ayvu.provenance.store` | Infrastructure | SQLite adapter and the schema SQL |
 
 ## The record
 

@@ -13,15 +13,15 @@ from uuid import UUID
 
 import pytest
 
-import ayvu.content as content_module
-from ayvu.content import (
+import ayvu.content.model as content_module
+from ayvu.content.model import (
     CONTENT_SCHEMA_VERSION, IDENTITY_VERSION, INHERITED_LOCALE, MAX_ORDER_DEPTH, MAX_REFERENCE_CHARS, UNKNOWN_LOCALE,
     AdapterIdentity, Constraint, ContentDocument, ContentIdentityError, ContentSerializationError,
     ContentValidationError, ContentVersionError, ContextLink, ContextReference, Extension, LocaleState, Locator,
     ProtectedPart, SemanticKind, SourceLocale, TranslationUnit, UnitContent, build_document, decode_document,
     encode_document, source_digest,
 )
-from ayvu.provenance import SubjectRef
+from ayvu.provenance.model import SubjectRef
 from content_fixtures import (
     ENGLISH, EPUB, FINGERPRINT, PROJECT, epub_document, epub_locator, epub_units, layout_document, subtitle_document, unit,
 )
@@ -61,7 +61,7 @@ def test_pinned_bytes_decode_and_encode_back_exactly(name):
 
 def test_separate_processes_produce_identical_bytes_digests_and_ids():
     script = (
-        'import hashlib; from content_fixtures import *; from ayvu.content import encode_document\n'
+        'import hashlib; from content_fixtures import *; from ayvu.content.model import encode_document\n'
         'for d in (epub_document(), subtitle_document(), layout_document()):\n'
         '    print(hashlib.sha256(encode_document(d)).hexdigest(), d.revision_id, [u.unit_id for u in d.units],'
         ' [u.source_digest for u in d.units])\n')
@@ -226,7 +226,7 @@ def test_ids_can_be_used_as_opaque_provenance_subjects():
 
 
 def test_digest_and_id_are_independent_of_the_review_numbering():
-    source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'content.py').read_text()
+    source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'content' / 'model.py').read_text()
     assert 'review_export' not in source and 'parse_segment_id' not in source
     assert not ID_FORMAT.fullmatch('c0001-s0001')
 
@@ -588,7 +588,7 @@ def test_values_are_frozen():
 
 
 def test_model_imports_only_the_standard_library():
-    tree = ast.parse((Path(__file__).parents[1] / 'src' / 'ayvu' / 'content.py').read_text())
+    tree = ast.parse((Path(__file__).parents[1] / 'src' / 'ayvu' / 'content' / 'model.py').read_text())
     roots = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

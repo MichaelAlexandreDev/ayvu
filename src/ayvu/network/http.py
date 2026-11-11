@@ -13,7 +13,7 @@ from urllib3.connection import HTTPConnection
 from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 
-from .network_policy import NetworkDecision, NetworkPolicyError
+from .policy import NetworkDecision, NetworkPolicyError
 
 
 @dataclass(frozen=True, repr=False)

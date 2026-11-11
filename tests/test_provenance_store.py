@@ -7,12 +7,12 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.provenance import (
+from ayvu.provenance.model import (
     ActorKind, ProvenanceConflictError, ProvenanceLimitError, ProvenanceNotFoundError, ProvenanceRecord,
     ProvenanceReferenceError, ProvenanceStoreError, ProvenanceValidationError, SourceKind, encode_record,
 )
 from ayvu.project_schema import PROJECT_MIGRATIONS
-from ayvu.provenance_store import MAX_LIST_LIMIT, MAX_TRAVERSAL_DEPTH, MAX_TRAVERSAL_RECORDS, SqliteProvenanceRepository
+from ayvu.provenance.store import MAX_LIST_LIMIT, MAX_TRAVERSAL_DEPTH, MAX_TRAVERSAL_RECORDS, SqliteProvenanceRepository
 from provenance_fakes import INPUT_FINGERPRINT, MACHINE, PROJECT, START, SyntheticLineage, subject
 from ayvu.kernel.sqlite import SqliteMigrationRunner
 
@@ -384,7 +384,7 @@ def test_queries_by_job_subject_and_artifact_are_ordered_and_report_truncation(e
 
 
 def test_subject_query_distinguishes_namespace_and_version(env):
-    from ayvu.provenance import SubjectRef
+    from ayvu.provenance.model import SubjectRef
     env.append(subject=SubjectRef('content_unit', 1, 'unit-1'))
     assert env.repository.list_by_subject(SubjectRef('content_unit', 2, 'unit-1'), limit=5).nodes == ()
     assert env.repository.list_by_subject(SubjectRef('other', 1, 'unit-1'), limit=5).nodes == ()
@@ -425,7 +425,7 @@ def test_explicit_unknowns_survive_persistence_and_are_not_identified(env):
 
 
 def test_review_style_identifier_round_trips_as_an_opaque_value(env):
-    from ayvu.provenance import SubjectRef
+    from ayvu.provenance.model import SubjectRef
     value = SubjectRef('legacy_review_position', 1, 'c0001-s0001')
     record = env.append(subject=value)
     assert env.open().get(record.record_id).record.request.subject == value
@@ -436,7 +436,7 @@ def test_review_style_identifier_round_trips_as_an_opaque_value(env):
 def test_provenance_modules_do_not_know_the_review_numbering_scheme():
     from pathlib import Path
     root = Path(__file__).parents[1] / 'src' / 'ayvu'
-    for name in ('provenance.py', 'provenance_service.py', 'provenance_store.py'):
+    for name in ('provenance/model.py', 'provenance/service.py', 'provenance/store.py'):
         text = (root / name).read_text()
         assert 'review_export' not in text and 'parse_segment_id' not in text and 'c####' not in text
 

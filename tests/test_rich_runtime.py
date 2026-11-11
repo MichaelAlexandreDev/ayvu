@@ -16,13 +16,13 @@ import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.cache_identity import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
 from ayvu.cache_schema import SchemaState, classify_cache
-from ayvu.config import ConfigStore
-from ayvu.config_values import AyvuConfig, config_from_preferences, config_to_preferences
+from ayvu.preferences.config_facade import ConfigStore
+from ayvu.preferences.model import AyvuConfig, config_from_preferences, config_to_preferences
 from ayvu.glossary import load_glossary
 from ayvu.job_events import encode_event
 from ayvu.job_execution import CancellationSource
-from ayvu.preferences import GlobalPreferences, PreferencesError, preferences_from_mapping, preferences_to_mapping
-from ayvu.provenance import ProducerIdentity, ProvenanceValidationError, declared_model
+from ayvu.preferences.model import GlobalPreferences, PreferencesError, preferences_from_mapping, preferences_to_mapping
+from ayvu.provenance.model import ProducerIdentity, ProvenanceValidationError, declared_model
 from ayvu.provider import ProviderRoute
 from ayvu.provider_capabilities import Capability, ProviderRequirements
 from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LIBRETRANSLATE_SAFE_POINTS, libretranslate_snapshot
