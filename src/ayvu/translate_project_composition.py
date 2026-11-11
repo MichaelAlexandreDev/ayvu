@@ -6,8 +6,6 @@ raises here, so a caller learns of it before any translator is asked anything.
 """
 from __future__ import annotations
 
-from .cli_contracts import BookRefused, PreflightError, TranslationDryRunCancelled, ProjectTranslationUnavailable
-
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
@@ -83,6 +81,7 @@ from .translation_plan import resolve_plan as resolve_translation_plan
 from .translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
 from .validation import ValidationResult, validate_output_epub
 from .kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
+from .translation import BookRefused, PreflightError, ProjectTranslationUnavailable, TranslationDryRunCancelled
 
 # What the adapter refuses by policy, on any path. A book it merely cannot read is left to the current checks.
 BOOK_REFUSALS = frozenset({

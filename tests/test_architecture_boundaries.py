@@ -51,6 +51,8 @@ OWNERS = {
     "ayvu.cli": Owner("interface", "CLI"),
     "ayvu.cli_composition": Owner("composition", "CLI"),
     "ayvu.cli_contracts": Owner("application", "CLI workflow ports"),
+    **{name: Owner("domain", "Translation") for name in ("ayvu.translation", "ayvu.translation.errors")},
+    **{name: Owner("domain", "Providers") for name in ("ayvu.providers", "ayvu.providers.errors")},
     "ayvu.config_values": Owner("domain", "Preferences"),
     "ayvu.desktop_bootstrap": Owner("interface", "Desktop"),
     "ayvu.desktop": Owner("interface", "Desktop"),
@@ -382,8 +384,8 @@ def forbidden(
             return None if (source, target) in allowed_edges else "undeclared internal edge"
         if destination.layer not in ALLOWED_LAYER_DEPENDENCIES[owner.layer]:
             return "dependency direction"
-        if destination.capability == "Kernel":  # D4: every module may use the shared kernel
-            return None
+        if destination.capability == "Kernel" or target.startswith(source + "."):
+            return None  # D4: every module may use the shared kernel; D2: a package uses its own submodules
         if (source, target) not in allowed_edges:
             return "undeclared internal edge"
         return None
@@ -404,6 +406,13 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.translate_project_composition", "ayvu.translation"),
+    ("ayvu.resume", "ayvu.translation"),
+    ("ayvu.provider_composition", "ayvu.providers"),
+    ("ayvu.preflight", "ayvu.translation"),
+    ("ayvu.cli", "ayvu.providers"),
+    ("ayvu.cli", "ayvu.translation"),
+    ("ayvu.batch_output_policy", "ayvu.translation"),
     ('ayvu.translation_context', 'ayvu.content'),
     ('ayvu.translation_context', 'ayvu.project_profiles'),
     ('ayvu.translation_context', 'ayvu.provider'),
@@ -470,7 +479,6 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.cli_composition", "ayvu.review_composition"),
     ("ayvu.cli_composition", "ayvu.translate_batch_composition"),
     ("ayvu.cli_composition", "ayvu.translate_project_composition"),
-    ("ayvu.batch_output_policy", "ayvu.cli_contracts"),
     ("ayvu.cli", "ayvu.cli_composition"),
     ("ayvu.cli", "ayvu.cli_contracts"),
     ("ayvu.cli", "ayvu.config_values"),
@@ -488,10 +496,6 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.cli_contracts", "ayvu.translate_project"),
     ("ayvu.config", "ayvu.config_values"),
     ("ayvu.config_values", "ayvu.preferences"),
-    ("ayvu.preflight", "ayvu.cli_contracts"),
-    ("ayvu.provider_composition", "ayvu.cli_contracts"),
-    ("ayvu.resume", "ayvu.cli_contracts"),
-    ("ayvu.translate_project_composition", "ayvu.cli_contracts"),
     ("ayvu.project_profiles", "ayvu.glossary_catalog"),
     ("ayvu.project_profiles", "ayvu.preferences"),
     ("ayvu.project_profiles", "ayvu.project"),
@@ -813,12 +817,7 @@ EXCEPTIONS = {
 
 
 def test_real_production_tree() -> None:
-    check_tree(
-        ROOT / "src" / "ayvu",
-        OWNERS,
-        EXCEPTIONS,
-        allowed_edges=ALLOWED_INTERNAL_EDGES,
-    )
+    check_tree(ROOT / "src" / "ayvu", OWNERS, EXCEPTIONS, allowed_edges=ALLOWED_INTERNAL_EDGES)
 
 
 @pytest.mark.parametrize("case", json.loads((FIXTURES / "negative.json").read_text()))

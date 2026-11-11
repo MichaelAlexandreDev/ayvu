@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from .cli_contracts import ResumeStateError
-
 import json
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from .kernel import TranslationMemoryOptions, TranslationOptions
+from .translation import ResumeStateError
 
 
 RESUME_STATE_VERSION = 1

@@ -130,50 +130,6 @@ class CacheImportReport(Protocol):
     total_read: int
 
 
-class PreflightError(RuntimeError):
-    def __init__(self, summary: str, next_step: str, detail: str = "") -> None:
-        super().__init__(summary)
-        self.summary = summary
-        self.next_step = next_step
-        self.detail = detail
-
-
-class PreflightPolicyError(PreflightError):
-    """A policy refusal remains distinguishable without parsing presentation text."""
-
-    def __init__(self, code: str, next_step: str, detail: str) -> None:
-        super().__init__("O acesso HTTP ao tradutor foi bloqueado.", next_step, detail)
-        self.code = code
-
-
-class BookRefused(RuntimeError):
-    """The book is refused before anything starts. The message is the code, never a name from the book."""
-
-    def __init__(self, code: str) -> None:
-        super().__init__(code)
-        self.code = code
-
-
-class TranslationDryRunCancelled(KeyboardInterrupt):
-    """The no-project path observed a request at a callback safe point."""
-
-
-class ProjectTranslationUnavailable(RuntimeError):
-    """The project's storage could not be opened. Nothing was started, and the message is a bounded code."""
-
-
-class ProviderSetupError(ValueError):
-    """A bounded error: the settings could not build a provider."""
-
-
-class ResumeStateError(ValueError):
-    pass
-
-
-class BatchOutputError(ValueError):
-    """A stable code, never a path or a system exception."""
-
-
 @dataclass(frozen=True, repr=False)
 class _BookHooks:
     """What one book reports to the terminal and to the resume file while it runs."""

@@ -292,7 +292,7 @@ REF-15 break up by reason to change after they move.
 | `cache_admin_legacy_store.py` | `v1/cache_admin_store.py` |  |
 | `resume.py` | `v1/resume.py` |  |
 | `legacy_resume.py` | `v1/resume_scan.py` |  |
-| `cli_contracts.py` | `application/contracts.py` | each error or contract goes to its owning module; only cross-cutting ones stay |
+| `cli_contracts.py` | `interfaces/cli/contracts.py` | changed in REF-04: its errors went to `translation/errors.py` and `providers/errors.py`; the protocols only the CLI uses stay with the CLI |
 | `cli_composition.py` | `composition/cli.py` |  |
 | `desktop/bootstrap/composition.py` | `composition/desktop.py` |  |
 | `cache_admin_composition.py` | `composition/builders/cache_admin.py` |  |
@@ -371,7 +371,8 @@ REF-15 break up by reason to change after they move.
 
 1. The features of each edition (REF-17) depend on the owner.
 2. How to retire v1, and what happens to old caches and resume files, depends on the REF-18 inventory.
-3. Whether `application/` still needs to exist after REF-04, or everything fits in the owning modules.
+3. ~~Whether `application/` still needs to exist after REF-04.~~ Answered by REF-04: nothing in `cli_contracts.py` was
+   cross-cutting, so `application/` is not created. Its optional layer stays in the contract until REF-20 tidies it.
 4. Whether README and CHANGELOG follow D15.
 
 ## Acceptance gate

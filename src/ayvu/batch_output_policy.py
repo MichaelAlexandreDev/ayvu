@@ -5,8 +5,6 @@ No directories are created until an auxiliary file is actually written.
 """
 from __future__ import annotations
 
-from .cli_contracts import BatchOutputError
-
 import os
 import stat
 from dataclasses import dataclass, field, replace
@@ -15,6 +13,7 @@ from typing import Literal
 
 from .artifact import ArtifactConflictError
 from .kernel import OutputPlan, automatic_output_candidate
+from .translation import BatchOutputError
 
 MAX_CANDIDATES = 10_000
 

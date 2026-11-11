@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from .cli_contracts import PreflightError, PreflightPolicyError
-
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -25,6 +23,7 @@ from .translator import (
     validate_translator_name,
 )
 from .kernel import LanguagePair, LanguagePairError
+from .translation import PreflightError, PreflightPolicyError
 
 
 @dataclass(frozen=True)

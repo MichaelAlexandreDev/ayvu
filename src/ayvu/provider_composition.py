@@ -4,8 +4,6 @@ The request snapshot is shared with the translator and the existing #128 use cas
 """
 from __future__ import annotations
 
-from .cli_contracts import ProviderSetupError
-
 from datetime import UTC, datetime, timedelta
 from typing import Callable
 
@@ -17,6 +15,7 @@ from .provider_service import ProviderInstance
 from .translator import LibreTranslateTranslator, TranslatorError
 from .network_policy import NetworkPolicy, resolve_network_policy
 from .network_http import NetworkAuthorization
+from .providers import ProviderSetupError
 
 CLI_INSTANCE_ID = "libretranslate_cli"
 _ISSUER = "cli_composition"
