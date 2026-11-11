@@ -185,7 +185,7 @@ def test_all_namespace_inspect_and_clean_dry_run(real_cache):
 @pytest.mark.parametrize('kind', ['work', 'local_user'])
 def test_cli_roundtrip_broader_scope_with_opaque_non_uuid_reference(tmp_path, kind):
     from dataclasses import replace
-    from ayvu.knowledge.cache.identity import CacheScope, CacheScopeKind, CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.scope import CacheScope, CacheScopeKind, CacheAuthorizationPolicy
     from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     item = entry()

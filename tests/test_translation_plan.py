@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import pytest
 
 from ayvu.provenance.model import ProducerIdentity
-from ayvu.knowledge.cache.identity import (
+from ayvu.knowledge.cache.identity_values import (
     CacheEligibilityState, CacheIneligibleReason, CanonicalValue, OpaqueSemanticRevision, SemanticRouteHop,
 )
 from ayvu.providers.ports import ProviderRoute

@@ -297,6 +297,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 - `review/exchange.py` dividido (REF-15, #283, primeira família): o modelo do pacote, os marcadores, o
   codec CSV, a conferência com o contexto atual e a leitura e escrita em disco viram módulos próprios. A
   API de `ayvu.review` e os bytes do pacote não mudam.
+- `knowledge/cache/identity.py` dividido (REF-15, #283, segunda família): valores, escopos, entradas,
+  resolução cache-only e memória compatível viram módulos próprios. A projeção e o decoder ficam em
+  `identity.py`; a API de `ayvu.knowledge.cache` e as identidades persistidas não mudam.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

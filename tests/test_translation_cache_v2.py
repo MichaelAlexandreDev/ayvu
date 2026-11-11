@@ -10,27 +10,16 @@ import pytest
 
 from ayvu.artifacts.model import new_artifact
 from ayvu.artifacts.service import ReuseResult
-from ayvu.knowledge.cache.identity import (
-    CacheAuthorizationPolicy,
-    CacheCompatibilityIdentity,
-    CacheLookupState,
-    CacheMissReason,
-    CacheOnlyRequest,
-    CacheProvenanceMetadata,
-    CacheScope,
-    CacheScopeKind,
-    CompatibleMemoryCandidate,
-    ExactCacheEntry,
-    ExactCacheLookup,
-    ExactEntryKey,
-    OpaqueSemanticRevision,
-    PinnedExecutionIdentityReference,
-    PutIfAbsentResult,
-    PutIfAbsentState,
-    ResolvedCacheExecutionIdentity,
-    TRANSLATION_STAGE_AGGREGATE,
-    exact_entry_key,
+from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
+from ayvu.knowledge.cache.compatible_memory import CacheCompatibilityIdentity, CompatibleMemoryCandidate
+from ayvu.knowledge.cache.entries import (
+    CacheLookupState, CacheMissReason, CacheProvenanceMetadata, ExactCacheEntry, ExactCacheLookup,
+    ExactEntryKey, PutIfAbsentResult, PutIfAbsentState, exact_entry_key,
 )
+from ayvu.knowledge.cache.cache_only import (
+    CacheOnlyRequest, PinnedExecutionIdentityReference, ResolvedCacheExecutionIdentity,
+)
+from ayvu.knowledge.cache.identity_values import OpaqueSemanticRevision, TRANSLATION_STAGE_AGGREGATE
 from ayvu.content.model import (
     AdapterIdentity,
     LocaleState,

@@ -14,7 +14,7 @@ import pytest
 
 import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.knowledge.cache.identity import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
+from ayvu.knowledge.cache import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
 from ayvu.knowledge.cache.schema import SchemaState, classify_cache
 from ayvu.preferences.config_facade import ConfigStore
 from ayvu.preferences.model import AyvuConfig, config_from_preferences, config_to_preferences

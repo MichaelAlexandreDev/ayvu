@@ -34,21 +34,14 @@ from ayvu.translation.document import (
 )
 from ayvu.knowledge.memory.fuzzy import TranslationMemoryMatch
 from ayvu.translation.stages.memory_retrieval import RetrievalPolicy
-from ayvu.knowledge.cache.identity import (
-    CacheCompatibilityIdentity,
-    CacheAuthorizationPolicy,
-    CacheOnlyRequest,
-    CacheLookupState,
-    CacheMissReason,
-    CacheProvenanceMetadata,
-    CacheValueKind,
-    CompatibleMemoryCandidate,
-    ExactCacheEntry,
-    ExactCacheLookup,
-    PutIfAbsentResult,
-    PutIfAbsentState,
-    TRANSLATION_STAGE_AGGREGATE,
+from ayvu.knowledge.cache.compatible_memory import CacheCompatibilityIdentity, CompatibleMemoryCandidate
+from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy
+from ayvu.knowledge.cache.cache_only import CacheOnlyRequest
+from ayvu.knowledge.cache.entries import (
+    CacheLookupState, CacheMissReason, CacheProvenanceMetadata, ExactCacheEntry, ExactCacheLookup,
+    PutIfAbsentResult, PutIfAbsentState,
 )
+from ayvu.knowledge.cache.identity_values import CacheValueKind, TRANSLATION_STAGE_AGGREGATE
 from ayvu.translation.plan import ResolvedTranslationPlan, resolve_plan
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
 from provider_fakes import FakeSession, http_response
@@ -796,7 +789,7 @@ def test_a_publication_conflict_is_reported_not_overwritten(env):
 
 def test_provenance_traces_the_artifact_to_the_job_input_and_distinguishes_origins(env):
     cache = PlanCache()
-    from ayvu.knowledge.cache.identity import exact_entry_key
+    from ayvu.knowledge.cache.entries import exact_entry_key
     scope = CacheAuthorizationPolicy(PROJECT).resolve()
     key = exact_entry_key(scope, TRANSLATION_STAGE_AGGREGATE, plan().semantic_fingerprint, 'Good night')
     cache.stored[key] = ExactCacheEntry(key, 'Boa noite', CacheProvenanceMetadata('translate', PRODUCER, plan().pipeline_revision))

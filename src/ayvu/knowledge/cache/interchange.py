@@ -9,9 +9,9 @@ import json
 import re
 
 from .admin import _invalid, checkpoint, validate_payload, MAX_FILE_BYTES, MAX_ENTRIES
-from .identity import (CacheAuthorizationPolicy, CacheScope, CacheScopeKind,
-                             CacheValueKind, ExactEntryKey, CacheIdentityError,
-                             CacheProvenanceMetadata, OpaqueSemanticRevision)
+from .scope import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
+from .identity_values import CacheValueKind, CacheIdentityError, OpaqueSemanticRevision
+from .entries import ExactEntryKey, CacheProvenanceMetadata
 from ...provenance import ProducerIdentity
 from .repository import _valid_row
 from .schema import V2_COLUMNS
