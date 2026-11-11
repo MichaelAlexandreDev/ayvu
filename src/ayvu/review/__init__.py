@@ -11,10 +11,12 @@ from .csv_export import (
     METADATA_CHAPTER_NAME, METADATA_SEGMENT_ID, METADATA_SEGMENT_KIND, ReviewSegment, format_segment_id,
 )
 from .csv_import import LegacyReviewInspection, ReviewImportError, read_review_csv_bytes
-from .exchange import (
+from .exchange_model import (
     REVIEW_PACKAGE_SCHEMA_VERSION, ReviewExchangeError, ReviewPackage, ReviewReconstructionPlan,
-    decode_review_package, encode_review_package, export_review_package, map_review_package,
 )
+from .exchange_codec import decode_review_package, encode_review_package
+from .exchange import export_review_package
+from .exchange_mapping import map_review_package
 
 __all__ = [
     "ApplyReviewPackage", "ExportReviewPackage", "LegacyReviewInspection", "METADATA_CHAPTER_NAME",

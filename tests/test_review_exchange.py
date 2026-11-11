@@ -22,7 +22,8 @@ from ayvu.formats.contracts import ContentScope, ExtractionRequest, UnitTranslat
 from ayvu.formats.service import FormatRegistry, FormatService
 from ayvu.formats.epub.html_structure import extract_html_document, html_unit_template, reconstruct_html
 from ayvu.projects.model import ProjectManifest, ProjectRequest
-from ayvu.review.exchange import (
+from ayvu.review import exchange_codec, exchange_files, exchange_model
+from ayvu.review.exchange_model import (
     MAX_REVIEW_CELL_CHARS,
     MAX_REVIEW_COLUMNS,
     MAX_REVIEW_DOCUMENTS,
@@ -40,15 +41,11 @@ from ayvu.review.exchange import (
     ReviewPackage,
     ReviewPackageRow,
     canonical_json,
-    decode_review_package,
-    encode_review_package,
-    export_review_package,
-    map_review_package,
-    neutralize_formula_cell,
-    read_review_package,
-    restore_formula_cell,
-    write_review_package,
 )
+from ayvu.review.exchange_codec import decode_review_package, encode_review_package, neutralize_formula_cell, restore_formula_cell
+from ayvu.review.exchange import export_review_package
+from ayvu.review.exchange_mapping import map_review_package
+from ayvu.review.exchange_files import read_review_package, write_review_package
 from ayvu.review.csv_export import ReviewSegment, write_review_csv
 from ayvu.review.csv_import import LegacyReviewInspection, ReviewImportData, ReviewImportError, ReviewRow, read_review_csv
 from epub_fakes import epub_bytes
@@ -473,26 +470,25 @@ def _csv_bytes(records):
     return stream.getvalue().encode("utf-8")
 
 
-@pytest.mark.parametrize("limit_name,value,code", [
-    ("MAX_REVIEW_RAW_BYTES", 4, "file_too_large"),
-    ("MAX_REVIEW_ROWS", 0, "too_many_rows"),
-    ("MAX_REVIEW_COLUMNS", len(REVIEW_CSV_COLUMNS) - 1, "invalid_column_count"),
-    ("MAX_REVIEW_CELL_CHARS", 1, "cell_too_large"),
-    ("MAX_REVIEW_TOTAL_CHARS", 1, "decoded_content_too_large"),
-    ("MAX_REVIEW_METADATA_CHARS", 1, "metadata_too_large"),
-    ("MAX_REVIEW_METADATA_ITEMS", 1, "metadata_too_many_items"),
-    ("MAX_REVIEW_METADATA_DEPTH", 2, "metadata_too_deep"),
-    ("MAX_REVIEW_DOCUMENTS", 0, "too_many_documents"),
-    ("MAX_REVIEW_NOTE_CHARS", 1, "invalid_reviewer_note"),
+@pytest.mark.parametrize("limit_name,value,code,modules", [
+    ("MAX_REVIEW_RAW_BYTES", 4, "file_too_large", (exchange_codec,)),
+    ("MAX_REVIEW_ROWS", 0, "too_many_rows", (exchange_codec, exchange_model)),
+    ("MAX_REVIEW_COLUMNS", len(REVIEW_CSV_COLUMNS) - 1, "invalid_column_count", (exchange_codec,)),
+    ("MAX_REVIEW_CELL_CHARS", 1, "cell_too_large", (exchange_codec, exchange_model)),
+    ("MAX_REVIEW_TOTAL_CHARS", 1, "decoded_content_too_large", (exchange_codec,)),
+    ("MAX_REVIEW_METADATA_CHARS", 1, "metadata_too_large", (exchange_codec,)),
+    ("MAX_REVIEW_METADATA_ITEMS", 1, "metadata_too_many_items", (exchange_codec,)),
+    ("MAX_REVIEW_METADATA_DEPTH", 2, "metadata_too_deep", (exchange_codec,)),
+    ("MAX_REVIEW_DOCUMENTS", 0, "too_many_documents", (exchange_model,)),
+    ("MAX_REVIEW_NOTE_CHARS", 1, "invalid_reviewer_note", (exchange_model,)),
 ])
-def test_each_exchange_limit_has_a_bounded_failure(monkeypatch, limit_name, value, code):
-    import ayvu.review.exchange as exchange
-
+def test_each_exchange_limit_has_a_bounded_failure(monkeypatch, limit_name, value, code, modules):
     *_context, package = make_context()
     if limit_name == "MAX_REVIEW_NOTE_CHARS":
         package = replace(package, rows=(replace(package.rows[0], reviewer_note="xx"),))
     encoded = encode_review_package(package)
-    monkeypatch.setattr(exchange, limit_name, value)
+    for module in modules:
+        monkeypatch.setattr(module, limit_name, value)
     error_code(code, lambda: decode_review_package(encoded))
 
 
@@ -502,14 +498,13 @@ def test_protected_part_cardinality_is_bounded(monkeypatch):
     html = '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>A <em>B</em> C</p></body></html>'
     _source, project, artifact, documents, machine, _package = make_context(html)
     monkeypatch.setattr(exchange, "MAX_REVIEW_PARTS_PER_UNIT", 1)
+    monkeypatch.setattr(exchange_model, "MAX_REVIEW_PARTS_PER_UNIT", 1)
     error_code("too_many_protected_parts", lambda: export_review_package(
         project=project, machine_artifact=artifact, descriptor=DESCRIPTOR, format_version="3.0",
         documents=documents, machine_translations=machine))
 
 
 def test_path_reader_requests_only_one_byte_over_its_raw_limit(monkeypatch):
-    import ayvu.review.exchange as exchange
-
     calls = []
 
     class Reader:
@@ -530,16 +525,15 @@ def test_path_reader_requests_only_one_byte_over_its_raw_limit(monkeypatch):
         def open(self, _mode):
             return Reader()
 
-    monkeypatch.setattr(exchange, "MAX_REVIEW_RAW_BYTES", 7)
-    monkeypatch.setattr(exchange, "Path", FakePath)
+    monkeypatch.setattr(exchange_files, "MAX_REVIEW_RAW_BYTES", 7)
+    monkeypatch.setattr(exchange_codec, "MAX_REVIEW_RAW_BYTES", 7)
+    monkeypatch.setattr(exchange_files, "Path", FakePath)
     error_code("file_too_large", lambda: read_review_package("/private/secret.csv"))
     assert calls == [8]
 
 
 def test_v2_column_cardinality_fails_before_csv_materializes_cells(monkeypatch):
-    import ayvu.review.exchange as exchange
-
-    monkeypatch.setattr(exchange.csv, "reader", lambda *_args, **_kwargs: pytest.fail("csv.reader must not run"))
+    monkeypatch.setattr(exchange_codec.csv, "reader", lambda *_args, **_kwargs: pytest.fail("csv.reader must not run"))
     raw = b"x," * (MAX_REVIEW_COLUMNS * 1000)
     error_code("invalid_column_count", lambda: decode_review_package(raw))
 

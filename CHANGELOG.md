@@ -285,14 +285,18 @@ lancadas e secoes versionadas quando uma release for publicada.
   da configuração salva e da pasta de processamento vai para `interfaces/cli/settings.py`. Todo o CLI
   passa a buscar a pasta de processamento em `settings._processing_dir`, num só lugar, e os testes
   substituem esse ponto, em vez de uma cópia por módulo.
-- CLI split, fourth part (REF-14, #282): translation reports move to `interfaces/cli/report.py`, and
-  output locations and existing-file decisions to `interfaces/cli/output.py`, preserving behavior.
-- CLI split, fifth part (REF-14, #282): translation plans, options, book execution, batches and previews
-  move out of `app.py` into focused CLI modules, preserving behavior.
-- CLI split, sixth part (REF-14, #282): translate and resume commands move to `interfaces/cli/commands`,
-  including the shared guided resume flow, preserving behavior.
-- CLI split, final part (REF-14, #282): the guided flow moves to `interfaces/cli/guided`, preserving
-  behavior and completing the split of `app.py`.
+- CLI dividido, quarta parte (REF-14, #282): o relatório da tradução vai para `interfaces/cli/report.py`,
+  e o local do livro de saída e a decisão sobre arquivo existente vão para `interfaces/cli/output.py`.
+- CLI dividido, quinta parte (REF-14, #282): o plano e as opções da tradução, a execução de um livro, o
+  lote e o preview saem de `app.py` para módulos próprios (`plan`, `translate_options`, `run`,
+  `run_messages`, `run_support`, `batch` e `preview`).
+- CLI dividido, sexta parte (REF-14, #282): os comandos `translate` e `resume` vão para
+  `interfaces/cli/commands`, com a retomada que o fluxo guiado também usa.
+- CLI dividido, última parte (REF-14, #282): o fluxo guiado vai para `interfaces/cli/guided`, um módulo
+  por tela. O `app.py` fica só com os apps Typer, o callback `main` e o registro dos comandos.
+- `review/exchange.py` dividido (REF-15, #283, primeira família): o modelo do pacote, os marcadores, o
+  codec CSV, a conferência com o contexto atual e a leitura e escrita em disco viram módulos próprios. A
+  API de `ayvu.review` e os bytes do pacote não mudam.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e
