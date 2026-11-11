@@ -1,10 +1,10 @@
 """Translation summaries, Markdown reports and missing-text files."""
 from __future__ import annotations
-
+from . import settings
 from pathlib import Path
 import typer
 from rich.table import Table
-from .settings import _display_optional_path, _load_existing_config_or_default, _uses_internal_storage_defaults
+from .settings import _display_optional_path, _uses_internal_storage_defaults
 from ...preferences import AyvuConfig
 from .contracts import AcceptedItem, TranslationReport
 from ...composition.cli import publish_cli_report, report_destination
@@ -247,7 +247,7 @@ def _render_markdown_report(
 
 
 def _default_reports_dir() -> Path:
-    return _reports_dir(_load_existing_config_or_default())
+    return _reports_dir(settings._load_existing_config_or_default())
 
 
 def _next_available_report_path(directory: Path, stem: str, suffix: str = ".md") -> Path:

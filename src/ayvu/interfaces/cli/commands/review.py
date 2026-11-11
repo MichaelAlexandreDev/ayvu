@@ -11,7 +11,7 @@ from ....review import ReviewApplyCommand, ReviewValidationCommand
 
 from ..render import _print_expected_error, console
 from .. import settings
-from ..settings import _display_optional_path, _load_existing_config_or_default
+from ..settings import _display_optional_path
 
 
 def apply_review(
@@ -53,7 +53,7 @@ def apply_review(
         )
         raise typer.Exit(code=1) from None
 
-    use_cases = open_review_use_cases(settings._processing_dir(_load_existing_config_or_default()), source_path=epub_path)
+    use_cases = open_review_use_cases(settings._processing_dir(settings._load_existing_config_or_default()), source_path=epub_path)
     if validate_only:
         cancellation = use_cases.cancellation()
         validated = use_cases.validate.execute(

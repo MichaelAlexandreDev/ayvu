@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from ayvu.interfaces.cli import app as cli, report as cli_report
+from ayvu.interfaces.cli import app as cli, report as cli_report, run as cli_run
 import ayvu.composition.cli as composition
 from test_workflow_characterization import (
     FakeLibreTranslateSession,
@@ -40,7 +40,7 @@ def test_final_conflict_rejects_before_first_item(tmp_path, monkeypatch):
     conflict = output / "second-pt.epub"
     conflict.write_bytes(b"existing")
     calls = []
-    monkeypatch.setattr(cli, "_run_translation", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli_run, "_run_translation", lambda **kw: calls.append(kw))
 
     result = _run(first, second, output)
 
@@ -61,7 +61,7 @@ def test_same_stem_destinations_rejected_before_first_item(tmp_path, monkeypatch
     first = _write_epub(left / "book.epub")
     second = _write_epub(right / "book.epub", language="fr")
     calls = []
-    monkeypatch.setattr(cli, "_run_translation", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli_run, "_run_translation", lambda **kw: calls.append(kw))
     result = _run(first, second, tmp_path / "out", *( ["--overwrite"] if overwrite else [] ))
 
     assert result.exit_code == 1
@@ -97,7 +97,7 @@ def test_output_cannot_replace_another_source_even_with_overwrite(tmp_path, monk
     second = _write_epub(tmp_path / "book-pt.epub")
     originals = [first.read_bytes(), second.read_bytes()]
     calls = []
-    monkeypatch.setattr(cli, "_run_translation", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli_run, "_run_translation", lambda **kw: calls.append(kw))
 
     result = _run(first, second, tmp_path, "--overwrite")
 
@@ -119,7 +119,7 @@ def test_existing_output_alias_to_any_source_rejected(tmp_path, monkeypatch, ali
         destination.symlink_to(second)
     before = [first.read_bytes(), second.read_bytes()]
     calls = []
-    monkeypatch.setattr(cli, "_run_translation", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli_run, "_run_translation", lambda **kw: calls.append(kw))
 
     result = _run(first, second, output, "--overwrite")
 
@@ -137,7 +137,7 @@ def test_common_mode_cancel_conflict_on_final_item_starts_nothing(tmp_path, monk
     conflict = output / "second-pt.epub"
     conflict.write_bytes(b"existing")
     calls = []
-    monkeypatch.setattr(cli, "_run_translation", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli_run, "_run_translation", lambda **kw: calls.append(kw))
 
     result = CliRunner().invoke(cli.app, [
         "--mode", "common", "translate", str(first), str(second),
@@ -236,7 +236,7 @@ def test_common_refusal_has_no_empty_batch_summary(tmp_path, monkeypatch):
     output = tmp_path / "out"
     output.mkdir()
     (output / "second-pt.epub").write_bytes(b"old")
-    monkeypatch.setattr(cli, "_run_translation", lambda **kw: pytest.fail("item started"))
+    monkeypatch.setattr(cli_run, "_run_translation", lambda **kw: pytest.fail("item started"))
 
     result = CliRunner().invoke(cli.app, ["--mode", "common", "translate", str(first), str(second),
                                           "--output-dir", str(output)], input="0\n")

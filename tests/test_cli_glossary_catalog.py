@@ -19,7 +19,7 @@ def local_catalog(tmp_path, monkeypatch):
     config.parent.mkdir(parents=True)
     config.write_text(json.dumps({"version": 1, "default_target_language": "pt"}))
     # The existing default configuration may deliberately ignore XDG_CONFIG_HOME.
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_glossaries_dir", lambda: tmp_path / "glossaries")
+    monkeypatch.setattr("ayvu.interfaces.cli.translate_options.default_glossaries_dir", lambda: tmp_path / "glossaries")
     return tmp_path / "glossaries"
 
 
@@ -89,7 +89,7 @@ def test_translation_invalid_selection_allows_another(local_catalog, tmp_path, m
 
 
 def _glossaries_dir(tmp_path):
-    from ayvu.interfaces.cli.app import default_glossaries_dir
+    from ayvu.interfaces.cli.translate_options import default_glossaries_dir
 
     directory = default_glossaries_dir()
     directory.mkdir(parents=True, exist_ok=True)
