@@ -5,7 +5,7 @@ import json
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.interfaces.cli.app as cli_module
+from ayvu.interfaces.cli.guided import glossaries as cli_module
 from ayvu.interfaces.cli.app import app
 
 

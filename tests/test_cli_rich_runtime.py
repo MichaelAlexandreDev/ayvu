@@ -13,7 +13,7 @@ from zipfile import ZipFile
 import pytest
 from typer.testing import CliRunner
 
-from ayvu.interfaces.cli import app as cli, settings as cli_settings
+from ayvu.interfaces.cli import app as cli, settings as cli_settings, options as cli_options
 import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.preferences.model import AyvuConfig
@@ -197,8 +197,7 @@ def test_invalid_label_configuration_refused_before_any_provider(tmp_path, monke
 
 def test_invalid_label_presentation_gate_even_when_storage_is_unavailable(tmp_path, monkeypatch):
     from types import SimpleNamespace
-    for module in (cli, cli_settings):  # the guided flows read it in app, the saved configuration in settings
-        monkeypatch.setattr(module, "configuration_store", lambda: SimpleNamespace(get_preferences=lambda: PreferencesSnapshot(None, None, True, error=PreferencesError("invalid", "translator_models"))))
+    monkeypatch.setattr(cli_settings, "configuration_store", lambda: SimpleNamespace(get_preferences=lambda: PreferencesSnapshot(None, None, True, error=PreferencesError("invalid", "translator_models"))))
     result, session = invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"))
     assert result.exit_code == 1 and "Rótulo de modelo inválido" in text(result)
     assert session.requests == []
@@ -246,7 +245,7 @@ def test_guided_translation_selects_rich_from_existing_configuration(tmp_path, m
     job = _jobs(tmp_path)[0]
     assert job.request.command_version == 2 and job.state is JobState.VALIDATED
     assert (tmp_path / "books" / "Traduzidos" / "book-pt.epub").exists()
-    assert composition.v2_cache_path(cli.DEFAULT_CACHE_PATH).exists()
+    assert composition.v2_cache_path(cli_options.DEFAULT_CACHE_PATH).exists()
 
 
 def test_each_batch_book_uses_rich_and_keeps_markdown_reports(tmp_path, monkeypatch):
