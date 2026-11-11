@@ -22,11 +22,10 @@ import pytest
 from ayvu.artifact import ArtifactRequest, ArtifactState
 from ayvu.artifact_destination import DestinationFileOps, LocalDestinationPayloads
 from ayvu.cache import TranslationCache
-from ayvu.domain import ChapterSelection, LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions
 from ayvu.epub_io import translate_epub
 from ayvu.glossary import load_glossary
 from ayvu.job import JobState, JobStoreError
-from ayvu.job_events import JobEventKind, JobFailure, JobFailureFamily, encode_event
+from ayvu.job_events import JobEventKind, encode_event
 from ayvu.job_execution import CancellationSource
 from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ayvu.project_store import ProjectJsonRepository, build_project_request
@@ -35,12 +34,11 @@ from ayvu.translate_project import (
     OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_BEFORE_START, ContinuationTicket, OutputValidation, TranslateCommandError,
     TranslateObserver, TranslateProject, TranslateProjectCommand, TranslateProjectPorts, resolve_plan,
 )
-from ayvu.translate_project_composition import (
-    LegacyOutputValidator, LegacyResources, LegacyTranslationRuntime, open_translate_project,
-)
+from ayvu.translate_project_composition import LegacyOutputValidator, LegacyResources, LegacyTranslationRuntime, open_translate_project
 from ayvu.translation_engine import ENGINE_BEFORE_CHAPTER, ENGINE_BEFORE_UNIT, EngineObserver
 from ayvu.translator import TranslatorError
 from epub_fakes import OPF, XHTML, epub_bytes
+from ayvu.kernel import ChapterSelection, LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, JobFailure, JobFailureFamily
 
 PAIR = LanguagePair(source="en", target="pt")
 # ebooklib, which the current validator opens every book with, rejects a remote manifest item.

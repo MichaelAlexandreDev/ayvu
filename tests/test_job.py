@@ -6,10 +6,8 @@ from uuid import UUID
 import pytest
 
 from ayvu.job import (
-    ALLOWED_TRANSITIONS, MAX_LEASE_DURATION, TERMINAL_STATES, JobContinuationError, JobLease, JobLeaseError,
-    JobRequest, JobRevisionConflictError, JobState, JobTerminalSummary, JobTransitionError, JobValidationError,
-    TranslationJob, acquire_lease, new_job, release_lease, renew_lease, requires_reconciliation, transition_job,
-)
+    ALLOWED_TRANSITIONS, MAX_LEASE_DURATION, TERMINAL_STATES, JobContinuationError, JobLease, JobLeaseError, JobRequest, JobRevisionConflictError, JobState, JobTerminalSummary, JobTransitionError, TranslationJob, acquire_lease, new_job, release_lease, renew_lease, requires_reconciliation, transition_job)
+from ayvu.kernel import JobValidationError
 
 PROJECT = str(UUID(int=1))
 JOB = str(UUID(int=2))

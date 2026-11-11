@@ -5,7 +5,6 @@ import pytest
 from bs4 import BeautifulSoup
 
 from ayvu.cache import CacheKey, TranslationCache
-from ayvu.domain import LanguagePair, TranslationMemoryOptions
 from ayvu.translation_memory import TranslationMemory
 from ayvu.glossary import (
     GLOSSARY_RULE_FORBIDDEN,
@@ -22,6 +21,7 @@ from ayvu.html_translate import (
     translate_text,
 )
 from ayvu.translator import Translator
+from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
 
 class DamagingMarkerTranslator(Translator):

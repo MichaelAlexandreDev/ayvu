@@ -1,8 +1,8 @@
 import pytest
 
 from ayvu.cache import CacheKey, TranslationCache
-from ayvu.domain import LanguagePair, TranslationMemoryError, TranslationMemoryOptions
 from ayvu.translation_memory import TranslationMemory
+from ayvu.kernel import LanguagePair, TranslationMemoryError, TranslationMemoryOptions
 
 
 EN_PT = LanguagePair(source="en", target="pt")

@@ -16,11 +16,9 @@ from typing import Protocol
 
 from .artifact import Artifact
 from .content import ContentDocument, TranslationUnit
-from .domain import ChapterSelection, ChapterSelectionError
 from .format_adapter import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
 from .format_service import FormatPublication, FormatService, FormatSource
-from .job_events import JobFailure, JobFailureFamily
-from .job_execution import CancellationToken
+from .kernel import ChapterSelection, ChapterSelectionError, JobFailure, JobFailureFamily, CancellationToken
 
 ENGINE_BEFORE_CHAPTER = "engine_before_chapter"
 ENGINE_BEFORE_UNIT = "engine_before_unit"

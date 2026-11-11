@@ -17,7 +17,6 @@ import ayvu.cli as cli
 import ayvu.translate_project_composition as composition
 from ayvu.cache import CacheKey, TranslationCache
 from ayvu.config_values import AyvuConfig
-from ayvu.domain import LanguagePair, OutputPlan, TranslationOptions
 from ayvu.job import JobState
 from ayvu.job_events import JobEventSequence, encode_event
 from ayvu.preferences import PreferencesError
@@ -29,6 +28,7 @@ from ayvu.translate_project import ContinuationTicket, TRANSLATE_BEFORE_START, T
 from ayvu.translation_engine import ENGINE_SAFE_POINTS
 from test_cli_translate_project import Session, _args, _book, _jobs
 from test_translate_project import CancelAt
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, JobWarning
 
 runner = CliRunner()
 
@@ -206,7 +206,7 @@ def test_invalid_label_presentation_gate_even_when_storage_is_unavailable(tmp_pa
 
 def test_runtime_warning_reaches_the_cli(tmp_path, monkeypatch):
     from uuid import UUID
-    from ayvu.job_events import JobCorrelation, JobEvent, JobWarning
+    from ayvu.job_events import JobCorrelation, JobEvent
     from test_cli_translate_project import _canned, _report, _result
     event = JobEvent(str(UUID(int=1)), str(UUID(int=2)), 1, datetime.now(UTC),
                      JobCorrelation(str(UUID(int=3))), JobWarning("provider_advisory"))
@@ -415,7 +415,7 @@ def test_cli_tm_conservative_threshold_gate_is_explicit_and_precedes_transport(t
 
 def test_memory_review_warning_reaches_current_cli_presentation(tmp_path, monkeypatch):
     from uuid import UUID
-    from ayvu.job_events import JobCorrelation, JobEvent, JobWarning
+    from ayvu.job_events import JobCorrelation, JobEvent
     from test_cli_translate_project import _canned, _report, _result
     event = JobEvent(str(UUID(int=1)), str(UUID(int=2)), 1, datetime.now(UTC),
         JobCorrelation(str(UUID(int=3))), JobWarning('memory_review_suggestions'))

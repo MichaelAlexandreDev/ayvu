@@ -7,8 +7,8 @@ import subprocess
 import sys
 
 import pytest
-
-from ayvu.sqlite_migrations import SqliteMigration, SqliteMigrationRunner
+from ayvu.kernel import LanguagePair
+from ayvu.kernel.sqlite import SqliteMigration, SqliteMigrationRunner
 
 
 def state(path):
@@ -122,7 +122,7 @@ def test_backup_failure_prevents_schema_changes_and_keeps_previous_backups(tmp_p
     if phase == 'create':
         def fail(*args, **kwargs):
             raise OSError('private-canary')
-        monkeypatch.setattr('ayvu.sqlite_migrations.tempfile.mkstemp', fail)
+        monkeypatch.setattr('ayvu.kernel.sqlite.migrations.tempfile.mkstemp', fail)
     elif phase == 'write':
         def partial(source, target, deadline):
             target.execute('CREATE TABLE incomplete(value INTEGER)')
@@ -131,7 +131,7 @@ def test_backup_failure_prevents_schema_changes_and_keeps_previous_backups(tmp_p
     elif phase == 'publish':
         def fail(*args):
             raise OSError('private-canary')
-        monkeypatch.setattr('ayvu.sqlite_migrations.os.link', fail)
+        monkeypatch.setattr('ayvu.kernel.sqlite.migrations.os.link', fail)
     else:
         original_verify = runner._verify_backup
         def fail_verify(candidate, *args):
@@ -280,7 +280,6 @@ def test_sqlite_vm_deadline_rolls_back_and_keeps_backup(tmp_path):
 def test_real_project_boundary_and_cache_preservation(tmp_path):
     from ayvu.project_store import ProjectJsonRepository, build_project_request
     from ayvu.cache import TranslationCache, CacheKey
-    from ayvu.domain import LanguagePair
     source = tmp_path / 'original.epub'
     source.write_bytes(b'synthetic-original')
     repository = ProjectJsonRepository(tmp_path / 'processing')
@@ -303,7 +302,7 @@ def test_output_database_size_limit_is_enforced_before_commit(tmp_path, monkeypa
     path, backups = tmp_path / 'project.sqlite', tmp_path / 'backups'
     seeded(path)
     before = path.read_bytes()
-    monkeypatch.setattr('ayvu.sqlite_migrations.MAX_DATABASE_BYTES', 32768)
+    monkeypatch.setattr('ayvu.kernel.sqlite.migrations.MAX_DATABASE_BYTES', 32768)
     registry = (SqliteMigration(1), SqliteMigration(2, (
         'CREATE TABLE test_only(value BLOB)',
         *('INSERT INTO test_only VALUES (zeroblob(4096))' for _ in range(16)),

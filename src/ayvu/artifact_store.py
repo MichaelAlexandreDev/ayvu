@@ -26,10 +26,10 @@ from .artifact import (
     validate_identity,
 )
 from .artifact_service import PayloadEvidence, StagedArtifact
-from .job import JobError, JobNotFoundError, TranslationJob
+from .job import JobNotFoundError, TranslationJob
 from .job_store import load_job
-from .migration_contracts import MigrationError
-from .sqlite_migrations import SqliteMigrationRunner, sqlite_failure_code
+from .kernel import JobError
+from .kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
 
 _READ_CHUNK = 1024 * 1024
 

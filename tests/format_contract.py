@@ -22,9 +22,9 @@ from ayvu.format_adapter import (
 from ayvu.format_local import LocalFormatSource, LocalOutputGuard
 from ayvu.format_service import FORMAT_BEFORE_WORK, FormatAdapter, FormatPublication, FormatRegistration, FormatRegistry, FormatService, format_safe_points
 from ayvu.job import JobRequest, JobState
-from ayvu.job_events import JobFailureFamily
 from ayvu.job_execution import CancellationSource
 from ayvu.project_schema import open_artifact_service, open_job_repository
+from ayvu.kernel import JobFailureFamily
 
 PROJECT = "00000000-0000-4000-8000-000000000127"
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)

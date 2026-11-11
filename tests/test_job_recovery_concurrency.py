@@ -12,7 +12,6 @@ from datetime import timedelta
 import pytest
 
 from ayvu.cache import TranslationCache
-from ayvu.domain import OutputPlan
 from ayvu.job import JobContinuationError, JobRequest, JobState
 from ayvu.job_recovery import CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStatus
 from ayvu.job_recovery_store import _options
@@ -23,6 +22,7 @@ from ayvu.translate_project_composition import (
 )
 from test_cli_translate_project import _args, _book
 from test_job_recovery_integration import DECIDED, Runner, Scene
+from ayvu.kernel import OutputPlan
 
 CHILD = textwrap.dedent('''
     import json, os, pathlib, sys, time

@@ -12,8 +12,7 @@ from enum import StrEnum
 
 from .artifact import Artifact
 from .content import UNKNOWN_LOCALE, AdapterIdentity, ContentDocument, SourceLocale
-from .job import is_slug
-from .job_events import JobFailure
+from .kernel import is_slug, JobFailure
 
 FORMAT_CONTRACT_VERSION = 1
 MAX_DETECTION_BYTES = 4096

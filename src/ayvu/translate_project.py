@@ -22,18 +22,12 @@ from typing import Protocol
 from uuid import uuid4
 
 from .artifact import Artifact, ArtifactError, ArtifactRequest
-from .domain import ChapterSelectionError, OutputPlan, TranslationOptions
 from .format_adapter import FormatError
 from .format_service import FormatPublication, FormatService, FormatSource
 from .job import (
-    MAX_LEASE_DURATION, JobError, JobLeaseError, JobRequest, JobState, JobTerminalSummary, TranslationJob,
-    validate_job_identity,
-)
+    MAX_LEASE_DURATION, JobLeaseError, JobRequest, JobState, JobTerminalSummary, TranslationJob)
 from .job_events import (
-    CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobFailure, JobFailureFamily, JobOutcome,
-    JobProgress, JobWarning,
-    JobEventAcceptance,
-)
+    CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress, JobEventAcceptance)
 from .job_execution import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMemoryJobEventLog, JobEventSink
 from .job_service import JobRepository
 from .project import ProjectError, ProjectManifest
@@ -45,6 +39,7 @@ from .translation_engine import (
     EngineResult, TextStats, TranslationEngine,
     TranslationResources,
 )
+from .kernel import ChapterSelectionError, OutputPlan, TranslationOptions, JobError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
 
 TRANSLATE_COMMAND_TYPE = "translate_project"
 TRANSLATE_COMMAND_VERSION = 1

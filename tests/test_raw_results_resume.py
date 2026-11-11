@@ -10,7 +10,6 @@ from typer.testing import CliRunner
 
 import ayvu.cli as cli
 import ayvu.translate_project_composition as composition
-from ayvu.job_events import JobWarning
 from ayvu.job_execution import InMemoryJobEventLog
 from ayvu.provenance import ProducerIdentity
 from ayvu.provider import ProviderRoute
@@ -20,6 +19,7 @@ from ayvu.translation_document import (
 )
 from ayvu.job_recovery import REUSE_DIMENSIONS
 from test_translation_document import Env, Provider, cue, document, plan, rewrite_payload, upper_glossary
+from ayvu.kernel import JobWarning
 
 runner = CliRunner()
 

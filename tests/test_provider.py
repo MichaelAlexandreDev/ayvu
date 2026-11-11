@@ -6,13 +6,13 @@ from uuid import UUID
 import pytest
 
 from ayvu.content import Constraint, ProtectedPart
-from ayvu.job_events import JobFailure, JobFailureFamily, JobWarning
 from ayvu.provider import (
     MAX_CONTEXT_CHARS, MAX_CONTEXT_ITEMS, MAX_TEXT_CHARS, MAX_WARNINGS, ConstraintsFeature, ContextFeature, ContextItem,
     DeadlineFeature, DeliveryState, ProtectedPartsFeature, ProviderRoute, ProviderStatus, ProviderUsage,
     ProviderValidationError, Requirement, TranslationProviderResult, UnitReference, request_diagnostics, result_diagnostics,
 )
 from provider_fakes import FAKE_PRODUCER, REQUEST_ID, failure, request, success
+from ayvu.kernel import JobFailure, JobFailureFamily, JobWarning
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
 REFERENCE = 'config:' + 'a' * 64

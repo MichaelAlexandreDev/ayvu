@@ -20,7 +20,6 @@ from typer.testing import CliRunner
 from ayvu.cache import TranslationCache
 from ayvu.cli import EXISTING_OUTPUT_OVERWRITE_OPTION, app
 from ayvu.config import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
-from ayvu.domain import LanguagePair, OutputPlan, TranslationOptions
 from ayvu.job import JobRequest, JobState
 from ayvu.job_recovery import (
     CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStage, ResumeStatus,
@@ -29,7 +28,6 @@ from ayvu.legacy_resume import MAX_LEGACY_STATE_BYTES, scan_legacy_states
 from ayvu.project_schema import PROJECT_MIGRATIONS, open_job_repository
 from ayvu.project_store import ProjectJsonRepository, build_project_request, translation_selections
 from ayvu.resume import ResumeStateStore, TranslationResumeState
-from ayvu.sqlite_migrations import SqliteMigrationRunner
 from ayvu.translate_project import (
     OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, ContinuationTicket, TranslateObserver, TranslateProjectCommand,
 )
@@ -37,6 +35,8 @@ from ayvu.translate_project_composition import (
     LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
 )
 from test_cli_translate_project import ENCRYPTED_DOCUMENT, Session, _args, _book
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions
+from ayvu.kernel.sqlite import SqliteMigrationRunner
 
 PAIR = LanguagePair(source="en", target="pt")
 CANARY_URL = "http://canary.example.test:5000"

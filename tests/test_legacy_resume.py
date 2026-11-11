@@ -2,10 +2,9 @@ import json
 import os
 
 import pytest
-
-from ayvu.domain import LanguagePair, TranslationOptions
 from ayvu.legacy_resume import MAX_LEGACY_STATE_BYTES, LegacyResumeError, inspect_legacy_resume, scan_legacy_states
 from ayvu.resume import ResumeStateStore, TranslationResumeState
+from ayvu.kernel import LanguagePair, TranslationOptions
 
 CANARIES = ('/home/reader/private/moby-dick.epub', 'user:hunter2@example.test', 'The Whale Chapter')
 

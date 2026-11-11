@@ -11,10 +11,9 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-
-from .job import JobError, is_slug, validate_utc
 from .provider import valid_reference
 from .network_policy import NETWORK_DENIAL_CODES
+from .kernel import JobError, is_slug, validate_utc
 
 NETWORK_DECISION_VERSION = 1
 

@@ -6,14 +6,13 @@ deve coincidir com a divulgação; o transporte existente ainda aplica #159.
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Callable, Protocol
-
-from .job import validate_utc
 from .provider_capabilities import capability_fingerprint
 from .provider_network import NetworkClass, ResolvedProviderNetworkDecision, network_refusal
 from .translation_context import (
     ContextBuildRequest, ContextError, ContextEgressDisclosure, TranslationContext, TranslationContextBuilder,
     _hash,
 )
+from .kernel import validate_utc
 
 
 @dataclass(frozen=True, repr=False)

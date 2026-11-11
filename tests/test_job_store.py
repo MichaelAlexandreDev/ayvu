@@ -8,12 +8,11 @@ from uuid import UUID
 import pytest
 
 from ayvu.job import (
-    JobContinuationError, JobLeaseError, JobNotFoundError, JobRequest, JobRevisionConflictError, JobState,
-    JobStoreError, JobTerminalSummary, JobTransitionError, JobValidationError,
-)
+    JobContinuationError, JobLeaseError, JobNotFoundError, JobRequest, JobRevisionConflictError, JobState, JobStoreError, JobTerminalSummary, JobTransitionError)
 from ayvu.job_store import MAX_LIST_LIMIT, SqliteJobRepository
 from ayvu.project_schema import PROJECT_MIGRATIONS, open_job_repository
-from ayvu.sqlite_migrations import SqliteMigrationRunner
+from ayvu.kernel import JobValidationError
+from ayvu.kernel.sqlite import SqliteMigrationRunner
 
 PROJECT = str(UUID(int=1))
 OTHER_PROJECT = str(UUID(int=99))

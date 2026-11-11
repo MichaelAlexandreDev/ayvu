@@ -15,9 +15,7 @@ from .format_adapter import (
     DetectionOutcome, DetectionResult, FormatDescriptor, FormatInventory, VisibleContentDocument, valid_source_fingerprint,
 )
 from .format_service import FormatService, FormatSource
-from .job import is_slug
-from .job_events import JobFailure, JobFailureFamily, JobWarning
-from .job_execution import CancellationToken, JobCancellationError
+from .kernel import is_slug, JobFailure, JobFailureFamily, JobWarning, CancellationToken, JobCancellationError
 
 CONTENT_BEFORE_INSPECTION = "content_before_inspection"
 CONTENT_BEFORE_EXPORT = "content_before_export"

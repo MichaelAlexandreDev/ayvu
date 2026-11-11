@@ -24,7 +24,7 @@ from .artifact_service import ArtifactService, PayloadEvidence
 from .artifact_store import ArtifactFileOps, _translated_errors
 from .format_local import LocalOutputGuard
 from .format_service import FormatPublication
-from .job_execution import CancellationToken
+from .kernel import CancellationToken
 
 _READ_CHUNK = 1024 * 1024
 _MAX_JOURNAL_BYTES = 64 * 1024

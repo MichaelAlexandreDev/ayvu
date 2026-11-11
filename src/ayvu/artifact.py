@@ -10,8 +10,7 @@ import re
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-
-from .job import JobError, is_slug, validate_job_identity, validate_utc
+from .kernel import JobError, is_slug, validate_job_identity, validate_utc
 
 ARTIFACT_SCHEMA_VERSION = 1
 MAX_ARTIFACT_BYTES = 4 * 1024**3

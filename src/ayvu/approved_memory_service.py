@@ -8,7 +8,7 @@ from .approved_memory import (
     MemoryQuery,
     Candidate, MemoryEvent, MemoryPage, MemoryRevision, MemoryScope, MemorySource, MemoryState, TargetValue,
 )
-from .domain import LanguagePair
+from .kernel import LanguagePair
 
 
 @dataclass(frozen=True, repr=False)

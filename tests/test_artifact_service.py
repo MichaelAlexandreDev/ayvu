@@ -11,17 +11,16 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.artifact import (
-    Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactIntegrityError, ArtifactNotFoundError,
-    ArtifactOwnershipError, ArtifactPathError, ArtifactRequest, ArtifactState, ArtifactStoreError,
-    ArtifactValidationError,
-)
+from ayvu.artifact import (Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactIntegrityError,
+    ArtifactNotFoundError, ArtifactOwnershipError, ArtifactPathError, ArtifactRequest, ArtifactState,
+    ArtifactStoreError, ArtifactValidationError)
 from ayvu.artifact_service import ARTIFACT_SAFE_POINTS, ArtifactService
 from ayvu.artifact_store import ArtifactFileOps, LocalArtifactPayloads, SqliteArtifactRepository
 from ayvu.job import JobRequest, JobState
-from ayvu.job_execution import CancellationSource, JobCancellationError
+from ayvu.job_execution import CancellationSource
 from ayvu.project_schema import PROJECT_MIGRATIONS, open_artifact_service, open_job_repository
-from ayvu.sqlite_migrations import SqliteMigrationRunner
+from ayvu.kernel import JobCancellationError
+from ayvu.kernel.sqlite import SqliteMigrationRunner
 
 PROJECT = str(UUID(int=1))
 OTHER_PROJECT = str(UUID(int=99))

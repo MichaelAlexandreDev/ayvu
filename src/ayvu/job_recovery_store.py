@@ -14,9 +14,7 @@ from pathlib import Path
 
 from .artifact import Artifact, ArtifactError
 from .artifact_store import SqliteArtifactRepository
-from .domain import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions
-from .job import JobError, JobStoreError, JobRequest
-from .job_execution import CancellationToken
+from .job import JobStoreError, JobRequest
 from .job_recovery import (
     RECOVERY_BETWEEN_CHUNKS, ArtifactIntegrity, InvocationView, OutputEvidence, RecoveryCancelled, RecoveryProgress, RecoveryReason,
     RecoveryScan, ResumeStage, SourceState, StageEvidence,
@@ -34,6 +32,7 @@ from .provenance import ProvenanceError, ProducerIdentity
 from .provenance_store import SqliteProvenanceRepository
 from .resume import RUNNING_STATUS, TranslationResumeState
 from .translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_plan
+from .kernel import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions, JobError, CancellationToken
 
 RAW_RESULTS_ROLE = "raw_results"
 _PROVENANCE_PAGE = 64

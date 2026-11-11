@@ -1,8 +1,8 @@
 """D2 of docs/architecture/decisions/package-structure.md (REF-03, #271): one public API per module.
 
 Code in one top-level package of ``ayvu`` may use another top-level package only through the names that
-package's ``__init__.py`` exports. It may not import that package's submodules. Imports inside a package
-are free. Top-level flat modules are not packages yet, so they are outside this check until they move.
+package's ``__init__.py`` exports, or that one of its subpackages' ``__init__.py`` exports (such as
+``ayvu.kernel.sqlite``). It may not import a plain submodule. Imports inside a package are free. Top-level flat modules are not packages yet, so they are outside this check until they move.
 """
 
 from __future__ import annotations
@@ -23,7 +23,11 @@ def packages(root: Path = SOURCE) -> set[str]:
 
 
 def exported(root: Path, package: str) -> set[str]:
-    tree = ast.parse((root / package / "__init__.py").read_text(encoding="utf-8"))
+    return exported_names(ast.parse((root / package / "__init__.py").read_text(encoding="utf-8")))
+
+
+def exported_names(tree: ast.Module) -> set[str]:
+    """The names a package's __init__.py exports: its __all__, or else every top-level binding."""
     for node in tree.body:
         if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == "__all__" for t in node.targets):
             return {element.value for element in node.value.elts}
@@ -66,10 +70,11 @@ def violations(root: Path = SOURCE) -> dict[str, str]:
                 if not target or target[0] not in roots or (module and module[0] == target[0]):
                     continue
                 key = f"{importer} -> {'.'.join(target)}"
-                if len(target) > 1:
+                api = Path(root, *target)
+                if not (api / "__init__.py").is_file():
                     found[key] = "imports a submodule of another package"
                 else:
-                    missing = sorted(set(names) - exported(root, target[0]) - {"*"})
+                    missing = sorted(set(names) - exported(root, "/".join(target)) - {"*"})
                     if missing:
                         found[key] = f"imports names the package does not export: {', '.join(missing)}"
     return found
@@ -102,6 +107,9 @@ def test_the_check_on_a_synthetic_tree(tmp_path):
     write(root, "beta/deep.py", "from ..alpha.inner import Public\n")
     write(root, "beta/private.py", "from ayvu.alpha import Private\n")
     write(root, "flat.py", "from .alpha.inner import Private\n")
+    write(root, "alpha/sub/__init__.py", "from .impl import Tool\n__all__ = ['Tool']\n")
+    write(root, "alpha/sub/impl.py", "class Tool: ...\n")
+    write(root, "beta/sub_ok.py", "from ..alpha.sub import Tool\n")
     assert violations(root) == {
         "beta.deep -> alpha.inner": "imports a submodule of another package",
         "beta.private -> alpha": "imports names the package does not export: Private",

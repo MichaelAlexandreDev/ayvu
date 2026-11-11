@@ -25,11 +25,10 @@ from .approved_memory import (
     PipelineStage, ScopeKind, TargetValue, ValueKind, identity, require_transition, validate_pair,
 )
 from .approved_memory_service import CreateCandidate, DeriveRevision, ReviewRevision
-from .domain import LanguagePair
-from .migration_contracts import MigrationError
 from .provenance import ActorKind, ConfigurationRef, ProvenanceError, ProvenanceStoreError, SubjectRef
 from .provenance_service import ProvenanceRepository
-from .sqlite_migrations import MAX_DATABASE_BYTES, SqliteMigration, SqliteMigrationRunner, sqlite_failure_code
+from .kernel import LanguagePair
+from .kernel.sqlite import MAX_DATABASE_BYTES, MigrationError, SqliteMigration, SqliteMigrationRunner, sqlite_failure_code
 
 MEMORY_SCHEMA_STATEMENTS = (
     """CREATE TABLE tm_revisions (

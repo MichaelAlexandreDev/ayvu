@@ -16,12 +16,12 @@ from ayvu.approved_memory import (
 from ayvu.approved_memory_service import CreateCandidate, ReviewRevision
 from ayvu.approved_memory_store import MEMORY_MIGRATIONS, SqliteApprovedMemoryRepository, memory_migration_runner
 from ayvu.cache import CacheKey, TranslationCache
-from ayvu.domain import LanguagePair
 from ayvu.provenance import ActorKind, ConfigurationRef
 from approved_memory_fixtures import (
     IMPORT_SCOPE, NOW, PAIR, PIN, PROJECT, PROJECT_SCOPE, SCOPES, USER_SCOPE, WORK_SCOPE,
     MemoryEnvironment, document, final, source,
 )
+from ayvu.kernel import LanguagePair
 
 
 @pytest.fixture

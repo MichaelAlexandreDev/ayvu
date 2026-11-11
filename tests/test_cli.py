@@ -26,16 +26,8 @@ from ayvu.cli import (
     _save_markdown_report,
     app,
 )
-from ayvu.domain import (
-    LanguagePair,
-    OutputPlan,
-    TranslationMemoryOptions,
-    TranslationOptions,
-    UserMode,
-)
 from ayvu.epub_io import TranslationReport
 from ayvu.job import JobState
-from ayvu.job_events import JobFailure, JobFailureFamily
 from ayvu.glossary import GlossaryUsage
 from ayvu.markdown_writer import MarkdownDirectoryWriter
 from ayvu.html_translate import HtmlTranslationStats
@@ -47,6 +39,7 @@ from ayvu.translation_engine import EngineResult
 from ayvu.translate_project import OutputValidation, TranslateProjectResult
 from ayvu.translator import TranslatorError, TranslatorLanguage
 from ayvu.validation import ValidationResult
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, UserMode, JobFailure, JobFailureFamily
 
 
 runner = CliRunner()

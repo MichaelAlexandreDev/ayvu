@@ -13,7 +13,7 @@ from .artifact import (
     Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactError, ArtifactIntegrityError,
     ArtifactNotFoundError, ArtifactPathError, ArtifactRequest, ArtifactState, ArtifactStoreError, reuse_mismatch,
 )
-from .job_execution import CancellationToken
+from .kernel import CancellationToken
 
 ARTIFACT_SAFE_POINTS = ('artifact_before_write', 'artifact_between_chunks', 'artifact_before_publication')
 MAX_RECONCILE_BATCH = 1024

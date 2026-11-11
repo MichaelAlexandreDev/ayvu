@@ -6,10 +6,10 @@ import pytest
 
 from ayvu.job import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
 from ayvu.job_events import (
-    DIAGNOSTIC_KEYS, MAX_EVENT_BYTES, CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent,
-    JobEventAcceptance, JobEventError, JobEventKind, JobEventOrderError, JobEventSequence, JobFailure, JobFailureFamily,
-    JobOperationError, JobOutcome, JobProgress, JobWarning, decode_event, encode_event, job_diagnostics,
-    normalize_failure,
+    MAX_EVENT_BYTES, CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobEventAcceptance, JobEventKind, JobEventOrderError, JobEventSequence, JobOutcome, JobProgress, decode_event, encode_event)
+from ayvu.kernel import (
+    DIAGNOSTIC_KEYS, JobEventError, JobFailure, JobFailureFamily, JobOperationError, JobWarning,
+    job_diagnostics, normalize_failure,
 )
 
 JOB = str(UUID(int=2))
@@ -158,7 +158,7 @@ def test_full_allowlist_fits_the_size_limits():
 
 
 def test_serialized_diagnostics_have_a_byte_limit(monkeypatch):
-    monkeypatch.setattr('ayvu.job_events.MAX_DIAGNOSTICS_BYTES', 8)
+    monkeypatch.setattr('ayvu.kernel.failures.MAX_DIAGNOSTICS_BYTES', 8)
     with pytest.raises(JobEventError, match='^invalid_diagnostics$'):
         JobWarning('code', job_diagnostics(attempt=1))
 

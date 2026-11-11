@@ -16,13 +16,10 @@ from typing import Callable, Iterator
 from uuid import uuid4
 
 from .job import (
-    JobContinuationError, JobError, JobLease, JobNotFoundError, JobRequest, JobRevisionConflictError,
-    JobState, JobStoreError, JobTerminalSummary, JobValidationError, TranslationJob, acquire_lease,
-    new_job, release_lease, renew_lease, requires_reconciliation, transition_job, validate_job_identity,
-)
+    JobContinuationError, JobLease, JobNotFoundError, JobRequest, JobRevisionConflictError, JobState, JobStoreError, JobTerminalSummary, TranslationJob, acquire_lease, new_job, release_lease, renew_lease, requires_reconciliation, transition_job)
 from .job_service import JobSnapshot
-from .migration_contracts import MigrationError
-from .sqlite_migrations import SqliteMigrationRunner, sqlite_failure_code
+from .kernel import JobError, JobValidationError, validate_job_identity
+from .kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
 
 MAX_LIST_LIMIT = 1024
 

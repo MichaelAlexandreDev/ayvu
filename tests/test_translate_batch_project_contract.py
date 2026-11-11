@@ -11,10 +11,8 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
-
-from ayvu.domain import LanguagePair, OutputPlan, TranslationOptions
 from ayvu.job import JobState, acquire_lease, new_job, release_lease, transition_job
-from ayvu.job_events import JobFailure, JobFailureFamily, encode_event
+from ayvu.job_events import encode_event
 from ayvu.translate_batch import ItemStatus
 from ayvu.translate_batch_composition import BatchCancellationController, project_item_outcome
 from ayvu.translate_project import (TranslateCommandError, TranslateObserver, TranslateProject,
@@ -24,6 +22,7 @@ from ayvu.translate_project_composition import ProjectTranslation, translate_in_
 from ayvu.translation_engine import ENGINE_BEFORE_UNIT, EngineResult
 from test_batch_output_policy import intent
 from ayvu.batch_output_policy import BatchOutputPolicy
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, JobFailure, JobFailureFamily
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 PROJECT = str(UUID(int=1))

@@ -7,9 +7,9 @@ from uuid import UUID
 
 from ayvu.job import JobState, JobTerminalSummary, TranslationJob, transition_job
 from ayvu.job_events import (
-    JobCorrelation, JobEvent, JobEventKind, JobFailure, JobOutcome, JobProgress, JobWarning, normalize_failure,
-)
+    JobCorrelation, JobEvent, JobEventKind, JobOutcome, JobProgress)
 from ayvu.job_execution import CancellationSource, JobEventSink, JobEventSource
+from ayvu.kernel import JobFailure, JobWarning, normalize_failure
 
 SAFE_POINTS = ('before_document', 'after_document')
 START = datetime(2026, 11, 3, 12, tzinfo=UTC)

@@ -1,9 +1,9 @@
 import pytest
 
 from ayvu.cache import CacheKey, TranslationCache
-from ayvu.domain import LanguagePair
 from ayvu.preflight import PreflightError, run_translation_preflight
 from ayvu.translator import RequestRateLimiter, RoutedTranslator, TranslatorError, TranslatorLanguage
+from ayvu.kernel import LanguagePair
 
 
 class FakeTranslator:

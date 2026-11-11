@@ -73,15 +73,11 @@ layers = [
   "(artifacts) : artifact : artifact_service : artifact_store : artifact_destination",
   "(jobs) : job : job_events : job_execution : job_service : job_store : job_recovery : job_recovery_store : resume : legacy_resume",
   "content : content_use_cases : content_composition : provenance : provenance_service : provenance_store : (network) : network_policy : network_http : preferences : preferences_service : preferences_store : config : config_values : (library) : library_service : library_adapters : (application)",
-  "(kernel) : domain : migration_contracts : sqlite_migrations",
+  "kernel",
 ]
 ignore_imports = [
   "ayvu.batch_output_policy -> ayvu.cli_contracts",  # REF-04 (#272): cli_contracts is split by owner
-  "ayvu.content_use_cases -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
-  "ayvu.content_use_cases -> ayvu.job_events",  # REF-04 (#272): job primitives move to kernel
-  "ayvu.content_use_cases -> ayvu.job_execution",  # REF-04 (#272): job primitives move to kernel
   "ayvu.preflight -> ayvu.cli_contracts",  # REF-04 (#272): cli_contracts is split by owner
-  "ayvu.provenance -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
   "ayvu.provenance_store -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
   "ayvu.content_composition -> ayvu.epub_format",  # REF-05 (#273): composition moves to composition/
   "ayvu.content_composition -> ayvu.format_local",  # REF-05 (#273): composition moves to composition/

@@ -18,7 +18,6 @@ from .cache_identity import (
     ExactCacheLookup,
 )
 from .chunking import split_text
-from .domain import LanguagePair
 from .memory_retrieval import MemoryMatch, RetrievalDecision
 from .translation_memory import TranslationMemoryMatch
 from .translation_plan import LINGUISTIC_STAGES
@@ -26,6 +25,7 @@ from .translation_protection import (
     INTERNAL_MARKER_PATTERN, PROTECTED_TOKEN_PATTERN, TAG_TOKEN_PATTERN, ProtectedSpan, TextParts,
     protect_special_terms, protected_content_is_intact, special_term_spans,
 )
+from .kernel import LanguagePair
 
 DEFAULT_MAX_RECOVERY_CALLS = 64
 

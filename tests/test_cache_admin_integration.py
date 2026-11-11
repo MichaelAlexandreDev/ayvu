@@ -15,7 +15,7 @@ from ayvu.cache_admin import (CacheRef, FileRef, CacheFilter, InspectRequest, Pr
     ExecuteCleanRequest, ExportRequest, ImportRequest)
 from ayvu.cache_admin_composition import cache_admin_services
 from ayvu.cli import app
-from ayvu.domain import LanguagePair
+from ayvu.kernel import LanguagePair
 
 
 def key(text):

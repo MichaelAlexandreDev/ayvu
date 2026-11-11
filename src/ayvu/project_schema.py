@@ -14,7 +14,7 @@ from .job import JobStoreError
 from .job_store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
 from .provenance import ProvenanceStoreError
 from .provenance_store import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
-from .sqlite_migrations import SqliteMigration, SqliteMigrationRunner
+from .kernel.sqlite import SqliteMigration, SqliteMigrationRunner
 
 PROJECT_MIGRATIONS = (
     SqliteMigration(1),

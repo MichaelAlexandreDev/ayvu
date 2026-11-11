@@ -27,7 +27,6 @@ from .cache_schema import CacheSchemaError, SchemaState, classify_cache
 from .content import ContentDocument, TranslationUnit
 from .context_execution import ContextExecution
 from .translation_context import ContextError
-from .domain import OutputPlan, TranslationOptions
 from .epub_format import EPUB_REGISTRATION, epub_format_adapter
 from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB path
     SelectedChapter,
@@ -41,8 +40,7 @@ from .format_local import LocalFormatSource
 from .format_service import FormatRegistry, FormatService
 from .glossary import apply_glossary_with_usage, effective_glossary_reference
 from .html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
-from .job import JobError, JobState
-from .job_events import JobFailure, JobFailureFamily
+from .job import JobState
 from .job_execution import CancellationSource
 from .job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from .job_recovery_store import LocalRecoveryEvidence
@@ -84,6 +82,7 @@ from .translation_memory import TranslationMemory
 from .translation_plan import resolve_plan as resolve_translation_plan
 from .translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
 from .validation import ValidationResult, validate_output_epub
+from .kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
 
 # What the adapter refuses by policy, on any path. A book it merely cannot read is left to the current checks.
 BOOK_REFUSALS = frozenset({

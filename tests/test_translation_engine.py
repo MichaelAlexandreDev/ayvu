@@ -15,17 +15,17 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 import pytest
 
 from ayvu.cache import TranslationCache
-from ayvu.domain import ChapterSelection, ChapterSelectionError, LanguagePair, TranslationMemoryOptions, TranslationOptions
 from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter
 from ayvu.epub_io import translate_epub
 from ayvu.format_local import LocalFormatSource
 from ayvu.format_service import FormatRegistry, FormatService
 from ayvu.glossary import load_glossary
 from ayvu.format_adapter import MaterializationResult
-from ayvu.job_events import JobFailure, JobFailureFamily
 from ayvu.legacy_translation import translate_book
 from epub_fakes import NAV, OPF, TWO, XHTML, epub_bytes, members, zip_bytes
 from format_contract import PROJECT, FormatEnv
+from ayvu.kernel import (ChapterSelection, ChapterSelectionError, LanguagePair, TranslationMemoryOptions,
+    TranslationOptions, JobFailure, JobFailureFamily)
 
 PAIR = LanguagePair(source="en", target="pt")
 OPF_MEMBER = "OEBPS/content.opf"

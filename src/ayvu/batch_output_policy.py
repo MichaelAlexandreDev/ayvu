@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Literal
 
 from .artifact import ArtifactConflictError
-from .domain import OutputPlan, automatic_output_candidate
+from .kernel import OutputPlan, automatic_output_candidate
 
 MAX_CANDIDATES = 10_000
 

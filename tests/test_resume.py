@@ -3,13 +3,6 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-
-from ayvu.domain import (
-    ChapterSelection,
-    LanguagePair,
-    TranslationMemoryOptions,
-    TranslationOptions,
-)
 from ayvu.resume import (
     COMPLETED_STATUS,
     RESUME_STATE_VERSION,
@@ -18,6 +11,7 @@ from ayvu.resume import (
     ResumeStateStore,
     TranslationResumeState,
 )
+from ayvu.kernel import ChapterSelection, LanguagePair, TranslationMemoryOptions, TranslationOptions
 
 
 def make_state(tmp_path: Path, stem: str = "book") -> TranslationResumeState:

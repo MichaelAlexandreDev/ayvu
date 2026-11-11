@@ -9,12 +9,12 @@ import sys
 import pytest
 
 from ayvu.cache_identity import CacheOnlyRequest
-from ayvu.domain import LanguagePair
 from ayvu.translation_memory import TranslationMemoryMatch
 from ayvu.translation_pipeline import (
     DEFAULT_MAX_RECOVERY_CALLS, LEGACY_TEXT_STAGES, LegacyTextPipelineFacade, LinguisticSource,
 )
 from ayvu.translation_protection import protect_special_terms, protected_content_is_intact
+from ayvu.kernel import LanguagePair
 
 PAIR = LanguagePair(source='en', target='pt')
 ROOT = Path(__file__).parents[1] / 'src' / 'ayvu'

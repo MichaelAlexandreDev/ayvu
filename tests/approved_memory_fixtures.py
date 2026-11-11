@@ -15,14 +15,14 @@ from ayvu.approved_memory import (
 )
 from ayvu.approved_memory_service import ApprovedMemory, CreateCandidate, DeriveRevision, ReviewRevision
 from ayvu.approved_memory_store import SqliteApprovedMemoryRepository, memory_migration_runner, open_approved_memory
-from ayvu.domain import LanguagePair
 from ayvu.job import JobRequest
 from ayvu.job_store import SqliteJobRepository
 from ayvu.project_schema import project_migration_runner
 from ayvu.provenance import ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
 from ayvu.provenance_store import SqliteProvenanceRepository
-from ayvu.sqlite_migrations import APPLICATION_ID
 from content_fixtures import PROJECT, epub_document, unit
+from ayvu.kernel import LanguagePair
+from ayvu.kernel.sqlite import APPLICATION_ID
 
 NOW = datetime(2026, 11, 6, 12, tzinfo=UTC)
 PAIR = LanguagePair('en', 'pt-br')

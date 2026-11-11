@@ -27,19 +27,19 @@ import ayvu.job_store as job_store
 import ayvu.review_composition as review_composition
 import ayvu.translate_project_composition as composition
 from ayvu.cli import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_failure, app
-from ayvu.domain import LanguagePair, OutputPlan, TranslationOptions, UserMode
 from ayvu.project_schema import open_job_repository, open_provenance_repository
 from ayvu.preflight import PreflightError
 from ayvu.project_store import ProjectJsonRepository, build_project_request
 from ayvu.resume import ResumeStateStore
 from ayvu.review_exchange import decode_review_package, encode_review_package
 from ayvu.epub_io import TranslationReport
-from ayvu.job import JobError, JobState, JobTerminalSummary
-from ayvu.job_events import JobFailure, JobFailureFamily, JobOutcome
+from ayvu.job import JobState, JobTerminalSummary
+from ayvu.job_events import JobOutcome
 from ayvu.provenance import SourceKind
 from ayvu.review_application import ReviewApplyCommand, ReviewOutcome
 from ayvu.translate_project import TRANSLATE_COMMAND_TYPE, OutputValidation, TranslateObserver, TranslateProjectResult
 from ayvu.translate_project_composition import ProjectTranslationRun
+from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode, JobError, JobFailure, JobFailureFamily
 
 runner = CliRunner()
 LANGUAGES = [{"code": "en", "name": "English", "targets": ["pt"]}, {"code": "pt", "name": "Portuguese", "targets": []}]
