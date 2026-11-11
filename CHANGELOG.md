@@ -272,6 +272,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- `cli_contracts.py` dividido (REF-04, #272, segunda parte): os erros de traduzir um livro
+  (`PreflightError`, `PreflightPolicyError`, `BookRefused`, `TranslationDryRunCancelled`,
+  `ProjectTranslationUnavailable`, `BatchOutputError`, `ResumeStateError`) vão para
+  `ayvu.translation`, e `ProviderSetupError` para `ayvu.providers`. Os protocolos que só o
+  CLI usa ficam com o CLI. Os ciclos entre a interface e jobs, providers e translation
+  deixam de existir: 9 pares restam dos 12.
 - Núcleo compartilhado `ayvu.kernel` (REF-04, #272, primeira parte): identificadores,
   validação de UTC, falhas e avisos tipados, o token de cancelamento e os valores de
   domínio (`domain.py`) saem de `jobs` e da raiz; o executor de migrações SQLite vira

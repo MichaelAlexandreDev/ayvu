@@ -23,12 +23,7 @@ from .cache_identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
 from .config_values import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
 from .cli_contracts import (
-    _BookHooks, _BookRequest, _BookOutcome, AcceptedItem, BatchOutputError,
-    BookRefused, ProjectTranslationUnavailable, TranslationDryRunCancelled,
-    PreflightError, ProviderSetupError, ConfigStore, TranslationReport, ValidationResult,
-    TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery,
-    SelectedChapter, CacheSummaryRow, CacheImportReport, ResumeStateError,
-)
+    _BookHooks, _BookRequest, _BookOutcome, AcceptedItem, ConfigStore, TranslationReport, ValidationResult, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery, SelectedChapter, CacheSummaryRow, CacheImportReport)
 from .cli_composition import (
     configuration_store, library_service, default_glossaries_dir,
     open_content_use_cases, cache_admin_services, read_scope_map_payload,
@@ -50,6 +45,8 @@ from .kernel import (
     PERFORMANCE_PROFILES, PerformanceProfile, TranslationMemoryError, TranslationMemoryOptions,
     TranslationOptions, UserMode, default_preview_books_dir, default_translated_books_dir,
 )
+from .translation import BatchOutputError, BookRefused, PreflightError, ProjectTranslationUnavailable, ResumeStateError, TranslationDryRunCancelled
+from .providers import ProviderSetupError
 
 GLOSSARY_RULE_TRANSLATE = "translate"
 GLOSSARY_RULE_PRESERVE = "preserve"

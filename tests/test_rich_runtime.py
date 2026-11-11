@@ -34,6 +34,7 @@ from test_cache_repository_v2 import entry
 from test_cli_translate_project import Session
 from test_translation_cache_v2 import Env, NOW, document
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions, TranslationOptions, OutputPlan, JobFailure, JobFailureFamily
+from ayvu.translation import BookRefused
 
 PAIR = LanguagePair(source="en", target="pt")
 
@@ -243,7 +244,6 @@ def test_a_held_preparation_lock_refuses_before_provider(tmp_path):
 
 
 def test_rich_preparation_keeps_the_book_policy_refusal_code(tmp_path):
-    from ayvu.cli_contracts import BookRefused
     def prepare():
         raise BookRefused("encrypted_content")
     subject = runtime(tmp_path, prepare=prepare)

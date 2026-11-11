@@ -303,13 +303,14 @@ def test_preview_translation_does_not_validate_twice(tmp_path, monkeypatch):
 
 def test_compatibility_facades_export_identical_contracts():
     from ayvu import config, config_values, preflight, resume, batch_output_policy, provider_composition
-    from ayvu import cli_contracts as contracts
+    from ayvu import cli, providers, translation
     for name in ('AyvuConfig', 'FolderNames', 'TranslationProfile', 'ConfigError', 'config_from_preferences'):
         assert getattr(config, name) is getattr(config_values, name)
-    assert preflight.PreflightError is contracts.PreflightError
-    assert resume.ResumeStateError is contracts.ResumeStateError
-    assert batch_output_policy.BatchOutputError is contracts.BatchOutputError
-    assert provider_composition.ProviderSetupError is contracts.ProviderSetupError
+    # REF-04 gave each error one owner; every module that raises or catches it sees the same class.
+    assert preflight.PreflightError is translation.PreflightError is cli.PreflightError
+    assert resume.ResumeStateError is translation.ResumeStateError is cli.ResumeStateError
+    assert batch_output_policy.BatchOutputError is translation.BatchOutputError is cli.BatchOutputError
+    assert provider_composition.ProviderSetupError is providers.ProviderSetupError is cli.ProviderSetupError
 
 
 def test_existing_cache_inspection_uses_only_selected_readonly_sqlite(tmp_path, monkeypatch):
