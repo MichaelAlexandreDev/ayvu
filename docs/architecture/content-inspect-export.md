@@ -9,9 +9,9 @@ Related issue: [#147 — Extract inspect and visible-content export application 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
 | `ayvu.content_use_cases` | Application | Framework-neutral requests, results, capability negotiation, progress, cancellation and per-file outcomes |
-| `ayvu.epub_format` | Format | Detects and inspects EPUBs; returns ordered visible body-text records |
-| `ayvu.html_structure` | Format | Selects visible body text from XHTML without including the document head |
-| `ayvu.markdown_writer` | Infrastructure | Validates the full destination plan and atomically publishes each Markdown file |
+| `ayvu.formats.epub.adapter` | Format | Detects and inspects EPUBs; returns ordered visible body-text records |
+| `ayvu.formats.epub.html_structure` | Format | Selects visible body text from XHTML without including the document head |
+| `ayvu.formats.markdown.writer` | Infrastructure | Validates the full destination plan and atomically publishes each Markdown file |
 | `ayvu.composition.builders.content` | Composition | Registers the production EPUB adapter and provides local sources and the Markdown writer |
 | `ayvu.cli` | Interface | Renders the existing table, messages, paths, and exit status |
 

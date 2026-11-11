@@ -16,8 +16,8 @@ from typing import Protocol
 
 from .artifacts import Artifact
 from .content import ContentDocument, TranslationUnit
-from .format_adapter import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
-from .format_service import FormatPublication, FormatService, FormatSource
+from .formats import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
+from .formats import FormatPublication, FormatService, FormatSource
 from .kernel import ChapterSelection, ChapterSelectionError, JobFailure, JobFailureFamily, CancellationToken
 
 ENGINE_BEFORE_CHAPTER = "engine_before_chapter"

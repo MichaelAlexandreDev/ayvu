@@ -7,11 +7,11 @@ abilities do, and the contract suite reads only the descriptors.
 from __future__ import annotations
 
 from ayvu.content.model import AdapterIdentity, Locator, SemanticKind, UnitContent, build_document
-from ayvu.format_adapter import (
+from ayvu.formats.contracts import (
     ContentScope, FidelityAspect, FidelityClaim, FidelityLevel, FindingSeverity, FormatDescriptor, FormatInventory, FormatLimits,
     FormatMaturity, FormatOperation, FormatSignature, InventoryDocument, OperationClaim, OperationSupport, ValidationFinding,
 )
-from ayvu.format_service import FormatAdapter, FormatRegistration
+from ayvu.formats.service import FormatAdapter, FormatRegistration
 
 EVIDENCE = ("contract:format_adapter_v1",)
 CARDS_HEADER = b"CARDS1\n"

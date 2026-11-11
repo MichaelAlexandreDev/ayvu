@@ -18,7 +18,7 @@ from ayvu import cli
 from ayvu.composition import cli as root
 from ayvu.composition.cli import _BookHooks, _BookRequest, _BookOutcome
 from ayvu.preferences.model import AyvuConfig
-from ayvu.epub_io import TranslationReport
+from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.jobs.events import JobOutcome, JobTerminalSummary
 from ayvu.preflight import run_translation_preflight

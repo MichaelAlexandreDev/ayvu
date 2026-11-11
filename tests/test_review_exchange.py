@@ -17,10 +17,10 @@ from bs4 import BeautifulSoup
 
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.content.model import UNKNOWN_LOCALE
-from ayvu.epub_format import EPUB_ADAPTER, EPUB_REGISTRATION, epub_format_adapter
-from ayvu.format_adapter import ContentScope, ExtractionRequest, UnitTranslation
-from ayvu.format_service import FormatRegistry, FormatService
-from ayvu.html_structure import extract_html_document, html_unit_template, reconstruct_html
+from ayvu.formats.epub.adapter import EPUB_ADAPTER, EPUB_REGISTRATION, epub_format_adapter
+from ayvu.formats.contracts import ContentScope, ExtractionRequest, UnitTranslation
+from ayvu.formats.service import FormatRegistry, FormatService
+from ayvu.formats.epub.html_structure import extract_html_document, html_unit_template, reconstruct_html
 from ayvu.projects.model import ProjectManifest, ProjectRequest
 from ayvu.review_exchange import (
     MAX_REVIEW_CELL_CHARS,
@@ -610,7 +610,7 @@ def test_legacy_v1_is_boundedly_inspectable_redacted_and_never_applicable(tmp_pa
     output = tmp_path / "must-not-exist.epub"
     for _plain_or_inline in ("plain", "inline"):
         with pytest.raises(ReviewImportError) as caught:
-            from ayvu.epub_io import apply_reviewed_epub
+            from ayvu.v1.epub import apply_reviewed_epub
 
             apply_reviewed_epub(tmp_path / "not-read.epub", output, inspection)
         assert caught.value.code == "legacy_reexport_required"
@@ -620,7 +620,7 @@ def test_legacy_v1_is_boundedly_inspectable_redacted_and_never_applicable(tmp_pa
         pass
 
     with pytest.raises(ReviewImportError) as subclass_result:
-        from ayvu.epub_io import apply_reviewed_epub
+        from ayvu.v1.epub import apply_reviewed_epub
 
         apply_reviewed_epub(tmp_path / "not-read.epub", output,
                             ExtendedLegacyInspection(inspection.rows, inspection.duplicate_ids, inspection.warnings))
@@ -725,7 +725,7 @@ def test_production_epub_extraction_review_mapping_and_staged_html_reconstructio
                         lambda *args, **kwargs: provenance_calls.append((args, kwargs)))
     monkeypatch.setattr("ayvu.jobs.execution.InMemoryJobEventLog.emit",
                         lambda *args, **kwargs: event_calls.append((args, kwargs)))
-    monkeypatch.setattr("ayvu.html_structure.reconstruct_html", instrumented_reconstruct)
+    monkeypatch.setattr("ayvu.formats.epub.html_structure.reconstruct_html", instrumented_reconstruct)
     monkeypatch.setattr(Path, "open", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("unexpected file IO")))
     monkeypatch.setattr(sqlite3, "connect", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("unexpected persistence")))
     plan = map_review_package(edited, project=project, machine_artifact=artifact, descriptor=DESCRIPTOR,

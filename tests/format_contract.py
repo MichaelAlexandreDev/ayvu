@@ -15,12 +15,12 @@ import pytest
 
 from ayvu.artifacts.model import ArtifactRequest
 from ayvu.artifacts.service import ARTIFACT_SAFE_POINTS
-from ayvu.format_adapter import (
+from ayvu.formats.contracts import (
     MATERIALIZING_OPERATIONS, AliasVerdict, DetectionOutcome, ExtractionRequest, FormatOperation, FormatRequirements, OperationSupport,
     PreviewRequest, ReconstructionRequest, UnitTranslation,
 )
-from ayvu.format_local import LocalFormatSource, LocalOutputGuard
-from ayvu.format_service import FORMAT_BEFORE_WORK, FormatAdapter, FormatPublication, FormatRegistration, FormatRegistry, FormatService, format_safe_points
+from ayvu.formats.local import LocalFormatSource, LocalOutputGuard
+from ayvu.formats.service import FORMAT_BEFORE_WORK, FormatAdapter, FormatPublication, FormatRegistration, FormatRegistry, FormatService, format_safe_points
 from ayvu.jobs.model import JobRequest, JobState
 from ayvu.jobs.execution import CancellationSource
 from ayvu.projects.schema import open_artifact_service, open_job_repository

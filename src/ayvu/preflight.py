@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .v1.cache import TranslationCache
-from .epub_io import inspect_epub
+from .formats.epub.io import inspect_epub
 from .knowledge.glossary import Glossary, GlossaryError, load_glossary
 from .provider_session import CliProviderSession
 from .provider_discovery import DiscoveryOutcome

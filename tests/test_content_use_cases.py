@@ -17,15 +17,15 @@ from ayvu.content_use_cases import (
     InspectContent, InspectContentRequest, OutputDirectoryRef, PlannedOutputFile, PublishedFileRef,
     SourceRef, SourceRevision, WriterAuthorization, WriterPlan, WriterPublication,
 )
-from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter
-from ayvu.format_adapter import (
+from ayvu.formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
+from ayvu.formats.contracts import (
     DetectionOutcome, FormatDescriptor, FormatError, FormatOperation, FormatOperationError,
     FormatSignature, VisibleContentDocument,
 )
-from ayvu.format_local import LocalFormatSource
-from ayvu.format_service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
+from ayvu.formats.local import LocalFormatSource
+from ayvu.formats.service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
 from ayvu.jobs.execution import CancellationSource
-from ayvu.markdown_writer import MarkdownDirectoryWriter
+from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 from zipfile import ZIP_DEFLATED
 
 from epub_fakes import ONE, OPF, TWO, epub_bytes, opf_with
@@ -221,7 +221,7 @@ def test_inspection_preserves_missing_metadata_as_typed_missing_values(tmp_path)
     assert result.failure is None
     assert result.title is None and result.authors == () and result.language is None
     assert result.document_count == 3 and result.item_count == 5
-    from ayvu.epub_io import inspect_epub
+    from ayvu.formats.epub.io import inspect_epub
 
     legacy = inspect_epub(path)
     assert (result.title, result.authors, result.language, result.document_count, result.item_count) == (
@@ -396,7 +396,7 @@ def test_markdown_writer_normalizes_permission_failure_and_preserves_unrelated_f
     marker = root / "keep.txt"
     marker.write_text("untouched", encoding="utf-8")
     writer = MarkdownDirectoryWriter()
-    monkeypatch.setattr("ayvu.markdown_writer.os.access", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr("ayvu.formats.markdown.writer.os.access", lambda *_args, **_kwargs: False)
     denied = writer.authorize(OutputDirectoryRef(str(root)), overwrite=True)
     assert denied.failure.code == "output_permission_denied"
     monkeypatch.undo()
@@ -422,7 +422,7 @@ def test_export_content_and_path_canaries_stay_out_of_default_representations(tm
 
 
 def test_adapter_exception_canaries_stay_out_of_failures_and_logs(minimal_epub_path, monkeypatch, caplog, tmp_path):
-    from ayvu import epub_format
+    from ayvu.formats.epub import adapter as epub_format
 
     def fail_with_sensitive_exception(_self, _context):
         raise RuntimeError("BOOK-CONTENT-CANARY /tmp/UNRELATED-PATH-CANARY")
@@ -456,7 +456,7 @@ def test_production_writer_publishes_exact_markdown_atomically_and_keeps_origina
         writes.append(target)
         return real_link(staged, target, **kwargs)
 
-    monkeypatch.setattr("ayvu.markdown_writer.os.link", checked_link)
+    monkeypatch.setattr("ayvu.formats.markdown.writer.os.link", checked_link)
     result = ExportVisibleContent(epub_service(), MarkdownDirectoryWriter()).execute(export_request(minimal_epub_path, out))
     assert result.failure is None and result.completed_count == 3
     assert writes == ["001-chapter1.md", "002-chapter2.md", "003-nav.md"]
@@ -509,7 +509,7 @@ def test_overwrite_uses_a_complete_same_directory_stage_and_atomic_replace(tmp_p
         publications.append(final)
         return real_replace(staged, final, **kwargs)
 
-    monkeypatch.setattr("ayvu.markdown_writer.os.replace", checked_replace)
+    monkeypatch.setattr("ayvu.formats.markdown.writer.os.replace", checked_replace)
     result = ExportVisibleContent(epub_service(), MarkdownDirectoryWriter()).execute(
         export_request(source, out, overwrite=True))
     assert result.failure is None and result.completed_count == 3
@@ -531,7 +531,7 @@ def test_filesystem_failure_reports_per_file_state_and_never_publishes_partial_f
             raise OSError("/tmp/PATH-CANARY BOOK-CONTENT-CANARY")
         return real_replace(staged, target, **kwargs)
 
-    monkeypatch.setattr("ayvu.markdown_writer.os.replace", fail_second)
+    monkeypatch.setattr("ayvu.formats.markdown.writer.os.replace", fail_second)
     result = ExportVisibleContent(epub_service(), MarkdownDirectoryWriter()).execute(
         export_request(source, out, overwrite=True))
     assert [item.state for item in result.outcomes] == [ExportFileState.COMPLETED,
@@ -579,7 +579,7 @@ def test_corrupt_and_hostile_archives_never_publish_output_files(tmp_path):
 
 def test_export_resource_limits_are_reported_before_publication(minimal_epub_path, tmp_path, monkeypatch):
     from dataclasses import replace as replace_dataclass
-    from ayvu import epub_format
+    from ayvu.formats.epub import adapter as epub_format
 
     monkeypatch.setattr(epub_format, "DEFAULT_LIMITS", replace_dataclass(epub_format.DEFAULT_LIMITS,
                                                                           max_document_bytes=32))

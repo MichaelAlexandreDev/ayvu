@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ebooklib import epub
 
-from ayvu.validation import validate_output_epub
+from ayvu.formats.epub.validation import validate_output_epub
 
 
 def _build_epub(tmp_path: Path, chapters: list[epub.EpubHtml], extra_items: list[object] | None = None) -> Path:

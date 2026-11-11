@@ -13,7 +13,7 @@ Related issue: [#142 — Extract a versioned TranslationUnit pipeline](https://g
 ## Decision and scope
 
 The linguistic work on one text is a fixed sequence that knows nothing about documents.
-HTML traversal and markup reconstruction are in [`ayvu.html_structure`](html-structure.md).
+HTML traversal and markup reconstruction are in [`ayvu.formats.epub.html_structure`](html-structure.md).
 
 The CLI accepts at most 100 EPUBs in a sequential batch. Without an explicit
 source language it resolves each book's metadata independently. Each completed item saves
@@ -75,7 +75,7 @@ Veja a [seleção do runtime](translate-project.md#seleção-explícita-do-runti
 | `ayvu.translation_document` | Application | The rich path: per-unit results, document artifact, replay, events and provenance |
 | `ayvu.translation_engine` | Application | One book through a format adapter and a unit executor, under the current flow's rules |
 | `ayvu.v1.translation` | Format | The executor over `translate_text` and the v1 cache, and the current report's types |
-| `ayvu.html_structure` | Format | Traversal, durable units and markup-safe reconstruction |
+| `ayvu.formats.epub.html_structure` | Format | Traversal, durable units and markup-safe reconstruction |
 | `ayvu.v1.html_translate` | Format | The compatibility facade, and `translate_text` adapting the current types to it |
 
 ## Stages
@@ -137,7 +137,7 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.v1.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
 The standalone cache has a v2 boundary and repository; CLI runs without a declared model stay on the characterized v1 adapter.
-[`html_structure`](html-structure.md) has neither cache nor glossary.
+[`formats.epub.html_structure`](html-structure.md) has neither cache nor glossary.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.v1.html_translate`, passed on each call.
 

@@ -70,7 +70,7 @@ layers = [
   "(translation) : translation_plan : translation_pipeline : translation_engine : translation_document : translation_context : context_execution : context_source : chunking : translate_project : translate_batch : batch_output_policy : preflight : resume_reuse : (review) : review_application : review_exchange : review_export : review_import",
   "projects",
   "preferences",
-  "knowledge : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_libretranslate : provider_session : (formats) : format_adapter : format_service : format_local : epub_archive : epub_format : epub_io : html_structure : validation : markdown_writer",
+  "knowledge : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_libretranslate : provider_session : formats",
   "artifacts",
   "provenance",
   "jobs",
@@ -83,18 +83,11 @@ ignore_imports = [
   "ayvu.knowledge.cache.admin -> ayvu.v1.cache_format",  # REF-18 (#286): the v1 cache is retired with v1
   "ayvu.knowledge.cache.admin_store -> ayvu.v1.cache",  # REF-18 (#286): the v1 cache is retired with v1
   "ayvu.knowledge.cache.schema -> ayvu.v1.cache",  # REF-18 (#286): the v1 cache is retired with v1
-  "ayvu.epub_io -> ayvu.v1.cache",  # REF-10 (#278): epub_io is split; its v1 parts join v1
-  "ayvu.epub_io -> ayvu.v1.html_translate",  # REF-10 (#278): epub_io is split; its v1 parts join v1
-  "ayvu.epub_io -> ayvu.v1.translator",  # REF-10 (#278): epub_io is split; its v1 parts join v1
-  "ayvu.validation -> ayvu.v1.html_translate",  # REF-10 (#278): extract_visible_text moves to formats
   "ayvu.preflight -> ayvu.v1.cache",  # REF-11 (#279): preflight moves to translation/ with the HTTP client out of v1
   "ayvu.preflight -> ayvu.v1.translator",  # REF-11 (#279): preflight moves to translation/ with the HTTP client out of v1
   "ayvu.provider_libretranslate -> ayvu.v1.translator",  # REF-11 (#279): the LibreTranslate HTTP client moves to providers/
   "ayvu.provider_session -> ayvu.v1.translator",  # REF-11 (#279): the LibreTranslate HTTP client moves to providers/
-  "ayvu.content_use_cases -> ayvu.format_adapter",  # REF-07 (#275): content use cases need a home above formats (open question)
-  "ayvu.content_use_cases -> ayvu.format_service",  # REF-07 (#275): content use cases need a home above formats (open question)
-  "ayvu.epub_io -> ayvu.review_export",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
-  "ayvu.epub_io -> ayvu.review_import",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+  "ayvu.content_use_cases -> ayvu.formats",  # REF-07 (#275): content use cases need a home above formats (open question)
 ]
 
 [[tool.importlinter.contracts]]
@@ -188,15 +181,7 @@ forbidden_modules = [
   "ayvu.provider_network",
   "ayvu.provider_libretranslate",
   "ayvu.provider_session",
-  "ayvu.format_adapter",
-  "ayvu.format_service",
-  "ayvu.format_local",
-  "ayvu.epub_archive",
-  "ayvu.epub_format",
-  "ayvu.epub_io",
-  "ayvu.html_structure",
-  "ayvu.validation",
-  "ayvu.markdown_writer",
+  "ayvu.formats",
 ]
 
 [[tool.importlinter.contracts]]
@@ -216,15 +201,6 @@ source_modules = [
 ]
 forbidden_modules = [
   "ayvu.knowledge",
-  "ayvu.format_adapter",
-  "ayvu.format_service",
-  "ayvu.format_local",
-  "ayvu.epub_archive",
-  "ayvu.epub_format",
-  "ayvu.epub_io",
-  "ayvu.html_structure",
-  "ayvu.validation",
-  "ayvu.markdown_writer",
 ]
 
 [[tool.importlinter.contracts]]
@@ -233,15 +209,7 @@ name = "D3: formats does not import the other modules of its layer (knowledge, p
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
-  "ayvu.format_adapter",
-  "ayvu.format_service",
-  "ayvu.format_local",
-  "ayvu.epub_archive",
-  "ayvu.epub_format",
-  "ayvu.epub_io",
-  "ayvu.html_structure",
-  "ayvu.validation",
-  "ayvu.markdown_writer",
+  "ayvu.formats",
 ]
 forbidden_modules = [
   "ayvu.providers",
@@ -254,8 +222,6 @@ forbidden_modules = [
   "ayvu.provider_session",
 ]
 ignore_imports = [
-  "ayvu.epub_io -> ayvu.knowledge.glossary",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
-  "ayvu.epub_io -> ayvu.knowledge.memory",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
 ]
 
 [[tool.importlinter.contracts]]

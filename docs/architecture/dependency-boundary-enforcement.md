@@ -58,7 +58,7 @@ entries fail, so a rename cannot silently discard protection.
 | `composition.cli` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
 | `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
 | `preferences.model` | Domain | Valores de preferências e conversões da fachada v1 |
-| `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `formats.epub.archive`, `formats.epub.adapter`, `formats.epub.io`, `formats.epub.html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation_engine` | Application | One book through a format adapter and a unit executor |
 | `translate_project` | Application | One project's book as one durable job, from its ports |
 | `recovery.service` | Application | Listing, inspecting and resuming interrupted translations |
@@ -72,11 +72,11 @@ entries fail, so a rename cannot silently discard protection.
 | `translation_document` | Application | Rich document path: results, artifact, replay, events and provenance |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
 | `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
-| `format_adapter` | Domain | What a format claims, negotiation, and the values its operations exchange |
-| `format_service` | Application | Format ports, registry and the checks before any format does work |
-| `format_local` | Infrastructure | Local files as format sources, and the check that a destination is not the source |
+| `formats.contracts` | Domain | What a format claims, negotiation, and the values its operations exchange |
+| `formats.service` | Application | Format ports, registry and the checks before any format does work |
+| `formats.local` | Infrastructure | Local files as format sources, and the check that a destination is not the source |
 | `content_use_cases` | Application | Shared read-only inspect and visible-content export requests/results |
-| `markdown_writer` | Infrastructure | Safe Markdown planning and atomic per-file publication |
+| `formats.markdown.writer` | Infrastructure | Safe Markdown planning and atomic per-file publication |
 | `composition.builders.content` | Composition | Explicit format registry and local content workflow adapters |
 | `provider_network` | Domain | The network decision an operation must present, and its enforcement |
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
@@ -151,7 +151,7 @@ consolidação responsável, não uma autorização para duplicar serviços.
 The coupling of the
 `v1.html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
 EPUB pipeline coupling expires in #144, after #141 separates the
-provider contract from its HTTP adapter. `html_structure` has no such coupling.
+provider contract from its HTTP adapter. `formats.epub.html_structure` has no such coupling.
 Legacy review projection coupling expires in #158. Fuzzy memory's exact-cache and vendor coupling
 expires in #161. The guided library flow uses `library.service` and `library.adapters`.
 The exact edge and condition for each of these are recorded individually in

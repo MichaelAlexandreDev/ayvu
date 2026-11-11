@@ -6,18 +6,19 @@ import pytest
 from bs4 import BeautifulSoup
 from lxml import etree
 
-from ayvu import epub_format, epub_io
+from ayvu.formats.epub import adapter as epub_format, io as epub_io
+from ayvu.v1 import epub as v1_epub
 from ayvu.artifacts.model import ArtifactStoreError
 from ayvu.v1.cache import TranslationCache
-from ayvu.epub_archive import EpubArchiveError
-from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter
-from ayvu.format_adapter import (
+from ayvu.formats.epub.archive import EpubArchiveError
+from ayvu.formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
+from ayvu.formats.contracts import (
     ContentScope, DetectionOutcome, ExtractionRequest, FidelityAspect, FidelityLevel, FindingSeverity, FormatOperation, OperationSupport, PreviewRequest,
     ReconstructionRequest, UnitTranslation,
 )
-from ayvu.format_local import LocalFormatSource, LocalOutputGuard
-from ayvu.format_service import FormatRegistry, FormatService, format_safe_points
-from ayvu.html_structure import html_unit_template
+from ayvu.formats.local import LocalFormatSource, LocalOutputGuard
+from ayvu.formats.service import FormatRegistry, FormatService, format_safe_points
+from ayvu.formats.epub.html_structure import html_unit_template
 from epub_fakes import OPF, TWO, XHTML, epub_bytes, members, opf_with, zip_bytes
 from format_contract import PROJECT, FormatAdapterContract, FormatEnv, FormatHarness, TriggerToken
 from ayvu.kernel import LanguagePair, TranslationOptions, JobFailureFamily
@@ -614,26 +615,25 @@ def test_the_adapter_imports_no_provider_cache_glossary_or_interface():
     import subprocess
     import sys
 
-    forbidden = ("ayvu.v1.cache", "ayvu.knowledge.glossary", "ayvu.v1.translator", "ayvu.knowledge.memory", "ayvu.translation_pipeline", "ayvu.provider", "ayvu.cli", "ayvu.epub_io",
-                 "ayvu.v1.html_translate", "ayvu.validation", "ebooklib", "typer", "rich", "requests", "sqlite3")
-    source = (Path(__file__).parents[1] / "src" / "ayvu" / "epub_format.py").read_text()
+    forbidden = ("ayvu.v1.cache", "ayvu.knowledge.glossary", "ayvu.v1.translator", "ayvu.knowledge.memory", "ayvu.translation_pipeline", "ayvu.provider", "ayvu.cli", "ayvu.formats.epub.io", "ayvu.v1.html_translate", "ayvu.formats.epub.validation", "ebooklib", "typer", "rich", "requests", "sqlite3")
+    source = (Path(__file__).parents[1] / "src" / "ayvu" / "formats" / "epub" / "adapter.py").read_text()
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.ImportFrom):
             name = f"ayvu.{node.module}" if node.level else node.module
             assert not name.startswith(forbidden), name
-    code = f"import sys, ayvu.epub_format; print([m for m in sys.modules if m.startswith({forbidden!r})])"
+    code = f"import sys, ayvu.formats.epub.adapter; print([m for m in sys.modules if m.startswith({forbidden!r})])"
     done_ = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
     assert done_.stdout.strip() == "[]"
 
 
 def test_no_html_is_traversed_here():
-    source = (Path(__file__).parents[1] / "src" / "ayvu" / "epub_format.py").read_text()
+    source = (Path(__file__).parents[1] / "src" / "ayvu" / "formats" / "epub" / "adapter.py").read_text()
     assert ".children" not in source and "NavigableString" not in source and "get_text" not in source
 
 
 def test_the_current_flow_writes_no_durable_artifact(tmp_path):
-    source = (Path(__file__).parents[1] / "src" / "ayvu" / "epub_io.py").read_text()
-    assert "epub_format" not in source and "ArtifactService" not in source and "artifact" not in source.lower()
+    for source in ((Path(__file__).parents[1] / "src" / "ayvu" / name).read_text() for name in ("formats/epub/io.py", "v1/epub.py")):
+        assert "epub_format" not in source and "ArtifactService" not in source and "artifact" not in source.lower()
 
 
 def test_a_document_title_is_its_first_visible_text_with_tidy_spaces(service, tmp_path):
@@ -695,7 +695,7 @@ def test_the_adapter_and_the_current_flow_write_the_same_package(service, tmp_pa
     output = tmp_path / "current.epub"
     options = TranslationOptions(language_pair=LanguagePair(source="en", target="pt"), translate_metadata=True)
     with TranslationCache(tmp_path / "cache.sqlite") as cache:
-        epub_io.translate_epub(path, output, translator=Prefix(), cache=cache, options=options)
+        v1_epub.translate_epub(path, output, translator=Prefix(), cache=cache, options=options)
     assert members_of(output.read_bytes())["OEBPS/content.opf"] == members_of(env.read(publication))["OEBPS/content.opf"]
 
 

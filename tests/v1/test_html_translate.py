@@ -1002,7 +1002,7 @@ def test_review_text_of_a_token_like_literal_is_the_literal(tmp_path):
 
 def test_ordinary_text_keeps_its_cache_key(tmp_path):
     html = '<html><body><p>a <b id="k">world</b> <!-- out --><code>x</code></p></body></html>'
-    from ayvu.html_structure import TransientHtmlDocument
+    from ayvu.formats.epub.html_structure import TransientHtmlDocument
 
     assert [run.template for run in TransientHtmlDocument(html).runs] == ["a __AYVU_TAG_0__world__AYVU_TAG_1__ ", "__AYVU_TAG_0__"]
 

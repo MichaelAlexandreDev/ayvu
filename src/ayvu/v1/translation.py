@@ -13,10 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..content import TranslationUnit
-from ..epub_archive import EpubArchive, EpubArchiveError, package_title, parse_package_for_edit
-from ..epub_io import TranslationReport, _validate_worker_options
-from ..format_service import FormatPublication, FormatService, FormatSource
-from ..html_structure import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
+from ..formats.epub.archive import EpubArchive, EpubArchiveError, package_title, parse_package_for_edit
+from .epub import TranslationReport, _validate_worker_options
+from ..formats import FormatPublication, FormatService, FormatSource
+from ..formats.epub import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
 from .html_translate import HtmlTranslationStats, TextTranslationResult, translate_text
 from ..knowledge.memory import TranslationMemory
 from ..translation_engine import (

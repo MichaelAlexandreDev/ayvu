@@ -9,17 +9,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import BinaryIO, Callable, Iterable, Protocol, runtime_checkable
 
-from .artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactRequest, ArtifactState
-from .artifacts import ARTIFACT_SAFE_POINTS
-from .content import ContentDocument
-from .format_adapter import (
+from ..artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactRequest, ArtifactState
+from ..artifacts import ARTIFACT_SAFE_POINTS
+from ..content import ContentDocument
+from .contracts import (
     FORMAT_CONTRACT_VERSION, MATERIALIZING_OPERATIONS, MAX_DETECTION_BYTES, AliasVerdict, DetectionEvidence, DetectionOutcome,
     DetectionResult, ExtractionRequest, ExtractionResult, FormatCancelledError, FormatDescriptor, FormatError, FormatInventory,
     FormatOperation, FormatOperationError, FormatRequirements, InspectionResult, MaterializationResult, PreviewRequest,
     ReconstructionRequest, ValidationFinding, ValidationResult, VisibleContentDocument, VisibleContentExtractionResult,
     negotiate_format, valid_source_fingerprint,
 )
-from .kernel import is_slug, JobFailure, JobFailureFamily, CancellationToken, JobCancellationError
+from ..kernel import is_slug, JobFailure, JobFailureFamily, CancellationToken, JobCancellationError
 
 FORMAT_BEFORE_WORK = "format_before_work"
 

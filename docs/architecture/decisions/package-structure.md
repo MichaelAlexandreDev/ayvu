@@ -255,7 +255,7 @@ REF-15 break up by reason to change after they move.
 | `format_local.py` | `formats/local.py` |  |
 | `epub_archive.py` | `formats/epub/archive.py` |  |
 | `epub_format.py` | `formats/epub/adapter.py` |  |
-| `epub_io.py` | `formats/epub/io.py` | split; the review CSV moves to review or v1 |
+| `epub_io.py` | `formats/epub/io.py` | split in REF-10: reading the EPUB stays here; the v1 translation of a whole EPUB, with its review CSV, went to `v1/epub.py`, since only v1 uses it |
 | `html_structure.py` | `formats/epub/html_structure.py` |  |
 | `validation.py` | `formats/epub/validation.py` |  |
 | `markdown_writer.py` | `formats/markdown/writer.py` |  |

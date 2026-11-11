@@ -8,10 +8,10 @@ from ...content_use_cases import (
     ExportVisibleContent, ExportVisibleContentRequest, ExportVisibleContentResult, InspectContent,
     InspectContentRequest, InspectContentResult, OutputDirectoryRef, SourceRef,
 )
-from ...epub_format import EPUB_REGISTRATION, epub_format_adapter
-from ...format_local import LocalFormatSource
-from ...format_service import FormatRegistry, FormatService
-from ...markdown_writer import MarkdownDirectoryWriter
+from ...formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
+from ...formats.local import LocalFormatSource
+from ...formats import FormatRegistry, FormatService
+from ...formats.markdown.writer import MarkdownDirectoryWriter
 
 
 @dataclass(frozen=True, repr=False)

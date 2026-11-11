@@ -31,10 +31,12 @@ ADAPTER_MODULES = frozenset({
     "artifacts.store", "artifacts.destination", "projects.store", "projects.schema", "projects.profiles.store",
     "projects.profiles.glossary_store", "library.adapters", "recovery.store", "knowledge.cache.schema",
     "knowledge.cache.repository", "knowledge.cache.interchange", "knowledge.cache.admin_store",
-    "knowledge.cache.admin_v2_store", "knowledge.memory.approved.store", "knowledge.glossary.catalog_store"})
+    "knowledge.cache.admin_v2_store", "knowledge.memory.approved.store", "knowledge.glossary.catalog_store",
+    "formats.local", "formats.epub.archive", "formats.epub.io", "formats.epub.adapter", "formats.epub.validation",
+    "formats.markdown.writer"})
 PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (
     "translation", "html_translate", "translator", "cache", "cache_format", "cache_stream", "cache_admin_store",
-    "resume", "resume_scan")} | ADAPTER_MODULES)
+    "resume", "resume_scan", "epub")} | ADAPTER_MODULES)
 
 
 def packages(root: Path = SOURCE) -> set[str]:

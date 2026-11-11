@@ -33,8 +33,6 @@ PACKAGE_ALIASES = {"desktop": "interfaces"}
 
 LEGACY_GROUPS = {
     "content": ("content_use_cases",),
-    "formats": ("format_adapter", "format_service", "format_local", "epub_archive", "epub_format", "epub_io",
-                "html_structure", "validation", "markdown_writer"),
     "providers": ("provider", "provider_capabilities", "provider_discovery", "provider_service", "provider_network",
                   "provider_session", "provider_libretranslate"),
     "translation": ("translation_plan", "translation_pipeline", "translation_engine", "translation_document",

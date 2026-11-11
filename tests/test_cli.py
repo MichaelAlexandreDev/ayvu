@@ -26,10 +26,10 @@ from ayvu.cli import (
     _save_markdown_report,
     app,
 )
-from ayvu.epub_io import TranslationReport
+from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.knowledge.glossary.rules import GlossaryUsage
-from ayvu.markdown_writer import MarkdownDirectoryWriter
+from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 from ayvu.v1.html_translate import HtmlTranslationStats
 from ayvu.preflight import PreflightError
 from ayvu.v1.resume import COMPLETED_STATUS, ResumeStateStore, TranslationResumeState
@@ -38,7 +38,7 @@ from ayvu.review_export import ReviewSegment, write_review_csv
 from ayvu.translation_engine import EngineResult
 from ayvu.translate_project import OutputValidation, TranslateProjectResult
 from ayvu.v1.translator import TranslatorError, TranslatorLanguage
-from ayvu.validation import ValidationResult
+from ayvu.formats.epub.validation import ValidationResult
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, UserMode, JobFailure, JobFailureFamily
 
 
@@ -3453,7 +3453,7 @@ def test_translate_common_mode_shows_detected_source_hint(minimal_epub_path, tmp
 
 
 def _mock_pipeline_with_route(monkeypatch, route):
-    from ayvu.epub_io import TranslationReport as _Report
+    from ayvu.v1.epub import TranslationReport as _Report
 
     def fake_preflight(**_kwargs: object) -> object:
         return SimpleNamespace(translator=object(), glossary=None, route=route)
