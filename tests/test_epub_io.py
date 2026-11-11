@@ -25,7 +25,7 @@ from ayvu.epub_io import (
     resolve_chapter_selection,
     translate_epub,
 )
-from ayvu.glossary import GLOSSARY_RULE_FORBIDDEN, GLOSSARY_RULE_PRESERVE, Glossary, GlossaryEntry
+from ayvu.knowledge.glossary.rules import GLOSSARY_RULE_FORBIDDEN, GLOSSARY_RULE_PRESERVE, Glossary, GlossaryEntry
 from ayvu.review_export import REVIEW_CSV_COLUMNS, write_review_csv
 from ayvu.review_import import ReviewImportData, ReviewImportError, ReviewRow, read_review_csv
 from epub_fakes import OPF, epub_bytes

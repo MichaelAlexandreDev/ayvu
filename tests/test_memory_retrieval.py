@@ -10,20 +10,20 @@ from uuid import uuid4
 
 import pytest
 
-from ayvu.approved_memory import (
+from ayvu.knowledge.memory.approved.model import (
     Candidate, MAX_VALUE_BYTES, MemoryQuery, MemoryScope, MemoryScopeError, MemorySource, MemoryState,
     MemoryValidationError, PipelineStage, RetrievalLimits, RetrievalMode, ScopeKind, TargetValue, ValueKind,
 )
 from ayvu.artifacts.service import ArtifactService
 from ayvu.artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
-from ayvu.cache_identity import (CacheAuthorizationPolicy, CacheProvenanceMetadata, ExactCacheEntry,
+from ayvu.knowledge.cache.identity import (CacheAuthorizationPolicy, CacheProvenanceMetadata, ExactCacheEntry,
     TRANSLATION_STAGE_AGGREGATE, exact_entry_key)
-from ayvu.cache_repository import SQLiteExactCache
+from ayvu.knowledge.cache.repository import SQLiteExactCache
 from ayvu.content.model import ProtectedPart
 from ayvu.jobs.model import JobState
 from ayvu.jobs.events import encode_event
 from ayvu.jobs.execution import InMemoryJobEventLog
-from ayvu.memory_retrieval import (
+from ayvu.translation.stages.memory_retrieval import (
     LegacyCacheCompatibility, MemoryRetrieval, RetrievalPolicy, RetrievalSource,
     plan_memory_pin, similarity, snippet, structural_compatibility,
 )
@@ -447,7 +447,7 @@ def test_application_rechecks_unreviewed_port_results(env):
 
 
 def test_each_retrieval_source_enforces_unreviewed_trust():
-    from ayvu.memory_retrieval import RetrievalDecision
+    from ayvu.translation.stages.memory_retrieval import RetrievalDecision
     for source in (RetrievalSource.LEGACY_CACHE, RetrievalSource.EXACT_CACHE, RetrievalSource.PROVIDER):
         with pytest.raises(MemoryValidationError, match='^unreviewed_source_required$'):
             RetrievalDecision(source, True, 'no_eligible_reuse', reviewed=True)
@@ -477,7 +477,7 @@ def test_oversized_source_query_is_rejected_before_repository():
         def retrieve(self, query):
             pytest.fail('invalid query reached repository')
     for size in (MAX_VALUE_BYTES + 1,):
-        from ayvu.approved_memory import MemoryValueError
+        from ayvu.knowledge.memory.approved.model import MemoryValueError
         with pytest.raises(MemoryValueError, match='^linguistic_value_too_large$'):
             MemoryRetrieval(Forbidden()).query(query(text='x' * size))
 
@@ -522,7 +522,7 @@ def test_fuzzy_ranking_puts_the_higher_score_first_within_scope(env):
 
 
 def test_legacy_query_n_plus_one_fails_before_repository():
-    from ayvu.cache_identity import CompatibleMemoryQuery
+    from ayvu.knowledge.cache.identity import CompatibleMemoryQuery
     class Forbidden:
         def legacy_candidates(self, *args):
             pytest.fail('invalid legacy query reached repository')
@@ -591,7 +591,7 @@ def test_resume_serialization_preserves_only_explicit_new_policy_choices(tmp_pat
 
 
 def test_normalization_cannot_expand_a_query_past_the_value_limit(env, tmp_path):
-    from ayvu.approved_memory import MemoryValueError
+    from ayvu.knowledge.memory.approved.model import MemoryValueError
     text = '\u0344' * 16385  # NFC expands this composition-excluded character from 2 to 4 UTF-8 bytes.
     assert len(text.encode('utf-8')) < 65536
     with pytest.raises(MemoryValueError, match='^linguistic_value_too_large$'):
@@ -645,7 +645,7 @@ def test_ambiguous_stored_stage_is_excluded_before_materialization_and_provider_
 
 
 def test_real_non_idempotent_glossary_rules_over_production_stores(env, tmp_path):
-    from ayvu.glossary import Glossary, apply_glossary_with_usage, effective_glossary_reference
+    from ayvu.knowledge.glossary.rules import Glossary, apply_glossary_with_usage, effective_glossary_reference
     rules = Glossary({'máquina': 'máquina máquina', 'revista': 'revista revista'})
     pipeline = Pipeline(env, tmp_path, glossary=lambda value: apply_glossary_with_usage(value, rules))
     pipeline.plan = replace(pipeline.plan, glossary_ref=effective_glossary_reference(rules))

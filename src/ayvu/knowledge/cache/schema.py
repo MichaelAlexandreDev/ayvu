@@ -24,7 +24,7 @@ try:
 except ImportError:  # pragma: no cover - exercised through the capability gate
     fcntl = None
 
-from .v1.cache import SCHEMA as LEGACY_SCHEMA
+from ...v1.cache import SCHEMA as LEGACY_SCHEMA
 
 V2_SCHEMA = """CREATE TABLE cache_entries_v2 (
     scope_kind TEXT NOT NULL, scope_id TEXT NOT NULL, value_kind TEXT NOT NULL,

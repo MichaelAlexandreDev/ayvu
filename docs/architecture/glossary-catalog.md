@@ -1,7 +1,7 @@
 # Managed glossary catalog
 
 The guided glossary catalog is a local capability supplied by composition to
-`glossary_catalog` through a repository. References identify catalog entries;
+`knowledge.glossary.catalog` through a repository. References identify catalog entries;
 they do not authorize a root or grant access to arbitrary paths. Presentation
 owns names, prompts, previews, confirmations and deliberate path display. The
 explicit advanced `--glossary` loader and profile paths remain separate from

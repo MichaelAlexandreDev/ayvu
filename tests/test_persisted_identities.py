@@ -30,13 +30,15 @@ from pathlib import Path
 
 import pytest
 
-from ayvu import approved_memory_service, cache_identity, provider_network
+from ayvu import provider_network
+from ayvu.knowledge.memory.approved import service as approved_memory_service
+from ayvu.knowledge.cache import identity as cache_identity
 from ayvu.projects.profiles import model as project_profiles
 from ayvu.content import model as content
 from ayvu.v1 import cache
 from ayvu import translation_context, translation_document, translation_plan
-from ayvu.approved_memory_store import _digest as memory_digest
-from ayvu.cache_identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop
+from ayvu.knowledge.memory.approved.store import _digest as memory_digest
+from ayvu.knowledge.cache.identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop
 from ayvu.provenance.model import ProducerIdentity
 
 SOURCE = Path(__file__).resolve().parents[1] / "src" / "ayvu"

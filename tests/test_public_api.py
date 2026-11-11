@@ -29,7 +29,9 @@ ALLOWED: dict[str, str] = {}
 ADAPTER_MODULES = frozenset({
     "network.http", "preferences.store", "preferences.config_facade", "provenance.store", "jobs.store",
     "artifacts.store", "artifacts.destination", "projects.store", "projects.schema", "projects.profiles.store",
-    "projects.profiles.glossary_store", "library.adapters", "recovery.store"})
+    "projects.profiles.glossary_store", "library.adapters", "recovery.store", "knowledge.cache.schema",
+    "knowledge.cache.repository", "knowledge.cache.interchange", "knowledge.cache.admin_store",
+    "knowledge.cache.admin_v2_store", "knowledge.memory.approved.store", "knowledge.glossary.catalog_store"})
 PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (
     "translation", "html_translate", "translator", "cache", "cache_format", "cache_stream", "cache_admin_store",
     "resume", "resume_scan")} | ADAPTER_MODULES)
@@ -96,7 +98,8 @@ def violations(root: Path = SOURCE, public_modules: frozenset[str] = PUBLIC_MODU
                 elif not (api / "__init__.py").is_file():
                     found[key] = "imports a submodule of another package"
                 else:
-                    missing = sorted(set(names) - exported(root, "/".join(target)) - {"*"})
+                    modules = {name for name in names if ".".join((*target, name)) in public_modules}
+                    missing = sorted(set(names) - exported(root, "/".join(target)) - {"*"} - modules)
                     if missing:
                         found[key] = f"imports names the package does not export: {', '.join(missing)}"
     return found

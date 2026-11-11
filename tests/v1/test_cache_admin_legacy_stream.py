@@ -4,9 +4,9 @@ import sqlite3
 
 import pytest
 
-from ayvu.cache_admin import CacheRef, FileRef, ImportRequest, CacheAdminError
+from ayvu.knowledge.cache.admin import CacheRef, FileRef, ImportRequest, CacheAdminError
 from ayvu.v1.cache_admin_store import SQLiteLegacyStreamingStore
-from ayvu.cache_schema import classify_cache, SchemaState, prepare_cache
+from ayvu.knowledge.cache.schema import classify_cache, SchemaState, prepare_cache
 
 
 def entry(text='a', translated='first', created='2026'):
@@ -78,9 +78,9 @@ def test_v2_gate_leaves_database_unchanged(tmp_path):
 
 def test_production_v1_services_never_use_whole_payload_ports(tmp_path, monkeypatch):
     from ayvu.v1.cache import SCHEMA
-    from ayvu.cache_admin import ExportRequest
+    from ayvu.knowledge.cache.admin import ExportRequest
     from ayvu.composition.builders.cache_admin import cache_admin_services
-    from ayvu.cache_admin_store import SQLiteCacheStore, LocalCacheFiles
+    from ayvu.knowledge.cache.admin_store import SQLiteCacheStore, LocalCacheFiles
     source, destination, payload = tmp_path / 'source.sqlite', tmp_path / 'destination.sqlite', tmp_path / 'data.json'
     row = entry()
     with sqlite3.connect(source) as conn:
@@ -115,7 +115,7 @@ def test_dense_unknown_legacy_keys_are_staged_on_disk_and_discarded(tmp_path):
 
 def test_request_limits_can_only_narrow_legacy_file_and_entry_ceilings(tmp_path):
     from dataclasses import replace
-    from ayvu.cache_admin import CacheInterchangeLimits
+    from ayvu.knowledge.cache.admin import CacheInterchangeLimits
     cache, source = tmp_path / 'legacy.sqlite', tmp_path / 'data.json'
     source.write_text(json.dumps(dict(version=1, entries=[entry()])))
     store = SQLiteLegacyStreamingStore()
@@ -178,7 +178,7 @@ def test_sql_failure_rolls_back_preceding_insert(tmp_path):
 
 
 def test_input_size_ceiling_uses_runtime_legacy_limit(tmp_path, monkeypatch):
-    import ayvu.cache_admin_store as legacy
+    import ayvu.knowledge.cache.admin_store as legacy
     cache, source = tmp_path / 'cache.sqlite', tmp_path / 'input.json'
     source.write_bytes(b'x' * 10)
     monkeypatch.setattr(legacy, 'MAX_FILE_BYTES', 5)

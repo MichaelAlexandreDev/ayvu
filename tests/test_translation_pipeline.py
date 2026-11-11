@@ -8,8 +8,8 @@ import sys
 
 import pytest
 
-from ayvu.cache_identity import CacheOnlyRequest
-from ayvu.translation_memory import TranslationMemoryMatch
+from ayvu.knowledge.cache.identity import CacheOnlyRequest
+from ayvu.knowledge.memory.fuzzy import TranslationMemoryMatch
 from ayvu.translation_pipeline import (
     DEFAULT_MAX_RECOVERY_CALLS, LEGACY_TEXT_STAGES, LegacyTextPipelineFacade, LinguisticSource,
 )

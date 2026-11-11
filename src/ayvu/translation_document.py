@@ -18,7 +18,7 @@ from uuid import uuid4
 
 from .artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactPathError, ArtifactRequest
 from .artifacts import ARTIFACT_SAFE_POINTS, ArtifactService
-from .cache_identity import (
+from .knowledge.cache import (
     MAX_CACHE_ONLY_CANDIDATES,
     AuthorizedCacheScope,
     CacheAuthorizationPolicy,
@@ -47,8 +47,8 @@ from .cache_identity import (
     exact_entry_key,
     resolve_compatible_identities,
 )
-from .approved_memory import MemoryError, MemoryQuery, MemoryScope, ScopeKind, RetrievalMode, ValueKind, PipelineStage
-from .memory_retrieval import (
+from .knowledge.memory.approved import MemoryError, MemoryQuery, MemoryScope, ScopeKind, RetrievalMode, ValueKind, PipelineStage
+from .translation.stages import (
     MemoryMatch, MemoryRetrieval, RetrievalDecision, RetrievalPolicy, RetrievalSource,
     plan_memory_pin, structural_compatibility, snippet,
 )
@@ -66,7 +66,7 @@ from .provenance import (
 from .provenance import ProvenanceRepository
 from .provider import ProviderStatus, TranslationProviderRequest, UnitReference
 from .provider_service import TranslationProvider, execute
-from .translation_memory import TranslationMemoryMatch
+from .knowledge.memory import TranslationMemoryMatch
 from .translation_pipeline import (
     GlossaryOutcome, LinguisticOutcome, LinguisticSource, LinguisticStages, ProtectedContentError,
 )
@@ -725,7 +725,7 @@ class _PlanBoundCache:
         return ExactCacheLookup(CacheLookupState.MISS, reason=reason)
 
     def get(self, text: str, language_pair: LanguagePair) -> ExactCacheLookup:
-        from .cache_identity import CACHE_ENTRY_V2_LIMITS
+        from .knowledge.cache import CACHE_ENTRY_V2_LIMITS
         if len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text:
             return self._miss(CacheMissReason.CACHE_INELIGIBLE)
         if self._fingerprint is None:
@@ -781,7 +781,7 @@ class _PlanBoundCache:
         return result
 
     def set(self, text: str, language_pair: LanguagePair, translated: str) -> None:
-        from .cache_identity import CACHE_ENTRY_V2_LIMITS
+        from .knowledge.cache import CACHE_ENTRY_V2_LIMITS
         if (len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text
                 or len(translated.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.value):
             return

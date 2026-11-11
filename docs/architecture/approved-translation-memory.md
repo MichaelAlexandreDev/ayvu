@@ -6,9 +6,9 @@ ou migrações publicadas. A integração de recuperação no pipeline e na CLI 
 
 ## Contratos e armazenamento
 
-`approved_memory.py` define valores e regras de domínio;
-`approved_memory_service.py` define o port `ApprovedMemoryRepository`, comandos
-e os casos de uso `ApprovedMemory`. `approved_memory_store.py` implementa o
+`knowledge/memory/approved/model.py` define valores e regras de domínio;
+`knowledge/memory/approved/service.py` define o port `ApprovedMemoryRepository`, comandos
+e os casos de uso `ApprovedMemory`. `knowledge/memory/approved/store.py` implementa o
 adaptador de produção `SqliteApprovedMemoryRepository` e seu bootstrap explícito.
 SQL e migrações permanecem na infraestrutura.
 
@@ -16,8 +16,8 @@ A composição usa o diretório do projeto já validado por
 `ProjectJsonRepository.resolve_database_paths(project_id).database.parent`:
 
 ```python
-from ayvu.approved_memory_service import ApprovedMemory
-from ayvu.approved_memory_store import open_approved_memory
+from ayvu.knowledge.memory.approved.service import ApprovedMemory
+from ayvu.knowledge.memory.approved.store import open_approved_memory
 
 repository = open_approved_memory(
     paths.database.parent,

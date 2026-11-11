@@ -9,7 +9,7 @@ import pytest
 
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.v1.html_translate import translate_text
-from ayvu.translation_memory import TranslationMemory
+from ayvu.knowledge.memory.fuzzy import TranslationMemory
 from ayvu.v1.translator import Translator
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
@@ -55,7 +55,7 @@ class RecordingMemory:
 
 
 def match(translated='memoria', *, applied=True, original='Hello'):
-    from ayvu.translation_memory import TranslationMemoryMatch
+    from ayvu.knowledge.memory.fuzzy import TranslationMemoryMatch
     return TranslationMemoryMatch(original=original, translated=translated, score=99.0, applied=applied)
 
 

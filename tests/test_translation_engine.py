@@ -19,7 +19,7 @@ from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter
 from ayvu.epub_io import translate_epub
 from ayvu.format_local import LocalFormatSource
 from ayvu.format_service import FormatRegistry, FormatService
-from ayvu.glossary import load_glossary
+from ayvu.knowledge.glossary.rules import load_glossary
 from ayvu.format_adapter import MaterializationResult
 from ayvu.v1.translation import translate_book
 from epub_fakes import NAV, OPF, TWO, XHTML, epub_bytes, members, zip_bytes

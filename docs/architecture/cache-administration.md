@@ -1,6 +1,6 @@
 # Administração do cache e seus namespaces
 
-`ayvu.cache_admin` define contratos independentes de interface e de armazenamento
+`ayvu.knowledge.cache.admin` define contratos independentes de interface e de armazenamento
 para inspecionar, pré-visualizar e executar limpeza, exportar e importar o cache
 standalone. A referência ao cache e as referências aos arquivos são opacas nas
 representações; os resultados não contêm textos de entradas. O resumo identifica

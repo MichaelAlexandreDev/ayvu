@@ -12,9 +12,9 @@ import json
 import re
 from types import SimpleNamespace
 
-from ..cache_admin import (MAX_ENTRIES, MAX_FILE_BYTES, MAX_METADATA_LENGTH, MAX_STRUCTURE_DEPTH,
-                          MAX_STRUCTURE_TOKENS, MAX_TEXT_LENGTH, CacheAdminError, _invalid, checkpoint)
-from ..cache_interchange import _Reader
+from ..knowledge.cache import (MAX_ENTRIES, MAX_FILE_BYTES, MAX_METADATA_LENGTH, MAX_STRUCTURE_DEPTH,
+                               MAX_STRUCTURE_TOKENS, MAX_TEXT_LENGTH, CacheAdminError, _invalid, checkpoint)
+from ..knowledge.cache.interchange import _Reader
 
 _FIELDS = frozenset(('source_lang', 'target_lang', 'original_text_hash', 'original_text',
                      'translated_text', 'created_at'))

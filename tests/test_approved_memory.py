@@ -7,14 +7,14 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from ayvu.approved_memory import (
+from ayvu.knowledge.memory.approved.model import (
     MAX_VALUE_BYTES, NORMALIZATION_VERSION, SEARCH_VERSION, TRANSITIONS, Candidate, MemoryConflictError,
     MemoryNotFoundError, MemoryProvenanceError, MemoryScope, MemoryScopeError, MemorySource, MemoryState,
     MemoryStorageError, MemoryTransitionError, MemoryValidationError, MemoryValueError, PipelineStage, ScopeKind,
     TargetValue, ValueKind, require_transition,
 )
-from ayvu.approved_memory_service import CreateCandidate, ReviewRevision
-from ayvu.approved_memory_store import MEMORY_MIGRATIONS, SqliteApprovedMemoryRepository, memory_migration_runner
+from ayvu.knowledge.memory.approved.service import CreateCandidate, ReviewRevision
+from ayvu.knowledge.memory.approved.store import MEMORY_MIGRATIONS, SqliteApprovedMemoryRepository, memory_migration_runner
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.provenance.model import ActorKind, ConfigurationRef
 from approved_memory_fixtures import (
@@ -586,8 +586,8 @@ def test_concurrent_idempotent_replay_creates_one_candidate_and_approval(env):
 
 
 def test_v2_cache_values_namespaces_clear_and_replacement_stay_independent(env):
-    from ayvu.cache_repository import SQLiteExactCache
-    from ayvu.cache_schema import participating_connection
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
+    from ayvu.knowledge.cache.schema import participating_connection
     from test_cache_repository_v2 import entry
     path = env.root / 'cache-v2.sqlite'
     cache = SQLiteExactCache(path)
@@ -615,7 +615,7 @@ def test_snapshot_schema_history_is_frozen():
 
 
 def test_storage_size_failure_rolls_back_new_revision(env, monkeypatch):
-    import ayvu.approved_memory_store as store
+    import ayvu.knowledge.memory.approved.store as store
     command = env.creation()
     monkeypatch.setattr(store, 'MAX_DATABASE_BYTES', 1)
     with pytest.raises(MemoryStorageError, match='^resource_limit$'):

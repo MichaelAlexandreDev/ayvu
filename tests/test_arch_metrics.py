@@ -41,14 +41,14 @@ def tree(tmp_path) -> Path:
     write(root, "beta/__init__.py", "thing = 1\n")
     write(root, "beta/tools.py", "from ..alpha import inner\n")
     write(root, "gamma/__init__.py", "x = 1\n")
-    write(root, "cache_identity.py", "from .alpha import y\n")  # a legacy top-level module, grouped as knowledge
+    write(root, "content_use_cases.py", "from .alpha import y\n")  # a legacy top-level module, grouped as content
     write(root, "stray.py", "")
     return root
 
 
 def test_package_files_group_by_first_segment_and_relative_imports_resolve(tree):
     report = arch.measure(tree)
-    assert report.edges == {("alpha", "beta"): 2, ("alpha", "gamma"): 1, ("beta", "alpha"): 1, ("knowledge", "alpha"): 1}
+    assert report.edges == {("alpha", "beta"): 2, ("alpha", "gamma"): 1, ("beta", "alpha"): 1, ("content", "alpha"): 1}
 
 
 def test_groups_that_import_each_other_are_reported_once(tree):

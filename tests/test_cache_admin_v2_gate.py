@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import pytest
 
 from ayvu.v1.cache import SCHEMA
-from ayvu.cache_admin import (CacheRef, FileRef, CacheFilter, CleanSelection,
+from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheFilter, CleanSelection,
     InspectRequest, PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest)
 from ayvu.composition.builders.cache_admin import cache_admin_services
 
@@ -72,7 +72,7 @@ def test_missing_cache_with_migration_marker_is_not_treated_as_empty(tmp_path, s
 
 @pytest.mark.parametrize("state", ["v2", "partial", "view", "trigger"])
 def test_v2_and_partial_refuse_all_legacy_operations(tmp_path, state):
-    from ayvu.cache_schema import SchemaState, classify_cache, prepare_cache
+    from ayvu.knowledge.cache.schema import SchemaState, classify_cache, prepare_cache
     path = tmp_path / "cache.sqlite"
     _v1(path)
     prepare_cache(path)
@@ -105,7 +105,7 @@ def test_v2_and_partial_refuse_all_legacy_operations(tmp_path, state):
 
 
 def test_admin_read_waits_for_migration_and_rechecks_schema(tmp_path, monkeypatch):
-    from ayvu import cache_schema as schema
+    from ayvu.knowledge.cache import schema as schema
     path = tmp_path / "cache.sqlite"
     _v1(path)
     migration_paused = threading.Event()
@@ -168,7 +168,7 @@ def test_cli_gate_uses_isolated_environment(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     from typer.testing import CliRunner
     from ayvu.cli import app
-    from ayvu.cache_schema import prepare_cache
+    from ayvu.knowledge.cache.schema import prepare_cache
     path = tmp_path / "cache.sqlite"
     _v1(path)
     prepare_cache(path)

@@ -1,7 +1,7 @@
 import pytest
 
 from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.translation_memory import TranslationMemory
+from ayvu.knowledge.memory.fuzzy import TranslationMemory
 from ayvu.kernel import LanguagePair, TranslationMemoryError, TranslationMemoryOptions
 
 

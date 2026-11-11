@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Callable, Protocol
 
-from .cache_identity import (
+from .knowledge.cache import (
     CacheEligibility,
     CacheLookupState,
     CacheMissReason,
@@ -18,8 +18,8 @@ from .cache_identity import (
     ExactCacheLookup,
 )
 from .chunking import split_text
-from .memory_retrieval import MemoryMatch, RetrievalDecision
-from .translation_memory import TranslationMemoryMatch
+from .translation.stages import MemoryMatch, RetrievalDecision
+from .knowledge.memory import TranslationMemoryMatch
 from .translation_plan import LINGUISTIC_STAGES
 from .content import (
     INTERNAL_MARKER_PATTERN, PROTECTED_TOKEN_PATTERN, TAG_TOKEN_PATTERN, ProtectedSpan, TextParts,

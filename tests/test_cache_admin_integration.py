@@ -9,9 +9,9 @@ import threading
 import pytest
 from typer.testing import CliRunner
 
-from ayvu import cache_admin, cache_admin_store
+from ayvu.knowledge.cache import admin as cache_admin, admin_store as cache_admin_store
 from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.cache_admin import (CacheRef, FileRef, CacheFilter, InspectRequest, PreviewCleanRequest,
+from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheFilter, InspectRequest, PreviewCleanRequest,
     ExecuteCleanRequest, ExportRequest, ImportRequest)
 from ayvu.composition.builders.cache_admin import cache_admin_services
 from ayvu.cli import app
@@ -87,7 +87,7 @@ def test_export_atomic_replacement_and_failure(tmp_path, monkeypatch):
     seed(path, "one")
     target.write_bytes(b"previous")
     request = ExportRequest(CacheRef(str(path)), FileRef(str(target)), overwrite=True)
-    import ayvu.cache_admin_store as store
+    import ayvu.knowledge.cache.admin_store as store
     def fail(*args):
         raise OSError(errno.ENOSPC, "sensitive environment")
     with monkeypatch.context() as patch:
@@ -109,7 +109,7 @@ def test_replacement_failure_has_distinct_code(tmp_path, monkeypatch):
     path, target = tmp_path / "cache.sqlite", tmp_path / "export.json"
     seed(path, "one")
     target.write_bytes(b"previous")
-    import ayvu.cache_admin_store as store
+    import ayvu.knowledge.cache.admin_store as store
     def fail(*args):
         raise OSError(errno.EIO, "private")
     monkeypatch.setattr(store.os, "replace", fail)
@@ -183,7 +183,7 @@ def test_permission_failure_is_sanitized(tmp_path, monkeypatch):
     services = cache_admin_services()
     path = tmp_path / "cache.sqlite"
     seed(path, "one")
-    import ayvu.cache_admin_store as store
+    import ayvu.knowledge.cache.admin_store as store
     def fail(*args, **kwargs):
         raise PermissionError("secret path")
     monkeypatch.setattr(store.tempfile, "mkstemp", fail)
@@ -221,7 +221,7 @@ def test_bad_import_never_creates_cache(tmp_path, data, expected):
 
 
 def test_bounded_file_read_rejects_oversized_input(tmp_path, monkeypatch):
-    import ayvu.cache_admin_store as store
+    import ayvu.knowledge.cache.admin_store as store
     services = cache_admin_services()
     source, dest = tmp_path / "large.json", tmp_path / "cache.sqlite"
     source.write_bytes(b"x" * 10)
@@ -522,7 +522,7 @@ def test_commands_wait_while_another_process_writes_the_cache(tmp_path, monkeypa
     # A writer holds the cache when the command starts. The command must wait for it, as before
     # DESKTOP-127, instead of failing on the read-only schema check. The writer finishes on the
     # first wait, so the test needs no real sleep.
-    from ayvu import cache_schema
+    from ayvu.knowledge.cache import schema as cache_schema
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
@@ -553,7 +553,7 @@ def test_commands_wait_while_another_process_writes_the_cache(tmp_path, monkeypa
 
 
 def test_waiting_schema_check_still_reports_a_cache_that_stays_busy(tmp_path, monkeypatch):
-    from ayvu import cache_schema
+    from ayvu.knowledge.cache import schema as cache_schema
     clock = iter([0.0, 0.0, 0.2, 0.4, 0.6])
     monkeypatch.setattr(cache_schema.time, "monotonic", lambda: next(clock))
     monkeypatch.setattr(cache_schema.time, "sleep", lambda seconds: None)

@@ -317,10 +317,10 @@ def test_rich_job_cancellation_at_each_existing_safe_point(tmp_path, monkeypatch
 
 def test_tm_approved_epub_workflow_and_cache_clear_isolation_real_stores(tmp_path, monkeypatch):
     from uuid import uuid4
-    from ayvu.approved_memory import Candidate, MemoryScope, MemorySource, MemoryState, ScopeKind, TargetValue, ValueKind, PipelineStage
-    from ayvu.approved_memory_service import CreateCandidate, ReviewRevision
-    from ayvu.approved_memory_store import open_approved_memory
-    from ayvu.memory_retrieval import plan_memory_pin
+    from ayvu.knowledge.memory.approved.model import Candidate, MemoryScope, MemorySource, MemoryState, ScopeKind, TargetValue, ValueKind, PipelineStage
+    from ayvu.knowledge.memory.approved.service import CreateCandidate, ReviewRevision
+    from ayvu.knowledge.memory.approved.store import open_approved_memory
+    from ayvu.translation.stages.memory_retrieval import plan_memory_pin
     from ayvu.provenance.model import ActorKind, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
     config(tmp_path)
     source = _book(tmp_path / 'book.epub')

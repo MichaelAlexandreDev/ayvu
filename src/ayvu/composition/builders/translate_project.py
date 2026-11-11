@@ -15,13 +15,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
-from ...approved_memory import MemoryScope, ScopeKind
-from ...approved_memory_store import open_approved_memory
-from ...memory_retrieval import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
+from ...knowledge.memory.approved import MemoryScope, ScopeKind
+from ...knowledge.memory.approved.store import open_approved_memory
+from ...translation.stages import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
 from ...artifacts import ArtifactError
 from ...artifacts.destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
-from ...cache_repository import SQLiteExactCache
-from ...cache_schema import CacheSchemaError, SchemaState, classify_cache
+from ...knowledge.cache.repository import SQLiteExactCache
+from ...knowledge.cache.schema import CacheSchemaError, SchemaState, classify_cache
 from ...content import ContentDocument, TranslationUnit
 from ...context_execution import ContextExecution
 from ...translation_context import ContextError
@@ -36,7 +36,7 @@ from ...epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB
 )
 from ...format_local import LocalFormatSource, LocalOutputGuard
 from ...format_service import FormatPublication, FormatRegistry, FormatService
-from ...glossary import apply_glossary_with_usage, effective_glossary_reference
+from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
 from ...html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
 from ...jobs import JobState
 from ...jobs import CancellationSource
@@ -76,7 +76,7 @@ from ...translation_engine import (
 from ...translation_document import (
     SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
 )
-from ...translation_memory import TranslationMemory
+from ...knowledge.memory import TranslationMemory
 from ...translation_plan import resolve_plan as resolve_translation_plan
 from ...v1.translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
 from ...validation import ValidationResult, validate_output_epub

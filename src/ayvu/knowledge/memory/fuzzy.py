@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
 from rapidfuzz import fuzz, process
 
-from .v1.cache import TranslationCache
-from .kernel import LanguagePair, TranslationMemoryOptions
+from ...kernel import LanguagePair, TranslationMemoryOptions
+
+
+class FuzzyCandidates(Protocol):
+    """Where stored translations come from; today that is the v1 cache."""
+
+    def fuzzy_candidates(self, *, language_pair: LanguagePair, text: str, min_ratio: float,
+                         max_candidates: int) -> Sequence[tuple[str, str]]: ...
 
 
 @dataclass(frozen=True, repr=False)
@@ -35,7 +43,7 @@ class TranslationMemory:
     layer only ranks candidates and applies the configured thresholds.
     """
 
-    def __init__(self, cache: TranslationCache, options: TranslationMemoryOptions) -> None:
+    def __init__(self, cache: FuzzyCandidates, options: TranslationMemoryOptions) -> None:
         self._cache = cache
         self._options = options
 

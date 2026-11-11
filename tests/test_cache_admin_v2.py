@@ -3,12 +3,12 @@ import json
 
 import pytest
 
-from ayvu.cache_admin import (CacheRef, FileRef, CacheFilter, CacheNamespace, CacheScopeMapping,
+from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheFilter, CacheNamespace, CacheScopeMapping,
                               ImportScopeMap, ImportRequest, ExecuteImportRequest,
                               InspectRequest, PreviewCleanRequest, ExecuteCleanRequest)
-from ayvu.cache_admin_store import CacheStorageError
-from ayvu.cache_admin_v2_store import SQLiteCacheV2Store
-from ayvu.cache_schema import prepare_cache, participating_connection
+from ayvu.knowledge.cache.admin_store import CacheStorageError
+from ayvu.knowledge.cache.admin_v2_store import SQLiteCacheV2Store
+from ayvu.knowledge.cache.schema import prepare_cache, participating_connection
 
 
 def test_import_preview_execution_and_stale_revision(tmp_path):
@@ -38,9 +38,9 @@ def test_import_preview_execution_and_stale_revision(tmp_path):
 
 
 def test_v2_export_remap_and_conflict(tmp_path):
-    from ayvu.cache_admin import ExportRequest
-    from ayvu.cache_identity import CacheAuthorizationPolicy
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.admin import ExportRequest
+    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     source_cache, target_cache, payload = (tmp_path / n for n in ('source.sqlite', 'target.sqlite', 'data.json'))
     item = entry()
@@ -65,8 +65,8 @@ def test_v2_export_remap_and_conflict(tmp_path):
 
 @pytest.mark.parametrize('legacy', [False, True])
 def test_direct_adapter_export_satisfies_application_port(tmp_path, legacy):
-    from ayvu.cache_admin import ExportCache, ExportRequest
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.admin import ExportCache, ExportRequest
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     cache, output = tmp_path / 'cache.sqlite', tmp_path / 'data.json'
     item = entry()
@@ -81,8 +81,8 @@ def test_direct_adapter_export_satisfies_application_port(tmp_path, legacy):
 
 
 def test_empty_v2_export_and_clean_do_not_create_cache(tmp_path):
-    from ayvu.cache_admin import ExportRequest
-    from ayvu.cache_identity import CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.admin import ExportRequest
+    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy
     cache, output = tmp_path / 'missing.sqlite', tmp_path / 'out.json'
     ns = CacheNamespace.v2(CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004321').resolve())
     store = SQLiteCacheV2Store()
@@ -143,7 +143,7 @@ def test_changed_input_and_cancellation_roll_back(tmp_path):
 
 
 def test_legacy_export_matches_existing_serializer_and_rejects_cache_alias(tmp_path):
-    from ayvu.cache_admin import ExportRequest
+    from ayvu.knowledge.cache.admin import ExportRequest
     cache, out = tmp_path / 'cache.sqlite', tmp_path / 'out.json'
     prepare_cache(cache)
     entry = dict(source_lang='en', target_lang='pt', original_text_hash=hashlib.sha256(b'a').hexdigest(), original_text='a', translated_text='á', created_at='2026')
@@ -195,9 +195,9 @@ def test_discard_is_bound_to_issued_preview(tmp_path):
 def test_many_to_one_remapping_checks_complete_row(tmp_path, divergent, reverse, replace_existing):
     from dataclasses import replace
     from datetime import UTC, datetime
-    from ayvu.cache_admin import ExportRequest
-    from ayvu.cache_identity import CacheAuthorizationPolicy
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.admin import ExportRequest
+    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     original = entry()
     second_scope = CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004322').resolve()
@@ -264,7 +264,7 @@ def test_timestamp_conflict_requires_replace_and_stage_tamper_rejected(tmp_path)
 def test_explicit_legacy_import_to_unmigrated_v1_does_not_promote(tmp_path):
     import sqlite3
     from ayvu.v1.cache import SCHEMA
-    from ayvu.cache_schema import classify_cache, SchemaState
+    from ayvu.knowledge.cache.schema import classify_cache, SchemaState
     cache, source = tmp_path / 'v1.sqlite', tmp_path / 'input.json'
     with sqlite3.connect(cache) as conn:
         conn.execute(SCHEMA)
@@ -282,7 +282,7 @@ def test_explicit_legacy_import_to_unmigrated_v1_does_not_promote(tmp_path):
 
 def test_export_rejects_replaced_staging_file(tmp_path):
     import os
-    from ayvu.cache_admin import ExportRequest
+    from ayvu.knowledge.cache.admin import ExportRequest
     cache, out, hostile = tmp_path / 'cache.sqlite', tmp_path / 'out.json', tmp_path / 'hostile'
     prepare_cache(cache)
     hostile.write_text('hostile')
@@ -300,9 +300,9 @@ def test_export_rejects_replaced_staging_file(tmp_path):
 
 def test_preview_binds_broader_scope_authority(tmp_path):
     from dataclasses import replace
-    from ayvu.cache_admin import ExportRequest
-    from ayvu.cache_identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.admin import ExportRequest
+    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     scope = CacheScope(CacheScopeKind.WORK, 'shared')
     first = CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004321', (scope,)).resolve(scope)
@@ -325,8 +325,8 @@ def test_preview_binds_broader_scope_authority(tmp_path):
 def test_explicit_v1_namespace_inspect_export_and_clean_without_promotion(tmp_path):
     import sqlite3
     from ayvu.v1.cache import SCHEMA
-    from ayvu.cache_admin import ExportRequest
-    from ayvu.cache_schema import SchemaState, classify_cache
+    from ayvu.knowledge.cache.admin import ExportRequest
+    from ayvu.knowledge.cache.schema import SchemaState, classify_cache
     cache, output = tmp_path / 'v1.sqlite', tmp_path / 'out.json'
     entry = dict(source_lang='en', target_lang='pt', original_text_hash=hashlib.sha256(b'a').hexdigest(), original_text='a', translated_text='um', created_at='2026')
     with sqlite3.connect(cache) as conn:

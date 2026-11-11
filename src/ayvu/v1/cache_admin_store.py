@@ -9,12 +9,11 @@ from pathlib import Path
 from urllib.parse import quote
 
 from .cache import SCHEMA
-from ..cache_admin import ImportCounts, CacheAdminError, checkpoint, report, _invalid
-from .. import cache_admin_store as legacy
-from ..cache_admin_store import CacheStorageError, _error
-from ..cache_admin_v2_store import _safe_file, _file_digest, _file_identity
-from ..cache_schema import (_location, _identity, classify_cache_waiting,
-                           participating_admin_connection, SchemaState)
+from ..knowledge.cache import ImportCounts, CacheAdminError, checkpoint, report, _invalid
+from ..knowledge.cache import admin_store as legacy
+from ..knowledge.cache.admin_store import CacheStorageError, _error
+from ..knowledge.cache.admin_v2_store import _safe_file, _file_digest, _file_identity
+from ..knowledge.cache.schema import _location, _identity, classify_cache_waiting, participating_admin_connection, SchemaState
 
 # Legacy unknown objects require a disk-backed set of decoded key digests.
 # Bound that index separately from the six-field rows without rejecting dense

@@ -17,18 +17,18 @@ import sqlite3
 from typing import Mapping
 from uuid import uuid4
 
-from .approved_memory import (
+from .model import (
     MemoryQuery, RetrievalMode, search_key,
     Candidate, MemoryConflictError, MemoryError, MemoryEvent, MemoryNotFoundError, MemoryPage,
     MemoryProvenanceError, MemoryRevision, MemoryScope, MemoryScopeError, MemorySource, MemoryState,
     MemoryStorageError, MemoryTransitionError, MemoryValidationError, MemoryValueError, PipelinePin,
     PipelineStage, ScopeKind, TargetValue, ValueKind, identity, require_transition, validate_pair,
 )
-from .approved_memory_service import CreateCandidate, DeriveRevision, ReviewRevision
-from .provenance import ActorKind, ConfigurationRef, ProvenanceError, ProvenanceStoreError, SubjectRef
-from .provenance import ProvenanceRepository
-from .kernel import LanguagePair
-from .kernel.sqlite import MAX_DATABASE_BYTES, MigrationError, SqliteMigration, SqliteMigrationRunner, sqlite_failure_code
+from .service import CreateCandidate, DeriveRevision, ReviewRevision
+from ....provenance import ActorKind, ConfigurationRef, ProvenanceError, ProvenanceStoreError, SubjectRef
+from ....provenance import ProvenanceRepository
+from ....kernel import LanguagePair
+from ....kernel.sqlite import MAX_DATABASE_BYTES, MigrationError, SqliteMigration, SqliteMigrationRunner, sqlite_failure_code
 
 MEMORY_SCHEMA_STATEMENTS = (
     """CREATE TABLE tm_revisions (

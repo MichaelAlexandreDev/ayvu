@@ -255,7 +255,7 @@ uv run ayvu --mode common translate livro.epub
 
 `src/ayvu/v1/cache.py` persiste traduções em SQLite usando idioma de origem, idioma de destino e hash do texto original. Também centraliza inspeção, limpeza filtrada, exportação JSON e importação JSON do cache.
 
-`src/ayvu/glossary.py` lê glossários JSON no formato simples e no formato com
+`src/ayvu/knowledge/glossary/rules.py` lê glossários JSON no formato simples e no formato com
 regras explícitas `translate`, `preserve` e `forbidden`.
 
 `src/ayvu/chunking.py` divide textos longos preservando ordem e evitando cortar palavras quando possível.

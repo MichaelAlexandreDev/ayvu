@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import Iterable
-from .provenance import ProducerIdentity
-from .kernel import validate_job_identity
+from ...provenance import ProducerIdentity
+from ...kernel import validate_job_identity
 
 CACHE_IDENTITY_VERSION = 2
 MAX_ROUTE_HOPS = 8

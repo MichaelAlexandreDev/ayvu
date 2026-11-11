@@ -10,11 +10,11 @@ from datetime import UTC, datetime
 import sqlite3
 from uuid import UUID, uuid4
 
-from ayvu.approved_memory import (
+from ayvu.knowledge.memory.approved.model import (
     Candidate, MemoryScope, MemorySource, MemoryState, PipelinePin, PipelineStage, ScopeKind, TargetValue, ValueKind,
 )
-from ayvu.approved_memory_service import ApprovedMemory, CreateCandidate, DeriveRevision, ReviewRevision
-from ayvu.approved_memory_store import SqliteApprovedMemoryRepository, memory_migration_runner, open_approved_memory
+from ayvu.knowledge.memory.approved.service import ApprovedMemory, CreateCandidate, DeriveRevision, ReviewRevision
+from ayvu.knowledge.memory.approved.store import SqliteApprovedMemoryRepository, memory_migration_runner, open_approved_memory
 from ayvu.jobs.model import JobRequest
 from ayvu.jobs.store import SqliteJobRepository
 from ayvu.projects.schema import project_migration_runner

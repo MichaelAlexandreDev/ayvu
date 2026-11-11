@@ -11,7 +11,7 @@ snapshots nem as projeções descritas aqui.
 `projects/profiles/model.py` contém valores imutáveis e a política de resolução v1;
 `projects/profiles/service.py` contém histórico, portas e casos de uso. Ambos
 são contratos da aplicação, sem JSON, filesystem, SQLite, provedor ou interface.
-A referência do glossário continua pertencendo a `glossary_catalog`; não é
+A referência do glossário continua pertencendo a `knowledge.glossary.catalog`; não é
 substituída por UUID, hash de caminho ou novo registro de identidade.
 
 O esquema v1 exige exatamente `version`, `target_language`, `glossary`, `style`.
@@ -129,7 +129,7 @@ ausente e classificação incompleta falham antes da publicação.
 | Alvo/glossário | inspect | inert | Nenhum pedido ou lookup autorizado por esse plano |
 
 `raw_semantic_contribution()` fornece argumentos limitados para
-`cache_identity.OpaqueSemanticRevision` da #153. Sua referência `profile_effect:`
+`knowledge.cache.identity.OpaqueSemanticRevision` da #153. Sua referência `profile_effect:`
 é resolvida por `state.raw_projection(reference)` a evidência bruta durável
 presente nos snapshots. Ela depende só da partição bruta e versão da política;
 nunca use o hash do snapshot completo no cache. A identidade geral de provedor,

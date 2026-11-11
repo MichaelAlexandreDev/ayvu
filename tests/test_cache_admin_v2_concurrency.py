@@ -6,13 +6,13 @@ from threading import Barrier
 
 import pytest
 
-from ayvu.cache_admin import (CacheRef, FileRef, CacheFilter, CacheNamespace, CacheScopeMapping,
+from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheFilter, CacheNamespace, CacheScopeMapping,
     ImportScopeMap, ImportRequest, ExecuteImportRequest, PreviewCleanRequest, ExecuteCleanRequest,
     ExportRequest)
-from ayvu.cache_admin_store import CacheStorageError
-from ayvu.cache_admin_v2_store import SQLiteCacheV2Store
-from ayvu.cache_repository import SQLiteExactCache
-from ayvu.cache_schema import prepare_cache, participating_connection
+from ayvu.knowledge.cache.admin_store import CacheStorageError
+from ayvu.knowledge.cache.admin_v2_store import SQLiteCacheV2Store
+from ayvu.knowledge.cache.repository import SQLiteExactCache
+from ayvu.knowledge.cache.schema import prepare_cache, participating_connection
 from test_cache_repository_v2 import entry
 
 

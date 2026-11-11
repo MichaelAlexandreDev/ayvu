@@ -2,8 +2,8 @@
 from contextlib import closing
 import sqlite3
 
-from ayvu.approved_memory import MemoryScope, MemoryState, ScopeKind
-from ayvu.approved_memory_store import MEMORY_MIGRATIONS, memory_migration_runner, open_approved_memory
+from ayvu.knowledge.memory.approved.model import MemoryScope, MemoryState, ScopeKind
+from ayvu.knowledge.memory.approved.store import MEMORY_MIGRATIONS, memory_migration_runner, open_approved_memory
 from ayvu.v1.cache import CacheKey, TranslationCache
 from approved_memory_fixtures import MemoryEnvironment, PAIR, PROJECT_SCOPE, SCOPES
 

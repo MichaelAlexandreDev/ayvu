@@ -1,6 +1,6 @@
 # Cache SQLite standalone v2
 
-O módulo local `cache_schema.py` é independente do executor de projetos. A fronteira
+O módulo local `knowledge/cache/schema.py` é independente do executor de projetos. A fronteira
 `prepare_cache(path, authorized_directory=None, checkpoint=None)` classifica e prepara
 um arquivo antes de iniciar workers ou abrir o repositório. `SQLiteExactCache`
 implementa `ExactCachePort` para o caminho rico. A composição de produção seleciona
@@ -29,7 +29,7 @@ Execuções concorrentes que encontrem o lock exclusivo da preparação recebem 
 sem chamar o provedor; não se acrescenta espera nem migração automática. Escritas exatas
 continuam usando o protocolo participante e `put_if_absent` da #154.
 
-A versão é registrada no ledger `cache_schema`; entradas exatas ficam em
+A versão é registrada no ledger `knowledge.cache.schema`; entradas exatas ficam em
 `cache_entries_v2`, com índice `cache_entries_v2_compatible` para resolução
 compatível. Na migração transacional, a tabela v1 `translations` é
 preservada no namespace `legacy-v1`: suas linhas não são copiadas para entradas
@@ -74,7 +74,7 @@ POSIX suportados. Por exemplo, em um diretório local novo e suportado:
 
 ```python
 from pathlib import Path
-from ayvu.cache_repository import SQLiteExactCache
+from ayvu.knowledge.cache.repository import SQLiteExactCache
 
 cache = SQLiteExactCache(Path("/caminho/local/suportado/novo-v2.sqlite"))
 ```

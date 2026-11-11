@@ -9,11 +9,11 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.glossary_catalog import (
+from ayvu.knowledge.glossary.catalog import (
     Entry, GlossaryReference, create_glossary, list_glossaries, read_glossary,
     update_glossary,
 )
-from ayvu.glossary_catalog_store import ManagedGlossaryRepository
+from ayvu.knowledge.glossary.catalog_store import ManagedGlossaryRepository
 
 
 def ref(name):

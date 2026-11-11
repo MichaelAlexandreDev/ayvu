@@ -5,8 +5,8 @@ from contextlib import contextmanager
 import os
 from pathlib import Path
 
-from ...glossary_catalog import GlossaryReference, Snapshot, read_glossary
-from ...glossary_catalog_store import ManagedGlossaryRepository, _Failure, _key
+from ...knowledge.glossary import GlossaryReference, Snapshot, read_glossary
+from ...knowledge.glossary.catalog_store import ManagedGlossaryRepository, _Failure, _key
 from .service import check_cancel
 from .model import GlossaryBinding, ProfileError, ProfileRevision
 
