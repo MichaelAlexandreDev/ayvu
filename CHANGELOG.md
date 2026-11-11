@@ -272,6 +272,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- CLI dividido por grupo de comandos (REF-14, #282, primeira parte): a saída Rich compartilhada vai para
+  `interfaces/cli/render.py`, os padrões e a política de rede da execução para `options.py`, e os
+  comandos `inspect`/`extract` e `languages`/`test-translator` para `commands/content.py` e
+  `commands/translator.py`. O `app.py` registra os comandos na mesma ordem de antes, então a ajuda não
+  muda. Os testes desses comandos saem de `test_cli.py` para `tests/interfaces/cli/`.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e
