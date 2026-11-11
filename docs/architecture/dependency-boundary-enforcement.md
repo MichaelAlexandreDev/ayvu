@@ -87,7 +87,7 @@ entries fail, so a rename cannot silently discard protection.
 | `knowledge.cache.admin` | Application | Typed cache administration use cases and ports |
 | `knowledge.cache.admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
 | `composition.builders.cache_admin` | Composition | Local cache administration adapters |
-| `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |
+| `config`, `resume`, `review.csv_export`, `review.csv_import` | Infrastructure | Preferences, Jobs, Review |
 
 Application imports domain/application contracts; domain imports domain APIs.
 The internal graph must be acyclic. Interface imports application/domain values

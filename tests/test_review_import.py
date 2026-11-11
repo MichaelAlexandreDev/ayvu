@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.review_export import REVIEW_CSV_COLUMNS, ReviewSegment, write_review_csv
-from ayvu.review_import import ReviewImportError, read_review_csv
+from ayvu.review.csv_export import REVIEW_CSV_COLUMNS, ReviewSegment, write_review_csv
+from ayvu.review.csv_import import ReviewImportError, read_review_csv
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]], columns=REVIEW_CSV_COLUMNS) -> Path:
@@ -80,7 +80,7 @@ def test_read_review_csv_rejects_missing_file(tmp_path: Path):
 
 
 def test_legacy_column_cardinality_fails_before_csv_materializes_cells(tmp_path: Path, monkeypatch):
-    import ayvu.review_import as importer
+    import ayvu.review.csv_import as importer
 
     path = tmp_path / "too-many-columns.csv"
     path.write_bytes(b"x," * (importer.MAX_REVIEW_COLUMNS * 1000))
@@ -102,7 +102,7 @@ def test_legacy_column_cardinality_fails_before_csv_materializes_cells(tmp_path:
     ],
 )
 def test_legacy_reader_enforces_each_decoded_budget(tmp_path: Path, monkeypatch, limit_name, value, code):
-    import ayvu.review_import as importer
+    import ayvu.review.csv_import as importer
 
     path = write_review_csv(tmp_path / "legacy.csv", [
         ReviewSegment("c0001-s0001", "book.epub", "out.epub", 1, "chapter", "chapter.xhtml",

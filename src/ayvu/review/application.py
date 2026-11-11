@@ -13,11 +13,11 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Protocol
 
-from .artifacts import Artifact, ArtifactState
-from .jobs import JobState
-from .jobs import JobEvent
-from .translation import TranslateProjectResult
-from .kernel import is_slug, validate_job_identity, JobFailure, CancellationToken
+from ..artifacts import Artifact, ArtifactState
+from ..jobs import JobState
+from ..jobs import JobEvent
+from ..translation import TranslateProjectResult
+from ..kernel import is_slug, validate_job_identity, JobFailure, CancellationToken
 
 REVIEW_EXPORT_COMMAND_TYPE = "export_review_package"
 REVIEW_VALIDATE_COMMAND_TYPE = "validate_review_package"

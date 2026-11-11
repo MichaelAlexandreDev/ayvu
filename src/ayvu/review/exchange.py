@@ -16,11 +16,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .artifacts import Artifact, ArtifactState
-from .content import ContentDocument, TranslationUnit
-from .formats import FormatDescriptor, UnitTranslation
-from .projects import ProjectManifest
-from .content import INTERNAL_MARKER_PATTERN, TAG_TOKEN_PATTERN
+from ..artifacts import Artifact, ArtifactState
+from ..content import ContentDocument, TranslationUnit
+from ..formats import FormatDescriptor, UnitTranslation
+from ..projects import ProjectManifest
+from ..content import INTERNAL_MARKER_PATTERN, TAG_TOKEN_PATTERN
 
 
 REVIEW_PACKAGE_SCHEMA_VERSION = 2

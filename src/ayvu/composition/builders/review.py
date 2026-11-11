@@ -36,16 +36,16 @@ from ...provenance import (
     UNKNOWN, ActorKind, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef,
 )
 from ...provenance.store import SqliteProvenanceRepository
-from ...review_application import (
+from ...review import (
     REVIEW_APPLY_COMMAND_TYPE, REVIEW_EXPORT_COMMAND_TYPE, REVIEW_SAFE_POINTS, ReviewApplicationError,
     ReviewCounts, ReviewOperation, ReviewOperationResult, ReviewPackageExport, ReviewPackageIdentity,
     ReviewUseCasePorts, ReviewValidationMaterial, ExportReviewPackage, ValidateReviewPackage, ApplyReviewPackage,
 )
-from ...review_exchange import (
+from ...review import (
     REVIEW_PACKAGE_SCHEMA_VERSION, ReviewExchangeError, ReviewPackage, ReviewReconstructionPlan,
     decode_review_package, encode_review_package, export_review_package, map_review_package,
 )
-from ...review_import import ReviewImportError, read_review_csv_bytes
+from ...review import ReviewImportError, read_review_csv_bytes
 from ...translation import TranslateProjectResult
 from ...translation import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
 from ...translation import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
