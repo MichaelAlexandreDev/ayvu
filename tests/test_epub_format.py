@@ -338,7 +338,7 @@ def test_no_title_translation_leaves_the_package_byte_identical(service, tmp_pat
 def test_a_title_that_changed_is_stale(service, tmp_path):
     _, source = source_of(tmp_path)
     documents = extract(service, source, frozenset({ContentScope.METADATA})).documents
-    from ayvu.content import build_document, Locator, SemanticKind, UnitContent, UNKNOWN_LOCALE
+    from ayvu.content.model import build_document, Locator, SemanticKind, UnitContent, UNKNOWN_LOCALE
 
     other = build_document(PROJECT, "OEBPS/content.opf", epub_format.EPUB_ADAPTER, UNKNOWN_LOCALE,
                            [UnitContent(Locator("epub_package", 1, "title"), "Another Title", SemanticKind("title"), (0,))],

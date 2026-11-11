@@ -429,7 +429,7 @@ def test_egress_exact_disclosure_binding(dimension):
 
 
 def test_owner_snapshots_supply_only_explicit_sources_and_matching_managed_terms():
-    from ayvu.content import ContextReference
+    from ayvu.content.model import ContextReference
     from test_translation_document import locator
     d = document(cue('a', 'Alice and Bob', 1, context=(ContextReference('previous', locator('b')),)), cue('b', 'vizinho', 2))
     gloss = binding(name='managed.json')

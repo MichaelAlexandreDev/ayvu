@@ -10,8 +10,8 @@ from .epub_io import inspect_epub
 from .glossary import Glossary, GlossaryError, load_glossary
 from .provider_session import CliProviderSession
 from .provider_discovery import DiscoveryOutcome
-from .network_policy import NetworkDecision, NetworkPolicy, NetworkPolicyError, resolve_network_policy, network_next_step
-from .network_http import NetworkAuthorization
+from .network import NetworkDecision, NetworkPolicy, NetworkPolicyError, resolve_network_policy, network_next_step
+from .network import NetworkAuthorization
 from .v1.translator import (
     RequestRateLimiter,
     RetryPolicy,

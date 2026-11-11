@@ -63,7 +63,7 @@ from .job_execution import CancellationSource, JobEventSink
 from .provenance import (
     UNKNOWN, ActorKind, ConfigurationRef, ContextProvenance, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef,
 )
-from .provenance_service import ProvenanceRepository
+from .provenance import ProvenanceRepository
 from .provider import ProviderStatus, TranslationProviderRequest, UnitReference
 from .provider_service import TranslationProvider, execute
 from .translation_memory import TranslationMemoryMatch
@@ -71,7 +71,7 @@ from .translation_pipeline import (
     GlossaryOutcome, LinguisticOutcome, LinguisticSource, LinguisticStages, ProtectedContentError,
 )
 from .translation_plan import ResolvedTranslationPlan
-from .translation_protection import TAG_TOKEN_PATTERN, TextParts, protected_content_is_intact
+from .content import TAG_TOKEN_PATTERN, TextParts, protected_content_is_intact
 from .kernel import LanguagePair, JobValidationError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
 
 # Version 2 records the producing dimensions, so a continuation can prove or name what changed.

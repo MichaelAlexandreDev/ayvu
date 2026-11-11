@@ -1209,7 +1209,7 @@ def test_a_book_replaced_after_the_listing_is_not_blamed_on_the_reader(isolated_
     book.write_bytes(b"x")
     _library_config(isolated_config, books_dir, reader_app="reader")
     calls = []
-    monkeypatch.setattr("ayvu.library_adapters.subprocess.Popen", lambda argv: calls.append(argv))
+    monkeypatch.setattr("ayvu.library.adapters.subprocess.Popen", lambda argv: calls.append(argv))
     real_book_actions = cli_module._library_book_actions
 
     def replace_then_list(listed):
@@ -1265,7 +1265,7 @@ def test_root_command_opens_library_translation(isolated_config, tmp_path, monke
         encoding="utf-8",
     )
     opened: list[list[str]] = []
-    from ayvu.library_adapters import ReaderLauncher
+    from ayvu.library.adapters import ReaderLauncher
     monkeypatch.setattr("ayvu.composition.cli.ReaderLauncher", lambda reader_app: ReaderLauncher(reader_app, runner=opened.append))
 
     result = runner.invoke(app, [], input="3\n1\n2\n")
@@ -1313,7 +1313,7 @@ def test_root_command_reports_library_open_failure(isolated_config, tmp_path, mo
         encoding="utf-8",
     )
 
-    from ayvu.library_adapters import ReaderLauncher
+    from ayvu.library.adapters import ReaderLauncher
     monkeypatch.setattr("ayvu.composition.cli.ReaderLauncher", lambda reader_app: ReaderLauncher(reader_app, which=lambda _: None))
 
     result = runner.invoke(app, [], input="3\n1\n1\n")
@@ -1367,7 +1367,7 @@ def test_settings_save_failure_keeps_effective_session_values(isolated_config, m
     monkeypatch.setattr('ayvu.composition.builders.providers.LibreTranslateTranslator', FakeNoLanguagesTranslator)
     def fail(*args):
         raise OSError('private-canary-path')
-    monkeypatch.setattr('ayvu.preferences_store.os.replace', fail)
+    monkeypatch.setattr('ayvu.preferences.store.os.replace', fail)
     result = runner.invoke(app, [], input='4\n1\nes\n0\n')
     assert result.exit_code == 0
     assert 'Settings saved.' not in result.output
@@ -1395,7 +1395,7 @@ def test_first_use_failed_save_retains_session_without_claiming_success(isolated
     monkeypatch.setattr('ayvu.composition.builders.providers.LibreTranslateTranslator', FakeNoLanguagesTranslator)
     def fail(*args):
         raise PermissionError('private-canary')
-    monkeypatch.setattr('ayvu.preferences_store.os.replace', fail)
+    monkeypatch.setattr('ayvu.preferences.store.os.replace', fail)
     result = runner.invoke(app, [], input=f'es\n{tmp_path / "Books"}\ny\n3\n0\n')
     assert result.exit_code == 0
     assert 'não foi persistida' in result.output

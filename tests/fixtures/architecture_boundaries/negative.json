@@ -36,7 +36,7 @@
   {"source":"ayvu.cli","code":"import ayvu.v1.translator","error":"forbidden"},
   {"source":"ayvu.cli","code":"import ayvu.desktop","error":"forbidden"},
   {"source":"ayvu.desktop","code":"import ayvu.cli","error":"forbidden"},
-  {"source":"ayvu.v1.cache","code":"import ayvu.config","error":"forbidden"},
+  {"source":"ayvu.v1.cache","code":"import ayvu.preferences.config_facade","error":"forbidden"},
   {"source":"ayvu","code":"from ayvu.v1.translator import Translator","error":"forbidden"},
   {"source":"ayvu.domain","code":"import tests.test_cache","error":"production imports tests"},
   {"source":"ayvu.application","code":"import mystery_vendor","error":"unknown external"},

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.config import (
+from ayvu.preferences.config_facade import (
     AyvuConfig,
     ConfigError,
     ConfigStore,

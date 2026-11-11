@@ -6,7 +6,7 @@ abilities do, and the contract suite reads only the descriptors.
 """
 from __future__ import annotations
 
-from ayvu.content import AdapterIdentity, Locator, SemanticKind, UnitContent, build_document
+from ayvu.content.model import AdapterIdentity, Locator, SemanticKind, UnitContent, build_document
 from ayvu.format_adapter import (
     ContentScope, FidelityAspect, FidelityClaim, FidelityLevel, FindingSeverity, FormatDescriptor, FormatInventory, FormatLimits,
     FormatMaturity, FormatOperation, FormatSignature, InventoryDocument, OperationClaim, OperationSupport, ValidationFinding,

@@ -9,7 +9,7 @@ from ayvu.provider import (
     ConstraintsFeature, ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProviderRoute, ProviderStatus,
     Requirement,
 )
-from ayvu.content import Constraint
+from ayvu.content.model import Constraint
 from ayvu.provider_service import (
     ProviderInstance, ProviderRegistry, ProviderRegistryError, UNKNOWN_PRODUCER, decide_features, execute,
 )

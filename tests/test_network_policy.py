@@ -13,8 +13,8 @@ import pytest
 import requests
 from typer.testing import CliRunner
 
-from ayvu.network_policy import NetworkPolicy, NetworkPolicyError, resolve_network_policy
-from ayvu.network_http import NetworkAuthorization
+from ayvu.network.policy import NetworkPolicy, NetworkPolicyError, resolve_network_policy
+from ayvu.network.http import NetworkAuthorization
 from ayvu.v1.translator import LibreTranslateTranslator, TranslatorError, TranslatorPolicyError
 
 
@@ -311,7 +311,7 @@ def test_help_explains_request_policy_and_external_reader(args):
 
 def test_import_contract_has_no_presentation_or_desktop_dependency():
     root = Path(__file__).resolve().parents[1] / "src" / "ayvu"
-    for name in ("network_policy", "network_http", "provider_network", "provider_discovery", "provider_session",
+    for name in ("network/policy", "network/http", "provider_network", "provider_discovery", "provider_session",
                  "composition/builders/providers", "v1/translator"):
         tree = ast.parse((root / f"{name}.py").read_text())
         imports = [node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]

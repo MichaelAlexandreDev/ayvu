@@ -31,8 +31,8 @@ entries fail, so a rename cannot silently discard protection.
 | `project_service` | Application | Project repository port and resolution policy |
 | `project_store` | Infrastructure | Atomic local manifest storage and source fingerprinting |
 | `preferences` | Domain | Immutable v1 preference/profile values and validation |
-| `preferences_service` | Application | Shared get/update requests, outcomes and repository port |
-| `preferences_store` | Infrastructure | Bounded JSON, expected revisions and atomic publication |
+| `preferences.service` | Application | Shared get/update requests, outcomes and repository port |
+| `preferences.store` | Infrastructure | Bounded JSON, expected revisions and atomic publication |
 | `migration_contracts` | Domain | Content-free schema version plans, errors and outcomes |
 | `sqlite_migrations` | Infrastructure | SQLite bootstrap, verified backups and transactional migration runner |
 | `project_schema` | Infrastructure | Production migration registry and explicit job, artifact and provenance bootstrap |
@@ -47,17 +47,17 @@ entries fail, so a rename cannot silently discard protection.
 | `artifact_store` | Infrastructure | SQLite artifact records and contained local payload files |
 | `content` | Domain | Content documents, translation units, deterministic identity and canonical serialization |
 | `provenance` | Domain | Lineage record values, explicit unknowns and canonical serialization |
-| `provenance_service` | Application | Provenance repository port and query results |
-| `provenance_store` | Infrastructure | Append-only SQLite lineage and bounded traversal |
+| `provenance.service` | Application | Provenance repository port and query results |
+| `provenance.store` | Infrastructure | Append-only SQLite lineage and bounded traversal |
 | `translation_memory` | Transitional domain | Knowledge/TM |
 | `library` | Transitional application | Legacy library compatibility |
-| `library_service` | Application | Library discovery and authorized open coordination |
-| `library_adapters` | Infrastructure | Local library scanning and reader launch |
+| `library.service` | Application | Library discovery and authorized open coordination |
+| `library.adapters` | Infrastructure | Local library scanning and reader launch |
 | `preflight` | Composition | Translation |
 | `cli`, `cli_progress` | Interface | CLI |
 | `composition.cli` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
 | `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
-| `config_values` | Domain | Valores de preferências e conversões da fachada v1 |
+| `preferences.model` | Domain | Valores de preferências e conversões da fachada v1 |
 | `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation_engine` | Application | One book through a format adapter and a unit executor |
 | `translate_project` | Application | One project's book as one durable job, from its ports |
@@ -66,7 +66,7 @@ entries fail, so a rename cannot silently discard protection.
 | `composition.builders.translate_project` | Composition | The current language work and validator behind those ports |
 | `artifact_destination` | Infrastructure | Publishing a job's output to the file the user chose |
 | `v1.translator` | Provider adapter with transitional embedded port | Providers |
-| `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
+| `content.protection` | Domain | Protected terms, placeholders and their integrity checks |
 | `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |
 | `translation_pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
 | `translation_document` | Application | Rich document path: results, artifact, replay, events and provenance |
@@ -153,7 +153,7 @@ The coupling of the
 EPUB pipeline coupling expires in #144, after #141 separates the
 provider contract from its HTTP adapter. `html_structure` has no such coupling.
 Legacy review projection coupling expires in #158. Fuzzy memory's exact-cache and vendor coupling
-expires in #161. The guided library flow uses `library_service` and `library_adapters`.
+expires in #161. The guided library flow uses `library.service` and `library.adapters`.
 The exact edge and condition for each of these are recorded individually in
 the test data; these references do not imply that those issues are completed.
 

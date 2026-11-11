@@ -16,11 +16,11 @@ from typer.testing import CliRunner
 import ayvu.cli as cli
 import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.config_values import AyvuConfig
+from ayvu.preferences.model import AyvuConfig
 from ayvu.job import JobState
 from ayvu.job_events import JobEventSequence, encode_event
-from ayvu.preferences import PreferencesError
-from ayvu.preferences_service import PreferencesSnapshot
+from ayvu.preferences.model import PreferencesError
+from ayvu.preferences.service import PreferencesSnapshot
 from ayvu.project_schema import open_provenance_repository
 from ayvu.project_store import ProjectJsonRepository, build_project_request
 from ayvu.review_exchange import decode_review_package
@@ -321,7 +321,7 @@ def test_tm_approved_epub_workflow_and_cache_clear_isolation_real_stores(tmp_pat
     from ayvu.approved_memory_service import CreateCandidate, ReviewRevision
     from ayvu.approved_memory_store import open_approved_memory
     from ayvu.memory_retrieval import plan_memory_pin
-    from ayvu.provenance import ActorKind, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
+    from ayvu.provenance.model import ActorKind, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
     config(tmp_path)
     source = _book(tmp_path / 'book.epub')
     original_bytes = source.read_bytes()

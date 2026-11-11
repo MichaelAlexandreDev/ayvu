@@ -15,7 +15,7 @@ import requests
 
 from ayvu.artifact import ArtifactState
 from ayvu.artifact_service import ARTIFACT_SAFE_POINTS
-from ayvu.content import (
+from ayvu.content.model import (
     AdapterIdentity, Constraint, Locator, ProtectedPart, SemanticKind, SourceLocale, UnitContent, UNKNOWN_LOCALE, LocaleState,
     build_document,
 )
@@ -23,7 +23,7 @@ from ayvu.job import JobRequest, JobState
 from ayvu.job_events import JobEventKind, encode_event
 from ayvu.job_execution import CancellationSource, InMemoryJobEventLog
 from ayvu.project_schema import open_artifact_service, open_job_repository, open_provenance_repository
-from ayvu.provenance import SourceKind, UNKNOWN, ProducerIdentity
+from ayvu.provenance.model import SourceKind, UNKNOWN, ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
 from ayvu.provider_capabilities import Capability, ProviderRequirements
 from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot

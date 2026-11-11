@@ -4,7 +4,7 @@ from __future__ import annotations
 from uuid import UUID
 
 import requests
-from ayvu.provenance import ProducerIdentity
+from ayvu.provenance.model import ProducerIdentity
 from ayvu.provider import DeliveryState, ProviderStatus, TranslationProviderRequest, TranslationProviderResult
 from ayvu.provider_service import ProviderInstance
 from ayvu.kernel import JobFailure, JobFailureFamily

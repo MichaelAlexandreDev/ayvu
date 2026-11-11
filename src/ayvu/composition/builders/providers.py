@@ -4,8 +4,8 @@ The request snapshot is shared with the translator and the existing #128 use cas
 """
 from __future__ import annotations
 
-from ...network_http import NetworkAuthorization
-from ...network_policy import NetworkPolicy, resolve_network_policy
+from ...network import NetworkAuthorization
+from ...network import NetworkPolicy, resolve_network_policy
 from ...provider_session import CliProviderSession
 from ...providers import ProviderSetupError
 from ...v1.translator import LibreTranslateTranslator, TranslatorError

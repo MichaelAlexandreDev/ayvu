@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from .kernel import JobError, is_slug, validate_job_identity, validate_utc
+from ..kernel import JobError, is_slug, validate_job_identity, validate_utc
 
 PROVENANCE_SCHEMA_VERSION = 1
 MAX_PARENTS = 32

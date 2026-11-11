@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.content import AdapterIdentity, Locator, UnitContent, build_document
+from ayvu.content.model import AdapterIdentity, Locator, UnitContent, build_document
 from ayvu.format_adapter import (
     MAX_DETECTION_BYTES, AliasVerdict, ContentScope, DetectionEvidence, DetectionOutcome, ExtractionRequest, ExtractionResult, FidelityAspect,
     FidelityClaim, FidelityLevel, FidelityRequirement, FindingSeverity, FormatCancelledError, FormatError, FormatInventory,

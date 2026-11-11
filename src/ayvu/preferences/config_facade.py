@@ -5,15 +5,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
 
-from .preferences import PreferencesError
-from .preferences_service import (
+from .model import PreferencesError
+from .service import (
     PreferencesSnapshot, UpdatePreferences, UpdatePreferencesResult,
     get_preferences, update_preferences,
 )
-from .preferences_store import JsonPreferencesRepository
+from .store import JsonPreferencesRepository
 
 
-from .config_values import (
+from .model import (
     CONFIG_VERSION, DEFAULT_TARGET_LANGUAGE, DEFAULT_BOOKS_DIR, DEFAULT_CONFIG_DIR,
     DEFAULT_CONFIG_FILE, DEFAULT_GLOSSARIES_DIR, PROFILE_STYLE_NEUTRAL,
     PROFILE_STYLE_TECHNICAL, PROFILE_STYLE_LITERARY, PROFILE_STYLE_ACADEMIC, PROFILE_STYLES,

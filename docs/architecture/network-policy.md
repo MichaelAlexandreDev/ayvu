@@ -1,6 +1,6 @@
 # Política HTTP por execução (#159)
 
-O vocabulário fechado é `none` e `loopback`. `network_policy.resolve_network_policy`
+O vocabulário fechado é `none` e `loopback`. `network.policy.resolve_network_policy`
 resolve a seleção na composição, sem I/O, e produz `NetworkDecision` imutável.
 Seleção ausente registra `defaulted=True` e usa `loopback`; valores desconhecidos
 falham fechados. Nenhuma seleção é persistida em preferências, projetos ou checkpoints.
@@ -37,7 +37,7 @@ porta e endereço loopback válidos, sem zona/scope/flow. Lista vazia, resposta
 mista ou inválida é recusada. O endereço literal dispensa DNS. Falha de resolução
 é falha de conexão, distinta de recusa de política, e não produz outra resolução.
 
-`network_http.PinnedLoopbackAdapter` usa a implementação Requests/urllib3 existente,
+`network.http.PinnedLoopbackAdapter` usa a implementação Requests/urllib3 existente,
 com `HTTPConnection._new_conn` conectando diretamente aos sockaddrs validados.
 Se o primeiro endereço não aceitar conexão, somente os demais endereços da mesma
 observação podem ser tentados. Nem retries nem workers entregam o nome a uma

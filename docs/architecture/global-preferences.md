@@ -6,12 +6,12 @@ It does not accept a new architecture decision or change project storage.
 
 ## Ownership and consumers
 
-[`preferences.py`](../../src/ayvu/preferences.py) owns immutable preference values
-and validation. [`preferences_service.py`](../../src/ayvu/preferences_service.py)
+[`preferences/model.py`](../../src/ayvu/preferences/model.py) owns immutable preference values
+and validation. [`preferences/service.py`](../../src/ayvu/preferences/service.py)
 owns `GetPreferences`, `UpdatePreferences`, structured results and the repository
 port. Neither imports JSON, paths, filesystem clients or presentation libraries.
-[`preferences_store.py`](../../src/ayvu/preferences_store.py) implements the v1
-JSON adapter. [`config.py`](../../src/ayvu/config.py) preserves the legacy config
+[`preferences/store.py`](../../src/ayvu/preferences/store.py) implements the v1
+JSON adapter. [`preferences/config_facade.py`](../../src/ayvu/preferences/config_facade.py) preserves the legacy config
 objects, path derivation and compatibility facade for existing consumers.
 
 The [field classification](global-preferences-fields.json) is executable contract

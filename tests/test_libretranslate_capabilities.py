@@ -9,7 +9,7 @@ import requests
 from ayvu.provider import (
     ContextFeature, ContextItem, ConstraintsFeature, DeadlineFeature, ProtectedPartsFeature, ProviderRoute, Requirement,
 )
-from ayvu.content import Constraint, ProtectedPart
+from ayvu.content.model import Constraint, ProtectedPart
 from ayvu.provider_capabilities import (
     FEATURE_CAPABILITIES, AvailabilityState, Capability, EvidenceSource, LimitOrigin, LimitSemantics, NegotiationDecision,
     ProviderRequirements, SupportState, availability_projection, capability_fingerprint, negotiate, snapshot_projection,

@@ -81,8 +81,12 @@ says otherwise.
 | 7 | `knowledge`, `providers`, `formats` |
 | 8 | `artifacts` |
 | 9 | `jobs` |
-| 10 | `content`, `provenance`, `network`, `preferences`, `library`, `application` |
-| 11 | `kernel` |
+| 10 | `content`, `network`, `preferences`, `library`, `application` |
+| 11 | `provenance` |
+| 12 | `kernel` |
+
+REF-07 (#275) moved `provenance` one row down. `preferences` validates a declared model label with it, and
+provenance imports none of the modules on row 10, so the import is a layer rule instead of an exception.
 
 `application/` holds only the truly cross-cutting contracts left over from `cli_contracts.py`.
 
@@ -224,7 +228,7 @@ REF-15 break up by reason to change after they move.
 | `provenance_service.py` | `provenance/service.py` |  |
 | `provenance_store.py` | `provenance/store.py` |  |
 | `content.py` | `content/model.py` |  |
-| `content_use_cases.py` | `content/use_cases.py` |  |
+| `content_use_cases.py` | `content/use_cases.py` | not moved in REF-07: in `content/` it would make an import cycle with formats, whose adapter port imports content. Its home is the owner's open question |
 | `translation_protection.py` | `content/protection.py` | used by formats and translation |
 | `job.py` | `jobs/model.py` | `is_slug`, `validate_job_identity` → `kernel/ids.py`; `validate_utc` → `kernel/clock.py` |
 | `job_events.py` | `jobs/events.py` | `JobFailure`, `JobFailureFamily`, `JobWarning`, `normalize_failure` → `kernel/failures.py` |

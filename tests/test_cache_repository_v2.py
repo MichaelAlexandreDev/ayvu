@@ -131,7 +131,7 @@ def test_oversized_provider_result_is_returned_without_cache_write(tmp_path):
 
 
 def test_same_key_metadata_and_provenance_conflict(tmp_path):
-    from ayvu.provenance import ProducerIdentity
+    from ayvu.provenance.model import ProducerIdentity
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     original = entry()
     assert cache.put_if_absent(original).state == PutIfAbsentState.INSERTED
@@ -161,7 +161,7 @@ def test_identity_rejects_fabricated_nested_fields(tmp_path):
 
 @pytest.mark.parametrize("different_provenance", [False, True])
 def test_simultaneous_identical_and_provenance_writes(tmp_path, different_provenance):
-    from ayvu.provenance import ProducerIdentity
+    from ayvu.provenance.model import ProducerIdentity
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     first = entry()
     second = first

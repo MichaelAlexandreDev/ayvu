@@ -19,7 +19,7 @@ from ayvu.artifact_store import LocalArtifactPayloads, SqliteArtifactRepository
 from ayvu.cache_identity import (CacheAuthorizationPolicy, CacheProvenanceMetadata, ExactCacheEntry,
     TRANSLATION_STAGE_AGGREGATE, exact_entry_key)
 from ayvu.cache_repository import SQLiteExactCache
-from ayvu.content import ProtectedPart
+from ayvu.content.model import ProtectedPart
 from ayvu.job import JobState
 from ayvu.job_events import encode_event
 from ayvu.job_execution import InMemoryJobEventLog
@@ -619,7 +619,7 @@ def test_conservative_fuzzy_above_threshold_still_rejects_different_placeholders
 
 @pytest.mark.parametrize('dimension', ['pipeline', 'profile', 'glossary'])
 def test_each_final_value_pin_must_match_exactly_before_automatic_reuse(env, dimension):
-    from ayvu.provenance import ConfigurationRef
+    from ayvu.provenance.model import ConfigurationRef
     stored = approved(env)
     changed = replace(PIN, **{dimension: ConfigurationRef(dimension, dimension + ':' + 'f' * 64)})
     match = MemoryRetrieval(env.repo).query(query(pin=changed), compatible=lambda _: True)[0]

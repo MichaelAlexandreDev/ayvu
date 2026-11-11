@@ -12,7 +12,7 @@ from ayvu.context_execution import ContextExecution, ResolvedContextEgressDecisi
 from ayvu.job import JobRequest, JobState, new_job, transition_job, acquire_lease
 from ayvu.job_events import encode_event
 from ayvu.job_execution import InMemoryJobEventLog
-from ayvu.provenance import ProvenanceRecord, encode_record, decode_record
+from ayvu.provenance.model import ProvenanceRecord, encode_record, decode_record
 from ayvu.provider import Requirement
 from ayvu.provider_capabilities import Capability, ProviderRequirements, SupportState
 from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
@@ -432,7 +432,7 @@ def test_context_job_plan_changes_only_when_declared(tmp_path):
 
 
 def test_document_pipeline_uses_owned_profile_neighbors_and_managed_terminology():
-    from ayvu.content import ContextReference
+    from ayvu.content.model import ContextReference
     from ayvu.context_source import snapshot_context_sources
     from ayvu.glossary_catalog import Snapshot, Entry
     from ayvu.project_profiles import ProjectReference, ProjectTranslationProfile

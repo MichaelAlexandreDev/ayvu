@@ -272,6 +272,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Módulos folha em pacotes (REF-07, #275): `ayvu.network` (`policy`, `http`), `ayvu.preferences`
+  (`model`, que junta `preferences` e `config_values`, além de `service`, `store` e `config_facade`),
+  `ayvu.library`, `ayvu.provenance` e `ayvu.content` (`model` e `protection`, que era
+  `translation_protection`). Cada pacote exporta só o que os outros módulos usam. `provenance`
+  desce uma camada, então `preferences` o importa por regra e não mais por exceção.
+  `content_use_cases` fica onde está até o dono decidir onde ele mora.
 - Runtime v1 em quarentena (REF-06, #274): `legacy_translation`, `html_translate`, `translator`,
   `cache`, `cache_legacy_format`, `cache_legacy_stream`, `cache_admin_legacy_store`, `resume` e
   `legacy_resume` vão para `ayvu.v1`, que continua sendo o padrão sem rótulo de modelo. `v1` vira

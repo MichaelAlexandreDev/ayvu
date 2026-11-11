@@ -26,7 +26,7 @@ from .approved_memory import (
 )
 from .approved_memory_service import CreateCandidate, DeriveRevision, ReviewRevision
 from .provenance import ActorKind, ConfigurationRef, ProvenanceError, ProvenanceStoreError, SubjectRef
-from .provenance_service import ProvenanceRepository
+from .provenance import ProvenanceRepository
 from .kernel import LanguagePair
 from .kernel.sqlite import MAX_DATABASE_BYTES, MigrationError, SqliteMigration, SqliteMigrationRunner, sqlite_failure_code
 

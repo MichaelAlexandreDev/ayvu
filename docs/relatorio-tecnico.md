@@ -249,7 +249,7 @@ uv run ayvu --mode common translate livro.epub
 
 `src/ayvu/review_application.py` define os casos de uso framework-neutral de exportação, validação e aplicação. `src/ayvu/composition/builders/review.py` conecta `TranslateProjectResult`, o codec e mapper v2, o adaptador EPUB e a publicação D106. `src/ayvu/review_exchange.py` define o pacote v2 canônico, limitado e ligado às unidades duráveis. `src/ayvu/review_import.py` mantém a inspeção v1 limitada e redigida; aplicar v1 retorna `legacy_reexport_required`.
 
-`src/ayvu/library_service.py` coordena o agrupamento de originais e traduções; `src/ayvu/library_adapters.py` implementa a varredura, a autorização e a abertura no leitor externo.
+`src/ayvu/library/service.py` coordena o agrupamento de originais e traduções; `src/ayvu/library/adapters.py` implementa a varredura, a autorização e a abertura no leitor externo.
 
 `src/ayvu/v1/translator.py` define o contrato `Translator` e o backend `LibreTranslateTranslator`.
 
@@ -266,7 +266,7 @@ regras explícitas `translate`, `preserve` e `forbidden`.
 
 `src/ayvu/cli_progress.py` adapta callbacks de tradução para `rich.Progress` e mantém contadores de textos.
 
-`src/ayvu/config.py` define o formato inicial de configuração JSON, perfis de tradução, o caminho padrão do arquivo, leitura/gravação e resolução das pastas locais do Ayvu. O menu guiado de `Settings` permite alterar idioma padrão, pasta base, nomes das pastas das funcionalidades e app leitor, além de mostrar os perfis configurados.
+`src/ayvu/preferences/config_facade.py` define o formato inicial de configuração JSON, perfis de tradução, o caminho padrão do arquivo, leitura/gravação e resolução das pastas locais do Ayvu. O menu guiado de `Settings` permite alterar idioma padrão, pasta base, nomes das pastas das funcionalidades e app leitor, além de mostrar os perfis configurados.
 
 `src/ayvu/validation.py` valida o EPUB gerado: confirma abertura e documentos XHTML/HTML e avisa sobre capítulos vazios, links internos quebrados e imagens referenciadas ausentes, com callback de progresso opcional. Qualquer aviso faz a execução falhar com código 1.
 

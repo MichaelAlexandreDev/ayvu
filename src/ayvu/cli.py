@@ -21,7 +21,7 @@ from .cache_admin import (
 )
 from .cache_identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind, CacheIdentityError
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
-from .config_values import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
+from .preferences import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
 from .cli_contracts import (
     AcceptedItem, ConfigStore, TranslationReport, ValidationResult, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery, SelectedChapter, CacheSummaryRow, CacheImportReport)
 from .composition.cli import (
@@ -50,14 +50,14 @@ from .providers import ProviderSetupError
 
 GLOSSARY_RULE_TRANSLATE = "translate"
 GLOSSARY_RULE_PRESERVE = "preserve"
-from .library_service import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
+from .library import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
 from .project import ProjectError
 from .job_recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
 from .review_application import (
     ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
 )
 from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
-from .network_policy import NetworkPolicy, network_next_step
+from .network import NetworkPolicy, network_next_step
 from .translate_project import ContinuationTicket, TranslateProjectResult
 
 

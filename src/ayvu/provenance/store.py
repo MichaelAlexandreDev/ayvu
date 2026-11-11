@@ -14,16 +14,16 @@ from pathlib import Path
 from typing import Callable, Iterable, Iterator
 from uuid import uuid4
 
-from .job import JobNotFoundError
-from .job_store import load_job
-from .provenance import (
+from ..job import JobNotFoundError
+from ..job_store import load_job
+from .model import (
     ProvenanceConflictError, ProvenanceError, ProvenanceLimitError, ProvenanceNotFoundError, ProvenanceRecord,
     ProvenanceReferenceError, ProvenanceRequest, ProvenanceStoreError, ProvenanceValidationError, SubjectRef,
     decode_record, encode_record, request_identity, validate_identity,
 )
-from .provenance_service import ArtifactLineage, JobInput, LineageNode, ProvenanceGraph
-from .kernel import JobError
-from .kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
+from .service import ArtifactLineage, JobInput, LineageNode, ProvenanceGraph
+from ..kernel import JobError
+from ..kernel.sqlite import MigrationError, SqliteMigrationRunner, sqlite_failure_code
 
 MAX_LIST_LIMIT = 1024
 MAX_TRAVERSAL_DEPTH = 256

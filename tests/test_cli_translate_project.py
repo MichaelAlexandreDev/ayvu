@@ -35,7 +35,7 @@ from ayvu.review_exchange import decode_review_package, encode_review_package
 from ayvu.epub_io import TranslationReport
 from ayvu.job import JobState, JobTerminalSummary
 from ayvu.job_events import JobOutcome
-from ayvu.provenance import SourceKind
+from ayvu.provenance.model import SourceKind
 from ayvu.review_application import ReviewApplyCommand, ReviewOutcome
 from ayvu.translate_project import TRANSLATE_COMMAND_TYPE, OutputValidation, TranslateObserver, TranslateProjectResult
 from ayvu.composition.builders.translate_project import ProjectTranslationRun

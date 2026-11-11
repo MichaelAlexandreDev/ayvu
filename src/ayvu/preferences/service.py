@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import re
 from typing import Protocol
 
-from .preferences import GlobalPreferences, PreferencesError
+from .model import GlobalPreferences, PreferencesError
 
 
 @dataclass(frozen=True)

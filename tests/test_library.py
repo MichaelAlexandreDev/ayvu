@@ -1,6 +1,6 @@
 """Regression coverage for guided-library grouping and reader behavior."""
-from ayvu.library_adapters import LocalLibraryFilesystem, ReaderLauncher
-from ayvu.library_service import LibraryService
+from ayvu.library.adapters import LocalLibraryFilesystem, ReaderLauncher
+from ayvu.library.service import LibraryService
 
 
 def test_scan_library_groups_originals_and_translations_by_book(tmp_path):

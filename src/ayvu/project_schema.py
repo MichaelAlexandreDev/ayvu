@@ -13,7 +13,7 @@ from .artifact_store import ARTIFACT_SCHEMA_STATEMENTS, ArtifactFileOps, LocalAr
 from .job import JobStoreError
 from .job_store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
 from .provenance import ProvenanceStoreError
-from .provenance_store import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
+from .provenance import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
 from .kernel.sqlite import SqliteMigration, SqliteMigrationRunner
 
 PROJECT_MIGRATIONS = (

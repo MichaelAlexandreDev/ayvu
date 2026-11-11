@@ -69,7 +69,7 @@ Veja a [seleção do runtime](translate-project.md#seleção-explícita-do-runti
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.translation_protection` | Domain | Protected terms and placeholders, and checking that they survived |
+| `ayvu.content.protection` | Domain | Protected terms and placeholders, and checking that they survived |
 | `ayvu.translation_plan` | Domain | The resolved plan, stage identities and fingerprints |
 | `ayvu.translation_pipeline` | Application | The stages, their ports and the legacy facade |
 | `ayvu.translation_document` | Application | The rich path: per-unit results, document artifact, replay, events and provenance |

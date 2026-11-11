@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from ayvu.provenance import ProducerIdentity
+from ayvu.provenance.model import ProducerIdentity
 from ayvu.cache_identity import (
     CacheEligibilityState, CacheIneligibleReason, CanonicalValue, OpaqueSemanticRevision, SemanticRouteHop,
 )

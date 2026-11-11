@@ -10,10 +10,10 @@ import stat
 import tempfile
 import time
 
-from .preferences import (
+from .model import (
     GlobalPreferences, PreferencesError, preferences_from_mapping, preferences_to_mapping,
 )
-from .preferences_service import PreferencesSnapshot, validate_revision
+from .service import PreferencesSnapshot, validate_revision
 
 MAX_CONFIG_BYTES = 128 * 1024
 LOCK_TIMEOUT_SECONDS = 0.5
