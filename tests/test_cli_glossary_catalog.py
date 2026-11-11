@@ -14,7 +14,7 @@ def local_catalog(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     config = tmp_path / "config" / "ayvu" / "config.json"
     config.parent.mkdir(parents=True)
     config.write_text(json.dumps({"version": 1, "default_target_language": "pt"}))

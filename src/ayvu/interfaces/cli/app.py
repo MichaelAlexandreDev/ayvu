@@ -7,22 +7,23 @@ import typer
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 from ...translation import ItemOutcome, ItemStatus
-from ...knowledge.cache import CacheAdminError, CacheFilter, CacheRef, FileRef, InspectRequest, PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest, ExecuteImportRequest
 from .render import _TRANSLATION_FAILURES, _print_epub_read_error, _print_expected_error, _print_network_selection, console
 from .options import DEFAULT_CACHE_PATH, DEFAULT_PREVIEW_DOCUMENT_LIMIT, DEFAULT_RETRY_BACKOFF, DEFAULT_RETRY_BACKOFF_MAX, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE, DEFAULT_TRANSLATOR_URL, NETWORK_POLICY_HELP, _invocation_network_policy, _selected_network_policy
-from .commands import cache, content, translator
+from . import settings
+from .settings import _display_optional_path, _load_existing_config_or_default, _refuse_invalid_translator_models, _uses_internal_storage_defaults
+from .commands import cache, content, review, translator
 from .commands.translator import _languages_were_listed
 from .progress import TranslationProgress, TranslationProgressSnapshot
 from ...preferences import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
 from .contracts import AcceptedItem, ConfigStore, TranslationReport, ValidationResult, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery, SelectedChapter
-from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, configuration_store, library_service, default_glossaries_dir, cache_admin_services, managed_glossary_repository, cli_provider_session, open_review_use_cases, destination_fingerprint, read_review_input, run_translation_preflight, resolve_translation_project, batch_output_intent, translate_batch, batch_item_outcome, book_refusal, check_book, default_processing_dir, detect_epub_language, interrupted_translations, open_job_recovery, resolve_chapter_selection, validate_output, prepare_translation, publish_cli_report, report_destination, translation_checkpoint, _translate_without_project as execute_translate_without_project, _translate_in_project as execute_translate_in_project
+from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, configuration_store, library_service, default_glossaries_dir, managed_glossary_repository, cli_provider_session, open_review_use_cases, destination_fingerprint, run_translation_preflight, resolve_translation_project, batch_output_intent, translate_batch, batch_item_outcome, book_refusal, check_book, detect_epub_language, interrupted_translations, open_job_recovery, resolve_chapter_selection, validate_output, prepare_translation, publish_cli_report, report_destination, translation_checkpoint, _translate_without_project as execute_translate_without_project, _translate_in_project as execute_translate_in_project
 from ...knowledge.glossary import Entry as GlossaryEntry, GlossaryReference, list_glossaries, read_glossary, create_glossary, update_glossary
 from ...kernel import ChapterSelection, ChapterSelectionError, DEFAULT_PERFORMANCE_PROFILE, LanguagePair, OutputPlan, PERFORMANCE_PROFILES, PerformanceProfile, TranslationMemoryError, TranslationMemoryOptions, TranslationOptions, UserMode, default_preview_books_dir, default_translated_books_dir
 from ...translation import BatchOutputError, BookRefused, PreflightError, ProjectTranslationUnavailable, ResumeStateError, TranslationDryRunCancelled
 from ...library import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
 from ...projects import ProjectError
 from ...recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
-from ...review import ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand
+from ...review import ReviewExportCommand, ReviewOutcome
 from ...providers import DiscoveredLanguage
 from ...network import NetworkPolicy, network_next_step
 from ...translation import ContinuationTicket, TranslateProjectResult
@@ -215,7 +216,7 @@ def main(
         return
 
     config = _load_existing_config_or_default()
-    recovery = open_job_recovery(_processing_dir(config))
+    recovery = open_job_recovery(settings._processing_dir(config))
     found = _print_processing_translation_states(recovery)
     if _offer_detected_translation_resume(found, recovery, mode=mode):
         return
@@ -539,7 +540,7 @@ def resume(
     """Resume a translation in progress from its saved checkpoint."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     config = _load_existing_config_or_default()
-    recovery = open_job_recovery(_processing_dir(config))
+    recovery = open_job_recovery(settings._processing_dir(config))
     found = interrupted_translations(recovery)
 
     state = _select_resume_state(found.running, epub_path, target, mode=mode)
@@ -1099,7 +1100,7 @@ def _run_translation(
     if resolve_managed_project and not dry_run:
         try:
             resolution = resolve_translation_project(
-                _processing_dir(config), epub_path, source=language_pair.source, target=language_pair.target,
+                settings._processing_dir(config), epub_path, source=language_pair.source, target=language_pair.target,
                 glossary_path=resolved_glossary_path, profile_name=identity_profile_name,
                 translator=translator_name, url=url, chunk_limit=chunk_limit,
                 translate_metadata=translate_metadata, translate_alt_text=translate_alt_text,
@@ -1122,7 +1123,7 @@ def _run_translation(
             glossary_path=resolved_glossary_path, translator_name=translator_name,
             url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
             retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
-            output_path=output_path, overwrite=overwrite, processing_dir=_processing_dir(config),
+            output_path=output_path, overwrite=overwrite, processing_dir=settings._processing_dir(config),
             profile_name=identity_profile_name, preflight=run_translation_preflight,
             translator_models=config.translator_models, project_backed=project_id is not None,
             network_policy=_selected_network_policy(network_policy),
@@ -1159,7 +1160,7 @@ def _run_translation(
         prepare=prepare,
         project_id=project_id,
         source_sha256=source_sha256,
-        processing_dir=_processing_dir(config) if project_id is not None else None,
+        processing_dir=settings._processing_dir(config) if project_id is not None else None,
         continuation=continuation,
         operation_id=operation_id,
         batch_plan=batch_plan,
@@ -1223,7 +1224,7 @@ def _run_translation(
         if outcome.job_result is None:
             _print_review_export_failure("translation_identity_unavailable", mode)
             raise typer.Exit(code=1)
-        use_cases = open_review_use_cases(_processing_dir(config))
+        use_cases = open_review_use_cases(settings._processing_dir(config))
         cancellation = use_cases.cancellation()
         exported = use_cases.export.execute(ReviewExportCommand(
             outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
@@ -1640,135 +1641,7 @@ def _run_preview(
 app.command()(content.extract)
 
 
-@app.command("apply-review")
-def apply_review(
-    ctx: typer.Context,
-    epub_path: Path = typer.Argument(
-        ...,
-        exists=True,
-        dir_okay=False,
-        readable=True,
-        help="Original EPUB path used to verify the source revision.",
-    ),
-    review_csv: Path = typer.Argument(
-        ...,
-        exists=True,
-        dir_okay=False,
-        readable=True,
-        help="Edited v2 review package. Legacy v1 files are inspection-only.",
-    ),
-    output: Optional[Path] = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="Output EPUB path. Defaults to <input-stem>-reviewed.epub.",
-    ),
-    overwrite: bool = typer.Option(False, "--overwrite", help="Allow replacing an existing output EPUB."),
-    validate_only: bool = typer.Option(False, "--validate-only", help="Validate the package without reconstructing an EPUB."),
-) -> None:
-    """Validate and apply one identity-bound v2 review package."""
-    mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    try:
-        package_bytes = read_review_input(review_csv)
-    except Exception as exc:
-        code = getattr(exc, "code", "review_file_unreadable")
-        _print_expected_error(
-            "Não foi possível ler o arquivo de revisão.",
-            "Confirme que o arquivo é um pacote de revisão local válido e tente novamente.",
-            mode,
-            detail=code,
-        )
-        raise typer.Exit(code=1) from None
-
-    use_cases = open_review_use_cases(_processing_dir(_load_existing_config_or_default()), source_path=epub_path)
-    if validate_only:
-        cancellation = use_cases.cancellation()
-        validated = use_cases.validate.execute(
-            ReviewValidationCommand(package_bytes, cancellation=cancellation.token))
-        if validated.valid:
-            table = Table(title="Review package validation")
-            table.add_column("Metric")
-            table.add_column("Value")
-            table.add_row("Documents", str(validated.counts.documents))
-            table.add_row("Units", str(validated.counts.units))
-            table.add_row("Reviewed", str(validated.counts.reviewed))
-            table.add_row("Kept machine translation", str(validated.counts.pending))
-            console.print(table)
-            raise typer.Exit(code=0)
-        _print_review_apply_failure(validated.code, mode)
-        raise typer.Exit(code=1)
-
-    output_path = output or epub_path.with_name(f"{epub_path.stem}-reviewed{epub_path.suffix or '.epub'}")
-    cancellation = use_cases.cancellation()
-    applied = use_cases.apply.execute(ReviewApplyCommand(
-        package_bytes, None, output_path, destination_fingerprint(output_path), overwrite,
-        cancellation=cancellation.token))
-    if not applied.success:
-        _print_review_apply_failure(applied.code, mode)
-        raise typer.Exit(code=1)
-
-    table = Table(title="Review application report")
-    table.add_column("Metric")
-    table.add_column("Value")
-    table.add_row("Output", _display_optional_path(output_path))
-    table.add_row("Documents", str(applied.counts.documents))
-    table.add_row("Units applied", str(applied.counts.reviewed))
-    table.add_row("Kept machine translation", str(applied.counts.pending))
-    console.print(table)
-    console.print(f"[green]Reviewed EPUB saved to:[/green] {output_path}")
-
-
-def _print_review_apply_failure(code: str, mode: UserMode) -> None:
-    if code == "legacy_reexport_required":
-        _print_expected_error(
-            "CSV v1 serve apenas para inspeção e não pode reconstruir o EPUB.",
-            "Exporte novamente usando --review-output depois de gerar uma tradução da mesma fonte e aplique o novo pacote v2.",
-            mode,
-            detail="legacy_reexport_required",
-        )
-        return
-    if code in {"invalid_preamble", "invalid_encoding", "malformed_csv", "invalid_newline", "invalid_column_count"}:
-        _print_expected_error(
-            "Não foi possível ler o arquivo de revisão.",
-            "Confirme que o arquivo é um pacote de revisão local válido e tente novamente.",
-            mode,
-            detail=code,
-        )
-        return
-    if code in {"output_exists", "review_file_exists"}:
-        _print_expected_error("O arquivo de saída já existe.", "Use --overwrite ou escolha outro caminho com --output.",
-                              mode, detail="output_exists")
-        return
-    if code == "review_not_approved":
-        _print_expected_error(
-            "Nenhuma linha do pacote foi marcada como revisada.",
-            "Edite reviewed_text nas linhas que quiser e marque review_status como reviewed nelas. As demais mantêm a tradução automática.",
-            mode,
-            detail=code,
-        )
-        return
-    if code == "pending_row_edited":
-        _print_expected_error(
-            "Uma linha foi editada, mas não foi marcada como revisada.",
-            "Marque review_status como reviewed nessa linha, ou desfaça a edição em reviewed_text. Nada foi gravado.",
-            mode,
-            detail=code,
-        )
-        return
-    if code == "review_rejected":
-        _print_expected_error(
-            "O pacote tem uma linha marcada como rejeitada.",
-            "Corrija reviewed_text e marque a linha como reviewed, ou volte para pending para manter a tradução automática. Nada foi gravado.",
-            mode,
-            detail=code,
-        )
-        return
-    _print_expected_error(
-        "Não foi possível validar ou aplicar o pacote de revisão.",
-        "Confirme que o pacote v2 pertence à mesma revisão do projeto, à fonte e ao artefato de tradução; corrija os conflitos e tente novamente.",
-        mode,
-        detail=code,
-    )
+app.command('apply-review')(review.apply_review)
 
 
 def _validate_with_progress(output_path: Path) -> ValidationResult:
@@ -2003,26 +1876,6 @@ def _load_or_init_config(store: ConfigStore | None = None) -> AyvuConfig:
     if snapshot.read_only:
         console.print("[yellow]Configuração em somente leitura: campos desconhecidos impedem a gravação.[/yellow]")
     return config_from_preferences(snapshot.preferences, snapshot.revision)
-
-
-def _load_existing_config_or_default(store: ConfigStore | None = None) -> AyvuConfig:
-    store = store or configuration_store()
-    snapshot = store.get_preferences()
-    _refuse_invalid_translator_models(snapshot)
-    if snapshot.error:
-        console.print(f"[yellow]Configuração inválida ignorada:[/yellow] {snapshot.error}")
-        console.print("Usando configuração padrão. Ajuste o arquivo de configuração quando possível.")
-        return AyvuConfig.default()
-    if snapshot.read_only:
-        console.print("[yellow]Configuração em somente leitura: campos desconhecidos impedem a gravação.[/yellow]")
-    return config_from_preferences(snapshot.preferences, snapshot.revision)
-
-
-def _refuse_invalid_translator_models(snapshot) -> None:
-    if snapshot.error is not None and snapshot.error.field == "translator_models":
-        console.print("[red]Rótulo de modelo inválido em translator_models.[/red]")
-        console.print("Use de 1 a 48 caracteres: letras minúsculas, números, _ ou -, começando por letra ou número.")
-        raise typer.Exit(code=1)
 
 
 def _init_default_language_config(store: ConfigStore) -> AyvuConfig:
@@ -3225,12 +3078,6 @@ def _safe_filename_part(value: str) -> str:
     return filename or "translation"
 
 
-def _display_optional_path(path: Path | None) -> str:
-    if path is None:
-        return "-"
-    return str(path)
-
-
 def _report_output_value(report: TranslationReport, dry_run: bool) -> str:
     if dry_run:
         return "(dry run, no file written)"
@@ -3375,16 +3222,6 @@ def _reports_dir(config: AyvuConfig) -> Path:
     if _uses_internal_storage_defaults(config):
         return Path.home() / "Documentos" / "Livros" / "Relatorios"
     return config.reports_dir
-
-
-def _processing_dir(config: AyvuConfig) -> Path:
-    if _uses_internal_storage_defaults(config):
-        return default_processing_dir()
-    return config.processing_dir
-
-
-def _uses_internal_storage_defaults(config: AyvuConfig) -> bool:
-    return config.books_dir == Path(DEFAULT_BOOKS_DIR) and config.folders == FolderNames()
 
 
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:

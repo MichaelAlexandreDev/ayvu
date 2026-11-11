@@ -55,7 +55,7 @@ def _isolated_from_the_user(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ayvu.interfaces.cli.app._processing_dir", lambda _config: tmp_path / "processing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings._processing_dir", lambda _config: tmp_path / "processing")
 
 
 class Session:
@@ -1024,7 +1024,7 @@ CHILD = textwrap.dedent('''\
     import requests
     from typer.testing import CliRunner
     import ayvu.providers.libretranslate.client
-    from ayvu.interfaces.cli import app as cli
+    from ayvu.interfaces.cli import app as cli, settings as cli_settings
     class Session:
         def mount(self, prefix, adapter):
             assert prefix == "http://"
@@ -1048,7 +1048,7 @@ CHILD = textwrap.dedent('''\
             pass
     ayvu.providers.libretranslate.client.requests.Session = Session
     processing = sys.argv[1]
-    cli._processing_dir = lambda _config: __import__("pathlib").Path(processing)
+    cli_settings._processing_dir = lambda _config: __import__("pathlib").Path(processing)
     CliRunner().invoke(cli.app, sys.argv[2:])
 ''')
 

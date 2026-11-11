@@ -374,7 +374,7 @@ def test_matrix_covers_every_current_presentation_helper_and_compatibility_deleg
         symbols.extend(re.findall(r'`([^`]+)`', helpers))
     # The presenter's helpers: app.py and the modules REF-14 splits out of it (contracts and progress are not here).
     cli = ROOT / 'src/ayvu/interfaces/cli'
-    files = [cli / 'app.py', cli / 'render.py', cli / 'options.py', *sorted((cli / 'commands').glob('*.py'))]
+    files = [cli / 'app.py', cli / 'render.py', cli / 'options.py', cli / 'settings.py', *sorted((cli / 'commands').glob('*.py'))]
     actual = {node.name for path in files for node in ast.parse(path.read_text()).body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     assert len(symbols) == len(set(symbols)), 'helper classified more than once'
     assert set(symbols) == actual, 'unmapped or stale presentation helper'

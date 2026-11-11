@@ -13,7 +13,7 @@ from zipfile import ZipFile
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.interfaces.cli.app as cli
+from ayvu.interfaces.cli import app as cli, settings as cli_settings
 import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.preferences.model import AyvuConfig
@@ -39,7 +39,7 @@ def isolate(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(cli, "_processing_dir", lambda _: tmp_path / "processing")
+    monkeypatch.setattr(cli_settings, "_processing_dir", lambda _: tmp_path / "processing")
 
 
 class Transport(Session):
@@ -197,8 +197,8 @@ def test_invalid_label_configuration_refused_before_any_provider(tmp_path, monke
 
 def test_invalid_label_presentation_gate_even_when_storage_is_unavailable(tmp_path, monkeypatch):
     from types import SimpleNamespace
-    monkeypatch.setattr(cli, "configuration_store", lambda: SimpleNamespace(get_preferences=lambda: PreferencesSnapshot(
-        None, None, True, error=PreferencesError("invalid", "translator_models"))))
+    for module in (cli, cli_settings):  # the guided flows read it in app, the saved configuration in settings
+        monkeypatch.setattr(module, "configuration_store", lambda: SimpleNamespace(get_preferences=lambda: PreferencesSnapshot(None, None, True, error=PreferencesError("invalid", "translator_models"))))
     result, session = invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"))
     assert result.exit_code == 1 and "Rótulo de modelo inválido" in text(result)
     assert session.requests == []
