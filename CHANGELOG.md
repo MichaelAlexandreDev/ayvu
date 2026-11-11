@@ -287,6 +287,8 @@ lancadas e secoes versionadas quando uma release for publicada.
   substituem esse ponto, em vez de uma cópia por módulo.
 - CLI split, fourth part (REF-14, #282): translation reports move to `interfaces/cli/report.py`, and
   output locations and existing-file decisions to `interfaces/cli/output.py`, preserving behavior.
+- CLI split, fifth part (REF-14, #282): translation plans, options, book execution, batches and previews
+  move out of `app.py` into focused CLI modules, preserving behavior.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

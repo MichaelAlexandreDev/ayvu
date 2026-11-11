@@ -26,7 +26,9 @@ import ayvu.interfaces.cli.app as cli_module
 import ayvu.jobs.store as job_store
 import ayvu.composition.builders.review as review_composition
 import ayvu.composition.builders.translate_project as composition
-from ayvu.interfaces.cli.app import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_failure, app
+from ayvu.interfaces.cli.app import _BookOutcome, app
+from ayvu.interfaces.cli.run_messages import _print_translation_failure
+from ayvu.interfaces.cli.render import _TRANSLATION_FAILURES
 from ayvu.projects.schema import open_job_repository, open_provenance_repository
 from ayvu.translation.preflight import PreflightError
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
@@ -49,14 +51,12 @@ ENCRYPTED_DOCUMENT = (
     '<e:CipherData><e:CipherReference URI="OEBPS/c1.xhtml"/></e:CipherData></e:EncryptedData></encryption>'
 )
 
-
 @pytest.fixture(autouse=True)
 def _isolated_from_the_user(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("ayvu.interfaces.cli.settings._processing_dir", lambda _config: tmp_path / "processing")
-
 
 class Session:
     """An in-process LibreTranslate. ``on_post`` runs before each answer, and may raise or change the world."""

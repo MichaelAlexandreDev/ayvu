@@ -16,7 +16,7 @@ from ayvu.v1.cache_check import verify_cache_writable
 import requests
 from typer.testing import CliRunner
 
-from ayvu.interfaces.cli import app as cli
+from ayvu.interfaces.cli import app as cli, run_support as cli_run_support, run as cli_run
 from ayvu.composition import cli as root
 from ayvu.composition.cli import _BookHooks, _BookRequest, _BookOutcome
 from ayvu.preferences.model import AyvuConfig
@@ -137,7 +137,7 @@ def test_cli_and_framework_free_consumer_receive_the_same_authoritative_result(
     monkeypatch.setattr(root.translate_project, 'translate_in_project', execute)
     book, callbacks = request(tmp_path), hooks()
     other = root._translate_in_project(book, callbacks)
-    terminal = cli._translate_in_project(book, callbacks)
+    terminal = cli_run_support._translate_in_project(book, callbacks)
     assert other == terminal
     assert terminal.job_result is result and terminal.report is report
     assert terminal.warning == warning
@@ -285,7 +285,7 @@ def test_cache_only_keeps_configuration_refusals_without_constructing_provider(t
     values = dict(epub_path=tmp_path / 'unused.epub', cache_path=tmp_path / 'unused.sqlite',
         glossary_path=None, translator_name='libretranslate', url='http://unused.invalid',
         timeout=1, retries=0, language_pair=LanguagePair('en', 'pt'), dry_run=False, cache_only=True)
-    with pytest.raises(cli.PreflightError) as raised:
+    with pytest.raises(cli_run.PreflightError) as raised:
         root.run_translation_preflight(**{**values, **settings})
     assert raised.value.summary == 'Não foi possível preparar o tradutor.'
     assert raised.value.next_step == 'Use --translator libretranslate.'
@@ -312,13 +312,13 @@ def test_compatibility_facades_export_identical_contracts():
     from ayvu.v1 import resume
     from ayvu.composition.builders import providers as provider_composition
     from ayvu import providers, translation
-    from ayvu.interfaces.cli import app as cli
+    from ayvu.interfaces.cli import run as cli_run, run_support as cli_run_support, batch as cli_batch
     for name in ('AyvuConfig', 'FolderNames', 'TranslationProfile', 'ConfigError', 'config_from_preferences'):
         assert getattr(config, name) is getattr(config_values, name)
     # REF-04 gave each error one owner; every module that raises or catches it sees the same class.
-    assert preflight.PreflightError is translation.PreflightError is cli.PreflightError
-    assert resume.ResumeStateError is translation.ResumeStateError is cli.ResumeStateError
-    assert batch_output_policy.BatchOutputError is translation.BatchOutputError is cli.BatchOutputError
+    assert preflight.PreflightError is translation.PreflightError is cli_run.PreflightError
+    assert resume.ResumeStateError is translation.ResumeStateError is cli_run_support.ResumeStateError
+    assert batch_output_policy.BatchOutputError is translation.BatchOutputError is cli_batch.BatchOutputError
     from ayvu.interfaces.cli.commands import translator  # the CLI catches it where it calls the provider
     assert provider_composition.ProviderSetupError is providers.ProviderSetupError is translator.ProviderSetupError
 

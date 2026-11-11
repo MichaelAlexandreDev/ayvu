@@ -30,7 +30,7 @@ def test_translate_command_confirms_default_output_location(tmp_path, monkeypatc
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: output_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
-        "ayvu.interfaces.cli.app.run_translation_preflight",
+        "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
@@ -70,7 +70,7 @@ def test_translate_command_allows_custom_output_path_from_default_prompt(tmp_pat
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: output_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
-        "ayvu.interfaces.cli.app.run_translation_preflight",
+        "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
@@ -123,7 +123,7 @@ def test_translate_command_allows_another_name_when_output_exists(tmp_path, monk
 
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
-        "ayvu.interfaces.cli.app.run_translation_preflight",
+        "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())

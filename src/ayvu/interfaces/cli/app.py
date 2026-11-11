@@ -1,29 +1,24 @@
 from __future__ import annotations
+from . import batch, plan, preview as previews, run as translation_run, run_messages, settings, translate_options
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from pathlib import Path
-from typing import NoReturn, Optional, Protocol
+from typing import Optional
 import typer
-from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
-from ...translation import ItemOutcome, ItemStatus
-from .render import _TRANSLATION_FAILURES, _print_epub_read_error, _print_expected_error, _print_network_selection, console
-from .options import DEFAULT_CACHE_PATH, DEFAULT_PREVIEW_DOCUMENT_LIMIT, DEFAULT_RETRY_BACKOFF, DEFAULT_RETRY_BACKOFF_MAX, DEFAULT_SOURCE_LANGUAGE, DEFAULT_TARGET_LANGUAGE, DEFAULT_TRANSLATOR_URL, NETWORK_POLICY_HELP, _invocation_network_policy, _selected_network_policy
-from . import settings, report as reports, output as output_paths
-from .settings import _display_optional_path, _load_existing_config_or_default, _refuse_invalid_translator_models
+from .render import _print_expected_error, _print_network_selection, console
+from .options import DEFAULT_CACHE_PATH, DEFAULT_RETRY_BACKOFF, DEFAULT_RETRY_BACKOFF_MAX, DEFAULT_TARGET_LANGUAGE, DEFAULT_TRANSLATOR_URL, NETWORK_POLICY_HELP, _invocation_network_policy, _selected_network_policy
+from . import report as reports
+from .settings import _refuse_invalid_translator_models
 from .commands import cache, content, review, translator
 from .commands.translator import _languages_were_listed
-from .progress import TranslationProgress, TranslationProgressSnapshot
 from ...preferences import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
-from .contracts import AcceptedItem, ConfigStore, TranslationReport, ValidationResult, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery, SelectedChapter
-from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, configuration_store, library_service, default_glossaries_dir, managed_glossary_repository, cli_provider_session, open_review_use_cases, destination_fingerprint, run_translation_preflight, resolve_translation_project, batch_output_intent, translate_batch, batch_item_outcome, book_refusal, check_book, detect_epub_language, interrupted_translations, open_job_recovery, resolve_chapter_selection, validate_output, prepare_translation, translation_checkpoint, _translate_without_project as execute_translate_without_project, _translate_in_project as execute_translate_in_project
+from .contracts import ConfigStore, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery
+from ...composition.cli import _BookOutcome, configuration_store, library_service, managed_glossary_repository, cli_provider_session, book_refusal, interrupted_translations, open_job_recovery
 from ...knowledge.glossary import Entry as GlossaryEntry, GlossaryReference, list_glossaries, read_glossary, create_glossary, update_glossary
-from ...kernel import ChapterSelection, ChapterSelectionError, DEFAULT_PERFORMANCE_PROFILE, LanguagePair, OutputPlan, PERFORMANCE_PROFILES, PerformanceProfile, TranslationMemoryError, TranslationMemoryOptions, TranslationOptions, UserMode
-from ...translation import BatchOutputError, BookRefused, PreflightError, ProjectTranslationUnavailable, ResumeStateError, TranslationDryRunCancelled
+from ...kernel import DEFAULT_PERFORMANCE_PROFILE, UserMode
 from ...library import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
-from ...projects import ProjectError
 from ...recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
-from ...review import ReviewExportCommand, ReviewOutcome
 from ...providers import DiscoveredLanguage
 from ...network import NetworkPolicy, network_next_step
 from ...translation import ContinuationTicket, TranslateProjectResult
@@ -42,13 +37,6 @@ cache_app = typer.Typer(help="Inspect, clean, export, and import the translation
 
 
 app.add_typer(cache_app, name="cache")
-
-
-class _RouteView(Protocol):
-    @property
-    def is_direct(self) -> bool: ...
-
-    def describe(self) -> str: ...
 
 
 GUIDED_TRANSLATE_OPTION = "1"
@@ -117,59 +105,6 @@ GLOSSARY_RULE_PRESERVE_OPTION = "2"
 PROFILE_NO_PROFILE_OPTION = "0"
 
 
-@dataclass(frozen=True)
-class TranslationRunResult:
-    report: TranslationReport
-    validation_warnings: list[str]
-    markdown_report_path: Path | None = None
-    project_id: str | None = None
-    job_result: TranslateProjectResult | None = None
-
-
-_PROJECT_NEXT_STEPS = {
-    "source_missing": "Informe uma fonte existente; o projeto anterior foi preservado.",
-    "source_changed": "A fonte foi alterada. Restaure a revisão original ou escolha explicitamente outra fonte para um novo projeto.",
-    "ambiguous_project": "Há projetos compatíveis duplicados. Preserve os manifests e resolva a duplicação antes de repetir.",
-    "incomplete_project_creation": "Com todas as execuções encerradas, preserve a pasta .staging-* movendo-a para fora de projects e repita o comando.",
-    "project_commit_uncertain": "O manifesto pode já estar publicado. Recarregue o estado ou repita a tradução para reutilizar o projeto.",
-    "credential_bearing_endpoint": "Use uma URL do tradutor sem usuário, senha, parâmetros de consulta ou fragmento.",
-}
-
-
-_PROJECT_NEXT_STEP = (
-    "Verifique a fonte, as permissões da pasta de processamento e o estado do projeto; "
-    "preserve os arquivos existentes antes de corrigir conflitos."
-)
-
-
-@dataclass(frozen=True, repr=False)
-class BatchTranslationResult:
-    epub_path: Path
-    succeeded: bool
-    output_path: Path | None = None
-    report_path: Path | None = None
-    detail: str = ""
-
-
-class _BatchItemExit(typer.Exit):
-    """Presentation exit with the content-free outcome of the active item."""
-
-    def __init__(self, outcome: ItemOutcome) -> None:
-        super().__init__(code=1)
-        self.outcome = outcome
-
-
-@dataclass(frozen=True)
-class ExecutionControls:
-    performance_profile_name: str
-    workers: int
-    requests_per_second: float | None
-    retries: int
-    retry_backoff: float
-    retry_backoff_max: float
-    chunk_limit: int
-
-
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -203,10 +138,10 @@ def main(
         return
 
     if preview is not None:
-        _run_preview(preview, mode=mode)
+        previews._run_preview(preview, mode=mode)
         return
 
-    config = _load_existing_config_or_default()
+    config = settings._load_existing_config_or_default()
     recovery = open_job_recovery(settings._processing_dir(config))
     found = _print_processing_translation_states(recovery)
     if _offer_detected_translation_resume(found, recovery, mode=mode):
@@ -402,23 +337,23 @@ def translate(
             mode,
         )
         raise typer.Exit(code=1)
-    _validate_translate_command_options(
+    translate_options._validate_translate_command_options(
         epub_paths=epub_list,
         output=output,
         output_dir=output_dir,
         review_output=review_output,
         mode=mode,
     )
-    config = _load_existing_config_or_default()
-    _validate_cache_only_options(
+    config = settings._load_existing_config_or_default()
+    translate_options._validate_cache_only_options(
         cache_only=cache_only,
         require_full_cache=require_full_cache,
         missing_output=missing_output,
         mode=mode,
     )
-    resolved_output_dir = _resolve_translation_output_dir(output_dir, mode=mode)
-    chapter_selection = _parse_chapter_selection(chapters, mode=mode)
-    tm_options = _build_translation_memory_options(
+    resolved_output_dir = translate_options._resolve_translation_output_dir(output_dir, mode=mode)
+    chapter_selection = translate_options._parse_chapter_selection(chapters, mode=mode)
+    tm_options = translate_options._build_translation_memory_options(
         enabled=translation_memory,
         apply_threshold=tm_apply_threshold,
         suggest_threshold=tm_suggest_threshold,
@@ -426,7 +361,7 @@ def translate(
         legacy_cache_compatibility=tm_legacy_cache_compatibility,
         mode=mode,
     )
-    execution_controls = _resolve_execution_controls(
+    execution_controls = translate_options._resolve_execution_controls(
         performance_profile_name=performance_profile_name,
         workers=workers,
         requests_per_second=requests_per_second,
@@ -436,14 +371,14 @@ def translate(
         chunk_limit=chunk_limit,
         mode=mode,
     )
-    _validate_worker_options(
+    translate_options._validate_worker_options(
         workers=execution_controls.workers,
         translation_memory=tm_options,
         mode=mode,
     )
 
     if len(epub_list) > 1:
-        _run_batch_translation(
+        batch._run_batch_translation(
             epub_paths=epub_list,
             output_dir=resolved_output_dir,
             source=source,
@@ -477,7 +412,7 @@ def translate(
         )
         return
 
-    _run_translation(
+    translation_run._run_translation(
         epub_path=epub_list[0],
         output=output,
         output_dir=resolved_output_dir,
@@ -530,7 +465,7 @@ def resume(
 ) -> None:
     """Resume a translation in progress from its saved checkpoint."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
-    config = _load_existing_config_or_default()
+    config = settings._load_existing_config_or_default()
     recovery = open_job_recovery(settings._processing_dir(config))
     found = interrupted_translations(recovery)
 
@@ -545,1222 +480,10 @@ def resume(
     _resume_translation(state, found, recovery, mode=mode, network_policy=_selected_network_policy(network_policy))
 
 
-def _resolve_source_language(
-    explicit_source: str | None,
-    epub_path: Path,
-    mode: UserMode,
-) -> tuple[str, bool]:
-    if explicit_source is not None and explicit_source.strip():
-        return explicit_source.strip(), False
-
-    try:
-        detected = detect_epub_language(epub_path)
-    except Exception:
-        return DEFAULT_SOURCE_LANGUAGE, True
-
-    if detected is None:
-        console.print(
-            "[yellow]Idioma do EPUB ausente ou inválido nos metadados.[/yellow] "
-            f"Usando '{DEFAULT_SOURCE_LANGUAGE}' como padrão. "
-            "Use --source para escolher outro idioma de origem."
-        )
-        return DEFAULT_SOURCE_LANGUAGE, True
-
-    return detected, True
-
-
-def _print_translation_plan(
-    language_pair: LanguagePair,
-    source_inferred: bool,
-    mode: UserMode,
-    profile_name: str | None = None,
-    profile_style: str | None = None,
-    performance_profile_name: str | None = None,
-    workers: int = 1,
-    requests_per_second: float | None = None,
-    retries: int = 2,
-    retry_backoff: float = DEFAULT_RETRY_BACKOFF,
-    retry_backoff_max: float = DEFAULT_RETRY_BACKOFF_MAX,
-) -> None:
-    table = Table(title="Translation plan")
-    table.add_column("Field")
-    table.add_column("Value")
-    source_value = language_pair.source
-    if source_inferred and mode == UserMode.DEVELOPER:
-        source_value = f"{language_pair.source} (inferido do EPUB)"
-    table.add_row("From", source_value)
-    table.add_row("To", language_pair.target)
-    if profile_name:
-        table.add_row("Profile", profile_name)
-    if profile_style:
-        table.add_row("Profile style", profile_style)
-    if performance_profile_name:
-        table.add_row("Performance profile", performance_profile_name)
-    for label, value in _execution_control_rows(
-        workers=workers,
-        requests_per_second=requests_per_second,
-        retries=retries,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    ):
-        table.add_row(label, value)
-    console.print(table)
-    if source_inferred and mode == UserMode.COMMON:
-        console.print(f"[dim]Idioma de origem detectado do EPUB: {language_pair.source}[/dim]")
-
-
-def _execution_control_rows(
-    *,
-    workers: int,
-    requests_per_second: float | None,
-    retries: int,
-    retry_backoff: float,
-    retry_backoff_max: float,
-) -> tuple[tuple[str, str], ...]:
-    return (
-        ("Workers", _format_workers(workers)),
-        ("Rate limit", _format_rate_limit(requests_per_second, workers=workers)),
-        ("Retry policy", _format_retry_policy(retries, retry_backoff, retry_backoff_max)),
-    )
-
-
-def _format_workers(workers: int) -> str:
-    if workers == 1:
-        return "1 (sequential)"
-    return f"{workers} (parallel, reported in EPUB order)"
-
-
-def _format_rate_limit(requests_per_second: float | None, *, workers: int) -> str:
-    if requests_per_second is None:
-        return "none"
-    suffix = " shared across workers" if workers > 1 else ""
-    return f"{_format_number(requests_per_second)} requests/second{suffix}"
-
-
-def _format_retry_policy(retries: int, retry_backoff: float, retry_backoff_max: float) -> str:
-    if retries <= 0:
-        return "disabled"
-    return (
-        f"{retries} retries, {_format_number(retry_backoff)}s initial backoff, "
-        f"{_format_number(retry_backoff_max)}s max"
-    )
-
-
-def _format_execution_summary(state: TranslationResumeState) -> str:
-    return (
-        f"{_format_workers(state.workers)}; "
-        f"{_format_rate_limit(state.requests_per_second, workers=state.workers)}; "
-        f"{_format_retry_policy(state.retries, state.retry_backoff, state.retry_backoff_max)}"
-    )
-
-
-def _format_number(value: float) -> str:
-    return f"{value:g}"
-
-
-def _resolve_execution_controls(
-    *,
-    performance_profile_name: str,
-    workers: int | None,
-    requests_per_second: float | None,
-    retries: int | None,
-    retry_backoff: float | None,
-    retry_backoff_max: float | None,
-    chunk_limit: int | None,
-    mode: UserMode,
-) -> ExecutionControls:
-    profile = _resolve_performance_profile(performance_profile_name, mode=mode)
-    return ExecutionControls(
-        performance_profile_name=profile.name,
-        workers=workers if workers is not None else profile.workers,
-        requests_per_second=(
-            requests_per_second
-            if requests_per_second is not None
-            else profile.requests_per_second
-        ),
-        retries=retries if retries is not None else profile.retries,
-        retry_backoff=retry_backoff if retry_backoff is not None else profile.retry_backoff,
-        retry_backoff_max=(
-            retry_backoff_max if retry_backoff_max is not None else profile.retry_backoff_max
-        ),
-        chunk_limit=chunk_limit if chunk_limit is not None else profile.chunk_limit,
-    )
-
-
-def _resolve_performance_profile(name: str, mode: UserMode) -> PerformanceProfile:
-    normalized = name.strip().lower() if name else DEFAULT_PERFORMANCE_PROFILE
-    profile = PERFORMANCE_PROFILES.get(normalized)
-    if profile is not None:
-        return profile
-
-    available = ", ".join(sorted(PERFORMANCE_PROFILES))
-    _print_expected_error(
-        "Perfil de performance não encontrado.",
-        "Use --performance-profile com um dos perfis disponíveis, ou remova a opção para usar standard.",
-        mode,
-        detail=f"Perfil solicitado: {name}. Perfis disponíveis: {available}.",
-    )
-    raise typer.Exit(code=1)
-
-
-def _print_translation_route(route: _RouteView | None, mode: UserMode) -> None:
-    if route is None:
-        return
-    if mode == UserMode.DEVELOPER:
-        console.print(f"[cyan]Route:[/cyan] {route.describe()}")
-    if route.is_direct:
-        return
-    if mode == UserMode.COMMON:
-        console.print(f"[yellow]A tradução passará por 2 etapas ({route.describe()}).[/yellow]")
-        console.print("[yellow]A qualidade pode ficar comprometida por causa do idioma intermediário.[/yellow]")
-    else:
-        console.print("[yellow]Rota intermediária em uso. A qualidade pode ficar comprometida.[/yellow]")
-
-
-def _resolve_requested_profile(
-    config: AyvuConfig,
-    profile_name: str | None,
-    mode: UserMode,
-) -> tuple[str | None, TranslationProfile | None]:
-    if profile_name is None or not profile_name.strip():
-        return None, None
-
-    name = profile_name.strip()
-    profile = config.profiles.get(name)
-    if profile is not None:
-        return name, profile
-
-    available = ", ".join(sorted(config.profiles)) or "nenhum perfil configurado"
-    _print_expected_error(
-        "Perfil de tradução não encontrado.",
-        "Use --profile com um perfil definido em config.json, ou remova --profile para rodar sem perfil.",
-        mode,
-        detail=f"Perfil solicitado: {name}. Perfis disponíveis: {available}.",
-    )
-    raise typer.Exit(code=1)
-
-
-def _resolve_target_language(
-    explicit_target: str | None,
-    profile: TranslationProfile | None,
-    default_target: str = DEFAULT_TARGET_LANGUAGE,
-) -> str:
-    if explicit_target is not None and explicit_target.strip():
-        return explicit_target.strip()
-    if profile is not None and profile.target_language is not None:
-        return profile.target_language
-    return default_target
-
-
-def _resolve_glossary_path(
-    explicit_glossary_path: Path | None,
-    profile: TranslationProfile | None,
-) -> Path | None:
-    if explicit_glossary_path is not None:
-        return explicit_glossary_path
-    if profile is None or profile.glossary is None:
-        return None
-
-    profile_glossary = profile.glossary.expanduser()
-    if profile_glossary.is_absolute():
-        return profile_glossary
-    return default_glossaries_dir() / profile_glossary
-
-
-def _parse_chapter_selection(value: str | None, mode: UserMode) -> ChapterSelection | None:
-    if value is None:
-        return None
-    try:
-        return ChapterSelection.parse(value)
-    except ChapterSelectionError as exc:
-        _print_expected_error(
-            "Seleção de capítulos inválida.",
-            "Use índices 1-based, faixas e padrões separados por vírgula, por exemplo --chapters '1-3,5,*chapter2*'.",
-            mode,
-            detail=str(exc),
-        )
-        raise typer.Exit(code=1) from exc
-
-
-def _resolve_chapter_selection_for_display(
-    epub_path: Path,
-    selection: ChapterSelection,
-    options: TranslationOptions,
-    mode: UserMode,
-) -> list[SelectedChapter]:
-    try:
-        return resolve_chapter_selection(
-            epub_path,
-            selection,
-            translate_metadata=options.translate_metadata,
-            max_documents=options.max_documents,
-        )
-    except ChapterSelectionError as exc:
-        _print_expected_error(
-            "Nenhum capítulo corresponde à seleção informada.",
-            "Confira --chapters e use índices 1-based, faixas ou padrões que existam no EPUB.",
-            mode,
-            detail=str(exc),
-        )
-        raise typer.Exit(code=1) from exc
-    except Exception as exc:
-        _print_epub_read_error(str(exc), mode)
-        raise typer.Exit(code=1) from exc
-
-
-def _print_selected_chapters(chapters: list[SelectedChapter]) -> None:
-    table = Table(title="Selected chapters")
-    table.add_column("#")
-    table.add_column("Name")
-    table.add_column("Title")
-    table.add_column("Archive path")
-    for chapter in chapters:
-        table.add_row(
-            str(chapter.index),
-            chapter.name,
-            chapter.title or "-",
-            chapter.archive_path,
-        )
-    console.print(table)
-
-
-def _validate_translate_command_options(
-    epub_paths: list[Path],
-    output: Path | None,
-    output_dir: Path | None,
-    review_output: Path | None,
-    mode: UserMode,
-) -> None:
-    if not epub_paths:
-        _print_expected_error(
-            "Nenhum EPUB informado para tradução.",
-            "Informe pelo menos um arquivo .epub no comando translate.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-    if output is not None and output_dir is not None:
-        _print_expected_error(
-            "Opções de saída incompatíveis.",
-            "Use --output para um EPUB específico ou --output-dir para uma pasta de saída, não ambos.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-    if len(epub_paths) == 1:
-        return
-
-    if output is not None:
-        _print_expected_error(
-            "Não é possível usar --output com múltiplos EPUBs.",
-            "Use --output-dir para escolher a pasta do batch, ou traduza um EPUB por vez com --output.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-    if review_output is not None:
-        _print_expected_error(
-            "Não é possível usar --review-output com múltiplos EPUBs.",
-            "Gere arquivos de revisão traduzindo um EPUB por vez.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-
-def _validate_cache_only_options(
-    cache_only: bool,
-    require_full_cache: bool,
-    missing_output: Path | None,
-    mode: UserMode,
-) -> None:
-    if cache_only:
-        return
-
-    if require_full_cache:
-        _print_expected_error(
-            "--require-full-cache exige --cache-only.",
-            "Adicione --cache-only para reconstruir apenas com o cache, ou remova --require-full-cache.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-    if missing_output is not None:
-        _print_expected_error(
-            "--missing-output exige --cache-only.",
-            "Adicione --cache-only para listar os textos ausentes do cache, ou remova --missing-output.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-
-def _build_translation_memory_options(
-    enabled: bool,
-    apply_threshold: float,
-    suggest_threshold: float,
-    mode: UserMode,
-    conservative_auto_apply: bool = False,
-    legacy_cache_compatibility: bool = False,
-) -> TranslationMemoryOptions | None:
-    if not enabled:
-        if conservative_auto_apply or legacy_cache_compatibility:
-            _print_expected_error("As opções de política de memória requerem --translation-memory.",
-                                  "Adicione --translation-memory.", mode)
-            raise typer.Exit(code=1)
-        return None
-
-    options = TranslationMemoryOptions(
-        apply_threshold=apply_threshold,
-        suggest_threshold=suggest_threshold,
-        conservative_auto_apply=conservative_auto_apply,
-        legacy_cache_compatibility=legacy_cache_compatibility,
-    )
-    try:
-        options.validate()
-    except TranslationMemoryError as exc:
-        _print_expected_error(
-            "Configuração inválida da memória de tradução.",
-            "Use limiares entre 0 e 1, com a sugestão menor ou igual à aplicação.",
-            mode,
-            detail=str(exc),
-        )
-        raise typer.Exit(code=1) from exc
-    return options
-
-
-def _validate_worker_options(
-    workers: int,
-    translation_memory: TranslationMemoryOptions | None,
-    mode: UserMode,
-) -> None:
-    if workers < 1:
-        _print_expected_error(
-            "Quantidade de workers inválida.",
-            "Use --workers com valor 1 ou maior.",
-            mode,
-            detail=f"--workers {workers}",
-        )
-        raise typer.Exit(code=1)
-
-    if workers > 1 and translation_memory is not None:
-        _print_expected_error(
-            "--workers é incompatível com --translation-memory nesta versão.",
-            "Use --workers 1 com --translation-memory, ou remova --translation-memory para executar em paralelo.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-
-def _resolve_translation_output_dir(output_dir: Path | None, mode: UserMode) -> Path | None:
-    if output_dir is None:
-        return None
-
-    path = output_dir.expanduser()
-    if path.exists() and not path.is_dir():
-        _print_expected_error(
-            "A pasta de saída informada não é um diretório.",
-            "Escolha um diretório em --output-dir ou remova a opção para usar o padrão.",
-            mode,
-            detail=f"Output directory: {path}",
-        )
-        raise typer.Exit(code=1)
-    return path
-
-
-def _run_translation(
-    epub_path: Path,
-    output: Path | None,
-    review_output: Path | None,
-    source: str | None,
-    target: str | None,
-    translator_name: str,
-    url: str,
-    cache_path: Path,
-    glossary_path: Path | None,
-    profile_name: str | None,
-    performance_profile_name: str | None,
-    dry_run: bool,
-    fail_fast: bool,
-    chapter_selection: ChapterSelection | None,
-    overwrite: bool,
-    timeout: float,
-    retries: int,
-    requests_per_second: float | None,
-    retry_backoff: float,
-    retry_backoff_max: float,
-    chunk_limit: int,
-    workers: int,
-    mode: UserMode,
-    network_policy: NetworkPolicy | None = None,
-    config: AyvuConfig | None = None,
-    translate_metadata: bool = False,
-    translate_alt_text: bool = False,
-    cache_only: bool = False,
-    require_full_cache: bool = False,
-    missing_output: Path | None = None,
-    translation_memory: TranslationMemoryOptions | None = None,
-    output_dir: Path | None = None,
-    auto_save_markdown_report: bool = False,
-    report_dir: Path | None = None,
-    confirm_output_location: bool = True,
-    resolve_managed_project: bool = True,
-    project_profile_name: str | None = None,
-    batch_plan: AcceptedItem | None = None,
-    continuation: ContinuationTicket | None = None,
-    operation_id: str | None = None,
-    cancellation: object | None = None,
-) -> TranslationRunResult:
-    active_job = None
-
-    def record_job(result: TranslateProjectResult) -> None:
-        nonlocal active_job
-        active_job = result
-
-    def item_exit(code: str, *, interrupted: bool = False) -> NoReturn:
-        if batch_plan is not None:
-            normalized = (batch_item_outcome(active_job, interrupted=interrupted, fail_fast=fail_fast)
-                          if active_job is not None else ItemOutcome(ItemStatus.FAILED, failure=code, interrupted=interrupted))
-            raise _BatchItemExit(normalized)
-        raise typer.Exit(code=1)
-
-    config = config or _load_existing_config_or_default()
-    resolved_profile_name, profile = _resolve_requested_profile(config, profile_name, mode=mode)
-    resolved_target = _resolve_target_language(target, profile)
-    resolved_glossary_path = _resolve_glossary_path(glossary_path, profile)
-    resolved_source, source_inferred = _resolve_source_language(source, epub_path, mode=mode)
-    language_pair = LanguagePair(source=resolved_source, target=resolved_target)
-    # A resume holds the profile of the run it continues, and shows no profile, because it applies none of its settings.
-    identity_profile_name = project_profile_name or resolved_profile_name
-    _print_translation_plan(
-        language_pair,
-        source_inferred=source_inferred,
-        mode=mode,
-        profile_name=resolved_profile_name,
-        profile_style=profile.style if profile else None,
-        performance_profile_name=performance_profile_name,
-        workers=workers,
-        requests_per_second=requests_per_second,
-        retries=retries,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    )
-    translation_options = TranslationOptions(
-        language_pair=language_pair,
-        dry_run=dry_run,
-        fail_fast=fail_fast,
-        chunk_limit=chunk_limit,
-        workers=workers,
-        translate_metadata=translate_metadata,
-        translate_alt_text=translate_alt_text,
-        chapter_selection=chapter_selection,
-        cache_only=cache_only,
-        require_full_cache=require_full_cache,
-        translation_memory=translation_memory,
-    )
-    if chapter_selection is not None:
-        selected_chapters = _resolve_chapter_selection_for_display(
-            epub_path=epub_path,
-            selection=chapter_selection,
-            options=translation_options,
-            mode=mode,
-        )
-        _print_selected_chapters(selected_chapters)
-    output_plan = OutputPlan.for_translation(
-        epub_path,
-        output,
-        language_pair,
-        dry_run=dry_run,
-        default_dir=output_dir or output_paths._translated_books_dir(config),
-    )
-    if batch_plan is not None:
-        output_plan = batch_plan.output
-        batch_plan.revalidate()
-    if confirm_output_location:
-        output_plan = output_paths._confirm_default_output_location(output_plan, epub_path, mode=mode)
-    if batch_plan is None:
-        output_plan = output_paths._resolve_existing_output_conflict(output_plan, overwrite=overwrite, mode=mode)
-    output_path = output_plan.path
-    review_output_path = _resolve_review_output_path(
-        review_output,
-        dry_run=dry_run,
-        overwrite=overwrite,
-        mode=mode,
-    )
-
-    project_id = None
-    source_sha256 = None
-    if resolve_managed_project and not dry_run:
-        try:
-            resolution = resolve_translation_project(
-                settings._processing_dir(config), epub_path, source=language_pair.source, target=language_pair.target,
-                glossary_path=resolved_glossary_path, profile_name=identity_profile_name,
-                translator=translator_name, url=url, chunk_limit=chunk_limit,
-                translate_metadata=translate_metadata, translate_alt_text=translate_alt_text,
-                chapters=chapter_selection.source if chapter_selection else None,
-                translation_memory=translation_memory,
-            )
-            project_id = resolution.project.project_id
-            source_sha256 = resolution.project.source_sha256
-        except ProjectError as exc:
-            _print_project_failure(str(exc), mode)
-            item_exit("project_unavailable")
-
-    checkpoint = translation_checkpoint()
-    progress = _translation_progress_display()
-    progress_view = TranslationProgress(progress, dry_run=dry_run, workers=workers)
-
-    def prepare() -> object:
-        prepared = prepare_translation(
-            epub_path=epub_path, options=translation_options, cache_path=cache_path,
-            glossary_path=resolved_glossary_path, translator_name=translator_name,
-            url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
-            output_path=output_path, overwrite=overwrite, processing_dir=settings._processing_dir(config),
-            profile_name=identity_profile_name, preflight=run_translation_preflight,
-            translator_models=config.translator_models, project_backed=project_id is not None,
-            network_policy=_selected_network_policy(network_policy),
-            save_checkpoint=lambda **values: _checkpoint_action(checkpoint.start, **values),
-            on_route=lambda route: _print_translation_route(route, mode=mode), on_ready=progress.start,
-        )
-        _print_network_selection(getattr(prepared, "network_decision", None))
-        return prepared
-
-    def on_chapter_start(index: int, total: int, name: str) -> None:
-        progress_view.chapter_started(index, total, name)
-        _checkpoint_action(checkpoint.chapter_started, index, total, name)
-
-    def on_chapter_done(index: int, total: int, name: str, stats: object) -> None:
-        progress_view.chapter_done(index, total, name, stats)
-        _checkpoint_action(checkpoint.chapter_done, index, total, name, stats)
-
-    validation_task = None
-
-    def on_validation(index: int, total: int, _name: str) -> None:
-        nonlocal validation_task
-        if validation_task is None:
-            validation_task = progress.add_task("Validando EPUB", total=total)
-        progress.update(validation_task, total=total, completed=index, description=f"Validando EPUB {index}/{total}")
-
-    hooks = _BookHooks(on_chapter_start, on_chapter_done, progress_view.text_processed, on_validation)
-    book = _BookRequest(
-        epub_path=epub_path,
-        output_plan=output_plan,
-        # Whoever gets this far with a file already there accepted replacing it, by flag or at the prompt.
-        replace_existing=batch_plan.overwrite if batch_plan is not None else (overwrite or output_path.exists()),
-        options=translation_options,
-        cache_path=cache_path,
-        prepare=prepare,
-        project_id=project_id,
-        source_sha256=source_sha256,
-        processing_dir=settings._processing_dir(config) if project_id is not None else None,
-        continuation=continuation,
-        operation_id=operation_id,
-        batch_plan=batch_plan,
-        cancellation=cancellation,
-        on_project_result=record_job,
-        translator_name=translator_name,
-        translator_models=config.translator_models,
-    )
-    try:
-        try:
-            outcome = (
-                _translate_without_project(book, hooks)
-                if project_id is None
-                else _translate_in_project(book, hooks)
-            )
-        finally:
-            progress.stop()
-    except PreflightError as exc:
-        _print_expected_error(exc.summary, exc.next_step, mode, detail=exc.detail)
-        item_exit("provider_failed")
-    except BookRefused as exc:
-        _print_translation_failure(_BookOutcome(failure=exc.code), output_path, mode)
-        item_exit("input_failed")
-    except ProjectTranslationUnavailable as exc:
-        _print_expected_error(
-            "Não foi possível abrir o estado do projeto local.",
-            "Verifique as permissões da pasta de processamento e repita. Nada foi traduzido nem escrito.",
-            mode,
-            detail=str(exc),
-        )
-        item_exit("project_unavailable")
-    except TranslationDryRunCancelled:
-        raise _BatchItemExit(ItemOutcome(ItemStatus.CANCELLED)) from None
-    except KeyboardInterrupt as exc:
-        if hasattr(exc, "result"):
-            record_job(exc.result)
-        _print_interrupted_translation(
-            snapshot=progress_view.snapshot(),
-            output_path=output_path,
-            cache_path=cache_path,
-            dry_run=dry_run,
-            workers=workers,
-            requests_per_second=requests_per_second,
-            retries=retries,
-            retry_backoff=retry_backoff,
-            retry_backoff_max=retry_backoff_max,
-        )
-        if batch_plan is not None:
-            item_exit("interrupted", interrupted=True)
-        raise typer.Exit(code=1) from exc
-
-    for notice in outcome.notices:
-        console.print(f"[yellow]Aviso da tradução:[/yellow] {notice}")
-    if outcome.report is None:
-        _print_translation_failure(replace(outcome, raised=None) if batch_plan is not None else outcome, output_path, mode)
-        item_exit(outcome.failure if outcome.failure in ("output_conflict", "provider_failed") else "translation_failed")
-    report = outcome.report
-    if batch_plan is not None and report.output_written and not dry_run:
-        batch_plan.mark_published()
-    if review_output_path is not None:
-        if outcome.job_result is None:
-            _print_review_export_failure("translation_identity_unavailable", mode)
-            raise typer.Exit(code=1)
-        use_cases = open_review_use_cases(settings._processing_dir(config))
-        cancellation = use_cases.cancellation()
-        exported = use_cases.export.execute(ReviewExportCommand(
-            outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
-            cancellation=cancellation.token))
-        if exported.outcome is not ReviewOutcome.READY or exported.artifact is None:
-            _print_review_export_failure(exported.code, mode)
-            raise typer.Exit(code=1)
-        console.print(f"[green]Review file saved to:[/green] {review_output_path}")
-        report.review_output_path = review_output_path
-
-    if cache_only and report.missing_texts:
-        try:
-            reports._save_missing_texts(
-                report,
-                missing_output=missing_output,
-                overwrite=overwrite,
-                directory=report_dir,
-                mode=mode,
-                batch_plan=batch_plan,
-            )
-        except (BatchOutputError, OSError) as exc:
-            if batch_plan is None:
-                raise
-            code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "report_failed"
-            raise _BatchItemExit(ItemOutcome(ItemStatus.FAILED, failure=code,
-                job_ref=active_job.job_id if active_job else None,
-                job_state=active_job.state.value if active_job and active_job.state else None,
-                output_published=bool(active_job and active_job.output_ready))) from None
-
-    validation = outcome.validation
-    validation_warnings = list(validation.warnings) if validation else []
-
-    reports._print_report(report, dry_run, validation_warnings)
-    markdown_report_path = None
-    if auto_save_markdown_report:
-        try:
-            markdown_report_path = reports._save_markdown_report(
-                report,
-                dry_run,
-                validation_warnings,
-                directory=report_dir,
-                batch_plan=batch_plan,
-            )
-        except (BatchOutputError, OSError) as exc:
-            if batch_plan is None:
-                raise
-            code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "report_failed"
-            raise _BatchItemExit(ItemOutcome(ItemStatus.FAILED, failure=code,
-                job_ref=active_job.job_id if active_job else None,
-                job_state=active_job.state.value if active_job and active_job.state else None,
-                output_published=bool(active_job and active_job.output_ready))) from None
-        console.print(f"[green]Report saved to:[/green] {markdown_report_path}")
-    else:
-        reports._offer_markdown_report(report, dry_run, validation_warnings, mode=mode)
-
-    if cache_only and require_full_cache and not report.output_written:
-        _print_cache_coverage_blocked(report, mode)
-        item_exit("cache_incomplete")
-
-    if validation is not None:
-        if validation.ok:
-            console.print(
-                f"[green]Validação OK:[/green] {validation.document_count} documentos XHTML/HTML encontrados."
-            )
-            _checkpoint_action(checkpoint.completed)
-        else:
-            item_exit("validation_failed")
-
-    if outcome.warning is not None:
-        _print_translation_failure(outcome, output_path, mode)
-        if outcome.warning != "provenance_failed":
-            item_exit("translation_failed")
-
-    return TranslationRunResult(
-        report=report,
-        validation_warnings=validation_warnings,
-        markdown_report_path=markdown_report_path,
-        project_id=project_id,
-        job_result=outcome.job_result,
-    )
-
-
-def _translation_progress_display() -> Progress:
-    return Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        console=console,
-    )
-
-
-def _print_project_failure(code: str, mode: UserMode) -> None:
-    next_step = _PROJECT_NEXT_STEPS.get(code, _PROJECT_NEXT_STEP)
-    _print_expected_error("Não foi possível resolver o projeto local.", next_step, mode, detail=code)
-
-
-def _print_translation_failure(outcome: _BookOutcome, output_path: Path, mode: UserMode) -> None:
-    code = outcome.failure or outcome.warning or "unexpected_error"
-    template = _TRANSLATION_FAILURES.get(code) or _TRANSLATION_FAILURES["unexpected_error"]
-    detail = str(outcome.raised) if outcome.raised is not None and str(outcome.raised) else code
-    _print_expected_error(template[0], template[1].format(output=output_path), mode, detail=detail)
-
-
-def _run_batch_translation(
-    epub_paths: list[Path],
-    output_dir: Path | None,
-    source: str | None,
-    target: str | None,
-    translator_name: str,
-    url: str,
-    cache_path: Path,
-    glossary_path: Path | None,
-    profile_name: str | None,
-    performance_profile_name: str | None,
-    dry_run: bool,
-    fail_fast: bool,
-    chapter_selection: ChapterSelection | None,
-    continue_on_error: bool,
-    overwrite: bool,
-    timeout: float,
-    retries: int,
-    requests_per_second: float | None,
-    retry_backoff: float,
-    retry_backoff_max: float,
-    chunk_limit: int,
-    workers: int,
-    mode: UserMode,
-    config: AyvuConfig,
-    network_policy: NetworkPolicy | None = None,
-    translate_metadata: bool = False,
-    translate_alt_text: bool = False,
-    cache_only: bool = False,
-    require_full_cache: bool = False,
-    translation_memory: TranslationMemoryOptions | None = None,
-) -> None:
-    resolved_output_dir = output_dir or output_paths._translated_books_dir(config)
-    report_dir = reports._reports_dir(config)
-    _print_batch_plan(
-        epub_paths=epub_paths,
-        output_dir=resolved_output_dir,
-        report_dir=report_dir,
-        continue_on_error=continue_on_error,
-        performance_profile_name=performance_profile_name,
-        workers=workers,
-        requests_per_second=requests_per_second,
-        retries=retries,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    )
-
-    _, profile = _resolve_requested_profile(config, profile_name, mode=mode)
-    target_language = _resolve_target_language(target, profile)
-    intents = []
-    try:
-        for epub_path in epub_paths:
-            output_plan = OutputPlan.for_translation(
-                epub_path, None, LanguagePair(source or "", target_language), dry_run=dry_run,
-                default_dir=resolved_output_dir,
-            )
-            output_plan = output_paths._resolve_existing_output_conflict(output_plan, overwrite=overwrite, mode=mode)
-            intents.append(batch_output_intent(
-                epub_path, output_plan, report_dir, reports._report_stem_for(epub_path, target_language),
-                reports._missing_stem_for(epub_path, target_language) if cache_only else None,
-                overwrite or (not dry_run and output_plan.path.exists()),
-            ))
-    except BatchOutputError as exc:
-        _print_expected_error(
-            "Não foi possível planejar as saídas do lote.",
-            "Escolha destinos distintos dos EPUBs originais e tente novamente.",
-            mode, detail=str(exc),
-        )
-        raise typer.Exit(code=1) from None
-
-    results: list[BatchTranslationResult] = []
-    total = len(epub_paths)
-
-    def execute_item(epub_path: Path):
-        def execute(plan: AcceptedItem, correlation_id: str, ordinal: int, cancellation) -> ItemOutcome:
-            console.print(f"[cyan]Batch item {ordinal}/{total}:[/cyan] {epub_path}")
-            try:
-                run_result = _run_translation(
-                    epub_path=epub_path, output=None, output_dir=resolved_output_dir, review_output=None,
-                    source=source, target=target, translator_name=translator_name, url=url,
-                    network_policy=_selected_network_policy(network_policy),
-                    cache_path=cache_path, glossary_path=glossary_path, profile_name=profile_name,
-                    performance_profile_name=performance_profile_name, dry_run=dry_run, fail_fast=fail_fast,
-                    chapter_selection=chapter_selection, overwrite=overwrite, timeout=timeout, retries=retries,
-                    requests_per_second=requests_per_second, retry_backoff=retry_backoff,
-                    retry_backoff_max=retry_backoff_max, chunk_limit=chunk_limit, workers=workers, mode=mode,
-                    config=config, translate_metadata=translate_metadata, translate_alt_text=translate_alt_text,
-                    cache_only=cache_only, require_full_cache=require_full_cache, translation_memory=translation_memory,
-                    auto_save_markdown_report=True, report_dir=report_dir, confirm_output_location=False,
-                    batch_plan=plan, operation_id=correlation_id,
-                    cancellation=cancellation,
-                )
-            except _BatchItemExit as exc:
-                if exc.outcome.output_published and exc.outcome.failure in ("report_failed", "auxiliary_allocation_exhausted"):
-                    console.print("[yellow]O EPUB foi publicado, mas o relatório não pôde ser salvo.[/yellow]")
-                if exc.outcome.output_published and exc.outcome.interrupted:
-                    console.print("[yellow]O EPUB foi publicado antes da interrupção.[/yellow]")
-                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False,
-                                                      detail="exit code 1"))
-                console.print(f"[red]Batch item failed:[/red] {epub_path}")
-                return exc.outcome
-            except typer.Exit as exc:
-                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False,
-                                                      detail=f"exit code {exc.exit_code or 1}"))
-                console.print(f"[red]Batch item failed:[/red] {epub_path}")
-                return ItemOutcome(ItemStatus.FAILED, failure="translation_failed")
-            except KeyboardInterrupt:
-                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False, detail="exit code 1"))
-                return ItemOutcome(ItemStatus.FAILED, failure="interrupted", interrupted=True)
-            except BatchOutputError as exc:
-                code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "output_conflict"
-                _print_expected_error("Não foi possível publicar as saídas deste EPUB.",
-                                      "Verifique os destinos e tente novamente.", mode, detail=code)
-                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False, detail="exit code 1"))
-                return ItemOutcome(ItemStatus.FAILED, failure=code)
-            except Exception:
-                _print_expected_error("Falha inesperada ao traduzir este EPUB.",
-                                      "Verifique o EPUB, o tradutor local e as opções usadas antes de tentar novamente.",
-                                      mode, detail="unexpected_error")
-                results.append(BatchTranslationResult(epub_path=epub_path, succeeded=False, detail="unexpected_error"))
-                return ItemOutcome(ItemStatus.FAILED, failure="unexpected_error")
-            report = run_result.report
-            job = run_result.job_result
-            if job is not None:
-                outcome = batch_item_outcome(job, report_saved=run_result.markdown_report_path is not None,
-                                               fail_fast=fail_fast)
-            elif report.errors or report.missing_texts or run_result.validation_warnings:
-                outcome = ItemOutcome(ItemStatus.PARTIAL, warnings=("translation_warnings",))
-            else:
-                outcome = ItemOutcome(ItemStatus.SUCCESS)
-            succeeded = outcome.status in (ItemStatus.SUCCESS, ItemStatus.PARTIAL) and not outcome.interrupted
-            results.append(BatchTranslationResult(epub_path=epub_path, succeeded=succeeded,
-                                                  output_path=report.output_path if succeeded else None,
-                                                  report_path=run_result.markdown_report_path if succeeded else None,
-                                                  detail="" if succeeded else "exit code 1"))
-            return outcome
-        return execute
-
-    def on_progress(item) -> None:
-        failure = item.outcome.normalized_failure
-        if failure is not None and failure.code == "auxiliary_allocation_exhausted" and len(results) < item.ordinal:
-            path = epub_paths[item.ordinal - 1]
-            results.append(BatchTranslationResult(path, False, detail="auxiliary_allocation_exhausted"))
-            console.print(f"[red]Batch item failed:[/red] {path}")
-
-    try:
-        result = translate_batch(tuple(zip(intents, (execute_item(path) for path in epub_paths))),
-                                 continue_on_error=continue_on_error, on_progress=on_progress)
-    except BatchOutputError as exc:
-        _print_expected_error(
-            "Não foi possível planejar as saídas do lote.",
-            "Escolha destinos distintos dos EPUBs originais e tente novamente.", mode, detail=str(exc))
-        raise typer.Exit(code=1) from None
-    _print_batch_summary(results)
-    if not result.succeeded:
-        raise typer.Exit(code=1)
-
-
-def _print_batch_plan(
-    epub_paths: list[Path],
-    output_dir: Path,
-    report_dir: Path,
-    continue_on_error: bool,
-    performance_profile_name: str | None,
-    workers: int,
-    requests_per_second: float | None,
-    retries: int,
-    retry_backoff: float,
-    retry_backoff_max: float,
-) -> None:
-    table = Table(title="Batch translation plan")
-    table.add_column("Field")
-    table.add_column("Value")
-    table.add_row("EPUB files", str(len(epub_paths)))
-    table.add_row("Output folder", str(output_dir))
-    table.add_row("Reports folder", str(report_dir))
-    table.add_row("Continue on error", "yes" if continue_on_error else "no")
-    if performance_profile_name:
-        table.add_row("Performance profile", performance_profile_name)
-    for label, value in _execution_control_rows(
-        workers=workers,
-        requests_per_second=requests_per_second,
-        retries=retries,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    ):
-        table.add_row(label, value)
-    console.print(table)
-
-
-def _print_batch_summary(results: list[BatchTranslationResult]) -> None:
-    if not results:
-        return
-    table = Table(title="Batch translation summary")
-    table.add_column("EPUB")
-    table.add_column("Status")
-    table.add_column("Output or detail")
-    table.add_column("Report")
-    for result in results:
-        status = "[green]OK[/green]" if result.succeeded else "[red]Failed[/red]"
-        detail = _display_optional_path(result.output_path) if result.succeeded else result.detail
-        table.add_row(
-            str(result.epub_path),
-            status,
-            detail or "-",
-            _display_optional_path(result.report_path),
-        )
-    console.print(table)
-
-
-def _run_preview(
-    epub_path: Path,
-    source: str = DEFAULT_SOURCE_LANGUAGE,
-    target: str = DEFAULT_TARGET_LANGUAGE,
-    translator_name: str = "libretranslate",
-    url: str = DEFAULT_TRANSLATOR_URL,
-    cache_path: Path = DEFAULT_CACHE_PATH,
-    glossary_path: Path | None = None,
-    timeout: float = 30.0,
-    retries: int = 2,
-    requests_per_second: float | None = None,
-    retry_backoff: float = DEFAULT_RETRY_BACKOFF,
-    retry_backoff_max: float = DEFAULT_RETRY_BACKOFF_MAX,
-    chunk_limit: int = 3000,
-    max_documents: int = DEFAULT_PREVIEW_DOCUMENT_LIMIT,
-    mode: UserMode = UserMode.DEVELOPER,
-    config: AyvuConfig | None = None,
-    network_policy: NetworkPolicy | None = None,
-) -> None:
-    config = config or _load_existing_config_or_default()
-    epub_path = epub_path.expanduser()
-    output_paths._ensure_preview_input_exists(epub_path)
-
-    language_pair = LanguagePair(source=source, target=target)
-    translation_options = TranslationOptions(
-        language_pair=language_pair,
-        chunk_limit=chunk_limit,
-        max_documents=max_documents,
-    )
-    output_plan = OutputPlan.for_preview(
-        epub_path,
-        default_dir=output_paths._preview_books_dir(config),
-    )
-    output_path = output_plan.path
-    output_paths._print_preview_output_location(output_path, max_documents)
-
-    if output_plan.blocks_existing_file(overwrite=False):
-        if not output_paths._confirm_existing_preview_overwrite(output_path, mode=mode):
-            console.print("[red]Canceled:[/red] existing preview was not changed.")
-            raise typer.Exit(code=1)
-
-    try:
-        check_book(epub_path)
-    except BookRefused as exc:
-        _print_translation_failure(_BookOutcome(failure=exc.code), output_path, mode)
-        raise typer.Exit(code=1) from exc
-
-    try:
-        preflight = run_translation_preflight(
-            network_policy=_selected_network_policy(network_policy),
-            epub_path=epub_path,
-            cache_path=cache_path,
-            glossary_path=glossary_path,
-            translator_name=translator_name,
-            url=url,
-            timeout=timeout,
-            retries=retries,
-            requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff,
-            retry_backoff_max=retry_backoff_max,
-            language_pair=language_pair,
-            dry_run=False,
-        )
-    except PreflightError as exc:
-        _print_expected_error(exc.summary, exc.next_step, mode, detail=exc.detail)
-        raise typer.Exit(code=1) from exc
-
-    _print_translation_route(preflight.route, mode=mode)
-    _print_network_selection(getattr(preflight, "network_decision", None))
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        console=console,
-    ) as progress:
-        progress_view = TranslationProgress(progress, dry_run=False)
-        outcome = _translate_without_project(
-            _BookRequest(epub_path, output_plan, True, translation_options, cache_path, lambda: preflight),
-            _BookHooks(progress_view.chapter_started, progress_view.chapter_done, progress_view.text_processed, lambda *args: None),
-            validate=False,
-        )
-        report = outcome.report
-
-    validation = _validate_with_progress(output_path)
-    reports._print_report(report, dry_run=False, validation_warnings=validation.warnings)
-    if validation.ok:
-        console.print(f"[green]Preview salvo em:[/green] {output_path}")
-        console.print(
-            f"[green]Validação OK:[/green] {validation.document_count} documentos XHTML/HTML encontrados."
-        )
-        return
-
-    raise typer.Exit(code=1)
-
-
 app.command()(content.extract)
 
 
 app.command('apply-review')(review.apply_review)
-
-
-def _validate_with_progress(output_path: Path) -> ValidationResult:
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Validando EPUB", total=None)
-
-        def on_progress(index: int, total: int, _name: str) -> None:
-            progress.update(
-                task,
-                total=total,
-                completed=index,
-                description=f"Validando EPUB {index}/{total}",
-            )
-
-        return validate_output(output_path, on_progress=on_progress)
-
-
-def _resolve_review_output_path(
-    review_output: Path | None,
-    dry_run: bool,
-    overwrite: bool,
-    mode: UserMode,
-) -> Path | None:
-    if review_output is None:
-        return None
-
-    if dry_run:
-        _print_expected_error(
-            "Não é possível gerar arquivo de revisão em dry-run.",
-            "Remova --dry-run para gerar traduções revisáveis, ou remova --review-output.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-
-    path = review_output.expanduser()
-    if path.exists() and not overwrite:
-        _print_expected_error(
-            "Arquivo de revisão já existe.",
-            "Use --overwrite para substituí-lo ou escolha outro caminho em --review-output.",
-            mode,
-            detail="review_output_exists",
-        )
-        raise typer.Exit(code=1)
-
-    return path
-
-
-def _print_review_export_failure(code: str, mode: UserMode) -> None:
-    if code in {"output_exists", "review_file_exists"}:
-        _print_expected_error(
-            "Arquivo de revisão já existe.",
-            "Use --overwrite para substituí-lo ou escolha outro caminho em --review-output.",
-            mode,
-            detail="review_output_exists",
-        )
-        return
-    _print_expected_error(
-        "Não foi possível salvar o pacote de revisão.",
-        "Confirme que a tradução terminou com um artefato íntegro e escolha um caminho gravável para --review-output.",
-        mode,
-        detail=code,
-    )
-
-
-def _print_interrupted_translation(
-    snapshot: TranslationProgressSnapshot | None,
-    output_path: Path,
-    cache_path: Path,
-    dry_run: bool,
-    workers: int,
-    requests_per_second: float | None,
-    retries: int,
-    retry_backoff: float,
-    retry_backoff_max: float,
-) -> None:
-    console.print("[yellow]Translation interrupted by user.[/yellow]")
-    console.print("Cached translations saved before the interruption can be reused with the same --cache path.")
-    console.print(f"Cache path: {cache_path}")
-    console.print(_interrupted_output_message(output_path, dry_run))
-    if not dry_run:
-        console.print("Run 'ayvu resume' to continue this translation from the saved checkpoint.")
-
-    if snapshot is None:
-        return
-
-    table = Table(title="Partial translation progress")
-    table.add_column("Metric")
-    table.add_column("Value")
-    table.add_row("Chapters processed", _partial_chapter_value(snapshot))
-    table.add_row("Texts processed", str(snapshot.texts_processed))
-    table.add_row("Texts translated", str(snapshot.texts_translated))
-    table.add_row("Texts from cache", str(snapshot.texts_from_cache))
-    if snapshot.texts_from_memory:
-        table.add_row("Texts from memory", str(snapshot.texts_from_memory))
-    table.add_row("Texts dry-run", str(snapshot.texts_dry_run))
-    table.add_row("Texts missing", str(snapshot.texts_missing))
-    table.add_row("Text errors", str(snapshot.text_errors))
-    table.add_row("Current chapter", snapshot.current_chapter or "-")
-    for label, value in _execution_control_rows(
-        workers=workers,
-        requests_per_second=requests_per_second,
-        retries=retries,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    ):
-        table.add_row(label, value)
-    console.print(table)
-
-
-def _partial_chapter_value(snapshot: TranslationProgressSnapshot) -> str:
-    if snapshot.total_chapters is None:
-        return str(snapshot.chapters_processed)
-    return f"{snapshot.chapters_processed}/{snapshot.total_chapters}"
-
-
-def _interrupted_output_message(output_path: Path, dry_run: bool) -> str:
-    if dry_run:
-        return "Dry run interrupted; no translated EPUB was expected."
-    if output_path.exists():
-        return f"Translated EPUB may be incomplete: {output_path}"
-    return f"Translated EPUB was not written: {output_path}"
 
 
 def _print_processing_translation_states(recovery: JobRecovery) -> InterruptedTranslations:
@@ -1912,10 +635,10 @@ def _run_guided_translation(config: AyvuConfig) -> None:
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
     profile_name, profile = _choose_guided_translation_profile(config)
     target = _choose_guided_target_language(
-        _resolve_target_language(None, profile, default_target=config.default_target_language)
+        translate_options._resolve_target_language(None, profile, default_target=config.default_target_language)
     )
     glossary_path = _choose_guided_profile_glossary(profile) or _choose_guided_translation_glossary()
-    _run_translation(
+    translation_run._run_translation(
         epub_path=epub_path,
         output=None,
         review_output=None,
@@ -1946,7 +669,7 @@ def _run_guided_translation(config: AyvuConfig) -> None:
 def _run_guided_preview(config: AyvuConfig) -> None:
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
     target = _choose_guided_target_language(config.default_target_language)
-    _run_preview(epub_path, target=target, mode=UserMode.COMMON, config=config)
+    previews._run_preview(epub_path, target=target, mode=UserMode.COMMON, config=config)
 
 
 def _choose_guided_translation_profile(
@@ -1993,7 +716,7 @@ def _print_translation_profiles(profiles: tuple[tuple[str, TranslationProfile], 
 
 
 def _choose_guided_profile_glossary(profile: TranslationProfile | None) -> Path | None:
-    glossary_path = _resolve_glossary_path(None, profile)
+    glossary_path = translate_options._resolve_glossary_path(None, profile)
     if glossary_path is None:
         return None
     console.print(f"[green]Profile glossary:[/green] {glossary_path}")
@@ -2001,7 +724,7 @@ def _choose_guided_profile_glossary(profile: TranslationProfile | None) -> Path 
 
 
 def _run_guided_glossaries() -> None:
-    directory = default_glossaries_dir()
+    directory = translate_options.default_glossaries_dir()
     _print_guided_glossary_menu(directory)
     choice = typer.prompt("Choose a glossary action", default=GLOSSARY_BACK_OPTION).strip()
     if choice == GLOSSARY_CREATE_OPTION:
@@ -2077,7 +800,7 @@ def _preview_guided_glossary(directory: Path) -> None:
 
 
 def _choose_guided_translation_glossary() -> Path | None:
-    directory = default_glossaries_dir()
+    directory = translate_options.default_glossaries_dir()
     repository = managed_glossary_repository(directory)
     items = _list_glossary_files(repository)
     if not items:
@@ -2628,9 +1351,9 @@ class _ResumeRunner:
     def run_durable(self, reference: str, ticket: ContinuationTicket, operation_id: str) -> TranslateProjectResult:
         return self._run(continuation=ticket, operation_id=operation_id).job_result
 
-    def _run(self, **identity: object) -> TranslationRunResult:
+    def _run(self, **identity: object) -> translation_run.TranslationRunResult:
         state, mode = self._state, self._mode
-        return _run_translation(
+        return translation_run._run_translation(
             epub_path=state.input_path,
             output=state.output_path,
             review_output=None,
@@ -2645,7 +1368,7 @@ class _ResumeRunner:
             performance_profile_name=None,
             dry_run=False,
             fail_fast=state.fail_fast,
-            chapter_selection=_parse_chapter_selection(state.chapter_selection, mode=mode),
+            chapter_selection=translate_options._parse_chapter_selection(state.chapter_selection, mode=mode),
             overwrite=True,
             timeout=state.timeout,
             retries=state.retries,
@@ -2683,7 +1406,7 @@ def _resume_translation(state: TranslationResumeState, found: InterruptedTransla
 def _print_resume_refusal(result: ResumeResult, state: TranslationResumeState, mode: UserMode) -> None:
     code = "continuation_exists" if result.status is ResumeStatus.ALREADY_REQUESTED else result.code
     if code in ("source_changed", "source_missing", "source_unreadable"):
-        _print_project_failure(code, mode)
+        run_messages._print_project_failure(code, mode)
     elif code == "not_found":
         _print_expected_error(
             "No translation in progress was found to resume.",
@@ -2692,7 +1415,7 @@ def _print_resume_refusal(result: ResumeResult, state: TranslationResumeState, m
         )
     else:
         failure = (book_refusal(state.input_path) or "unexpected_error") if code == "policy_denied" else code
-        _print_translation_failure(_BookOutcome(failure=failure), state.output_path, mode)
+        run_messages._print_translation_failure(_BookOutcome(failure=failure), state.output_path, mode)
 
 
 def _select_resume_state(
@@ -2739,7 +1462,7 @@ def _print_resume_checkpoint(state: TranslationResumeState) -> None:
         if state.failed_chapters:
             table.add_row("Chapters with failures", str(len(state.failed_chapters)))
             table.add_row("Failed segments", str(state.failed_segment_count))
-    for label, value in _execution_control_rows(
+    for label, value in plan._execution_control_rows(
         workers=state.workers,
         requests_per_second=state.requests_per_second,
         retries=state.retries,
@@ -2784,7 +1507,7 @@ def _print_running_resume_states(states: tuple[TranslationResumeState, ...]) -> 
             state.output_path.name,
             state.target,
             state.cache_path.name,
-            _format_execution_summary(state),
+            plan._format_execution_summary(state),
         )
     console.print(table)
 
@@ -2798,34 +1521,6 @@ def _print_invalid_resume_states(states: tuple[InvalidResumeState, ...]) -> None
         table.add_row(state.path.name, reports._single_line(state.message))
     console.print(table)
     console.print("Restart the translation if the state file cannot be fixed.")
-
-
-def _print_cache_coverage_blocked(report: TranslationReport, mode: UserMode) -> None:
-    _print_expected_error(
-        f"Cache incompleto: {report.texts_missing} texto(s) sem tradução no cache.",
-        (
-            "Remova --require-full-cache para gerar mesmo assim, traduza o EPUB normalmente "
-            "para preencher o cache, ou consulte o arquivo de textos ausentes."
-        ),
-        mode,
-    )
-
-
-def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
-    return execute_translate_without_project(book, hooks, validate=validate)
-
-
-def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
-    return execute_translate_in_project(book, hooks)
-
-
-def _checkpoint_action(action, *args, **kwargs):
-    try:
-        return action(*args, **kwargs)
-    except (OSError, ResumeStateError) as exc:
-        console.print(f"[red]Resume state check failed:[/red] {exc}")
-        console.print("Choose a writable processing directory or fix permissions for Documentos/Livros/Processando.")
-        raise typer.Exit(code=1) from exc
 
 
 if __name__ == "__main__":
