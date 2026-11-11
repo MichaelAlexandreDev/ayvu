@@ -10,7 +10,10 @@ result values plus `ExportReviewPackage`, `ValidateReviewPackage`, and
 network, SQLite, or filesystem adapter. `ayvu.composition.builders.review` wires those
 ports to the v2 exchange codec/mapper, read-only project readers, the EPUB
 `FormatService`, job/provenance repositories, and the DESKTOP-106 artifact
-publication protocol.
+publication protocol. The sibling `review_files`, `review_context`,
+`review_packages`, `review_start`, and `review_operations` modules own file
+boundaries, read-only context, package resolution, operation startup, and
+publication/settlement respectively. They remain internal composition modules.
 
 `translate --review-output` uses the exact successful `TranslateProjectResult`.
 The engine retains its extracted `ContentDocument`s, structural translations,

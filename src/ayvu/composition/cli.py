@@ -9,6 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from .builders import cache_admin, content, glossary, providers, review, translate_project
+from .builders import review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation, TranslationReport, selected_model
 from ..translation.batch_output import AcceptedItem, OutputIntent
@@ -107,11 +108,11 @@ def open_review_use_cases(processing_dir, *, source_path=None):
 
 
 def destination_fingerprint(path):
-    return review.destination_fingerprint(path)
+    return review_files.destination_fingerprint(path)
 
 
 def read_review_input(path):
-    return review.read_review_input(path)
+    return review_files.read_review_input(path)
 
 
 def run_translation_preflight(**configuration):

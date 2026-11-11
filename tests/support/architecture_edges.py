@@ -12,13 +12,6 @@ ALLOWED_INTERNAL_EDGES = {
     *(('ayvu.interfaces.cli.plan', f"ayvu.{name}") for name in ('interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.render')), *(('ayvu.interfaces.cli.preview', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.options', 'interfaces.cli.output', 'interfaces.cli.plan', 'interfaces.cli.progress', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.run', 'interfaces.cli.run_messages', 'interfaces.cli.run_support', 'interfaces.cli.settings', 'network.policy', 'preferences.model', 'translation.errors')),
     *(('ayvu.interfaces.cli.run', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.output', 'interfaces.cli.plan', 'interfaces.cli.progress', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.run_messages', 'interfaces.cli.run_support', 'interfaces.cli.settings', 'interfaces.cli.translate_options', 'network.policy', 'preferences.model', 'projects.model', 'review.application', 'translation.batch', 'translation.errors', 'translation.project_contracts')), *(('ayvu.interfaces.cli.run_messages', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.plan', 'interfaces.cli.progress', 'interfaces.cli.render')),
     *(('ayvu.interfaces.cli.run_support', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'translation.batch', 'translation.errors')), *(('ayvu.interfaces.cli.translate_options', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.render', 'preferences.model')),
-    *(("ayvu.composition.cli", f"ayvu.{name}") for name in (
-       "composition.builders.cache_admin", "composition.builders.content", "composition.builders.glossary",
-       "translation.preflight", "composition.builders.providers", "composition.builders.review",
-       "composition.builders.translate_batch", "composition.builders.translate_project",
-       "translation.batch_output", "v1.cache", "preferences.config_facade", "library.adapters",
-       "library.service", "projects.service", "projects.store", "v1.resume", "translation.project_contracts",
-       "translation.engine")),
     *(("ayvu.composition.builders.translate_project", f"ayvu.{name}") for name in (
        "translation.errors", "translation.context.execution", "translation.context.model",
        "knowledge.memory.approved.model", "knowledge.memory.approved.store",
@@ -187,13 +180,6 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.review.application", "ayvu.jobs.model"),
     ("ayvu.review.application", "ayvu.jobs.events"),
     ("ayvu.review.application", "ayvu.translation.project_contracts"),
-    *(("ayvu.composition.builders.review", f"ayvu.{name}") for name in (
-       "artifacts.model", "artifacts.destination", "artifacts.service", "artifacts.store", "content.model", "formats.epub.adapter",
-       "formats.contracts", "formats.local", "formats.service", "formats.epub.html_structure", "jobs.model", "jobs.events",
-       "jobs.execution", "jobs.service", "jobs.store", "projects.model", "projects.schema", "projects.store",
-       "provenance.model", "provenance.store", "review.application", "review.exchange", "review.exchange_model", "review.exchange_codec",
-       "review.exchange_mapping", "review.csv_import",
-       "translation.engine", "translation.project_contracts")),
     ("ayvu.jobs.service", "ayvu.jobs.model"),
     ("ayvu.jobs.events", "ayvu.jobs.model"),
     ("ayvu.jobs.execution", "ayvu.jobs.model"),
@@ -353,4 +339,44 @@ ALLOWED_INTERNAL_EDGES = {
        "knowledge.cache.identity_values", "knowledge.cache.scope", "knowledge.memory.approved.model",
        "translation.document_contracts", "translation.plan", "translation.resume_reuse",
        "translation.stages.memory_retrieval",)),
+    *(("ayvu.composition.cli", f"ayvu.{name}") for name in (
+       "composition.builders.cache_admin", "composition.builders.content",
+       "composition.builders.glossary", "composition.builders.providers", "composition.builders.review",
+       "composition.builders.review_files", "composition.builders.translate_batch",
+       "composition.builders.translate_project", "kernel.failures", "kernel.values", "library.adapters",
+       "library.service", "preferences.config_facade", "projects.service", "projects.store",
+       "translation.batch_output", "translation.engine", "translation.preflight",
+       "translation.project_contracts", "v1.cache", "v1.cache_check", "v1.resume",)),
+    *(("ayvu.composition.builders.review", f"ayvu.{name}") for name in (
+       "composition.builders.review_operations", "composition.builders.review_packages",
+       "composition.builders.review_start", "formats.epub.adapter", "formats.local", "formats.service",
+       "jobs.execution", "review.application",)),
+    *(("ayvu.composition.builders.review_files", f"ayvu.{name}") for name in (
+       "review.application",)),
+    *(("ayvu.composition.builders.review_context", f"ayvu.{name}") for name in (
+       "artifacts.model", "composition.builders.review_files", "content.model", "formats.contracts",
+       "formats.epub.adapter", "formats.service", "jobs.model", "kernel.cancellation", "projects.model",
+       "review.application", "review.exchange_mapping", "review.exchange_model",
+       "translation.project_contracts",)),
+    *(("ayvu.composition.builders.review_packages", f"ayvu.{name}") for name in (
+       "artifacts.model", "artifacts.service", "artifacts.store", "composition.builders.review_context",
+       "composition.builders.review_files", "formats.contracts", "formats.epub.adapter",
+       "formats.local", "formats.service", "jobs.model", "jobs.service", "jobs.store",
+       "kernel.cancellation", "projects.model", "projects.schema", "projects.store", "provenance.model",
+       "provenance.store", "review.application", "review.csv_import", "review.exchange",
+       "review.exchange_codec", "review.exchange_model", "translation.engine",
+       "translation.project_contracts",)),
+    *(("ayvu.composition.builders.review_start", f"ayvu.{name}") for name in (
+       "artifacts.destination", "artifacts.model", "artifacts.service",
+       "composition.builders.review_context", "composition.builders.review_files", "formats.local",
+       "formats.service", "jobs.events", "jobs.execution", "jobs.model", "jobs.service",
+       "projects.model", "projects.schema", "provenance.model", "provenance.store",
+       "review.application",)),
+    *(("ayvu.composition.builders.review_operations", f"ayvu.{name}") for name in (
+       "artifacts.model", "composition.builders.review_context", "composition.builders.review_files",
+       "composition.builders.review_packages", "composition.builders.review_start", "formats.contracts",
+       "formats.local", "formats.service", "jobs.events", "jobs.execution", "jobs.model",
+       "kernel.cancellation", "kernel.failures", "projects.store", "provenance.model",
+       "review.application", "review.exchange_codec", "review.exchange_model",
+       "translation.project_contracts",)),
 } | CACHE_EDGES

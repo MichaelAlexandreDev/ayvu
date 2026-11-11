@@ -24,8 +24,8 @@ from typer.testing import CliRunner
 import ayvu.artifacts.destination as artifact_destination
 from ayvu.interfaces.cli import render as cli_module
 import ayvu.jobs.store as job_store
-import ayvu.composition.builders.review as review_composition
-import ayvu.composition.builders.translate_project as composition
+from ayvu.composition.builders import review as review_composition, review_files, translate_project as composition
+from ayvu.composition.builders.review_operations import LocalReviewOperations
 from ayvu.interfaces.cli.app import app
 from ayvu.composition.cli import _BookOutcome
 from ayvu.interfaces.cli.run_messages import _print_translation_failure
@@ -336,7 +336,7 @@ def test_a_changed_reviewed_file_is_not_replaced_without_overwrite(tmp_path, mon
 @pytest.mark.parametrize("safe_point", ["review_before_validation", "review_before_reconstruction"])
 def test_cancelling_an_apply_against_real_repositories_is_recorded_and_frees_the_next_one(tmp_path, monkeypatch, safe_point):
     source, review_path, output = _translated_and_reviewed(tmp_path, monkeypatch)
-    raw = review_composition.read_review_input(review_path)
+    raw = review_files.read_review_input(review_path)
     uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
     cancellation = uses.cancellation()
 
@@ -349,7 +349,7 @@ def test_cancelling_an_apply_against_real_repositories_is_recorded_and_frees_the
             return cancellation.token.checkpoint(point)
 
     cancelled = uses.apply.execute(ReviewApplyCommand(
-        raw, None, output, review_composition.destination_fingerprint(output), cancellation=CancelAt()))
+        raw, None, output, review_files.destination_fingerprint(output), cancellation=CancelAt()))
 
     assert (cancelled.outcome, cancelled.code, cancelled.success) == (ReviewOutcome.CANCELLED, "cancelled", False)
     assert not output.exists()
@@ -370,7 +370,7 @@ def test_a_lost_failure_event_does_not_keep_the_destination_locked(tmp_path, mon
                          source=source, output=tmp_path / "machine.epub")
     assert translated.exit_code == 0, translated.output
     output = tmp_path / "reviewed.epub"
-    original_emit = review_composition.LocalReviewOperations._emit
+    original_emit = LocalReviewOperations._emit
 
     def lose_the_outcome(self, state, payload):
         if type(payload) is JobOutcome:
@@ -378,7 +378,7 @@ def test_a_lost_failure_event_does_not_keep_the_destination_locked(tmp_path, mon
         return original_emit(self, state, payload)
 
     with monkeypatch.context() as patch:
-        patch.setattr(review_composition.LocalReviewOperations, "_emit", lose_the_outcome)
+        patch.setattr(LocalReviewOperations, "_emit", lose_the_outcome)
         failed = _apply(source, review_path, output)
     assert failed.exit_code == 1
     assert not output.exists()
@@ -488,12 +488,12 @@ def test_concurrent_apply_of_the_same_request_is_serialized(tmp_path, monkeypatc
                          source=source, output=translated_output)
     assert translated.exit_code == 0, translated.output
     _mark_reviewed(review_path)
-    raw = review_composition.read_review_input(review_path)
+    raw = review_files.read_review_input(review_path)
     output = tmp_path / "reviewed.epub"
     uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
-    command = ReviewApplyCommand(raw, None, output, review_composition.destination_fingerprint(output))
+    command = ReviewApplyCommand(raw, None, output, review_files.destination_fingerprint(output))
     entered_reconstruction, release_reconstruction = Event(), Event()
-    original_reconstruct = review_composition.LocalReviewOperations.reconstruct
+    original_reconstruct = LocalReviewOperations.reconstruct
 
     def pause_first(self, *args, **kwargs):
         entered_reconstruction.set()
@@ -501,7 +501,7 @@ def test_concurrent_apply_of_the_same_request_is_serialized(tmp_path, monkeypatc
             raise RuntimeError("concurrent test synchronization timed out")
         return original_reconstruct(self, *args, **kwargs)
 
-    monkeypatch.setattr(review_composition.LocalReviewOperations, "reconstruct", pause_first)
+    monkeypatch.setattr(LocalReviewOperations, "reconstruct", pause_first)
     with ThreadPoolExecutor(max_workers=1) as workers:
         first_future = workers.submit(uses.apply.execute, command)
         try:
@@ -523,12 +523,12 @@ def test_destination_race_after_staging_preserves_the_competing_file(tmp_path, m
                          source=source, output=translated_output)
     assert translated.exit_code == 0, translated.output
     _mark_reviewed(review_path)
-    raw = review_composition.read_review_input(review_path)
+    raw = review_files.read_review_input(review_path)
     output = tmp_path / "reviewed.epub"
     uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
-    command = ReviewApplyCommand(raw, None, output, review_composition.destination_fingerprint(output))
+    command = ReviewApplyCommand(raw, None, output, review_files.destination_fingerprint(output))
     staged, race_complete = Event(), Event()
-    original_publication = review_composition.DestinationPublications.publication
+    original_publication = artifact_destination.DestinationPublications.publication
 
     def pause_after_validation(self, request, owner_token, on_staged):
         def synchronized(staged_path):
@@ -539,7 +539,7 @@ def test_destination_race_after_staging_preserves_the_competing_file(tmp_path, m
 
         return original_publication(self, request, owner_token, synchronized)
 
-    monkeypatch.setattr(review_composition.DestinationPublications, "publication", pause_after_validation)
+    monkeypatch.setattr(artifact_destination.DestinationPublications, "publication", pause_after_validation)
     competitor = b"COMPETING_DESTINATION_CANARY"
     with ThreadPoolExecutor(max_workers=1) as workers:
         future = workers.submit(uses.apply.execute, command)
@@ -562,12 +562,12 @@ def test_repository_revision_race_after_staging_prevents_publication(tmp_path, m
                          source=source, output=translated_output)
     assert translated.exit_code == 0, translated.output
     _mark_reviewed(review_path)
-    raw = review_composition.read_review_input(review_path)
+    raw = review_files.read_review_input(review_path)
     output = tmp_path / "reviewed.epub"
     uses = review_composition.open_review_use_cases(tmp_path / "processing", source_path=source)
-    command = ReviewApplyCommand(raw, None, output, review_composition.destination_fingerprint(output))
+    command = ReviewApplyCommand(raw, None, output, review_files.destination_fingerprint(output))
     staged, revision_updated = Event(), Event()
-    original_publication = review_composition.DestinationPublications.publication
+    original_publication = artifact_destination.DestinationPublications.publication
 
     def pause_after_staging(self, request, owner_token, on_staged):
         def synchronized(staged_path):
@@ -578,7 +578,7 @@ def test_repository_revision_race_after_staging_prevents_publication(tmp_path, m
 
         return original_publication(self, request, owner_token, synchronized)
 
-    monkeypatch.setattr(review_composition.DestinationPublications, "publication", pause_after_staging)
+    monkeypatch.setattr(artifact_destination.DestinationPublications, "publication", pause_after_staging)
     with ThreadPoolExecutor(max_workers=1) as workers:
         future = workers.submit(uses.apply.execute, command)
         try:
@@ -610,7 +610,7 @@ def test_lineage_failure_after_publication_is_partial_without_human_success(tmp_
     def fail_lineage(*_args, **_kwargs):
         raise RuntimeError("PRIVATE_TRANSLATION_CANARY")
 
-    monkeypatch.setattr(review_composition.LocalReviewOperations, "_write_lineage", fail_lineage)
+    monkeypatch.setattr(LocalReviewOperations, "_write_lineage", fail_lineage)
     applied = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
 
     assert applied.exit_code == 1
@@ -641,7 +641,7 @@ def test_terminal_event_commit_failure_never_invents_a_missing_success_event(
     assert translated.exit_code == 0, translated.output
     _mark_reviewed(review_path)
 
-    original_emit = review_composition.LocalReviewOperations._emit
+    original_emit = LocalReviewOperations._emit
     captured_events = []
     interrupt = [True]
 
@@ -656,7 +656,7 @@ def test_terminal_event_commit_failure_never_invents_a_missing_success_event(
             raise RuntimeError("simulated event acknowledgement failure")
         return original_emit(self, state, payload)
 
-    monkeypatch.setattr(review_composition.LocalReviewOperations, "_emit", interrupt_terminal_event)
+    monkeypatch.setattr(LocalReviewOperations, "_emit", interrupt_terminal_event)
     applied = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output", str(reviewed_output)])
 
     assert reviewed_output.exists()
@@ -683,7 +683,7 @@ def test_final_lineage_marker_reconciles_job_commit_after_restart(tmp_path, monk
     assert translated.exit_code == 0, translated.output
     _mark_reviewed(review_path)
     machine_bytes = translated_output.read_bytes()
-    original_finish = review_composition.LocalReviewOperations._finish
+    original_finish = LocalReviewOperations._finish
     interrupt = [True]
 
     def fail_job_commit(self, state, target, code, failure, counts, **kwargs):
@@ -693,7 +693,7 @@ def test_final_lineage_marker_reconciles_job_commit_after_restart(tmp_path, monk
         return original_finish(self, state, target, code, failure, counts, **kwargs)
 
     with monkeypatch.context() as patcher:
-        patcher.setattr(review_composition.LocalReviewOperations, "_finish", fail_job_commit)
+        patcher.setattr(LocalReviewOperations, "_finish", fail_job_commit)
         interrupted = runner.invoke(app, ["apply-review", str(source), str(review_path), "--output",
                                           str(reviewed_output)])
 
