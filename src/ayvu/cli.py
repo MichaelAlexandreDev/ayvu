@@ -23,9 +23,9 @@ from .cache_identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
 from .config_values import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
 from .cli_contracts import (
-    _BookHooks, _BookRequest, _BookOutcome, AcceptedItem, ConfigStore, TranslationReport, ValidationResult, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery, SelectedChapter, CacheSummaryRow, CacheImportReport)
-from .cli_composition import (
-    configuration_store, library_service, default_glossaries_dir,
+    AcceptedItem, ConfigStore, TranslationReport, ValidationResult, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery, SelectedChapter, CacheSummaryRow, CacheImportReport)
+from .composition.cli import (
+    _BookHooks, _BookRequest, _BookOutcome, configuration_store, library_service, default_glossaries_dir,
     open_content_use_cases, cache_admin_services, read_scope_map_payload,
     managed_glossary_repository, cli_provider_session, open_review_use_cases,
     destination_fingerprint, read_review_input, run_translation_preflight,

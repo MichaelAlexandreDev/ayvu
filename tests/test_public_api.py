@@ -3,6 +3,9 @@
 Code in one top-level package of ``ayvu`` may use another top-level package only through the names that
 package's ``__init__.py`` exports, or that one of its subpackages' ``__init__.py`` exports (such as
 ``ayvu.kernel.sqlite``). It may not import a plain submodule. Imports inside a package are free. Top-level flat modules are not packages yet, so they are outside this check until they move.
+
+The composition roots are the one exception (D5): each is a public module of its own, so an interface loads
+only its root and not every edition's wiring.
 """
 
 from __future__ import annotations
@@ -16,6 +19,9 @@ SOURCE = Path(__file__).resolve().parents[1] / "src" / "ayvu"
 # so this list can only shrink.
 # Empty at the start: the only package today, desktop/, is not reached into.
 ALLOWED: dict[str, str] = {}
+
+# Plain modules that are a public API by themselves: the composition roots.
+PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"})
 
 
 def packages(root: Path = SOURCE) -> set[str]:
@@ -42,7 +48,7 @@ def exported_names(tree: ast.Module) -> set[str]:
     return names
 
 
-def violations(root: Path = SOURCE) -> dict[str, str]:
+def violations(root: Path = SOURCE, public_modules: frozenset[str] = PUBLIC_MODULES) -> dict[str, str]:
     """Maps "importer -> target" to a short reason, for every import that skips a package's public API."""
     roots = packages(root)
     found: dict[str, str] = {}
@@ -71,7 +77,12 @@ def violations(root: Path = SOURCE) -> dict[str, str]:
                     continue
                 key = f"{importer} -> {'.'.join(target)}"
                 api = Path(root, *target)
-                if not (api / "__init__.py").is_file():
+                if ".".join(target) in public_modules:
+                    tree = ast.parse(api.with_suffix(".py").read_text(encoding="utf-8"))
+                    missing = sorted(set(names) - exported_names(tree) - {"*"})
+                    if missing:
+                        found[key] = f"imports names the module does not define: {', '.join(missing)}"
+                elif not (api / "__init__.py").is_file():
                     found[key] = "imports a submodule of another package"
                 else:
                     missing = sorted(set(names) - exported(root, "/".join(target)) - {"*"})
@@ -110,8 +121,13 @@ def test_the_check_on_a_synthetic_tree(tmp_path):
     write(root, "alpha/sub/__init__.py", "from .impl import Tool\n__all__ = ['Tool']\n")
     write(root, "alpha/sub/impl.py", "class Tool: ...\n")
     write(root, "beta/sub_ok.py", "from ..alpha.sub import Tool\n")
-    assert violations(root) == {
+    write(root, "alpha/entry.py", "def start(): ...\n")
+    write(root, "beta/entry_ok.py", "from ..alpha.entry import start\n")
+    write(root, "beta/entry_bad.py", "from ..alpha.entry import stop\n")
+    assert violations(root, frozenset({"alpha.entry"})) == {
+        "beta.entry_bad -> alpha.entry": "imports names the module does not define: stop",
         "beta.deep -> alpha.inner": "imports a submodule of another package",
         "beta.private -> alpha": "imports names the package does not export: Private",
         "flat -> alpha.inner": "imports a submodule of another package",
     }
+    assert violations(root)["beta.entry_ok -> alpha.entry"] == "imports a submodule of another package"

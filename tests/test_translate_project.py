@@ -34,7 +34,7 @@ from ayvu.translate_project import (
     OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_BEFORE_START, ContinuationTicket, OutputValidation, TranslateCommandError,
     TranslateObserver, TranslateProject, TranslateProjectCommand, TranslateProjectPorts, resolve_plan,
 )
-from ayvu.translate_project_composition import LegacyOutputValidator, LegacyResources, LegacyTranslationRuntime, open_translate_project
+from ayvu.composition.builders.translate_project import LegacyOutputValidator, LegacyResources, LegacyTranslationRuntime, open_translate_project
 from ayvu.translation_engine import ENGINE_BEFORE_CHAPTER, ENGINE_BEFORE_UNIT, EngineObserver
 from ayvu.translator import TranslatorError
 from epub_fakes import OPF, XHTML, epub_bytes

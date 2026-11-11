@@ -5,8 +5,8 @@ resolve a seleção na composição, sem I/O, e produz `NetworkDecision` imutáv
 Seleção ausente registra `defaulted=True` e usa `loopback`; valores desconhecidos
 falham fechados. Nenhuma seleção é persistida em preferências, projetos ou checkpoints.
 
-`cli_composition` (#158) encaminha a entrada ao preflight e a
-`provider_composition`. O preflight cria uma única `NetworkAuthorization`,
+`composition.cli` (#158) encaminha a entrada ao preflight e a
+`composition.builders.providers`. O preflight cria uma única `NetworkAuthorization`,
 compartilhada pela fábrica de workers; cada worker mantém sua sessão HTTP.
 `CliProviderSession` deriva desse mesmo snapshot as decisões vinculadas exigidas
 pelos casos de uso de #128. Descoberta e diagnóstico continuam usando seus DTOs,

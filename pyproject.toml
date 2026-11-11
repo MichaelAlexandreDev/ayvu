@@ -63,24 +63,20 @@ type = "layers"
 containers = ["ayvu"]
 exhaustive = true
 layers = [
-  "(interfaces) : desktop : cli : cli_progress : cli_contracts : cli_composition : desktop_bootstrap",
-  "(composition)",
+  "(interfaces) : desktop : cli : cli_progress : cli_contracts : desktop_bootstrap",
+  "composition",
   "(v1)",
   "(recovery)",
-  "(translation) : translation_plan : translation_pipeline : translation_engine : translation_document : translation_protection : translation_context : context_execution : context_source : chunking : translate_project : translate_project_composition : translate_batch : translate_batch_composition : batch_output_policy : legacy_translation : preflight : (review) : review_application : review_exchange : review_export : review_import : review_composition",
-  "(projects) : project : project_service : project_store : project_schema : project_profiles : project_profile_service : project_profile_store : project_profile_composition : profile_glossary_store",
-  "(knowledge) : cache : cache_identity : cache_repository : cache_schema : cache_interchange : cache_legacy_format : cache_legacy_stream : cache_admin : cache_admin_store : cache_admin_v2_store : cache_admin_legacy_store : cache_admin_composition : translation_memory : memory_retrieval : approved_memory : approved_memory_service : approved_memory_store : glossary : glossary_catalog : glossary_catalog_store : glossary_catalog_composition : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_composition : provider_libretranslate : translator : (formats) : format_adapter : format_service : format_local : epub_archive : epub_format : epub_io : html_structure : html_translate : validation : markdown_writer",
+  "(translation) : translation_plan : translation_pipeline : translation_engine : translation_document : translation_protection : translation_context : context_execution : context_source : chunking : translate_project : translate_batch : batch_output_policy : legacy_translation : preflight : (review) : review_application : review_exchange : review_export : review_import",
+  "(projects) : project : project_service : project_store : project_schema : project_profiles : project_profile_service : project_profile_store : profile_glossary_store",
+  "(knowledge) : cache : cache_identity : cache_repository : cache_schema : cache_interchange : cache_legacy_format : cache_legacy_stream : cache_admin : cache_admin_store : cache_admin_v2_store : cache_admin_legacy_store : translation_memory : memory_retrieval : approved_memory : approved_memory_service : approved_memory_store : glossary : glossary_catalog : glossary_catalog_store : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_libretranslate : provider_session : translator : (formats) : format_adapter : format_service : format_local : epub_archive : epub_format : epub_io : html_structure : html_translate : validation : markdown_writer",
   "(artifacts) : artifact : artifact_service : artifact_store : artifact_destination",
   "(jobs) : job : job_events : job_execution : job_service : job_store : job_recovery : job_recovery_store : resume : legacy_resume",
-  "content : content_use_cases : content_composition : provenance : provenance_service : provenance_store : (network) : network_policy : network_http : preferences : preferences_service : preferences_store : config : config_values : (library) : library_service : library_adapters : (application)",
+  "content : content_use_cases : provenance : provenance_service : provenance_store : (network) : network_policy : network_http : preferences : preferences_service : preferences_store : config : config_values : (library) : library_service : library_adapters : (application)",
   "kernel",
 ]
 ignore_imports = [
   "ayvu.provenance_store -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
-  "ayvu.content_composition -> ayvu.epub_format",  # REF-05 (#273): composition moves to composition/
-  "ayvu.content_composition -> ayvu.format_local",  # REF-05 (#273): composition moves to composition/
-  "ayvu.content_composition -> ayvu.format_service",  # REF-05 (#273): composition moves to composition/
-  "ayvu.content_composition -> ayvu.markdown_writer",  # REF-05 (#273): composition moves to composition/
   "ayvu.resume -> ayvu.translation",  # REF-06 (#274): v1 moves to v1/, which may import any module
   "ayvu.html_translate -> ayvu.translation_pipeline",  # REF-06 (#274): v1 moves to v1/
   "ayvu.html_translate -> ayvu.translation_protection",  # REF-06 (#274): v1 moves to v1/
@@ -120,9 +116,7 @@ source_modules = [
   "ayvu.context_source",
   "ayvu.chunking",
   "ayvu.translate_project",
-  "ayvu.translate_project_composition",
   "ayvu.translate_batch",
-  "ayvu.translate_batch_composition",
   "ayvu.batch_output_policy",
   "ayvu.legacy_translation",
   "ayvu.preflight",
@@ -132,7 +126,6 @@ forbidden_modules = [
   "ayvu.review_exchange",
   "ayvu.review_export",
   "ayvu.review_import",
-  "ayvu.review_composition",
 ]
 
 [[tool.importlinter.contracts]]
@@ -145,7 +138,6 @@ source_modules = [
   "ayvu.review_exchange",
   "ayvu.review_export",
   "ayvu.review_import",
-  "ayvu.review_composition",
 ]
 forbidden_modules = [
   "ayvu.translation",
@@ -159,16 +151,12 @@ forbidden_modules = [
   "ayvu.context_source",
   "ayvu.chunking",
   "ayvu.translate_project",
-  "ayvu.translate_project_composition",
   "ayvu.translate_batch",
-  "ayvu.translate_batch_composition",
   "ayvu.batch_output_policy",
   "ayvu.legacy_translation",
   "ayvu.preflight",
 ]
 ignore_imports = [
-  "ayvu.review_composition -> ayvu.translate_project",  # REF-05 (#273): composition moves to composition/
-  "ayvu.review_composition -> ayvu.translation_engine",  # REF-05 (#273): composition moves to composition/
   "ayvu.review_exchange -> ayvu.translation_protection",  # REF-07 (#275): translation_protection moves to content/protection
   "ayvu.review_application -> ayvu.translate_project",  # REF-12 (#280): review depends on translation; D3 placement to revisit
 ]
@@ -190,7 +178,6 @@ source_modules = [
   "ayvu.cache_admin_store",
   "ayvu.cache_admin_v2_store",
   "ayvu.cache_admin_legacy_store",
-  "ayvu.cache_admin_composition",
   "ayvu.translation_memory",
   "ayvu.memory_retrieval",
   "ayvu.approved_memory",
@@ -199,7 +186,6 @@ source_modules = [
   "ayvu.glossary",
   "ayvu.glossary_catalog",
   "ayvu.glossary_catalog_store",
-  "ayvu.glossary_catalog_composition",
 ]
 forbidden_modules = [
   "ayvu.providers",
@@ -208,8 +194,8 @@ forbidden_modules = [
   "ayvu.provider_discovery",
   "ayvu.provider_service",
   "ayvu.provider_network",
-  "ayvu.provider_composition",
   "ayvu.provider_libretranslate",
+  "ayvu.provider_session",
   "ayvu.translator",
   "ayvu.format_adapter",
   "ayvu.format_service",
@@ -235,8 +221,8 @@ source_modules = [
   "ayvu.provider_discovery",
   "ayvu.provider_service",
   "ayvu.provider_network",
-  "ayvu.provider_composition",
   "ayvu.provider_libretranslate",
+  "ayvu.provider_session",
   "ayvu.translator",
 ]
 forbidden_modules = [
@@ -251,7 +237,6 @@ forbidden_modules = [
   "ayvu.cache_admin_store",
   "ayvu.cache_admin_v2_store",
   "ayvu.cache_admin_legacy_store",
-  "ayvu.cache_admin_composition",
   "ayvu.translation_memory",
   "ayvu.memory_retrieval",
   "ayvu.approved_memory",
@@ -260,7 +245,6 @@ forbidden_modules = [
   "ayvu.glossary",
   "ayvu.glossary_catalog",
   "ayvu.glossary_catalog_store",
-  "ayvu.glossary_catalog_composition",
   "ayvu.format_adapter",
   "ayvu.format_service",
   "ayvu.format_local",
@@ -303,7 +287,6 @@ forbidden_modules = [
   "ayvu.cache_admin_store",
   "ayvu.cache_admin_v2_store",
   "ayvu.cache_admin_legacy_store",
-  "ayvu.cache_admin_composition",
   "ayvu.translation_memory",
   "ayvu.memory_retrieval",
   "ayvu.approved_memory",
@@ -312,14 +295,13 @@ forbidden_modules = [
   "ayvu.glossary",
   "ayvu.glossary_catalog",
   "ayvu.glossary_catalog_store",
-  "ayvu.glossary_catalog_composition",
   "ayvu.provider",
   "ayvu.provider_capabilities",
   "ayvu.provider_discovery",
   "ayvu.provider_service",
   "ayvu.provider_network",
-  "ayvu.provider_composition",
   "ayvu.provider_libretranslate",
+  "ayvu.provider_session",
   "ayvu.translator",
 ]
 ignore_imports = [
@@ -341,7 +323,6 @@ allow_indirect_imports = true
 source_modules = [
   "ayvu.content",
   "ayvu.content_use_cases",
-  "ayvu.content_composition",
 ]
 forbidden_modules = [
   "ayvu.provenance",
@@ -371,7 +352,6 @@ source_modules = [
 forbidden_modules = [
   "ayvu.content",
   "ayvu.content_use_cases",
-  "ayvu.content_composition",
   "ayvu.network_policy",
   "ayvu.network_http",
   "ayvu.preferences",
@@ -395,7 +375,6 @@ source_modules = [
 forbidden_modules = [
   "ayvu.content",
   "ayvu.content_use_cases",
-  "ayvu.content_composition",
   "ayvu.provenance",
   "ayvu.provenance_service",
   "ayvu.provenance_store",
@@ -423,7 +402,6 @@ source_modules = [
 forbidden_modules = [
   "ayvu.content",
   "ayvu.content_use_cases",
-  "ayvu.content_composition",
   "ayvu.provenance",
   "ayvu.provenance_service",
   "ayvu.provenance_store",
@@ -448,7 +426,6 @@ source_modules = [
 forbidden_modules = [
   "ayvu.content",
   "ayvu.content_use_cases",
-  "ayvu.content_composition",
   "ayvu.provenance",
   "ayvu.provenance_service",
   "ayvu.provenance_store",

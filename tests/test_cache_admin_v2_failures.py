@@ -11,7 +11,7 @@ import pytest
 from ayvu.cache_admin import (CacheAdminError, CacheInterchangeLimits, CacheNamespace,
     CacheRef, CacheScopeMapping, ExecuteImport, ExecuteImportRequest, ExportCache,
     ExportRequest, FileRef, ImportRequest, ImportScopeMap, PreviewImport)
-from ayvu.cache_admin_composition import NamespaceCacheStore
+from ayvu.composition.builders.cache_admin import NamespaceCacheStore
 from ayvu.cache_admin_v2_store import SQLiteCacheV2Store
 from ayvu.cache_interchange import iter_records, write_envelope
 from ayvu.cache_repository import SQLiteExactCache
@@ -535,7 +535,7 @@ def test_oversized_database_row_refused_before_text_materialization(tmp_path, mo
 @pytest.mark.parametrize('alias', ['symlink', 'hardlink', 'fifo'])
 def test_unselected_v1_compatibility_rejects_file_aliases(tmp_path, monkeypatch, operation, alias):
     from ayvu.cache import SCHEMA
-    from ayvu.cache_admin_composition import cache_admin_services
+    from ayvu.composition.builders.cache_admin import cache_admin_services
     import sqlite3
     cache, payload, selected = tmp_path / 'legacy.sqlite', tmp_path / 'file.json', tmp_path / 'selected.json'
     with sqlite3.connect(cache) as conn: conn.execute(SCHEMA)
@@ -562,7 +562,7 @@ def test_unselected_v1_compatibility_rejects_file_aliases(tmp_path, monkeypatch,
 
 
 def test_v1_export_still_creates_requested_output_parents(tmp_path):
-    from ayvu.cache_admin_composition import cache_admin_services
+    from ayvu.composition.builders.cache_admin import cache_admin_services
     cache, output = tmp_path / 'absent-cache' / 'legacy.sqlite', tmp_path / 'new-output' / 'nested' / 'out.json'
     result = cache_admin_services().export.execute(ExportRequest(CacheRef(str(cache)), FileRef(str(output))))
     assert result.value == 0

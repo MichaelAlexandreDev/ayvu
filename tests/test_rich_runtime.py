@@ -12,7 +12,7 @@ from threading import Barrier
 
 import pytest
 
-import ayvu.translate_project_composition as composition
+import ayvu.composition.builders.translate_project as composition
 from ayvu.cache import CacheKey, TranslationCache
 from ayvu.cache_identity import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
 from ayvu.cache_schema import SchemaState, classify_cache
@@ -328,7 +328,7 @@ def test_selection_remains_in_composition():
     for name in ("translate_project.py", "translation_engine.py", "kernel/values.py"):
         tree = ast.parse((root / name).read_text())
         imports = [node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
-        assert not {"translate_project_composition", "cache_repository", "translation_document", "provider_libretranslate"} & set(imports)
+        assert not {"cache_repository", "translation_document", "provider_libretranslate", "composition"} & ({(m or "").split(".")[0] for m in imports} | set(imports))
 
 
 @pytest.mark.parametrize("metadata,alt", [(False, False), (True, True)])
@@ -484,7 +484,7 @@ def test_checkpoint_stores_only_the_execution_revision_and_keeps_legacy_payload_
 @pytest.mark.parametrize("label", [None, "private-checkpoint-label"])
 def test_production_preparation_records_the_runtime_revision_without_copying_the_label(tmp_path, label):
     from types import SimpleNamespace
-    from ayvu.cli_composition import prepare_translation
+    from ayvu.composition.cli import prepare_translation
     from test_cli_translate_project import _book
     saved, preflights = [], []
     def preflight(**kwargs):

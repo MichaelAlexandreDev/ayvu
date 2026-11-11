@@ -7,7 +7,7 @@ Issue: DESKTOP-118 / #149.
 `ayvu.review_application` defines versioned, framework-neutral command and
 result values plus `ExportReviewPackage`, `ValidateReviewPackage`, and
 `ApplyReviewPackage`. It imports no CLI, UI, CSV, EPUB/HTML parser, provider,
-network, SQLite, or filesystem adapter. `ayvu.review_composition` wires those
+network, SQLite, or filesystem adapter. `ayvu.composition.builders.review` wires those
 ports to the v2 exchange codec/mapper, read-only project readers, the EPUB
 `FormatService`, job/provenance repositories, and the DESKTOP-106 artifact
 publication protocol.

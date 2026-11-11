@@ -414,7 +414,7 @@ def test_preflight_next_step_is_exact_and_holds_no_address(monkeypatch, tmp_path
 def test_cli_network_decision_records_the_loopback_compatibility_default():
     from datetime import UTC, datetime
 
-    from ayvu.provider_composition import CLI_INSTANCE_ID, CliProviderSession
+    from ayvu.provider_session import CLI_INSTANCE_ID, CliProviderSession
     from ayvu.provider_network import NetworkClass, ProviderOperation, network_binding
 
     session = CliProviderSession(TranslatorWithLanguages(()), clock=lambda: datetime(2026, 11, 3, tzinfo=UTC))

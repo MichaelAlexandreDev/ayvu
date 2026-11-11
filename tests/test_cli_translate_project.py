@@ -24,8 +24,8 @@ from typer.testing import CliRunner
 import ayvu.artifact_destination as artifact_destination
 import ayvu.cli as cli_module
 import ayvu.job_store as job_store
-import ayvu.review_composition as review_composition
-import ayvu.translate_project_composition as composition
+import ayvu.composition.builders.review as review_composition
+import ayvu.composition.builders.translate_project as composition
 from ayvu.cli import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_failure, app
 from ayvu.project_schema import open_job_repository, open_provenance_repository
 from ayvu.preflight import PreflightError
@@ -38,7 +38,7 @@ from ayvu.job_events import JobOutcome
 from ayvu.provenance import SourceKind
 from ayvu.review_application import ReviewApplyCommand, ReviewOutcome
 from ayvu.translate_project import TRANSLATE_COMMAND_TYPE, OutputValidation, TranslateObserver, TranslateProjectResult
-from ayvu.translate_project_composition import ProjectTranslationRun
+from ayvu.composition.builders.translate_project import ProjectTranslationRun
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode, JobError, JobFailure, JobFailureFamily
 
 runner = CliRunner()
@@ -1102,7 +1102,7 @@ def test_a_full_run_stores_no_text_no_address_and_no_translation_in_the_job_stor
 def _canned(tmp_path, monkeypatch, result, report=None):
     output = tmp_path / "out.epub"
     run = ProjectTranslationRun(result, report(output) if report else None, None)
-    monkeypatch.setattr("ayvu.translate_project_composition.translate_in_project", lambda _translation, _observer: run)
+    monkeypatch.setattr("ayvu.composition.builders.translate_project.translate_in_project", lambda _translation, _observer: run)
     invocation, _ = _run(tmp_path, monkeypatch)
     return invocation
 

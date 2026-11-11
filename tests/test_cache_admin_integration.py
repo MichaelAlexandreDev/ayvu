@@ -13,7 +13,7 @@ from ayvu import cache_admin, cache_admin_store
 from ayvu.cache import CacheKey, TranslationCache
 from ayvu.cache_admin import (CacheRef, FileRef, CacheFilter, InspectRequest, PreviewCleanRequest,
     ExecuteCleanRequest, ExportRequest, ImportRequest)
-from ayvu.cache_admin_composition import cache_admin_services
+from ayvu.composition.builders.cache_admin import cache_admin_services
 from ayvu.cli import app
 from ayvu.kernel import LanguagePair
 

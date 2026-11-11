@@ -55,7 +55,7 @@ entries fail, so a rename cannot silently discard protection.
 | `library_adapters` | Infrastructure | Local library scanning and reader launch |
 | `preflight` | Composition | Translation |
 | `cli`, `cli_progress` | Interface | CLI |
-| `cli_composition` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
+| `composition.cli` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
 | `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
 | `config_values` | Domain | Valores de preferências e conversões da fachada v1 |
 | `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
@@ -63,7 +63,7 @@ entries fail, so a rename cannot silently discard protection.
 | `translate_project` | Application | One project's book as one durable job, from its ports |
 | `job_recovery` | Application | Listing, inspecting and resuming interrupted translations |
 | `job_recovery_store` | Infrastructure | The read-only evidence recovery decides from |
-| `translate_project_composition` | Composition | The current language work and validator behind those ports |
+| `composition.builders.translate_project` | Composition | The current language work and validator behind those ports |
 | `artifact_destination` | Infrastructure | Publishing a job's output to the file the user chose |
 | `translator` | Provider adapter with transitional embedded port | Providers |
 | `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
@@ -77,16 +77,16 @@ entries fail, so a rename cannot silently discard protection.
 | `format_local` | Infrastructure | Local files as format sources, and the check that a destination is not the source |
 | `content_use_cases` | Application | Shared read-only inspect and visible-content export requests/results |
 | `markdown_writer` | Infrastructure | Safe Markdown planning and atomic per-file publication |
-| `content_composition` | Composition | Explicit format registry and local content workflow adapters |
+| `composition.builders.content` | Composition | Explicit format registry and local content workflow adapters |
 | `provider_network` | Domain | The network decision an operation must present, and its enforcement |
 | `provider_service` | Application | Provider and factory ports, registry and strict result checking |
 | `provider_discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
 | `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
-| `provider_composition` | Composition | Adaptador de montagem de provedor selecionado por `cli_composition` |
+| `composition.builders.providers` | Composition | Adaptador de montagem de provedor selecionado por `composition.cli` |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `cache_admin` | Application | Typed cache administration use cases and ports |
 | `cache_admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
-| `cache_admin_composition` | Composition | Local cache administration adapters |
+| `composition.builders.cache_admin` | Composition | Local cache administration adapters |
 | `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |
 
 Application imports domain/application contracts; domain imports domain APIs.
@@ -102,7 +102,7 @@ exact module edge in `ALLOWED_INTERNAL_EDGES`. An allowed edge cannot override a
 forbidden layer direction.
 
 Desde #158, a interface CLI pode importar funções nomeadas de
-`cli_composition`; essa é a única fronteira em que a travessia transitiva da
+`composition.cli`; essa é a única fronteira em que a travessia transitiva da
 apresentação para a infraestrutura termina. Os módulos de composição anteriores
 continuam implementando a montagem por capacidade, chamados por essa fronteira.
 A regra reutiliza `OWNERS`, `ALLOWED_INTERNAL_EDGES`, o resolvedor de imports e
@@ -144,7 +144,7 @@ revisão, biblioteca, lote, glossário, provedor e composições por capacidade 
 removidas em #158. A matriz compartilhada de #123 registra os serviços entregues
 pelas dependências, o inventário de helpers e a única fronteira de construção.
 `preflight` continua sendo composição: conecta os adaptadores entregues de
-formato, cache, glossário e provedor. Sua aresta para `provider_composition`
+formato, cache, glossário e provedor. Sua aresta para `composition.builders.providers`
 permanece uma exceção exata de composição entre capacidades, sem caminho direto
 da apresentação até esse módulo. A numeração #158 nessa exceção identifica a
 consolidação responsável, não uma autorização para duplicar serviços.

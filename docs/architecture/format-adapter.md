@@ -24,7 +24,7 @@ a composition root.
 | `ayvu.format_local` | Infrastructure | Local files as sources, and the check that a destination is not the source |
 | `ayvu.content_use_cases` | Application | Typed inspect and visible-content export orchestration |
 | `ayvu.markdown_writer` | Infrastructure | Safe Markdown planning and atomic publication of each local file |
-| `ayvu.content_composition` | Composition | Registers the EPUB adapter and supplies local content use cases |
+| `ayvu.composition.builders.content` | Composition | Registers the EPUB adapter and supplies local content use cases |
 
 Failures reuse `JobFailure`, content extraction for translation reuses `ContentDocument`, and cancellation reuses
 `CancellationToken`. Durable translation artifacts still go through `ArtifactService`; visible Markdown exports

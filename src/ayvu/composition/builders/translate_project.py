@@ -15,18 +15,18 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
-from .approved_memory import MemoryScope, ScopeKind
-from .approved_memory_store import open_approved_memory
-from .memory_retrieval import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
-from .artifact import ArtifactError
-from .artifact_destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
-from .cache_repository import SQLiteExactCache
-from .cache_schema import CacheSchemaError, SchemaState, classify_cache
-from .content import ContentDocument, TranslationUnit
-from .context_execution import ContextExecution
-from .translation_context import ContextError
-from .epub_format import EPUB_REGISTRATION, epub_format_adapter
-from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB path
+from ...approved_memory import MemoryScope, ScopeKind
+from ...approved_memory_store import open_approved_memory
+from ...memory_retrieval import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
+from ...artifact import ArtifactError
+from ...artifact_destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
+from ...cache_repository import SQLiteExactCache
+from ...cache_schema import CacheSchemaError, SchemaState, classify_cache
+from ...content import ContentDocument, TranslationUnit
+from ...context_execution import ContextExecution
+from ...translation_context import ContextError
+from ...epub_format import EPUB_REGISTRATION, epub_format_adapter
+from ...epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB path
     SelectedChapter,
     TranslationReport,
     _validate_worker_options,
@@ -34,30 +34,30 @@ from .epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB p
     resolve_chapter_selection,
     translate_epub,
 )
-from .format_local import LocalFormatSource
-from .format_service import FormatRegistry, FormatService
-from .glossary import apply_glossary_with_usage, effective_glossary_reference
-from .html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
-from .job import JobState
-from .job_execution import CancellationSource
-from .job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
-from .job_recovery_store import LocalRecoveryEvidence
-from .legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
-from .project import ProjectError
-from .project_schema import open_artifact_service, open_job_repository, open_provenance_repository
-from .project_store import ProjectJsonRepository
-from .provenance import ProvenanceError, declared_model
-from .provider import ProviderRoute
-from .provider_capabilities import Capability, ProviderRequirements
-from .provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
-from .resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
+from ...format_local import LocalFormatSource
+from ...format_service import FormatRegistry, FormatService
+from ...glossary import apply_glossary_with_usage, effective_glossary_reference
+from ...html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
+from ...job import JobState
+from ...job_execution import CancellationSource
+from ...job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
+from ...job_recovery_store import LocalRecoveryEvidence
+from ...legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
+from ...project import ProjectError
+from ...project_schema import open_artifact_service, open_job_repository, open_provenance_repository
+from ...project_store import ProjectJsonRepository
+from ...provenance import ProvenanceError, declared_model
+from ...provider import ProviderRoute
+from ...provider_capabilities import Capability, ProviderRequirements
+from ...provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
+from ...resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
     ResumeStateError,
     ResumeStateStore,
     TranslationResumeState,
     default_processing_dir,
 )
-from .translate_project import (
+from ...translate_project import (
     AcceptedOutputPlan,
     ContinuationTicket,
     OutputValidation,
@@ -70,18 +70,18 @@ from .translate_project import (
     TranslationRuntime,
     RuntimeContext,
 )
-from .translation_engine import (
+from ...translation_engine import (
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, TranslationResources, UnitExecution,
 )
-from .translation_document import (
+from ...translation_document import (
     SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
 )
-from .translation_memory import TranslationMemory
-from .translation_plan import resolve_plan as resolve_translation_plan
-from .translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
-from .validation import ValidationResult, validate_output_epub
-from .kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
-from .translation import BookRefused, PreflightError, ProjectTranslationUnavailable, TranslationDryRunCancelled
+from ...translation_memory import TranslationMemory
+from ...translation_plan import resolve_plan as resolve_translation_plan
+from ...translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
+from ...validation import ValidationResult, validate_output_epub
+from ...kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
+from ...translation import BookRefused, PreflightError, ProjectTranslationUnavailable, TranslationDryRunCancelled
 
 # What the adapter refuses by policy, on any path. A book it merely cannot read is left to the current checks.
 BOOK_REFUSALS = frozenset({

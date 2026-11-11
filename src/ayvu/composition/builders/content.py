@@ -4,14 +4,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .content_use_cases import (
+from ...content_use_cases import (
     ExportVisibleContent, ExportVisibleContentRequest, ExportVisibleContentResult, InspectContent,
     InspectContentRequest, InspectContentResult, OutputDirectoryRef, SourceRef,
 )
-from .epub_format import EPUB_REGISTRATION, epub_format_adapter
-from .format_local import LocalFormatSource
-from .format_service import FormatRegistry, FormatService
-from .markdown_writer import MarkdownDirectoryWriter
+from ...epub_format import EPUB_REGISTRATION, epub_format_adapter
+from ...format_local import LocalFormatSource
+from ...format_service import FormatRegistry, FormatService
+from ...markdown_writer import MarkdownDirectoryWriter
 
 
 @dataclass(frozen=True, repr=False)

@@ -12,7 +12,7 @@ from ayvu.batch_output_policy import BatchOutputError
 from ayvu.job import JobState
 from ayvu.job_execution import CancellationSource
 from ayvu.translate_batch import BatchCommand, BatchValidationError, ItemOutcome, ItemStatus
-from ayvu.translate_batch_composition import (
+from ayvu.composition.builders.translate_batch import (
     BatchCancellationController, LocalBatchItem, LocalTranslateBatch, project_item_outcome,
 )
 from ayvu.translate_project import TranslateProjectResult

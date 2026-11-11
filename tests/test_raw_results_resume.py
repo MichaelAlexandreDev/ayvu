@@ -9,7 +9,7 @@ import pytest
 from typer.testing import CliRunner
 
 import ayvu.cli as cli
-import ayvu.translate_project_composition as composition
+import ayvu.composition.builders.translate_project as composition
 from ayvu.job_execution import InMemoryJobEventLog
 from ayvu.provenance import ProducerIdentity
 from ayvu.provider import ProviderRoute

@@ -3,16 +3,16 @@ from dataclasses import dataclass
 import os
 import stat
 
-from .cache_admin import (ExecuteClean, ExportCache, ImportCache, InspectCache, PreviewClean,
+from ...cache_admin import (ExecuteClean, ExportCache, ImportCache, InspectCache, PreviewClean,
                           PreviewImport, ExecuteImport, DiscardImport, ExportReceipt)
-from .cache_admin_store import LocalCacheFiles, SQLiteCacheStore
-from .cache_admin_v2_store import SQLiteCacheV2Store
-from .cache_admin_legacy_store import SQLiteLegacyStreamingStore
-from . import cache_admin_store as legacy_store
-from .cache_schema import SchemaState, classify_cache_waiting, _SUFFIXES
+from ...cache_admin_store import LocalCacheFiles, SQLiteCacheStore
+from ...cache_admin_v2_store import SQLiteCacheV2Store
+from ...cache_admin_legacy_store import SQLiteLegacyStreamingStore
+from ... import cache_admin_store as legacy_store
+from ...cache_schema import SchemaState, classify_cache_waiting, _SUFFIXES
 from pathlib import Path
 from dataclasses import replace
-from .cache_admin import CacheAdminError, CacheNamespace, checkpoint
+from ...cache_admin import CacheAdminError, CacheNamespace, checkpoint
 
 
 def prepare_export_destination(request):
@@ -116,7 +116,7 @@ class NamespaceCacheStore:
         payload = self.legacy.export_payload(request)
         if request.format_version not in (None, 1):
             raise CacheAdminError("unsupported_version")
-        from .cache_admin import validate_payload
+        from ...cache_admin import validate_payload
         count = validate_payload(payload, request)
         LocalCacheFiles().publish(request, payload)
         return ExportReceipt(count, 1)

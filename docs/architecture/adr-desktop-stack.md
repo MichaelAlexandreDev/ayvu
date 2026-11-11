@@ -23,7 +23,7 @@ acceptance record below.
 
 The `ayvu.desktop` structure separates `presentation/views`, `viewmodels`,
 `adapters/qt`, `resources`, and `platform` concerns from `bootstrap`. The
-composition module `ayvu.desktop.bootstrap.composition` accepts explicit
+composition module `ayvu.composition.desktop` accepts explicit
 `DesktopOverrides` for the data directory, environment, clock, and platform,
 and `DesktopFactories` for configuration, storage, provider, jobs, and
 application construction. Factories are context managers: startup returns a

@@ -328,12 +328,12 @@ issue.
 | --- | --- | --- |
 | `src/ayvu/__init__.py` | Package version metadata | Package public surface; keep minimal and independent of functional modules |
 | `src/ayvu/cli.py` | Typer, fluxo guiado, confirmações, relatórios textuais e projeção de saídas | **Interfaces/CLI**; invoca contratos e funções nomeadas da composição consolidada por #158 |
-| `src/ayvu/cli_composition.py` | Construção tardia e explícita dos serviços/adaptadores selecionados | **Composition/CLI**; reutiliza composições por capacidade, sem registro ou singleton |
+| `src/ayvu/composition/cli.py` | Construção tardia e explícita dos serviços/adaptadores selecionados | **Composition/CLI**; reutiliza composições por capacidade, sem registro ou singleton |
 | `src/ayvu/cli_contracts.py` | Portas estruturais, resultados de compatibilidade e erros compartilhados | **Application**; sem infraestrutura ou framework de apresentação |
 | `src/ayvu/config_values.py` | Valores v1 e conversões de preferências | **Domain/Preferences**; `config.py` preserva seus reexports de compatibilidade |
 | `src/ayvu/cli_progress.py` | Rich progress adaptation and snapshots | **Interfaces/CLI** keeps Rich rendering; semantic progress DTOs and cancellation later belong to **Application/Jobs** |
 | `src/ayvu/kernel/values.py` (was `domain.py`, moved by REF-04) | Shared value objects and policies for languages, outputs, chapters, memory, and execution | Transitional domain collection; split only when a use case establishes ownership in **Domain**, **Translation**, **Jobs**, or **Policies** |
-| `src/ayvu/config.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `cli_composition` e valores em `config_values` |
+| `src/ayvu/config.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `composition.cli` e valores em `config_values` |
 | `src/ayvu/epub_io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
 | `src/ayvu/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
 | `src/ayvu/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
@@ -360,7 +360,7 @@ These traces keep the accepted boundaries anchored in production behavior.
 
 | Flow | Current path | Incremental target seam |
 | --- | --- | --- |
-| Translate EPUB / batch | `cli.py` → `cli_composition` → `TranslateProject` / `TranslateBatch` e portas entregues | Serviços possuem execução, cancelamento e publicação; CLI projeta eventos e resultados |
+| Translate EPUB / batch | `cli.py` → `composition.cli` → `TranslateProject` / `TranslateBatch` e portas entregues | Serviços possuem execução, cancelamento e publicação; CLI projeta eventos e resultados |
 | Export review | `cli.py` → composição → `ExportReviewPackage` com o resultado exato da tradução | Reconstrução e publicação pertencem a Review e aos adaptadores D106 |
 | Apply review | `cli.py` → composição → `ValidateReviewPackage` / `ApplyReviewPackage` | Serviços validam revisões e publicam; v1 é recusado antes de inspecionar a origem |
 | Inspect, clean, export, or import cache | `cli.py` → composição → `cache_admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
@@ -382,7 +382,7 @@ conditionals that belong to owned modules.
 
 A entrada instalada `ayvu = ayvu.cli:app` permanece a mesma. `cli.py` converte
 argumentos e escolhas confirmadas em entradas dos serviços e apresenta seus
-resultados com Rich. `cli_composition.py` é a fronteira explícita que seleciona
+resultados com Rich. `composition/cli.py` é a fronteira explícita que seleciona
 e constrói os adaptadores por fluxo; os módulos de composição das capacidades
 continuam reutilizáveis. A importação e `--help` não abrem stores nem constroem
 provedores. Cache-only não adquire provedor, segredo ou transporte; consultas
@@ -395,7 +395,7 @@ de #133 verificam também dependências transitivas e reexports da apresentaçã
 
 ### Desktop composition root
 
-The injectable Desktop root in `ayvu.desktop.bootstrap.composition` accepts
+The injectable Desktop root in `ayvu.composition.desktop` accepts
 factories and environment overrides to assemble a graph, returning a sanitized
 diagnostic on startup failure and closing acquired resources in reverse order.
 Its package separates views, viewmodels, Qt adapter concerns, resources, and

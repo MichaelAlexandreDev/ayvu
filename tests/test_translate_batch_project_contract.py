@@ -14,11 +14,11 @@ import pytest
 from ayvu.job import JobState, acquire_lease, new_job, release_lease, transition_job
 from ayvu.job_events import encode_event
 from ayvu.translate_batch import ItemStatus
-from ayvu.translate_batch_composition import BatchCancellationController, project_item_outcome
+from ayvu.composition.builders.translate_batch import BatchCancellationController, project_item_outcome
 from ayvu.translate_project import (TranslateCommandError, TranslateObserver, TranslateProject,
                                     TranslateProjectCommand, TranslateProjectInterrupted, TranslateProjectPorts,
                                     TranslateProjectResult)
-from ayvu.translate_project_composition import ProjectTranslation, translate_in_project
+from ayvu.composition.builders.translate_project import ProjectTranslation, translate_in_project
 from ayvu.translation_engine import ENGINE_BEFORE_UNIT, EngineResult
 from test_batch_output_policy import intent
 from ayvu.batch_output_policy import BatchOutputPolicy
@@ -104,7 +104,7 @@ def _use_case():
 
 
 def test_accepted_plan_passes_through_production_composition(tmp_path, monkeypatch):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
 
     accepted = BatchOutputPolicy().plan((intent(tmp_path, "book"),)).items[0]
     seen = {}
@@ -134,7 +134,7 @@ def test_mismatched_plan_is_refused_before_any_port(tmp_path):
 def test_relative_accepted_output_keeps_canonical_resume_fingerprint(tmp_path, monkeypatch):
     from dataclasses import replace
     from ayvu.batch_output_policy import OutputIntent
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
 
     monkeypatch.chdir(tmp_path)
     requested = intent(tmp_path, "book")
@@ -156,7 +156,7 @@ def test_relative_accepted_output_keeps_canonical_resume_fingerprint(tmp_path, m
 
 
 def test_composition_rejects_a_different_destination_before_opening_project(tmp_path, monkeypatch):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
 
     accepted = BatchOutputPolicy().plan((intent(tmp_path, "book"),)).items[0]
     opened = []
@@ -170,7 +170,7 @@ def test_composition_rejects_a_different_destination_before_opening_project(tmp_
 
 
 def test_composition_binds_batch_request_to_the_active_project_source(tmp_path, monkeypatch):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
 
     use_case, jobs = _use_case()
     controller = BatchCancellationController()
@@ -285,7 +285,7 @@ def test_stale_accepted_plan_is_refused_before_project_or_job_port(tmp_path):
 
 
 def test_accepted_overwrite_reaches_publication_and_command(tmp_path, monkeypatch):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
 
     planned = intent(tmp_path, "book", overwrite=True)
     planned.output.path.write_bytes(b"previous output")
@@ -318,7 +318,7 @@ def test_command_rejects_overwrite_different_from_accepted_plan(tmp_path, accept
 
 @pytest.mark.parametrize("callback", ["on_chapter_start", "on_chapter_done", "on_text_processed"])
 def test_dry_run_observes_cancellation_in_each_callback_before_publication(tmp_path, monkeypatch, callback):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
 
     cancellation = BatchCancellationController()
     seen = []

@@ -51,7 +51,7 @@ composição, o projeto existente, sua revisão esperada e a referência de dest
 Exemplo para um chamador autorizado, com repositório de preferências já composto:
 
 ```python
-from ayvu.project_profile_composition import project_profile_service
+from ayvu.composition.builders.profiles import project_profile_service
 from ayvu.project_profiles import ProfileReference, ProjectReference
 
 service = project_profile_service(processing_root, managed_glossary_root)

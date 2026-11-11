@@ -8,7 +8,7 @@ import pytest
 from typer.testing import CliRunner
 
 import ayvu.cli as cli
-import ayvu.cli_composition as composition
+import ayvu.composition.cli as composition
 from test_workflow_characterization import (
     FakeLibreTranslateSession,
     _direct_languages,

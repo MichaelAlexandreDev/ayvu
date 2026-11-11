@@ -504,7 +504,7 @@ def test_known_structural_incompatibility_is_excluded_unknown_is_review_only(env
 
 
 def test_production_and_cli_policy_choose_the_same_conservative_defaults():
-    from ayvu.translate_project_composition import memory_policy
+    from ayvu.composition.builders.translate_project import memory_policy
     assert memory_policy(TranslationMemoryOptions()) == RetrievalPolicy()
     assert not memory_policy(TranslationMemoryOptions()).legacy_cache_enabled
     assert memory_policy(TranslationMemoryOptions(conservative_auto_apply=True, apply_threshold=0.98)).fuzzy_auto_apply

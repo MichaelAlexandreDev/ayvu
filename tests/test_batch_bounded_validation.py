@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 import ayvu.cli as cli
-import ayvu.cli_composition as composition
+import ayvu.composition.cli as composition
 
 
 @pytest.fixture
