@@ -56,7 +56,7 @@ from .content import ContentDocument, TranslationUnit
 from .context_execution import ContextExecution, plan_with_context
 from .translation_context import ContextError
 from .jobs import JobState, TranslationJob
-from .job_recovery import REUSE_DIMENSIONS, ArtifactIntegrity, ResumeStage, StageEvidence, select_resume_stage
+from .resume_reuse import REUSE_DIMENSIONS, ArtifactIntegrity, ResumeStage, StageEvidence, select_resume_stage
 from .jobs import (
     CancellationAcknowledgement, JobCorrelation, JobEvent, JobProgress)
 from .jobs import CancellationSource, JobEventSink

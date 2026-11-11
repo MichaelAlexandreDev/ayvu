@@ -508,7 +508,7 @@ def test_rich_checkpoint_associates_with_the_recorded_job_without_current_config
     from uuid import UUID
     from ayvu.jobs.model import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
     from ayvu.jobs.service import JobSnapshot
-    from ayvu.job_recovery import CompatibilityStatus
+    from ayvu.recovery.service import CompatibilityStatus
     from ayvu.translate_project import TranslateProjectCommand, resolve_plan as job_plan
     from test_job_recovery_integration import Scene
     scene = Scene(tmp_path)
@@ -527,7 +527,7 @@ def test_rich_checkpoint_associates_with_the_recorded_job_without_current_config
     monkeypatch.setattr(recovery.evidence, "jobs", lambda _: (JobSnapshot(job, False),))
     recorded_producer = producer if evidence_state != "wrong_model" else replace(producer, model=declared_model("wrong-model"))
     nodes = () if evidence_state == "missing" else (SimpleNamespace(record=SimpleNamespace(request=SimpleNamespace(producer=recorded_producer))),)
-    monkeypatch.setattr("ayvu.job_recovery_store.SqliteProvenanceRepository", lambda *a, **kw: SimpleNamespace(
+    monkeypatch.setattr("ayvu.recovery.store.SqliteProvenanceRepository", lambda *a, **kw: SimpleNamespace(
         list_by_job=lambda *a, **kw: SimpleNamespace(nodes=nodes)))
     entries = recovery.list_interrupted.execute().entries
     if evidence_state == "identified":

@@ -83,15 +83,19 @@ says otherwise.
 | 4 | `recovery` |
 | 5 | `translation`, `review` |
 | 6 | `projects` |
-| 7 | `knowledge`, `providers`, `formats` |
-| 8 | `artifacts` |
-| 9 | `jobs` |
-| 10 | `content`, `network`, `preferences`, `library`, `application` |
-| 11 | `provenance` |
-| 12 | `kernel` |
+| 7 | `preferences` |
+| 8 | `knowledge`, `providers`, `formats` |
+| 9 | `artifacts` |
+| 10 | `provenance` |
+| 11 | `jobs` |
+| 12 | `content`, `network`, `library`, `application` |
+| 13 | `kernel` |
 
-REF-07 (#275) moved `provenance` one row down. `preferences` validates a declared model label with it, and
-provenance imports none of the modules on row 10, so the import is a layer rule instead of an exception.
+REF-07 (#275) and REF-08 (#276) moved `preferences` and `provenance` to follow their real imports.
+`provenance` reads the job each record belongs to, inside the same transaction, so it sits above `jobs`.
+`preferences` validates a declared model label with `provenance`, so it sits above `provenance`. Projects,
+knowledge, providers and translation import both, and neither imports them, so each has its own row and the
+imports are layer rules instead of exceptions.
 
 `application/` holds only the truly cross-cutting contracts left over from `cli_contracts.py`.
 
@@ -288,6 +292,7 @@ REF-15 break up by reason to change after they move.
 | `translation_document.py` | `translation/document.py` | split |
 | `chunking.py` | `translation/chunking.py` |  |
 | `preflight.py` | `translation/preflight.py` |  |
+| `resume_reuse.py` | `translation/resume_reuse.py` | added in REF-08, out of `job_recovery.py` |
 | `translate_project.py` | `translation/project.py` | split |
 | `translate_batch.py` | `translation/batch.py` |  |
 | `batch_output_policy.py` | `translation/batch_output.py` |  |
@@ -299,7 +304,7 @@ REF-15 break up by reason to change after they move.
 | `review_exchange.py` | `review/exchange.py` | split |
 | `review_export.py` | `review/csv_export.py` |  |
 | `review_import.py` | `review/csv_import.py` |  |
-| `job_recovery.py` | `recovery/service.py` | resume orchestration, out of jobs |
+| `job_recovery.py` | `recovery/service.py` | resume orchestration, out of jobs. In REF-08 its pure reuse rules went to `resume_reuse.py`, because the translation pipeline uses them and sits below recovery |
 | `job_recovery_store.py` | `recovery/store.py` |  |
 | `legacy_translation.py` | `v1/translation.py` |  |
 | `html_translate.py` | `v1/html_translate.py` |  |

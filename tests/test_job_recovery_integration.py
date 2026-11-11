@@ -21,9 +21,8 @@ from ayvu.v1.cache import TranslationCache
 from ayvu.cli import EXISTING_OUTPUT_OVERWRITE_OPTION, app
 from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.jobs.model import JobRequest, JobState
-from ayvu.job_recovery import (
-    CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStage, ResumeStatus,
-)
+from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
+from ayvu.resume_reuse import RecoveryReason, ResumeStage
 from ayvu.v1.resume_scan import MAX_LEGACY_STATE_BYTES, scan_legacy_states
 from ayvu.projects.schema import PROJECT_MIGRATIONS, open_job_repository
 from ayvu.projects.store import ProjectJsonRepository, build_project_request, translation_selections
@@ -769,7 +768,7 @@ def test_a_guard_that_cannot_be_read_clears_nobody(scene, tmp_path):
 
 
 def test_the_role_recovery_looks_for_is_the_one_the_rich_path_writes():
-    from ayvu.job_recovery_store import RAW_RESULTS_ROLE as read
+    from ayvu.recovery.store import RAW_RESULTS_ROLE as read
     from ayvu.translation_document import RAW_RESULTS_ROLE as written
     assert read == written
 

@@ -17,7 +17,7 @@ from ayvu.translation_document import (
     MAX_REUSABLE_JOBS, RAW_RESULTS_VERSION, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
     reuse_dimensions,
 )
-from ayvu.job_recovery import REUSE_DIMENSIONS
+from ayvu.resume_reuse import REUSE_DIMENSIONS
 from test_translation_document import Env, Provider, cue, document, plan, rewrite_payload, upper_glossary
 from ayvu.kernel import JobWarning
 

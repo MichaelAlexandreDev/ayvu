@@ -1,4 +1,6 @@
-"""Project translation profiles: the profile model and its service. The JSON and glossary stores are the adapter modules projects.profiles.store and projects.profiles.glossary_store."""
+"""Project translation profiles: the profile model and its service. The JSON and glossary stores are the
+adapter modules projects.profiles.store and projects.profiles.glossary_store.
+"""
 from __future__ import annotations
 
 from .model import GlossaryStage, ResolvedProfileSnapshot, canonical

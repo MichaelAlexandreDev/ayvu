@@ -1,4 +1,6 @@
-"""Global preferences: the version-1 values and the repository port. The JSON store and the CLI facade are the adapter modules preferences.store and preferences.config_facade."""
+"""Global preferences: the version-1 values and the repository port. The JSON store and the CLI facade are the
+adapter modules preferences.store and preferences.config_facade.
+"""
 from __future__ import annotations
 
 from .model import (

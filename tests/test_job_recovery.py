@@ -7,11 +7,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from ayvu.jobs.model import JobLease, JobRequest, JobState, JobTerminalSummary, TranslationJob
-from ayvu.job_recovery import (
-    REUSE_DIMENSIONS, ArtifactIntegrity, CompatibilityStatus, InspectJobRecoverability, InvocationView, ListInterruptedJobs, OutputEvidence,
-    RecoveryCancelled, RecoveryReason, RecoveryScan, RequestJobResume, RequiredDecision, ResumeRequest, ResumeStage, ResumeStatus, SourceState,
-    StageEvidence, classify_job, select_resume_stage,
-)
+from ayvu.recovery.service import CompatibilityStatus, InspectJobRecoverability, InvocationView, ListInterruptedJobs, OutputEvidence, RecoveryCancelled, RecoveryScan, RequestJobResume, RequiredDecision, ResumeRequest, ResumeStatus, SourceState, classify_job
+from ayvu.resume_reuse import REUSE_DIMENSIONS, ArtifactIntegrity, RecoveryReason, ResumeStage, StageEvidence, select_resume_stage
 from ayvu.jobs.service import JobSnapshot
 from ayvu.translate_project import TranslateProjectResult
 from ayvu.kernel import JobFailure, JobFailureFamily

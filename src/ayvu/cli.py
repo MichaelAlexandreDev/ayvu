@@ -52,7 +52,7 @@ GLOSSARY_RULE_TRANSLATE = "translate"
 GLOSSARY_RULE_PRESERVE = "preserve"
 from .library import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
 from .projects import ProjectError
-from .job_recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
+from .recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
 from .review_application import (
     ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
 )

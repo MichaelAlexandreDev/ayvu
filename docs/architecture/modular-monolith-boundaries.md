@@ -364,7 +364,7 @@ These traces keep the accepted boundaries anchored in production behavior.
 | Export review | `cli.py` → composição → `ExportReviewPackage` com o resultado exato da tradução | Reconstrução e publicação pertencem a Review e aos adaptadores D106 |
 | Apply review | `cli.py` → composição → `ValidateReviewPackage` / `ApplyReviewPackage` | Serviços validam revisões e publicam; v1 é recusado antes de inspecionar a origem |
 | Inspect, clean, export, or import cache | `cli.py` → composição → `cache_admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
-| Resume interrupted translation | `cli.py` → composição → `job_recovery` → mesmo `TranslateProject` | Inspeção somente leitura, decisões explícitas e continuidade durável; checkpoint legado preservado |
+| Resume interrupted translation | `cli.py` → composição → `recovery.service` → mesmo `TranslateProject` | Inspeção somente leitura, decisões explícitas e continuidade durável; checkpoint legado preservado |
 
 No target seam changes the current result, output naming, ordering, cache/glossary
 semantics, or source immutability unless a later issue explicitly revises the

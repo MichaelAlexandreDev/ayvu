@@ -40,8 +40,8 @@ from ...glossary import apply_glossary_with_usage, effective_glossary_reference
 from ...html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
 from ...jobs import JobState
 from ...jobs import CancellationSource
-from ...job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
-from ...job_recovery_store import LocalRecoveryEvidence
+from ...recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
+from ...recovery.store import LocalRecoveryEvidence
 from ...v1.translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
 from ...projects import ProjectError
 from ...projects.schema import open_artifact_service, open_job_repository, open_provenance_repository

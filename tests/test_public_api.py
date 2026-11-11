@@ -29,7 +29,7 @@ ALLOWED: dict[str, str] = {}
 ADAPTER_MODULES = frozenset({
     "network.http", "preferences.store", "preferences.config_facade", "provenance.store", "jobs.store",
     "artifacts.store", "artifacts.destination", "projects.store", "projects.schema", "projects.profiles.store",
-    "projects.profiles.glossary_store", "library.adapters"})
+    "projects.profiles.glossary_store", "library.adapters", "recovery.store"})
 PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (
     "translation", "html_translate", "translator", "cache", "cache_format", "cache_stream", "cache_admin_store",
     "resume", "resume_scan")} | ADAPTER_MODULES)

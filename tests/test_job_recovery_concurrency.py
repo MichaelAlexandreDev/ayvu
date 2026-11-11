@@ -13,8 +13,9 @@ import pytest
 
 from ayvu.v1.cache import TranslationCache
 from ayvu.jobs.model import JobContinuationError, JobRequest, JobState
-from ayvu.job_recovery import CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStatus
-from ayvu.job_recovery_store import _options
+from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
+from ayvu.resume_reuse import RecoveryReason
+from ayvu.recovery.store import _options
 from ayvu.projects.store import ProjectJsonRepository
 from ayvu.translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
 from ayvu.composition.builders.translate_project import (

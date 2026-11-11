@@ -1,4 +1,6 @@
-"""Provenance records: where each translated value came from. The SQLite store is the adapter module provenance.store."""
+"""Provenance records: where each translated value came from. The SQLite store is the adapter module
+provenance.store.
+"""
 from __future__ import annotations
 
 from .model import (

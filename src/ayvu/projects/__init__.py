@@ -1,4 +1,6 @@
-"""Translation projects: the manifest and its use cases. The JSON store and the project database schema are the adapter modules projects.store and projects.schema."""
+"""Translation projects: the manifest and its use cases. The JSON store and the project database schema are the
+adapter modules projects.store and projects.schema.
+"""
 from __future__ import annotations
 
 from .model import ProjectError, ProjectManifest, ProjectSourceError

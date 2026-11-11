@@ -1,4 +1,6 @@
-"""Artifacts a job produces: the record and the service that stages and publishes them. The local stores are the adapter modules artifacts.store and artifacts.destination."""
+"""Artifacts a job produces: the record and the service that stages and publishes them. The local stores are
+the adapter modules artifacts.store and artifacts.destination.
+"""
 from __future__ import annotations
 
 from .model import (

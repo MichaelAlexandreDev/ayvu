@@ -1,4 +1,6 @@
-"""Translation jobs: their states and events, cancellation sources and the repository port. The SQLite store is the adapter module jobs.store."""
+"""Translation jobs: their states and events, cancellation sources and the repository port. The SQLite store is
+the adapter module jobs.store.
+"""
 from __future__ import annotations
 
 from .events import (
