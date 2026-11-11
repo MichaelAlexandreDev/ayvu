@@ -24,11 +24,11 @@ from ayvu.jobs.events import JobEventKind, encode_event
 from ayvu.jobs.execution import CancellationSource, InMemoryJobEventLog
 from ayvu.projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ayvu.provenance.model import SourceKind, UNKNOWN, ProducerIdentity
-from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
-from ayvu.provider_capabilities import Capability, ProviderRequirements
-from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
-from ayvu.provider_service import failed_result
-from ayvu.translation_document import (
+from ayvu.providers.ports import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
+from ayvu.providers.capabilities import Capability, ProviderRequirements
+from ayvu.providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
+from ayvu.providers.service import failed_result
+from ayvu.translation.document import (
     PIPELINE_SAFE_POINTS, RAW_RESULTS_ROLE, SAFE_POINTS, DocumentTranslator, ExecutionContext, TranslationCancelled,
     TranslationExecutionError, UnitSource,
 )
@@ -49,8 +49,8 @@ from ayvu.knowledge.cache.identity import (
     PutIfAbsentState,
     TRANSLATION_STAGE_AGGREGATE,
 )
-from ayvu.translation_plan import ResolvedTranslationPlan, resolve_plan
-from ayvu.v1.translator import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
+from ayvu.translation.plan import ResolvedTranslationPlan, resolve_plan
+from ayvu.providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
 from provider_fakes import FakeSession, http_response
 from ayvu.kernel import LanguagePair, JobFailureFamily, JobWarning, JobCancellationError, JobFailure
 
@@ -377,7 +377,7 @@ def test_another_plan_does_not_see_the_cache_entries(env):
 
 def test_the_legacy_v1_ports_do_not_fit_the_generic_path():
     from ayvu.v1.html_translate import _LegacyV1Cache
-    from ayvu.translation_document import ExactCachePort, MemoryPort
+    from ayvu.translation.document import ExactCachePort, MemoryPort
     from ayvu.knowledge.memory.fuzzy import TranslationMemory
     assert 'key' in inspect.signature(ExactCachePort.lookup).parameters
     assert 'plan_fingerprint' not in inspect.signature(_LegacyV1Cache.get).parameters
@@ -387,7 +387,7 @@ def test_the_legacy_v1_ports_do_not_fit_the_generic_path():
 
 def test_the_generic_path_cannot_reach_the_legacy_cache():
     from pathlib import Path
-    source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'translation_document.py').read_text()
+    source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'translation/document.py').read_text()
     for name in ('from .cache import', 'TranslationCache', 'from .html_translate', '_LegacyV1Cache', 'import requests'):
         assert name not in source
 
@@ -891,7 +891,7 @@ def test_a_bridge_route_must_match_the_plan_through_the_production_adapter(env):
 def test_the_facade_remains_free_of_durable_state():
     from pathlib import Path
     root = Path(__file__).parents[1] / 'src' / 'ayvu'
-    for name in ('translation_pipeline.py',):
+    for name in ('translation/pipeline.py',):
         source = (root / name).read_text()
         assert 'translation_document' not in source and 'from .artifact' not in source and 'from .provenance' not in source
     assert RAW_RESULTS_ROLE == 'raw_results' and LanguagePair(source='en', target='pt') and requests

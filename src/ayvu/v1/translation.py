@@ -19,7 +19,7 @@ from ..formats import FormatPublication, FormatService, FormatSource
 from ..formats.epub import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
 from .html_translate import HtmlTranslationStats, TextTranslationResult, translate_text
 from ..knowledge.memory import TranslationMemory
-from ..translation_engine import (
+from ..translation import (
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED,
     BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, TextStats, TranslationEngine,
     UnitExecution,

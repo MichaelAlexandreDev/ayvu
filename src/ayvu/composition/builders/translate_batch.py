@@ -12,13 +12,13 @@ from datetime import UTC, datetime
 from threading import Lock
 from uuid import uuid4
 
-from ...batch_output_policy import AcceptedItem, BatchOutputPolicy, OutputIntent
+from ...translation.batch_output import AcceptedItem, BatchOutputPolicy, OutputIntent
 from ...jobs import JobState
 from ...jobs import CancellationRequest
 from ...jobs import CancellationSource
-from ...translate_batch import (BatchCommand, BatchItem, BatchValidationError, ItemOutcome, ItemStatus, TranslateBatch,
+from ...translation import (BatchCommand, BatchItem, BatchValidationError, ItemOutcome, ItemStatus, TranslateBatch,
                               BatchCancellationCommand, BatchCancellationNotice)
-from ...translate_project import TranslateProjectResult
+from ...translation import TranslateProjectResult
 from ...kernel import JobFailureFamily
 
 

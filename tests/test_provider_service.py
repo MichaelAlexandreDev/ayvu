@@ -5,12 +5,12 @@ from uuid import UUID
 
 import pytest
 from ayvu.jobs.execution import CancellationSource
-from ayvu.provider import (
+from ayvu.providers.ports import (
     ConstraintsFeature, ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProviderRoute, ProviderStatus,
     Requirement,
 )
 from ayvu.content.model import Constraint
-from ayvu.provider_service import (
+from ayvu.providers.service import (
     ProviderInstance, ProviderRegistry, ProviderRegistryError, UNKNOWN_PRODUCER, decide_features, execute,
 )
 from provider_fakes import FAKE_PRODUCER, FakeFactory, FakeProvider, failure, fake_instance, request, success
@@ -227,7 +227,7 @@ def test_a_provider_can_use_the_shared_cancellation_token():
 
     def cooperative(item):
         if item.cancellation.checkpoint('fake_safe_point') is not None:
-            from ayvu.provider_service import failed_result
+            from ayvu.providers.service import failed_result
             return failed_result(item, JobFailure(JobFailureFamily.CANCELLED, 'stopped'), delivery=DeliveryState.NOT_SENT)
         return success(item)
 
@@ -241,7 +241,7 @@ def test_a_provider_can_use_the_shared_cancellation_token():
 def test_contract_modules_have_no_provider_name_or_framework():
     root = Path(__file__).parents[1] / 'src' / 'ayvu'
     forbidden = {'requests', 'typer', 'rich', 'sqlite3', 'bs4', 'ebooklib', 'lxml', 'os', 'pathlib', 'importlib'}
-    for name in ('provider.py', 'provider_service.py'):
+    for name in ('providers/ports.py', 'providers/service.py'):
         source = (root / name).read_text()
         assert 'libretranslate' not in source.lower()
         roots = set()
@@ -255,7 +255,7 @@ def test_contract_modules_have_no_provider_name_or_framework():
 
 
 def test_a_refusal_keeps_its_own_code_and_delivery_state_when_routes_differ():
-    from ayvu.provider_service import failed_result
+    from ayvu.providers.service import failed_result
     item = request(route=ProviderRoute('en', 'pt'))
     refusal = lambda subject: failed_result(subject, JobFailure(JobFailureFamily.CAPABILITY, 'route_conflict'),
                                             delivery=DeliveryState.NOT_SENT, route=ProviderRoute('en', 'pt', 'es'))

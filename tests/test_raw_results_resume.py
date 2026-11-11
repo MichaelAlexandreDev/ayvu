@@ -12,12 +12,12 @@ import ayvu.cli as cli
 import ayvu.composition.builders.translate_project as composition
 from ayvu.jobs.execution import InMemoryJobEventLog
 from ayvu.provenance.model import ProducerIdentity
-from ayvu.provider import ProviderRoute
-from ayvu.translation_document import (
+from ayvu.providers.ports import ProviderRoute
+from ayvu.translation.document import (
     MAX_REUSABLE_JOBS, RAW_RESULTS_VERSION, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
     reuse_dimensions,
 )
-from ayvu.resume_reuse import REUSE_DIMENSIONS
+from ayvu.translation.resume_reuse import REUSE_DIMENSIONS
 from test_translation_document import Env, Provider, cue, document, plan, rewrite_payload, upper_glossary
 from ayvu.kernel import JobWarning
 
@@ -203,7 +203,7 @@ def isolate(tmp_path, monkeypatch):
 
 def resume(tmp_path, monkeypatch, source):
     transport = Transport()
-    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: transport)
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
     return runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)]), transport
 
 
@@ -250,7 +250,7 @@ def test_a_second_resume_reaches_the_job_that_stored_the_results(tmp_path, monke
     first, _ = invoke(tmp_path, monkeypatch, source, session=Transport(failing="Goodbye reader."))
     assert first.exit_code == 1, text(first)
     # The middle job replays chapter one, publishes nothing new for it, and fails on chapter two again.
-    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: Transport(failing="Goodbye reader."))
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: Transport(failing="Goodbye reader."))
     middle = runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)])
     assert middle.exit_code == 1, text(middle)
     composition.v2_cache_path(tmp_path / "cache.sqlite").unlink()

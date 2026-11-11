@@ -7,7 +7,7 @@ import pytest
 
 from ayvu.artifacts.model import ArtifactConflictError
 from ayvu.artifacts.destination import LocalDestinationPayloads
-from ayvu.batch_output_policy import BatchOutputError, BatchOutputPolicy, OutputIntent
+from ayvu.translation.batch_output import BatchOutputError, BatchOutputPolicy, OutputIntent
 from ayvu.kernel import OutputPlan
 
 ARTIFACT = "00000000-0000-4000-8000-000000000001"
@@ -79,7 +79,7 @@ def test_publication_preserves_umask_or_existing_mode(tmp_path, overwrite):
 
 
 def test_exclusive_creation_attempts_are_bounded_at_10000(tmp_path, monkeypatch):
-    import ayvu.batch_output_policy as policy
+    import ayvu.translation.batch_output as policy
 
     _, _, item = make_plan(tmp_path)
     real_open = os.open
@@ -100,7 +100,7 @@ def test_exclusive_creation_attempts_are_bounded_at_10000(tmp_path, monkeypatch)
 
 
 def test_case_insensitive_detection_uses_read_only_directory_lookup(tmp_path, monkeypatch):
-    import ayvu.batch_output_policy as policy
+    import ayvu.translation.batch_output as policy
 
     directory = tmp_path / "MixedCase"
     directory.mkdir()

@@ -31,13 +31,13 @@ from ayvu.jobs.model import JobState
 from ayvu.knowledge.glossary.rules import GlossaryUsage
 from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 from ayvu.v1.html_translate import HtmlTranslationStats
-from ayvu.preflight import PreflightError
+from ayvu.translation.preflight import PreflightError
 from ayvu.v1.resume import COMPLETED_STATUS, ResumeStateStore, TranslationResumeState
 from ayvu.review_application import ReviewExportResult, ReviewOutcome, ReviewPackageIdentity
 from ayvu.review_export import ReviewSegment, write_review_csv
-from ayvu.translation_engine import EngineResult
-from ayvu.translate_project import OutputValidation, TranslateProjectResult
-from ayvu.v1.translator import TranslatorError, TranslatorLanguage
+from ayvu.translation.engine import EngineResult
+from ayvu.translation.project import OutputValidation, TranslateProjectResult
+from ayvu.providers.libretranslate.client import TranslatorError, TranslatorLanguage
 from ayvu.formats.epub.validation import ValidationResult
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, UserMode, JobFailure, JobFailureFamily
 
@@ -3477,7 +3477,7 @@ def _mock_pipeline_with_route(monkeypatch, route):
 
 
 def test_translate_developer_mode_prints_direct_route(minimal_epub_path, tmp_path, monkeypatch):
-    from ayvu.v1.translator import TranslationRoute
+    from ayvu.providers.libretranslate.client import TranslationRoute
 
     monkeypatch.setattr("ayvu.cli.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     _mock_pipeline_with_route(monkeypatch, TranslationRoute(source="en", target="pt"))
@@ -3492,7 +3492,7 @@ def test_translate_developer_mode_prints_direct_route(minimal_epub_path, tmp_pat
 def test_translate_developer_mode_prints_intermediate_route_with_warning(
     minimal_epub_path, tmp_path, monkeypatch
 ):
-    from ayvu.v1.translator import TranslationRoute
+    from ayvu.providers.libretranslate.client import TranslationRoute
 
     monkeypatch.setattr("ayvu.cli.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     _mock_pipeline_with_route(
@@ -3512,7 +3512,7 @@ def test_translate_developer_mode_prints_intermediate_route_with_warning(
 def test_translate_common_mode_warns_about_intermediate_route(
     minimal_epub_path, tmp_path, monkeypatch
 ):
-    from ayvu.v1.translator import TranslationRoute
+    from ayvu.providers.libretranslate.client import TranslationRoute
 
     monkeypatch.setattr("ayvu.cli.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     _mock_pipeline_with_route(

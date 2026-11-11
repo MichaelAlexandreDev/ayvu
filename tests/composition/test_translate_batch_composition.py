@@ -8,14 +8,14 @@ from uuid import UUID
 import pytest
 
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
-from ayvu.batch_output_policy import BatchOutputError
+from ayvu.translation.batch_output import BatchOutputError
 from ayvu.jobs.model import JobState
 from ayvu.jobs.execution import CancellationSource
-from ayvu.translate_batch import BatchCommand, BatchValidationError, ItemOutcome, ItemStatus
+from ayvu.translation.batch import BatchCommand, BatchValidationError, ItemOutcome, ItemStatus
 from ayvu.composition.builders.translate_batch import (
     BatchCancellationController, LocalBatchItem, LocalTranslateBatch, project_item_outcome,
 )
-from ayvu.translate_project import TranslateProjectResult
+from ayvu.translation.project import TranslateProjectResult
 from test_batch_output_policy import intent
 
 
@@ -76,7 +76,7 @@ def test_local_binding_resolves_item_reference_independently_of_ordinal(tmp_path
 
 def test_complete_planning_refuses_collision_before_callbacks(tmp_path):
     one, two = intent(tmp_path, "one"), intent(tmp_path, "two")
-    from ayvu.batch_output_policy import OutputIntent
+    from ayvu.translation.batch_output import OutputIntent
     duplicate = OutputIntent(two.source, one.output, two.report_dir, two.report_stem, overwrite=True)
     calls = []
     service = LocalTranslateBatch((LocalBatchItem(one, lambda *args: calls.append(args)),
@@ -163,7 +163,7 @@ def test_project_private_errors_never_reach_batch_results_events_or_logs(tmp_pat
     import logging
     from dataclasses import asdict, replace
 
-    from ayvu.translation_engine import EngineResult, TextStats
+    from ayvu.translation.engine import EngineResult, TextStats
 
     project = replace(_published_result(), raised=RuntimeError(canary),
                       engine=EngineResult(stats=TextStats(errors=[canary])))

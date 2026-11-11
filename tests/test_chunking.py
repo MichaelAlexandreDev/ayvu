@@ -1,4 +1,4 @@
-from ayvu.chunking import split_text
+from ayvu.translation.chunking import split_text
 
 
 def test_split_text_keeps_short_text_unchanged():

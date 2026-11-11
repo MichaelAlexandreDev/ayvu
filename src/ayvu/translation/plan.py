@@ -9,7 +9,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 
-from .knowledge.cache import (
+from ..knowledge.cache import (
     CACHE_IDENTITY_VERSION,
     CacheEligibility,
     CacheEligibilityState,
@@ -20,9 +20,9 @@ from .knowledge.cache import (
     SemanticOperationV2,
     SemanticRouteHop,
 )
-from .provenance import ProducerIdentity
-from .provider import ProviderRoute, valid_reference
-from .provider_capabilities import (
+from ..provenance import ProducerIdentity
+from ..providers import ProviderRoute, valid_reference
+from ..providers import (
     NegotiationDecision, ProviderCapabilitySnapshot, ProviderRequirements, capability_fingerprint, negotiate,
 )
 

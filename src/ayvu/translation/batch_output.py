@@ -11,9 +11,9 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Literal
 
-from .artifacts import ArtifactConflictError
-from .kernel import OutputPlan, automatic_output_candidate
-from .translation import BatchOutputError
+from ..artifacts import ArtifactConflictError
+from ..kernel import OutputPlan, automatic_output_candidate
+from .errors import BatchOutputError
 
 MAX_CANDIDATES = 10_000
 

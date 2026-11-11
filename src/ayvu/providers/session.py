@@ -8,13 +8,13 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Callable
 
-from .provider_capabilities import Capability, ProviderRequirements
-from .provider_discovery import LanguagesResult, ProviderDiscoveryService, ProviderPreflightResult, ProviderTestResult
-from .provider_libretranslate import ADAPTER_ID, ADAPTER_VERSION, LibreTranslateDiscoveryAdapter
-from .provider_network import NetworkClass, ProviderOperation, ResolvedProviderNetworkDecision, network_binding
-from .provider_service import ProviderInstance
-from .v1.translator import LibreTranslateTranslator
-from .network import NetworkPolicy, resolve_network_policy
+from .capabilities import Capability, ProviderRequirements
+from .discovery import LanguagesResult, ProviderDiscoveryService, ProviderPreflightResult, ProviderTestResult
+from .libretranslate.adapter import ADAPTER_ID, ADAPTER_VERSION, LibreTranslateDiscoveryAdapter
+from .network import NetworkClass, ProviderOperation, ResolvedProviderNetworkDecision, network_binding
+from .service import ProviderInstance
+from .libretranslate.client import LibreTranslateTranslator
+from ..network import NetworkPolicy, resolve_network_policy
 
 CLI_INSTANCE_ID = "libretranslate_cli"
 _ISSUER = "cli_composition"  # the issuer name since #158, a value and not a module path

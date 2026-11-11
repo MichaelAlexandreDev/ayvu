@@ -61,8 +61,8 @@ os mesmos ports do caminho legado, preservando o EPUB original.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.translate_project` | Application | The command and result, the ports, the plan and the job from creation to its outcome |
-| `ayvu.translation_engine` | Application | One book through a format adapter and a unit executor |
+| `ayvu.translation.project` | Application | The command and result, the ports, the plan and the job from creation to its outcome |
+| `ayvu.translation.engine` | Application | One book through a format adapter and a unit executor |
 | `ayvu.artifacts.destination` | Infrastructure | Publishing to the file the user chose, and the way back to it after a crash |
 | `ayvu.composition.builders.translate_project` | Composition | The current language work and validator behind the ports, and the assembled use case |
 

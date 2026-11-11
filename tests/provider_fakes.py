@@ -5,8 +5,8 @@ from uuid import UUID
 
 import requests
 from ayvu.provenance.model import ProducerIdentity
-from ayvu.provider import DeliveryState, ProviderStatus, TranslationProviderRequest, TranslationProviderResult
-from ayvu.provider_service import ProviderInstance
+from ayvu.providers.ports import DeliveryState, ProviderStatus, TranslationProviderRequest, TranslationProviderResult
+from ayvu.providers.service import ProviderInstance
 from ayvu.kernel import JobFailure, JobFailureFamily
 
 REQUEST_ID = str(UUID(int=7))

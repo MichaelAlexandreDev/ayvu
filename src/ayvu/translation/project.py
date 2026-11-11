@@ -21,25 +21,25 @@ from threading import Event, Thread
 from typing import Protocol
 from uuid import uuid4
 
-from .artifacts import Artifact, ArtifactError, ArtifactRequest
-from .formats import FormatError
-from .formats import FormatPublication, FormatService, FormatSource
-from .jobs import (
+from ..artifacts import Artifact, ArtifactError, ArtifactRequest
+from ..formats import FormatError
+from ..formats import FormatPublication, FormatService, FormatSource
+from ..jobs import (
     MAX_LEASE_DURATION, JobLeaseError, JobRequest, JobState, JobTerminalSummary, TranslationJob)
-from .jobs import (
+from ..jobs import (
     CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress, JobEventAcceptance)
-from .jobs import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMemoryJobEventLog, JobEventSink
-from .jobs import JobRepository
-from .projects import ProjectError, ProjectManifest
-from .provenance import (
+from ..jobs import DEFAULT_EVENT_LOG_CAPACITY, CancellationSource, InMemoryJobEventLog, JobEventSink
+from ..jobs import JobRepository
+from ..projects import ProjectError, ProjectManifest
+from ..provenance import (
     UNKNOWN, ActorKind, ConfigurationRef, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef,
 )
-from .translation_engine import (
+from .engine import (
     ENGINE_SAFE_POINTS, STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, EngineObserver, EngineRequest,
     EngineResult, TextStats, TranslationEngine,
     TranslationResources,
 )
-from .kernel import ChapterSelectionError, OutputPlan, TranslationOptions, JobError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
+from ..kernel import ChapterSelectionError, OutputPlan, TranslationOptions, JobError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
 
 TRANSLATE_COMMAND_TYPE = "translate_project"
 TRANSLATE_COMMAND_VERSION = 1
@@ -148,7 +148,7 @@ class ExecutionPlan:
         return f"ExecutionPlan(project_id={self.project_id!r})"
 
 
-def resolve_plan(command: TranslateProjectCommand, project: ProjectManifest) -> ExecutionPlan:
+def resolve_execution_plan(command: TranslateProjectCommand, project: ProjectManifest) -> ExecutionPlan:
     options = command.options
     memory = options.translation_memory
     inputs = {
@@ -502,7 +502,7 @@ class TranslateProject:
             source = cancellation or self.cancellation(command.adapter_id)
         except FormatError:
             return refused(JobFailureFamily.CAPABILITY, "unknown_adapter")
-        plan = resolve_plan(command, project)
+        plan = resolve_execution_plan(command, project)
         request = JobRequest(command.project_id, TRANSLATE_COMMAND_TYPE, command.execution_revision,
                              plan.input_fingerprint, (OUTPUT_ROLE, *command.additional_output_roles))
         fingerprints = (plan.input_fingerprint,)

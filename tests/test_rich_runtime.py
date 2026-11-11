@@ -23,13 +23,13 @@ from ayvu.jobs.events import encode_event
 from ayvu.jobs.execution import CancellationSource
 from ayvu.preferences.model import GlobalPreferences, PreferencesError, preferences_from_mapping, preferences_to_mapping
 from ayvu.provenance.model import ProducerIdentity, ProvenanceValidationError, declared_model
-from ayvu.provider import ProviderRoute
-from ayvu.provider_capabilities import Capability, ProviderRequirements
-from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LIBRETRANSLATE_SAFE_POINTS, libretranslate_snapshot
-from ayvu.translate_project import RuntimeContext
-from ayvu.translation_document import DocumentTranslator, PIPELINE_SAFE_POINTS, TranslationExecutionError
-from ayvu.translation_plan import ResolvedTranslationPlan, resolve_plan
-from ayvu.v1.translator import LibreTranslateTranslator
+from ayvu.providers.ports import ProviderRoute
+from ayvu.providers.capabilities import Capability, ProviderRequirements
+from ayvu.providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LIBRETRANSLATE_SAFE_POINTS, libretranslate_snapshot
+from ayvu.translation.project import RuntimeContext
+from ayvu.translation.document import DocumentTranslator, PIPELINE_SAFE_POINTS, TranslationExecutionError
+from ayvu.translation.plan import ResolvedTranslationPlan, resolve_plan
+from ayvu.providers.libretranslate.client import LibreTranslateTranslator
 from test_cache_repository_v2 import entry
 from test_cli_translate_project import Session
 from test_translation_cache_v2 import Env, NOW, document
@@ -107,7 +107,7 @@ def test_composition_refuses_a_present_invalid_label(label):
                                                      ("local-v1", composition.RichTranslationRuntime, 2)])
 def test_production_composition_constructs_only_the_selected_runtime(tmp_path, monkeypatch, label, expected, revision):
     from types import SimpleNamespace
-    from ayvu.translate_project import TranslateObserver, TranslateProjectResult
+    from ayvu.translation.project import TranslateObserver, TranslateProjectResult
     opened, commands, preparations = [], [], []
     project_id = document().project_id
     monkeypatch.setattr(composition, "ProjectJsonRepository", lambda _: SimpleNamespace(
@@ -325,7 +325,7 @@ def test_runtime_pipeline_cancellation_acknowledges_the_requested_point(tmp_path
 
 def test_selection_remains_in_composition():
     root = Path(__file__).resolve().parents[1] / "src" / "ayvu"
-    for name in ("translate_project.py", "translation_engine.py", "kernel/values.py"):
+    for name in ("translation/project.py", "translation/engine.py", "kernel/values.py"):
         tree = ast.parse((root / name).read_text())
         imports = [node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
         assert not {"cache_repository", "translation_document", "provider_libretranslate", "composition"} & ({(m or "").split(".")[0] for m in imports} | set(imports))
@@ -341,7 +341,7 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
     from ayvu.formats.contracts import AliasVerdict
     from ayvu.formats.local import LocalFormatSource
     from ayvu.formats.service import FormatPublication
-    from ayvu.translation_engine import EngineRequest, TranslationEngine
+    from ayvu.translation.engine import EngineRequest, TranslationEngine
     from test_cli_translate_project import _book
     from format_contract import FixedGuard
 
@@ -385,7 +385,7 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
 def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp_path, monkeypatch, parent_version, new_version):
     from types import SimpleNamespace
     from ayvu.jobs.model import JobRequest, new_job
-    from ayvu.translate_project import ContinuationTicket, TranslateProjectCommand
+    from ayvu.translation.project import ContinuationTicket, TranslateProjectCommand
     from test_translate_batch_project_contract import _use_case, PROJECT, JOB, NOW, DIGEST, _options
     use_case, jobs = _use_case()
     parent = new_job(JobRequest(PROJECT, "translate_project", parent_version, "sha256:" + "a" * 64), JOB, NOW)
@@ -401,8 +401,8 @@ def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp
 
 def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_not_events(tmp_path, monkeypatch):
     from ayvu.jobs.events import JobEventSequence
-    from ayvu.translate_project import TranslateProjectCommand, resolve_plan as job_plan
-    from ayvu.translation_engine import EngineResult
+    from ayvu.translation.project import TranslateProjectCommand, resolve_execution_plan as job_plan
+    from ayvu.translation.engine import EngineResult
     from test_translate_batch_project_contract import _use_case, PROJECT, DIGEST, _options
     use_case, jobs = _use_case()
     producer = replace(LIBRETRANSLATE_PRODUCER, model=declared_model("private-model-canary-252"))
@@ -414,7 +414,7 @@ def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_
     assert job_plan(changed, project).input_fingerprint != job_plan(rich, project).input_fingerprint
     provenance = []
     use_case._ports.provenance.append = provenance.append
-    monkeypatch.setattr("ayvu.translate_project.TranslationEngine.run", lambda *args: EngineResult(
+    monkeypatch.setattr("ayvu.translation.project.TranslationEngine.run", lambda *args: EngineResult(
         failure=JobFailure(JobFailureFamily.PROVIDER_TRANSIENT, "provider_server_error", True)))
     result = use_case.execute(rich)
     assert result.state.value == "failed" and result.failure.code == "provider_server_error"
@@ -431,7 +431,7 @@ def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_
 
 def test_document_preparation_failure_stops_the_engine_before_later_documents_and_publication(tmp_path, monkeypatch):
     from types import SimpleNamespace
-    from ayvu.translation_engine import EngineRequest, TranslationEngine
+    from ayvu.translation.engine import EngineRequest, TranslationEngine
     docs = (document("done", key="first.txt"), document("failing", key="middle.txt"), document("later", key="last.txt"))
     subject, context, env, transport = prepared_runtime(tmp_path, monkeypatch, session=Session(failing="failing"))
     publications = []
@@ -509,7 +509,7 @@ def test_rich_checkpoint_associates_with_the_recorded_job_without_current_config
     from ayvu.jobs.model import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
     from ayvu.jobs.service import JobSnapshot
     from ayvu.recovery.service import CompatibilityStatus
-    from ayvu.translate_project import TranslateProjectCommand, resolve_plan as job_plan
+    from ayvu.translation.project import TranslateProjectCommand, resolve_execution_plan as job_plan
     from test_job_recovery_integration import Scene
     scene = Scene(tmp_path)
     project = scene.project()

@@ -6,7 +6,7 @@ from uuid import UUID
 import pytest
 
 from ayvu.content.model import Constraint, ProtectedPart
-from ayvu.provider import (
+from ayvu.providers.ports import (
     MAX_CONTEXT_CHARS, MAX_CONTEXT_ITEMS, MAX_TEXT_CHARS, MAX_WARNINGS, ConstraintsFeature, ContextFeature, ContextItem,
     DeadlineFeature, DeliveryState, ProtectedPartsFeature, ProviderRoute, ProviderStatus, ProviderUsage,
     ProviderValidationError, Requirement, TranslationProviderResult, UnitReference, request_diagnostics, result_diagnostics,

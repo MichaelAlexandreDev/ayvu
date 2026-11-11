@@ -8,21 +8,21 @@ import requests
 
 from ayvu.jobs.execution import CancellationSource
 from ayvu.provenance.model import ProducerIdentity
-from ayvu.provider import DeliveryState, ProviderRoute, ProviderStatus, TranslationProviderResult
-from ayvu.provider_capabilities import (
+from ayvu.providers.ports import DeliveryState, ProviderRoute, ProviderStatus, TranslationProviderResult
+from ayvu.providers.capabilities import (
     NOT_PROBED, AvailabilityState, Capability, CapabilityFact, EvidenceSource, LanguageEvidence, NegotiationDecision,
     ProviderAvailability, ProviderCapabilitySnapshot, ProviderDescriptor, ProviderRequirements, SupportState, observation,
 )
-from ayvu.provider_discovery import (
+from ayvu.providers.discovery import (
     DISCOVERY_SAFE_POINT, SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryObservation, DiscoveryOutcome, Freshness,
     PolicyEligibility, ProviderDiscoveryError, ProviderDiscoveryService,
 )
-from ayvu.provider_libretranslate import ADAPTER_ID, ADAPTER_VERSION, LibreTranslateDiscoveryAdapter
-from ayvu.provider_network import (
+from ayvu.providers.libretranslate.adapter import ADAPTER_ID, ADAPTER_VERSION, LibreTranslateDiscoveryAdapter
+from ayvu.providers.network import (
     NetworkClass, NetworkDecisionError, ProviderOperation, ResolvedProviderNetworkDecision, network_binding,
 )
-from ayvu.provider_service import ProviderInstance
-from ayvu.v1.translator import LibreTranslateTranslator
+from ayvu.providers.service import ProviderInstance
+from ayvu.providers.libretranslate.client import LibreTranslateTranslator
 from provider_fakes import FakeSession, http_response
 from ayvu.kernel import JobFailure, JobFailureFamily
 
@@ -536,14 +536,14 @@ def test_canaries_stay_out_of_results_and_logs(body, caplog):
 def test_contract_modules_name_no_provider_and_read_no_url():
     from pathlib import Path
     root = Path(__file__).parents[1] / 'src' / 'ayvu'
-    for name in ('provider_discovery.py', 'provider_network.py'):
+    for name in ('providers/discovery.py', 'providers/network.py'):
         source = (root / name).read_text()
         assert 'libretranslate' not in source.lower() and 'urlparse' not in source and 'urllib' not in source and 'localhost' not in source
         assert 'import requests' not in source and '/health' not in source
 
 
 def test_a_provider_that_cancels_is_reported_as_cancelled():
-    from ayvu.provider_service import failed_result
+    from ayvu.providers.service import failed_result
 
     class Cancelling(FakeAdapter):
         def provider(self):

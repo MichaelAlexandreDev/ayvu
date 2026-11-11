@@ -8,13 +8,13 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Iterator, Protocol
-from .provider_capabilities import AvailabilityState, ProviderAvailability
-from .provenance import UNKNOWN, ProducerIdentity
-from .provider import (
+from .capabilities import AvailabilityState, ProviderAvailability
+from ..provenance import UNKNOWN, ProducerIdentity
+from .ports import (
     DeliveryState, ProviderError, ProviderStatus, Requirement, TranslationProviderRequest, TranslationProviderResult,
     valid_reference,
 )
-from .kernel import is_slug, JobFailure, JobFailureFamily, JobWarning, normalize_failure
+from ..kernel import is_slug, JobFailure, JobFailureFamily, JobWarning, normalize_failure
 
 UNKNOWN_PRODUCER = ProducerIdentity(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN)
 

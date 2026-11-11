@@ -16,7 +16,7 @@ from typing import Protocol
 from .artifacts import Artifact, ArtifactState
 from .jobs import JobState
 from .jobs import JobEvent
-from .translate_project import TranslateProjectResult
+from .translation import TranslateProjectResult
 from .kernel import is_slug, validate_job_identity, JobFailure, CancellationToken
 
 REVIEW_EXPORT_COMMAND_TYPE = "export_review_package"

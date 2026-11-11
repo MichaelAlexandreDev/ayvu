@@ -9,19 +9,19 @@ import sys
 
 import pytest
 
-from ayvu.context_execution import (
+from ayvu.translation.context.execution import (
     ContextExecution, ResolvedContextEgressDecision, plan_with_context, require_context_egress,
 )
-from ayvu.context_source import SnapshotContextCandidateSource, StoredContextRevision, snapshot_context_sources
+from ayvu.translation.context.source import SnapshotContextCandidateSource, StoredContextRevision, snapshot_context_sources
 from ayvu.knowledge.glossary.catalog import Entry, Snapshot
 from ayvu.projects.profiles.model import ProjectReference, ProjectTranslationProfile
-from ayvu.provider import Requirement, UnitReference
-from ayvu.provider_network import ResolvedProviderNetworkDecision, NetworkClass
-from ayvu.provider_capabilities import (
+from ayvu.providers.ports import Requirement, UnitReference
+from ayvu.providers.network import ResolvedProviderNetworkDecision, NetworkClass
+from ayvu.providers.capabilities import (
     Capability, CapabilityFact, EvidenceSource, LimitOrigin, LimitScope, LimitSemantics, LimitUnit,
     ProviderCapabilityError, ProviderLimit, SupportState,
 )
-from ayvu.translation_context import (
+from ayvu.translation.context.model import (
     ContextAuthorization, ContextBuildRequest, ContextCandidate, ContextCapabilityEvidence, ContextCategory,
     ContextDestination, ContextEntryRevision, ContextError, ContextKind, ContextLimits, ContextPolicyVersion,
     ContextPurpose, ContextSnapshot, ContextSourceLimits, ContextSourceOversize, ContextSourceRequest, ContextSourceResult,

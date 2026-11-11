@@ -172,7 +172,7 @@ def _install_cli_environment(monkeypatch, tmp_path: Path, session: FakeLibreTran
     processing_dir = tmp_path / "processing"
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setattr("ayvu.cli._processing_dir", lambda _config: processing_dir)
-    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
     return processing_dir
 
 
@@ -365,7 +365,7 @@ def test_translate_cli_interrupts_then_resume_reuses_checkpoint_and_cache(tmp_pa
     assert state.current_chapter is not None
 
     resumed_session = FakeLibreTranslateSession(_direct_languages())
-    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: resumed_session)
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: resumed_session)
     resumed = runner.invoke(
         app,
         ["--mode", "developer", "resume", str(source_path), "--target", "pt"],

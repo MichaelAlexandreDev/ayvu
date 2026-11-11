@@ -23,7 +23,7 @@ from ...knowledge.memory.approved import ApprovedMemoryRepository
 from ...knowledge.cache import AuthorizedCacheScope, ExactEntryKey
 from ...content import ContentDocument, TranslationUnit
 from ...provenance import ConfigurationRef
-from ...translation_plan import ResolvedTranslationPlan
+from ..plan import ResolvedTranslationPlan
 from ...content import protected_content_is_intact, special_term_spans
 
 

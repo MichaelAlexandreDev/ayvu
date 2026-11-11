@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.batch_output_policy import BatchOutputError, BatchOutputPolicy, OutputIntent
+from ayvu.translation.batch_output import BatchOutputError, BatchOutputPolicy, OutputIntent
 from ayvu.kernel import OutputPlan
 
 
@@ -80,7 +80,7 @@ def test_hardlink_and_symlink_source_aliases(tmp_path):
 
 
 def test_exclusive_allocation_exhaustion_is_bounded(tmp_path, monkeypatch):
-    import ayvu.batch_output_policy as policy
+    import ayvu.translation.batch_output as policy
 
     one = intent(tmp_path, "one")
     item = BatchOutputPolicy().plan((one,)).items[0]
@@ -106,7 +106,7 @@ def test_completed_output_identity_is_revalidated(tmp_path):
 
 
 def test_concurrent_creator_wins_first_auxiliary_candidate(tmp_path, monkeypatch):
-    import ayvu.batch_output_policy as policy
+    import ayvu.translation.batch_output as policy
 
     one = intent(tmp_path, "one")
     item = BatchOutputPolicy().plan((one,)).items[0]
@@ -141,7 +141,7 @@ def test_in_place_changes_to_source_or_overwrite_target_invalidate_plan(tmp_path
 
 
 def test_case_insensitive_identity_rejects_output_aliases(tmp_path, monkeypatch):
-    import ayvu.batch_output_policy as policy
+    import ayvu.translation.batch_output as policy
 
     one, two = intent(tmp_path, "one"), intent(tmp_path, "two")
     two = OutputIntent(two.source, OutputPlan(tmp_path / "ONE-PT.EPUB"), two.report_dir, two.report_stem)
@@ -152,7 +152,7 @@ def test_case_insensitive_identity_rejects_output_aliases(tmp_path, monkeypatch)
 
 
 def test_case_insensitive_reservations_do_not_reuse_an_auxiliary_name(tmp_path, monkeypatch):
-    import ayvu.batch_output_policy as policy
+    import ayvu.translation.batch_output as policy
 
     one, two = intent(tmp_path, "one"), intent(tmp_path, "two")
     one = OutputIntent(one.source, one.output, one.report_dir, "Shared", None)
@@ -165,7 +165,7 @@ def test_case_insensitive_reservations_do_not_reuse_an_auxiliary_name(tmp_path, 
 
 
 def test_planning_exhaustion_is_recorded_per_item_without_writing(tmp_path, monkeypatch):
-    import ayvu.batch_output_policy as policy
+    import ayvu.translation.batch_output as policy
 
     one, two = intent(tmp_path, "one"), intent(tmp_path, "two")
     one.report_dir.mkdir()

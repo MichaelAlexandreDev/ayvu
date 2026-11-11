@@ -46,9 +46,9 @@ from ...review_exchange import (
     decode_review_package, encode_review_package, export_review_package, map_review_package,
 )
 from ...review_import import ReviewImportError, read_review_csv_bytes
-from ...translate_project import TranslateProjectResult
-from ...translate_project import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
-from ...translation_engine import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
+from ...translation import TranslateProjectResult
+from ...translation import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
+from ...translation import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
 from ...kernel import JobFailure, JobFailureFamily, JobWarning, CancellationToken
 
 _MAX_PACKAGE_BYTES = 64 * 1024 * 1024

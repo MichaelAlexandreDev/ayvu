@@ -9,15 +9,15 @@ import requests
 from ayvu.content.model import Constraint, ProtectedPart
 from ayvu.jobs.execution import CancellationSource
 from ayvu.provenance.model import NOT_APPLICABLE, UNKNOWN
-from ayvu.provider import (
+from ayvu.providers.ports import (
     ConstraintsFeature, ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProtectedPartsFeature, ProviderRoute,
     ProviderStatus, Requirement, request_diagnostics, result_diagnostics,
 )
-from ayvu.provider_libretranslate import (
+from ayvu.providers.libretranslate.adapter import (
     ADAPTER_ID, ADAPTER_VERSION, LIBRETRANSLATE_SAFE_POINTS, LibreTranslateProvider, LibreTranslateProviderFactory,
 )
-from ayvu.provider_service import ProviderInstance, ProviderRegistry, execute
-from ayvu.v1.translator import (
+from ayvu.providers.service import ProviderInstance, ProviderRegistry, execute
+from ayvu.providers.libretranslate.client import (
     LibreTranslateTranslator, RequestRateLimiter, RoutedTranslator, TranslationRoute, Translator, TranslatorError,
 )
 from provider_fakes import FakeSession, http_response, request
@@ -98,7 +98,7 @@ def test_conflicting_requested_route_fails_before_http(route, requested, source)
 
 def test_retries_backoff_and_status_handling_are_unchanged(monkeypatch):
     sleeps = []
-    monkeypatch.setattr('ayvu.v1.translator.time.sleep', sleeps.append)
+    monkeypatch.setattr('ayvu.providers.libretranslate.client.time.sleep', sleeps.append)
     base = translator([http_response(503, 'busy'), requests.exceptions.ConnectionError('down'), ok()], retries=2,
                       retry_backoff=0.5, retry_backoff_max=8.0)
     result = provider(base).execute(request())
@@ -116,8 +116,8 @@ def test_timeout_value_reaches_every_request():
 def test_rate_limit_applies_per_request_through_the_adapter(monkeypatch):
     sleeps = []
     times = iter([10.0, 10.1])
-    monkeypatch.setattr('ayvu.v1.translator.time.monotonic', lambda: next(times))
-    monkeypatch.setattr('ayvu.v1.translator.time.sleep', sleeps.append)
+    monkeypatch.setattr('ayvu.providers.libretranslate.client.time.monotonic', lambda: next(times))
+    monkeypatch.setattr('ayvu.providers.libretranslate.client.time.sleep', sleeps.append)
     base = translator([ok('Hello'), ok('Ola')], requests_per_second=2.0)
     provider(base, BRIDGE).execute(request('Salut', 'fr', 'pt'))
     assert sleeps == [pytest.approx(0.4)]
