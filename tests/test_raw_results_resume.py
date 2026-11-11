@@ -9,6 +9,8 @@ import pytest
 from typer.testing import CliRunner
 
 import ayvu.interfaces.cli.app as cli
+
+from ayvu.interfaces.cli import settings as cli_settings
 import ayvu.composition.builders.translate_project as composition
 from ayvu.jobs.execution import InMemoryJobEventLog
 from ayvu.provenance.model import ProducerIdentity
@@ -198,7 +200,7 @@ def isolate(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(cli, "_processing_dir", lambda _: tmp_path / "processing")
+    monkeypatch.setattr(cli_settings, "_processing_dir", lambda _: tmp_path / "processing")
 
 
 def resume(tmp_path, monkeypatch, source):

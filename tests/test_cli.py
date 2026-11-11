@@ -49,7 +49,7 @@ def _fake_translation(monkeypatch, fake_translate) -> None:
 
 def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_path, tmp_path, monkeypatch):
     processing = tmp_path / 'project-processing'
-    monkeypatch.setattr('ayvu.interfaces.cli.app._processing_dir', lambda _config: processing)
+    monkeypatch.setattr('ayvu.interfaces.cli.settings._processing_dir', lambda _config: processing)
     calls = []
     def stop(**kwargs):
         calls.append(kwargs)
@@ -71,7 +71,7 @@ def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_pat
 def test_project_storage_failure_prevents_preflight(minimal_epub_path, tmp_path, monkeypatch):
     processing = tmp_path / 'blocked-processing'
     processing.write_bytes(b'blocked')
-    monkeypatch.setattr('ayvu.interfaces.cli.app._processing_dir', lambda _config: processing)
+    monkeypatch.setattr('ayvu.interfaces.cli.settings._processing_dir', lambda _config: processing)
     calls = []
     monkeypatch.setattr('ayvu.interfaces.cli.app.run_translation_preflight', lambda **kw: calls.append(kw))
     result = runner.invoke(app, ['translate', str(minimal_epub_path), '--source', 'en',
@@ -97,7 +97,7 @@ def test_project_rejects_secret_endpoint_without_reflecting_it(minimal_epub_path
 def test_dry_run_does_not_require_project_storage(minimal_epub_path, tmp_path, monkeypatch):
     processing = tmp_path / 'blocked'
     processing.write_bytes(b'blocked')
-    monkeypatch.setattr('ayvu.interfaces.cli.app._processing_dir', lambda _config: processing)
+    monkeypatch.setattr('ayvu.interfaces.cli.settings._processing_dir', lambda _config: processing)
     calls = []
     def stop(**kwargs):
         calls.append(kwargs)
@@ -147,7 +147,7 @@ def isolated_config(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(config_home))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "Processando")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "Processando")
     config_path = config_home / "ayvu" / "config.json"
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(
@@ -250,7 +250,7 @@ def test_root_command_shows_processing_translation_state(tmp_path, monkeypatch):
     processing_dir = tmp_path / "Processando"
     state = _resume_state(tmp_path)
     ResumeStateStore(processing_dir).save(state)
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
     result = runner.invoke(app, [], input="n\n0\n")
 
@@ -300,7 +300,7 @@ def test_root_command_uses_configured_processing_dir(isolated_config, tmp_path):
 def test_root_command_in_developer_mode_skips_guided_prompts(tmp_path, monkeypatch):
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake")
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, ["--mode", "developer", "--preview", str(epub_path)])
 
@@ -398,7 +398,7 @@ def test_root_command_resumes_detected_translation_when_confirmed(tmp_path, monk
         calls["translation_options"] = kwargs["options"]
         return report
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.run_translation_preflight", fake_preflight)
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
@@ -432,7 +432,7 @@ def test_root_command_resumes_detected_translation_when_confirmed(tmp_path, monk
 def test_root_command_reports_resume_failure_without_traceback(tmp_path, monkeypatch):
     processing_dir = tmp_path / "Processando"
     ResumeStateStore(processing_dir).save(_resume_state(tmp_path))
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: (_ for _ in ()).throw(
@@ -454,7 +454,7 @@ def test_root_command_reports_invalid_processing_state(tmp_path, monkeypatch):
     processing_dir = tmp_path / "Processando"
     processing_dir.mkdir()
     (processing_dir / "bad.ayvu-state.json").write_text("{bad", encoding="utf-8")
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
     result = runner.invoke(app, [], input="n\n")
 
@@ -469,7 +469,7 @@ def test_root_command_reports_invalid_processing_state(tmp_path, monkeypatch):
 
 
 def test_root_command_without_processing_state_has_no_processing_noise(tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, [], input="0\n")
 
@@ -526,7 +526,7 @@ def _patch_resume_pipeline(monkeypatch, processing_dir: Path, calls: dict[str, o
             target_language=options.target,
         )
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
@@ -573,7 +573,7 @@ def test_resume_command_resumes_single_state(tmp_path, monkeypatch):
 
 
 def test_resume_command_without_state_reports_clear_error(tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, ["resume"])
 
@@ -604,7 +604,7 @@ def test_resume_command_requires_disambiguation_for_multiple_states(tmp_path, mo
     store = ResumeStateStore(processing_dir)
     store.save(_running_resume_state(tmp_path, "alpha", "pt"))
     store.save(_running_resume_state(tmp_path, "beta", "es"))
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
     result = runner.invoke(app, ["resume"])
 
@@ -630,7 +630,7 @@ def test_translate_command_records_chapter_checkpoint(tmp_path, monkeypatch):
         )
         return TranslationReport(output_path=output_path, input_path=epub_path, target_language="pt")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
@@ -679,7 +679,7 @@ def test_root_command_generates_guided_preview_when_confirmed(tmp_path, monkeypa
         calls["options"] = kwargs["options"]
         return TranslationReport(output_path=output_path, input_path=input_path, target_language="pt")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_preview_books_dir", lambda: preview_dir)
     monkeypatch.setattr(
         "ayvu.composition.builders.providers.LibreTranslateTranslator",
@@ -737,7 +737,7 @@ def test_root_command_allows_guided_preview_target_from_languages(tmp_path, monk
         calls["options"] = kwargs["options"]
         return TranslationReport(output_path=_output_path, input_path=_input_path, target_language="es")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_preview_books_dir", lambda: preview_dir)
     monkeypatch.setattr("ayvu.composition.builders.providers.LibreTranslateTranslator", FakeLanguageTranslator)
     monkeypatch.setattr("ayvu.interfaces.cli.app.run_translation_preflight", fake_preflight)
@@ -773,7 +773,7 @@ def test_root_command_starts_guided_translation(tmp_path, monkeypatch):
         calls["options"] = kwargs["options"]
         return TranslationReport(output_path=output_path, input_path=input_path, target_language="pt")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_translated_books_dir", lambda: output_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
@@ -799,7 +799,7 @@ def test_root_command_starts_guided_translation(tmp_path, monkeypatch):
 
 
 def test_root_command_creates_guided_glossary(isolated_config, tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(
         app,
@@ -819,7 +819,7 @@ def test_root_command_creates_guided_glossary(isolated_config, tmp_path, monkeyp
 
 
 def test_root_command_edits_guided_glossary(isolated_config, tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     glossary_dir = isolated_config.parent / "glossaries"
     glossary_dir.mkdir()
     glossary_path = glossary_dir / "technical.json"
@@ -862,7 +862,7 @@ def test_root_command_selects_saved_glossary_for_guided_translation(isolated_con
         calls["glossary"] = kwargs["glossary"]
         return TranslationReport(output_path=output_path, input_path=input_path, target_language="pt")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_translated_books_dir", lambda: output_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.run_translation_preflight", fake_preflight)
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
@@ -916,7 +916,7 @@ def test_root_command_selects_profile_for_guided_translation(isolated_config, tm
         calls["options"] = kwargs["options"]
         return TranslationReport(output_path=output_path, input_path=input_path, target_language="es")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_translated_books_dir", lambda: output_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.run_translation_preflight", fake_preflight)
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
@@ -1134,7 +1134,7 @@ def test_root_command_reports_library_open_failure(isolated_config, tmp_path, mo
 
 
 def test_root_command_settings_keeps_language_when_not_changed(tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, [], input="4\n1\npt\n0\n")
 
@@ -1147,7 +1147,7 @@ def test_root_command_settings_keeps_language_when_not_changed(tmp_path, monkeyp
 
 
 def test_root_command_settings_changes_and_persists_language(isolated_config, tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.composition.builders.providers.LibreTranslateTranslator", FakeNoLanguagesTranslator)
 
     result = runner.invoke(app, [], input="4\n1\nes\n0\n")
@@ -1216,7 +1216,7 @@ def test_first_use_failed_save_retains_session_without_claiming_success(isolated
 
 def test_root_command_settings_changes_books_dir(isolated_config, tmp_path, monkeypatch):
     books_dir = tmp_path / "Minha Biblioteca"
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, [], input=f"4\n2\n{books_dir}\n0\n")
 
@@ -1228,7 +1228,7 @@ def test_root_command_settings_changes_books_dir(isolated_config, tmp_path, monk
 
 
 def test_root_command_settings_changes_feature_folder_names(isolated_config, tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(
         app,
@@ -1250,7 +1250,7 @@ def test_root_command_settings_changes_feature_folder_names(isolated_config, tmp
 
 
 def test_root_command_settings_rejects_folder_paths(isolated_config, tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(
         app,
@@ -1266,7 +1266,7 @@ def test_root_command_settings_rejects_folder_paths(isolated_config, tmp_path, m
 
 
 def test_root_command_settings_changes_reader_app(isolated_config, tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, [], input="4\n4\nfoliate\n0\n")
 
@@ -1280,7 +1280,7 @@ def test_root_command_settings_changes_reader_app(isolated_config, tmp_path, mon
 def test_root_command_first_use_asks_and_saves_default_language(isolated_config, tmp_path, monkeypatch):
     isolated_config.unlink()
     books_dir = tmp_path / "Minha Biblioteca"
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.composition.builders.providers.LibreTranslateTranslator", FakeNoLanguagesTranslator)
 
     result = runner.invoke(app, [], input=f"es\n{books_dir}\ny\n0\n")
@@ -1305,7 +1305,7 @@ def test_root_command_first_use_asks_and_saves_default_language(isolated_config,
 def test_root_command_first_use_can_change_feature_folder_names(isolated_config, tmp_path, monkeypatch):
     isolated_config.unlink()
     books_dir = tmp_path / "Minha Biblioteca"
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.composition.builders.providers.LibreTranslateTranslator", FakeNoLanguagesTranslator)
 
     result = runner.invoke(
@@ -1327,7 +1327,7 @@ def test_root_command_first_use_can_change_feature_folder_names(isolated_config,
 
 
 def test_root_command_does_not_reask_when_config_exists(tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, [], input="0\n")
 
@@ -1355,7 +1355,7 @@ def test_root_command_uses_saved_default_language_in_guided_preview(isolated_con
         calls["options"] = kwargs["options"]
         return TranslationReport(output_path=_output_path, input_path=_input_path, target_language="es")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_preview_books_dir", lambda: preview_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.run_translation_preflight", fake_preflight)
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
@@ -1372,7 +1372,7 @@ def test_root_command_uses_saved_default_language_in_guided_preview(isolated_con
 
 def test_root_command_ignores_invalid_config(isolated_config, tmp_path, monkeypatch):
     isolated_config.write_text("{not valid json", encoding="utf-8")
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, [], input="0\n")
 
@@ -1382,7 +1382,7 @@ def test_root_command_ignores_invalid_config(isolated_config, tmp_path, monkeypa
 
 
 def test_root_command_can_show_help_from_guided_menu(tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
     result = runner.invoke(app, [], input="6\n")
 
@@ -1523,7 +1523,7 @@ def test_translate_command_confirms_default_output_location(tmp_path, monkeypatc
         )
 
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_translated_books_dir", lambda: output_dir)
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
@@ -1614,7 +1614,7 @@ def test_translate_command_allows_custom_output_path_from_default_prompt(tmp_pat
         return TranslationReport(output_path=output_path, input_path=epub_path, target_language="pt")
 
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_translated_books_dir", lambda: output_dir)
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
@@ -1667,7 +1667,7 @@ def test_translate_command_allows_another_name_when_output_exists(tmp_path, monk
         calls["output_path"] = output_path
         return TranslationReport(output_path=output_path, input_path=epub_path, target_language="pt")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
@@ -1758,7 +1758,7 @@ def test_translate_command_batch_writes_outputs_and_markdown_reports(tmp_path, m
             texts_translated=2,
         )
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app._reports_dir", lambda _config: reports_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
@@ -1807,7 +1807,7 @@ def test_translate_command_uses_output_dir_for_single_epub(tmp_path, monkeypatch
         calls["output_path"] = output_path
         return TranslationReport(output_path=output_path, input_path=input_path, target_language="pt")
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
@@ -1938,7 +1938,7 @@ def test_translate_command_batch_continues_after_failure_when_requested(tmp_path
             target_language=kwargs["options"].target,
         )
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app._reports_dir", lambda _config: reports_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.app.run_translation_preflight", fake_preflight)
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
@@ -2016,7 +2016,7 @@ def test_translate_command_delegates_v2_review_export_from_exact_project_result(
         artifact_destination=output_path, project_revision=1)
     report = TranslationReport(output_path=output_path, input_path=epub_path, output_written=True,
                                detected_language="en", target_language="pt")
-    monkeypatch.setattr("ayvu.interfaces.cli.app._processing_dir", lambda _config: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings._processing_dir", lambda _config: processing_dir)
     monkeypatch.setattr("ayvu.composition.cli.build_project_request", lambda *_args, **_kwargs: object())
     monkeypatch.setattr("ayvu.composition.cli.resolve_project", lambda *_args, **_kwargs: SimpleNamespace(
         project=SimpleNamespace(project_id=project_id, source_sha256="b" * 64)))
@@ -2317,7 +2317,7 @@ def test_translate_command_offers_and_saves_markdown_report(tmp_path, monkeypatc
     _fake_translation(monkeypatch, lambda *_args, **_kwargs: report)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.app._default_reports_dir", lambda: reports_dir)
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
     result = runner.invoke(app, ["--mode", "common", "translate", str(epub_path), "--output", str(output_path)], input="y\n")
 
@@ -2371,7 +2371,7 @@ def test_translate_command_puts_validation_warnings_in_report_and_markdown(tmp_p
         lambda _path, on_progress=None: ValidationResult(ok=False, warnings=[warning], document_count=1),
     )
     monkeypatch.setattr("ayvu.interfaces.cli.app._default_reports_dir", lambda: reports_dir)
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
     result = runner.invoke(
         app, ["--mode", "common", "translate", str(epub_path), "--output", str(output_path)], input="y\n"
@@ -2403,7 +2403,7 @@ def test_translate_command_handles_keyboard_interrupt_cleanly(tmp_path, monkeypa
         kwargs["on_chapter_start"](2, 3, "chapter-two.xhtml")
         raise KeyboardInterrupt
 
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "Processando")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "Processando")
     monkeypatch.setattr(
         "ayvu.interfaces.cli.app.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
@@ -2671,7 +2671,7 @@ def test_translate_command_passes_execution_controls_to_preflight_and_resume(
 ):
     processing_dir = tmp_path / "Processando"
     monkeypatch.setattr("ayvu.interfaces.cli.app.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
-    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
@@ -3238,68 +3238,6 @@ def _write_review_csv_file(path: Path, target: str = "pt") -> Path:
         translated="Ola leitor.",
     )
     return write_review_csv(path, [segment])
-
-
-def test_apply_review_command_rejects_v1_before_opening_epub_or_reconstructing(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"fake epub")
-    review_path = _write_review_csv_file(tmp_path / "review.csv")
-
-    def fail_apply(*_args: object, **_kwargs: object) -> object:
-        raise AssertionError("legacy v1 must be rejected before apply")
-
-    monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", fail_apply)
-
-    result = runner.invoke(app, ["apply-review", str(epub_path), str(review_path)])
-
-    assert result.exit_code == 1
-    assert "CSV v1 serve apenas para inspeção" in result.output
-    assert "legacy_reexport_required" in result.output
-    assert "pacote v2" in result.output
-    assert "Traceback" not in result.output
-
-
-def test_apply_review_command_requires_a_v2_mapper_for_nonlegacy_input(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"fake epub")
-    review_path = tmp_path / "package.csv"
-    review_path.write_text("placeholder", encoding="utf-8")
-    result = runner.invoke(app, ["apply-review", str(epub_path), str(review_path)])
-
-    assert result.exit_code == 1
-    assert "invalid_preamble" in result.output
-    assert "Traceback" not in result.output
-
-
-def test_apply_review_command_rejects_legacy_before_output_conflict_check(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"fake epub")
-    review_path = _write_review_csv_file(tmp_path / "review.csv")
-    output_path = tmp_path / "book-pt-reviewed.epub"
-    output_path.write_bytes(b"already here")
-
-    def fail_apply(*_args: object, **_kwargs: object) -> object:
-        raise AssertionError("apply should not run when output already exists")
-
-    result = runner.invoke(app, ["apply-review", str(epub_path), str(review_path)])
-
-    assert result.exit_code == 1
-    assert "legacy_reexport_required" in result.output
-    assert output_path.read_bytes() == b"already here"
-    assert "Traceback" not in result.output
-
-
-def test_apply_review_command_reports_unreadable_review_file(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"fake epub")
-    broken_csv = tmp_path / "broken.csv"
-    broken_csv.write_text("segment_id,translated\nc0001-s0001,x\n", encoding="utf-8")
-
-    result = runner.invoke(app, ["apply-review", str(epub_path), str(broken_csv)])
-
-    assert result.exit_code == 1
-    assert "Não foi possível ler o arquivo de revisão." in result.output
-    assert "Traceback" not in result.output
 
 
 def test_cli_console_width_does_not_depend_on_the_environment():

@@ -30,7 +30,7 @@ CHILD = textwrap.dedent('''
     import requests
     from typer.testing import CliRunner
     import ayvu.providers.libretranslate.client
-    from ayvu.interfaces.cli import app as cli
+    from ayvu.interfaces.cli import app as cli, settings as cli_settings
     class Session:
         def mount(self, prefix, adapter):
             assert prefix == "http://"
@@ -54,7 +54,7 @@ CHILD = textwrap.dedent('''
             pass
     ayvu.providers.libretranslate.client.requests.Session = Session
     processing = sys.argv[1]
-    cli._processing_dir = lambda _config: pathlib.Path(processing)
+    cli_settings._processing_dir = lambda _config: pathlib.Path(processing)
     CliRunner().invoke(cli.app, sys.argv[2:])
 ''')
 

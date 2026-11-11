@@ -281,6 +281,10 @@ lancadas e secoes versionadas quando uma release for publicada.
   muda. Os testes desses comandos saem de `test_cli.py` para `tests/interfaces/cli/`.
 - CLI dividido, segunda parte (REF-14, #282): os comandos `cache` (inspect, clean, export e import) e os
   auxiliares que só eles usam vão para `commands/cache.py`, e seus testes para `tests/interfaces/cli/`.
+- CLI dividido, terceira parte (REF-14, #282): `apply-review` vai para `commands/review.py`, e a leitura
+  da configuração salva e da pasta de processamento vai para `interfaces/cli/settings.py`. Todo o CLI
+  passa a buscar a pasta de processamento em `settings._processing_dir`, num só lugar, e os testes
+  substituem esse ponto, em vez de uma cópia por módulo.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

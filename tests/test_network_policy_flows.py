@@ -9,7 +9,7 @@ import socket
 import pytest
 from typer.testing import CliRunner
 
-from ayvu.interfaces.cli import app as cli
+from ayvu.interfaces.cli import app as cli, settings as cli_settings
 from ayvu.composition import cli as cli_composition
 from ayvu.preferences.model import AyvuConfig
 from ayvu.network.policy import NetworkPolicy
@@ -175,7 +175,7 @@ def test_translate_and_batch_use_real_production_composition(minimal_epub_path, 
 @pytest.mark.parametrize("policy", ["none", "loopback"])
 def test_resume_uses_saved_endpoint_but_current_request_policy(minimal_epub_path, tmp_path, provider_wire, policy):
     # A legacy checkpoint is an existing supported production recovery input.
-    processing = cli._processing_dir(AyvuConfig.default())
+    processing = cli_settings._processing_dir(AyvuConfig.default())
     state = TranslationResumeState.create(input_path=minimal_epub_path, output_path=tmp_path / "out.epub",
         cache_path=tmp_path / "cache.sqlite", translator_name="libretranslate", url="http://localhost:5000",
         glossary_path=None, options=TranslationOptions(LanguagePair("en", "pt")), overwrite=False, timeout=2, retries=0)

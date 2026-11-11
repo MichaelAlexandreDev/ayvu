@@ -47,7 +47,7 @@ def _isolated_from_the_user(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ayvu.interfaces.cli.app._processing_dir", lambda _config: tmp_path / "processing")
+    monkeypatch.setattr("ayvu.interfaces.cli.settings._processing_dir", lambda _config: tmp_path / "processing")
 
 
 class Crash(BaseException):
