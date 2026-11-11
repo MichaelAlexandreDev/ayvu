@@ -289,6 +289,8 @@ lancadas e secoes versionadas quando uma release for publicada.
   output locations and existing-file decisions to `interfaces/cli/output.py`, preserving behavior.
 - CLI split, fifth part (REF-14, #282): translation plans, options, book execution, batches and previews
   move out of `app.py` into focused CLI modules, preserving behavior.
+- CLI split, sixth part (REF-14, #282): translate and resume commands move to `interfaces/cli/commands`,
+  including the shared guided resume flow, preserving behavior.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

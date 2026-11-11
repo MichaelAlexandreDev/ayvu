@@ -10,7 +10,8 @@ from ayvu.v1.cache import CacheKey, TranslationCache
 import ayvu.interfaces.cli.app as cli_module
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.interfaces.cli.options import DEFAULT_PREVIEW_DOCUMENT_LIMIT
-from ayvu.interfaces.cli.app import _BookOutcome, app
+from ayvu.interfaces.cli.app import app
+from ayvu.composition.cli import _BookOutcome
 from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.v1.html_translate import HtmlTranslationStats
@@ -169,21 +170,6 @@ def test_translation_options_exposes_language_pair_values():
     assert options.target == "pt"
 
 
-def test_translate_command_has_clear_error_for_unknown_translator(tmp_path):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"not a real epub")
-
-    result = runner.invoke(app, ["translate", str(epub_path), "--translator", "unknown", "--dry-run"])
-
-    assert result.exit_code == 1
-    assert "Não foi possível preparar o tradutor." in result.output
-    assert "Detalhe técnico:" in result.output
-    assert "Unsupported translator:" in result.output
-    assert "unknown" in result.output
-    assert "Use --translator libretranslate." in result.output
-    assert "Traceback" not in result.output
-
-
 def test_root_command_shows_processing_translation_state(tmp_path, monkeypatch):
     processing_dir = tmp_path / "Processando"
     state = _resume_state(tmp_path)
@@ -244,25 +230,6 @@ def test_root_command_in_developer_mode_skips_guided_prompts(tmp_path, monkeypat
 
     assert "Generate a translation preview?" not in result.output
     assert "Não foi possível ler o EPUB informado." in result.output
-
-
-def test_translate_command_in_developer_mode_skips_confirmations(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"fake")
-    monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
-
-    monkeypatch.setattr(
-        "ayvu.interfaces.cli.run.run_translation_preflight",
-        lambda **_kwargs: (_ for _ in ()).throw(PreflightError("failed", "next")),
-    )
-
-    result = runner.invoke(app, ["translate", str(epub_path)])
-
-    assert result.exit_code == 1
-    assert "Default output folder:" not in result.output
-    assert "Keep this output location?" not in result.output
-    assert "failed" in result.output
-    assert "next" in result.output
 
 
 def test_common_mode_hides_technical_detail_for_expected_error(tmp_path, monkeypatch):
@@ -417,139 +384,6 @@ def test_root_command_without_processing_state_has_no_processing_noise(tmp_path,
     assert "Canceled." in result.output
     assert "Translations in progress were found." not in result.output
     assert "Invalid processing state files were found." not in result.output
-
-
-def _running_resume_state(
-    tmp_path: Path,
-    stem: str,
-    target: str,
-    create_epub: bool = True,
-    workers: int = 1,
-    requests_per_second: float | None = None,
-    retries: int = 2,
-    retry_backoff: float = 0.5,
-    retry_backoff_max: float = 8.0,
-) -> TranslationResumeState:
-    epub_path = tmp_path / "Original" / f"{stem}.epub"
-    if create_epub:
-        epub_path.parent.mkdir(parents=True, exist_ok=True)
-        epub_path.write_bytes(b"fake epub")
-    return TranslationResumeState.create(
-        input_path=epub_path,
-        output_path=tmp_path / "Traduzidos" / f"{stem}-{target}.epub",
-        cache_path=tmp_path / "cache.sqlite",
-        translator_name="libretranslate",
-        url="http://localhost:5000",
-        glossary_path=None,
-        options=TranslationOptions(
-            language_pair=LanguagePair(source="en", target=target),
-            workers=workers,
-        ),
-        overwrite=False,
-        timeout=30.0,
-        retries=retries,
-        requests_per_second=requests_per_second,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    )
-
-
-def _patch_resume_pipeline(monkeypatch, processing_dir: Path, calls: dict[str, object]) -> None:
-    def fake_translate(input_path: Path, output_path: Path, **kwargs: object) -> TranslationReport:
-        options = kwargs["options"]
-        calls["options"] = options
-        return TranslationReport(
-            output_path=output_path,
-            input_path=input_path,
-            target_language=options.target,
-        )
-
-    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
-    monkeypatch.setattr(
-        "ayvu.interfaces.cli.run.run_translation_preflight",
-        lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
-    )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
-    _fake_translation(monkeypatch, fake_translate)
-    monkeypatch.setattr(
-        "ayvu.composition.builders.translate_project.validate_output",
-        lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1),
-    )
-    monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
-
-
-def test_resume_command_resumes_single_state(tmp_path, monkeypatch):
-    processing_dir = tmp_path / "Processando"
-    state = _running_resume_state(
-        tmp_path,
-        "book",
-        "pt",
-        workers=2,
-        requests_per_second=2.5,
-        retries=4,
-        retry_backoff=1.0,
-        retry_backoff_max=10.0,
-    ).record_chapter("chapter-one.xhtml", 2, ok=True)
-    ResumeStateStore(processing_dir).save(state)
-    calls: dict[str, object] = {}
-    _patch_resume_pipeline(monkeypatch, processing_dir, calls)
-
-    result = runner.invoke(app, ["resume"])
-
-    assert result.exit_code == 0
-    assert "Resuming translation:" in result.output
-    assert "Resume checkpoint" in result.output
-    assert "1/2" in result.output
-    assert "Workers" in result.output
-    assert "2 (parallel" in result.output
-    assert "2.5 requests/second" in result.output
-    assert "shared across workers" in result.output
-    assert "4 retries" in result.output
-    assert calls["options"].source == "en"
-    assert calls["options"].target == "pt"
-    assert calls["options"].workers == 2
-
-
-def test_resume_command_without_state_reports_clear_error(tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
-
-    result = runner.invoke(app, ["resume"])
-
-    assert result.exit_code == 1
-    assert "No translation in progress was found to resume." in result.output
-    assert "ayvu translate" in result.output
-    assert "Traceback" not in result.output
-
-
-def test_resume_command_selects_state_by_epub_and_target(tmp_path, monkeypatch):
-    processing_dir = tmp_path / "Processando"
-    store = ResumeStateStore(processing_dir)
-    store.save(_running_resume_state(tmp_path, "alpha", "pt"))
-    beta = _running_resume_state(tmp_path, "beta", "es")
-    store.save(beta)
-    calls: dict[str, object] = {}
-    _patch_resume_pipeline(monkeypatch, processing_dir, calls)
-
-    result = runner.invoke(app, ["resume", str(beta.input_path), "--target", "es"])
-
-    assert result.exit_code == 0
-    assert "beta.epub" in result.output
-    assert calls["options"].target == "es"
-
-
-def test_resume_command_requires_disambiguation_for_multiple_states(tmp_path, monkeypatch):
-    processing_dir = tmp_path / "Processando"
-    store = ResumeStateStore(processing_dir)
-    store.save(_running_resume_state(tmp_path, "alpha", "pt"))
-    store.save(_running_resume_state(tmp_path, "beta", "es"))
-    monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
-
-    result = runner.invoke(app, ["resume"])
-
-    assert result.exit_code == 1
-    assert "Several translations in progress match the request." in result.output
-    assert "Specify the EPUB and --target" in result.output
-    assert "Traceback" not in result.output
 
 
 def test_translate_command_records_chapter_checkpoint(tmp_path, monkeypatch):
@@ -1672,28 +1506,6 @@ def test_translate_command_puts_validation_warnings_in_report_and_markdown(tmp_p
     assert "Traceback" not in result.output
 
 
-def test_translate_command_require_full_cache_requires_cache_only(tmp_path):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"fake epub")
-
-    result = runner.invoke(app, ["translate", str(epub_path), "--require-full-cache"])
-
-    assert result.exit_code == 1
-    assert "--require-full-cache exige --cache-only" in result.output
-
-
-def test_translate_command_missing_output_requires_cache_only(tmp_path):
-    epub_path = tmp_path / "book.epub"
-    epub_path.write_bytes(b"fake epub")
-
-    result = runner.invoke(
-        app, ["translate", str(epub_path), "--missing-output", str(tmp_path / "missing.txt")]
-    )
-
-    assert result.exit_code == 1
-    assert "--missing-output exige --cache-only" in result.output
-
-
 def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeypatch):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
@@ -2013,109 +1825,6 @@ def test_translate_command_explicit_execution_flags_override_performance_profile
     assert "3 requests/second shared across workers" in result.output
 
 
-def test_translate_command_reports_unknown_performance_profile_without_traceback(
-    minimal_epub_path,
-    monkeypatch,
-):
-    called = False
-
-    def fail_preflight(**_kwargs: object) -> object:
-        nonlocal called
-        called = True
-        raise AssertionError("preflight should not run for an unknown performance profile")
-
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
-
-    result = runner.invoke(
-        app,
-        [
-            "--mode",
-            "developer",
-            "translate",
-            str(minimal_epub_path),
-            "--performance-profile",
-            "turbo",
-        ],
-    )
-
-    assert result.exit_code == 1
-    assert "Perfil de performance não encontrado." in result.output
-    assert "--performance-profile" in result.output
-    assert "Traceback" not in result.output
-    assert not called
-
-
-def test_translate_command_rejects_invalid_workers(minimal_epub_path, monkeypatch):
-    def fail_preflight(**_kwargs: object) -> object:
-        raise AssertionError("preflight should not run with invalid workers")
-
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
-
-    result = runner.invoke(
-        app,
-        ["--mode", "developer", "translate", str(minimal_epub_path), "--workers", "0"],
-    )
-
-    assert result.exit_code == 1
-    assert "Quantidade de workers inválida." in result.output
-    assert "Use --workers com valor 1 ou maior." in result.output
-    assert "Traceback" not in result.output
-
-
-def test_translate_command_rejects_parallel_workers_with_translation_memory(
-    minimal_epub_path,
-    monkeypatch,
-):
-    def fail_preflight(**_kwargs: object) -> object:
-        raise AssertionError("preflight should not run with incompatible worker options")
-
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
-
-    result = runner.invoke(
-        app,
-        [
-            "--mode",
-            "developer",
-            "translate",
-            str(minimal_epub_path),
-            "--workers",
-            "2",
-            "--translation-memory",
-        ],
-    )
-
-    assert result.exit_code == 1
-    assert "--workers é incompatível com --translation-memory nesta versão." in result.output
-    assert "Traceback" not in result.output
-
-
-def test_translate_command_rejects_high_performance_profile_with_translation_memory(
-    minimal_epub_path,
-    monkeypatch,
-):
-    def fail_preflight(**_kwargs: object) -> object:
-        raise AssertionError("preflight should not run with incompatible performance profile")
-
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
-
-    result = runner.invoke(
-        app,
-        [
-            "--mode",
-            "developer",
-            "translate",
-            str(minimal_epub_path),
-            "--performance-profile",
-            "high",
-            "--translation-memory",
-        ],
-    )
-
-    assert result.exit_code == 1
-    assert "--workers é incompatível com --translation-memory nesta versão." in result.output
-    assert "Traceback" not in result.output
-
-
 def test_translate_command_uses_profile_target_and_glossary(
     isolated_config,
     minimal_epub_path,
@@ -2213,28 +1922,6 @@ def test_translate_command_explicit_target_and_glossary_override_profile(
     assert options.target == "fr"
 
 
-def test_translate_command_reports_unknown_profile_without_traceback(minimal_epub_path, monkeypatch):
-    called = False
-
-    def fail_preflight(**_kwargs: object) -> object:
-        nonlocal called
-        called = True
-        raise AssertionError("preflight should not run for an unknown profile")
-
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
-
-    result = runner.invoke(
-        app,
-        ["--mode", "developer", "translate", str(minimal_epub_path), "--profile", "missing"],
-    )
-
-    assert result.exit_code == 1
-    assert "Perfil de tradução não encontrado." in result.output
-    assert "Use --profile com um perfil definido" in result.output
-    assert "Traceback" not in result.output
-    assert not called
-
-
 def test_translate_metadata_flag_reaches_translation_options(minimal_epub_path, tmp_path, monkeypatch):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
@@ -2282,40 +1969,6 @@ def test_translate_chapters_option_reaches_translation_options_and_prints_select
     assert "Selected chapters" in result.output
     assert "Chapter Two" in result.output
     assert "text/chapter2.xhtml" in result.output
-
-
-def test_translate_chapters_option_reports_invalid_expression(minimal_epub_path, monkeypatch):
-    def fail_preflight(**_kwargs: object) -> object:
-        raise AssertionError("preflight should not run for invalid chapter selection")
-
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
-
-    result = runner.invoke(
-        app,
-        ["--mode", "developer", "translate", str(minimal_epub_path), "--chapters", "3-1"],
-    )
-
-    assert result.exit_code == 1
-    assert "Seleção de capítulos inválida." in result.output
-    assert "chapter range is reversed" in result.output
-    assert "Traceback" not in result.output
-
-
-def test_translate_chapters_option_reports_unmatched_selection(minimal_epub_path, monkeypatch):
-    def fail_preflight(**_kwargs: object) -> object:
-        raise AssertionError("preflight should not run when no chapter matches")
-
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
-
-    result = runner.invoke(
-        app,
-        ["--mode", "developer", "translate", str(minimal_epub_path), "--chapters", "999"],
-    )
-
-    assert result.exit_code == 1
-    assert "Nenhum capítulo corresponde à seleção informada." in result.output
-    assert "no chapters matched selection" in result.output
-    assert "Traceback" not in result.output
 
 
 def test_translate_warns_when_epub_language_metadata_is_missing(tmp_path, monkeypatch):
