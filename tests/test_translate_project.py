@@ -30,10 +30,10 @@ from ayvu.jobs.execution import CancellationSource
 from ayvu.projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.provenance.model import ProvenanceStoreError
-from ayvu.translation.project import (
-    OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_BEFORE_START, ContinuationTicket, OutputValidation, TranslateCommandError,
-    TranslateObserver, TranslateProject, TranslateProjectCommand, TranslateProjectPorts, resolve_execution_plan as resolve_plan,
-)
+from ayvu.translation.project import TranslateProject
+from ayvu.translation.project_contracts import (OUTPUT_ROLE, RECONSTRUCT_STAGE,
+    RECONSTRUCT_STAGE_VERSION, TRANSLATE_BEFORE_START, ContinuationTicket, OutputValidation, TranslateCommandError,
+    TranslateObserver, TranslateProjectCommand, TranslateProjectPorts, resolve_execution_plan as resolve_plan)
 from ayvu.composition.builders.translate_project import LegacyOutputValidator, LegacyResources, LegacyTranslationRuntime, open_translate_project
 from ayvu.translation.engine import ENGINE_BEFORE_CHAPTER, ENGINE_BEFORE_UNIT, EngineObserver
 from ayvu.providers.libretranslate.client import TranslatorError
@@ -1079,7 +1079,7 @@ def test_a_job_another_process_moved_is_reported_as_the_record_says(world):
 
 
 def test_progress_can_never_crowd_out_the_terminal_outcome(world, monkeypatch):
-    monkeypatch.setattr("ayvu.translation.project.DEFAULT_EVENT_LOG_CAPACITY", 8)
+    monkeypatch.setattr("ayvu.translation.project_run.DEFAULT_EVENT_LOG_CAPACITY", 8)
     result = world.run()
     world.assert_consistent(result)
     assert len(result.events) <= 8 and result.events[-1].payload == result.outcome

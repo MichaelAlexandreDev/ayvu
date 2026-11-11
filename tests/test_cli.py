@@ -18,7 +18,7 @@ from ayvu.v1.resume import COMPLETED_STATUS, ResumeStateStore, TranslationResume
 from ayvu.review.application import ReviewExportResult, ReviewOutcome, ReviewPackageIdentity
 from ayvu.review.csv_export import ReviewSegment, write_review_csv
 from ayvu.translation.engine import EngineResult
-from ayvu.translation.project import OutputValidation, TranslateProjectResult
+from ayvu.translation.project_contracts import OutputValidation, TranslateProjectResult
 from ayvu.providers.libretranslate.client import TranslatorError, TranslatorLanguage
 from ayvu.formats.epub.validation import ValidationResult
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions

@@ -40,7 +40,7 @@ from ayvu.jobs.model import JobState, JobTerminalSummary
 from ayvu.jobs.events import JobOutcome
 from ayvu.provenance.model import SourceKind
 from ayvu.review.application import ReviewApplyCommand, ReviewOutcome
-from ayvu.translation.project import TRANSLATE_COMMAND_TYPE, OutputValidation, TranslateObserver, TranslateProjectResult
+from ayvu.translation.project_contracts import TRANSLATE_COMMAND_TYPE, OutputValidation, TranslateObserver, TranslateProjectResult
 from ayvu.composition.builders.translate_project import ProjectTranslationRun
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode, JobError, JobFailure, JobFailureFamily
 

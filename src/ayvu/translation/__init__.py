@@ -22,10 +22,11 @@ from .errors import (
 )
 from .pipeline import LegacyTextPipelineFacade, LinguisticSource
 from .plan import resolve_plan
-from .project import (
+from .project import TranslateProject
+from .project_contracts import (
     AcceptedOutputPlan, ContinuationTicket, INTERRUPTED, INTERRUPTED_AFTER_PUBLICATION, OUTPUT_ROLE,
     OWN_JOB_STATES, OutputValidation, PUBLICATION_UNCOMMITTED, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION,
-    RuntimeContext, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateObserver, TranslateProject,
+    RuntimeContext, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateObserver,
     TranslateProjectCommand, TranslateProjectPorts, TranslateProjectResult, TranslationRuntime,
     resolve_execution_plan,
 )

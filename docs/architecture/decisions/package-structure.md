@@ -300,7 +300,7 @@ REF-15 break up by reason to change after they move.
 | `chunking.py` | `translation/chunking.py` |  |
 | `preflight.py` | `translation/preflight.py` | in REF-11 the v1 cache check became `v1/cache_check.py`, passed in by composition as `cache_check` |
 | `resume_reuse.py` | `translation/resume_reuse.py` | added in REF-08, out of `job_recovery.py` |
-| `translate_project.py` | `translation/project.py` | split |
+| `translate_project.py` | `translation/project.py`, `project_contracts.py`, `project_run.py`, `project_lease.py` | split |
 | `translate_batch.py` | `translation/batch.py` |  |
 | `batch_output_policy.py` | `translation/batch_output.py` |  |
 | `memory_retrieval.py` | `translation/stages/memory_retrieval.py` | a pipeline stage, not knowledge |

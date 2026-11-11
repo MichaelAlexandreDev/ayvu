@@ -17,7 +17,7 @@ from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeR
 from ayvu.translation.resume_reuse import RecoveryReason
 from ayvu.recovery.store import _options
 from ayvu.projects.store import ProjectJsonRepository
-from ayvu.translation.project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
+from ayvu.translation.project_contracts import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
 from ayvu.composition.builders.translate_project import (
     LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
 )

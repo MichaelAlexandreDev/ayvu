@@ -27,7 +27,7 @@ from ayvu.v1.resume_scan import MAX_LEGACY_STATE_BYTES, scan_legacy_states
 from ayvu.projects.schema import PROJECT_MIGRATIONS, open_job_repository
 from ayvu.projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ayvu.v1.resume import ResumeStateStore, TranslationResumeState
-from ayvu.translation.project import (
+from ayvu.translation.project_contracts import (
     OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, ContinuationTicket, TranslateObserver, TranslateProjectCommand,
 )
 from ayvu.composition.builders.translate_project import (

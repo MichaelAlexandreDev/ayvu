@@ -11,7 +11,7 @@ from ayvu.projects.service import resolve_project
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.translation.batch import BatchValidationError, ItemStatus
 from ayvu.composition.builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
-from ayvu.translation.project import TranslateObserver
+from ayvu.translation.project_contracts import TranslateObserver
 from ayvu.composition.builders.translate_project import LegacyResources, ProjectTranslation, translate_in_project
 from test_workflow_characterization import _write_epub
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions

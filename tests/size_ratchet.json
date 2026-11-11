@@ -23,7 +23,6 @@
     "src/ayvu/translation/context/model.py": 516,
     "src/ayvu/translation/document.py": 1011,
     "src/ayvu/translation/engine.py": 418,
-    "src/ayvu/translation/project.py": 885,
     "src/ayvu/v1/cache.py": 516,
     "src/ayvu/v1/epub.py": 691,
     "src/ayvu/v1/resume.py": 442,
