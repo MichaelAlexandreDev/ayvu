@@ -272,6 +272,8 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Gate de testes core (#282): os testes de CLI que a REF-14 leva para `tests/interfaces/cli/` voltam a ser
+  `core`, então as pull requests os rodam como rodavam dentro de `test_cli.py`.
 - CLI dividido por grupo de comandos (REF-14, #282, primeira parte): a saída Rich compartilhada vai para
   `interfaces/cli/render.py`, os padrões e a política de rede da execução para `options.py`, e os
   comandos `inspect`/`extract` e `languages`/`test-translator` para `commands/content.py` e

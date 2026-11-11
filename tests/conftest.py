@@ -77,7 +77,9 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
     ),
     "resume": ("v1/test_resume.py", "v1/test_legacy_resume.py", "test_raw_results_resume.py"),
     "glossary": ("test_glossary.py", "test_glossary_catalog.py"),
-    "cli_entry_points": ("test_cli.py", "test_cli_translate_project.py"),
+    # The CLI tests follow the split of the CLI (REF-14), so every test module under interfaces/cli/ belongs here.
+    "cli_entry_points": ("test_cli.py", "test_cli_translate_project.py", *sorted(
+        path.relative_to(TESTS).as_posix() for path in (TESTS / "interfaces" / "cli").rglob("test_*.py"))),
     "local_only_network": ("test_network_policy.py",),
     "module_boundaries": ("test_architecture_boundaries.py",),
     "documentation_links": ("test_documentation_links.py",),
