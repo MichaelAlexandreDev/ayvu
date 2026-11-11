@@ -10,7 +10,7 @@ import pytest
 
 from ayvu.knowledge.cache.identity import CacheOnlyRequest
 from ayvu.knowledge.memory.fuzzy import TranslationMemoryMatch
-from ayvu.translation_pipeline import (
+from ayvu.translation.pipeline import (
     DEFAULT_MAX_RECOVERY_CALLS, LEGACY_TEXT_STAGES, LegacyTextPipelineFacade, LinguisticSource,
 )
 from ayvu.content.protection import protect_special_terms, protected_content_is_intact
@@ -224,7 +224,7 @@ def imported_roots(name):
     return roots
 
 
-@pytest.mark.parametrize('name', ['translation_pipeline.py', 'content/protection.py'])
+@pytest.mark.parametrize('name', ['translation/pipeline.py', 'content/protection.py'])
 def test_the_pipeline_imports_no_format_provider_or_storage(name):
     roots = imported_roots(name)
     assert not roots & {'bs4', 'ebooklib', 'lxml', 'requests', 'sqlite3', 'typer', 'rich', 'xml', 'html', 'zipfile', 'os'}
@@ -232,9 +232,9 @@ def test_the_pipeline_imports_no_format_provider_or_storage(name):
 
 
 def test_the_facade_cannot_create_durable_state():
-    roots = imported_roots('translation_pipeline.py')
+    roots = imported_roots('translation/pipeline.py')
     assert not roots & {'.artifact', '.artifact_service', '.provenance', '.provenance_service', '.job', '.job_store'}
-    taken = {alias.name for node in ast.walk(ast.parse((ROOT / 'translation_pipeline.py').read_text()))
+    taken = {alias.name for node in ast.walk(ast.parse((ROOT / 'translation/pipeline.py').read_text()))
              if isinstance(node, ast.ImportFrom) and node.level and node.module == 'content' for alias in node.names}
     assert taken and taken <= set(vars(sys.modules['ayvu.content.protection']))  # never the model
     subject, _ = facade()
@@ -244,7 +244,7 @@ def test_the_facade_cannot_create_durable_state():
 def test_private_text_stays_out_of_representations():
     subject, _ = facade()
     assert repr(subject) == 'LegacyTextPipelineFacade()'
-    assert sys.modules['ayvu.translation_pipeline'].__doc__
+    assert sys.modules['ayvu.translation.pipeline'].__doc__
 
 
 def test_protection_keeps_its_exact_placeholder_format():

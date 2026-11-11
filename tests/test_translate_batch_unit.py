@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.translate_batch import (
+from ayvu.translation.batch import (
     BatchCommand,
     BatchItem,
     BatchValidationError,
@@ -305,7 +305,7 @@ def test_invalid_sensitive_reference_does_not_reach_events_or_logs(caplog):
 
 
 def _versioned_batch_values():
-    from ayvu.translate_batch import (BatchCancellationCommand, BatchCancellationNotice, BatchFailure,
+    from ayvu.translation.batch import (BatchCancellationCommand, BatchCancellationNotice, BatchFailure,
                                       BatchResult, BatchWarning, StartedItem)
 
     item = BatchItem(str(UUID(int=1)), str(UUID(int=2)))
@@ -332,7 +332,7 @@ def test_versioned_batch_values_accept_v1_and_reject_other_or_boolean_version(bu
 
 @pytest.mark.parametrize("canary", ["documento privado", "senha-secreta", "https://private.example/token", "raw provider response"])
 def test_batch_dtos_reject_private_values_without_disclosing_them(canary):
-    from ayvu.translate_batch import BatchCancellationCommand, BatchCancellationNotice, BatchFailure, BatchWarning
+    from ayvu.translation.batch import BatchCancellationCommand, BatchCancellationNotice, BatchFailure, BatchWarning
 
     builders = (lambda: BatchWarning(canary), lambda: BatchFailure(canary),
                 lambda: BatchFailure("provider_failed", family=canary),
@@ -347,7 +347,7 @@ def test_batch_dtos_reject_private_values_without_disclosing_them(canary):
 
 
 def test_normalized_failure_and_warnings_preserve_codes_and_family():
-    from ayvu.translate_batch import BatchFailure, BatchWarning
+    from ayvu.translation.batch import BatchFailure, BatchWarning
 
     outcome = ItemOutcome(ItemStatus.FAILED, warnings=("texts_failed", "warning"), failure="provider_failed",
                           failure_family="provider_transient")
@@ -358,7 +358,7 @@ def test_normalized_failure_and_warnings_preserve_codes_and_family():
 
 
 def test_cancellation_controller_accepts_command_and_returns_versioned_notice():
-    from ayvu.translate_batch import BatchCancellationCommand, BatchCancellationNotice
+    from ayvu.translation.batch import BatchCancellationCommand, BatchCancellationNotice
     from ayvu.composition.builders.translate_batch import BatchCancellationController
 
     controller = BatchCancellationController()

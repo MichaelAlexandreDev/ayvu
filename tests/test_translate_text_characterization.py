@@ -10,7 +10,7 @@ import pytest
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.v1.html_translate import translate_text
 from ayvu.knowledge.memory.fuzzy import TranslationMemory
-from ayvu.v1.translator import Translator
+from ayvu.providers.libretranslate.client import Translator
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
 PAIR = LanguagePair(source='en', target='pt')

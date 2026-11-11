@@ -14,10 +14,10 @@ import pytest
 from ayvu.v1.cache import TranslationCache
 from ayvu.jobs.model import JobContinuationError, JobRequest, JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
-from ayvu.resume_reuse import RecoveryReason
+from ayvu.translation.resume_reuse import RecoveryReason
 from ayvu.recovery.store import _options
 from ayvu.projects.store import ProjectJsonRepository
-from ayvu.translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
+from ayvu.translation.project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
 from ayvu.composition.builders.translate_project import (
     LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
 )
@@ -29,7 +29,7 @@ CHILD = textwrap.dedent('''
     import json, os, pathlib, sys, time
     import requests
     from typer.testing import CliRunner
-    import ayvu.v1.translator
+    import ayvu.providers.libretranslate.client
     from ayvu import cli
     class Session:
         def mount(self, prefix, adapter):
@@ -52,7 +52,7 @@ CHILD = textwrap.dedent('''
             return self._response({"translatedText": "PT:" + json["q"]})
         def close(self):
             pass
-    ayvu.v1.translator.requests.Session = Session
+    ayvu.providers.libretranslate.client.requests.Session = Session
     processing = sys.argv[1]
     cli._processing_dir = lambda _config: pathlib.Path(processing)
     CliRunner().invoke(cli.app, sys.argv[2:])

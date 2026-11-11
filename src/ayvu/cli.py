@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from .translate_batch import ItemOutcome, ItemStatus
+from .translation import ItemOutcome, ItemStatus
 from .knowledge.cache import (
     CacheAdminError, CacheFilter, CacheRef, FileRef, InspectRequest,
     PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest,
@@ -56,9 +56,9 @@ from .recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatu
 from .review_application import (
     ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
 )
-from .provider_discovery import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
+from .providers import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
 from .network import NetworkPolicy, network_next_step
-from .translate_project import ContinuationTicket, TranslateProjectResult
+from .translation import ContinuationTicket, TranslateProjectResult
 
 
 app = typer.Typer(help="Translate local EPUB files with a local HTTP translator.")

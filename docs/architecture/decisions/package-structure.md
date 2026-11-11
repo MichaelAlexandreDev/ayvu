@@ -203,13 +203,14 @@ src/ayvu/
   formats/         contracts, service, local; epub/ (archive, adapter, io, html_structure, validation); markdown/
   knowledge/       cache/ (identity, schema, repository, interchange, admin, admin_store, admin_v2_store);
                    memory/ (fuzzy; approved/ model, service, store); glossary/ (rules, catalog, catalog_store)
-  providers/       capabilities, discovery, service, network; libretranslate/ (adapter)
+  providers/       ports, capabilities, discovery, service, network, session;
+                   libretranslate/ (client, adapter)
   projects/        model, service, store, schema; profiles/ (model, service, store, glossary_store)
   translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output;
                    stages/ (memory_retrieval); context/ (model, execution, source)
   review/          application, exchange, csv_export, csv_import
   recovery/        service, store
-  v1/              translation, html_translate, translator, cache, cache_format, cache_stream,
+  v1/              translation, epub, html_translate, cache, cache_check, cache_format, cache_stream,
                    cache_admin_store, resume, resume_scan
   composition/     cli, desktop, editions (later); builders/
   interfaces/      cli/ (app, commands/, render, progress); desktop/; server/ (later)
@@ -287,13 +288,13 @@ REF-15 break up by reason to change after they move.
 | `project_profile_service.py` | `projects/profiles/service.py` |  |
 | `project_profile_store.py` | `projects/profiles/store.py` |  |
 | `profile_glossary_store.py` | `projects/profiles/glossary_store.py` |  |
-| `provider.py` | `translation/ports.py` | translation owns the provider port |
+| `provider.py` | `providers/ports.py` | changed in REF-11: translation imports providers (D3), so the port it calls sits with providers; in `translation/` the adapters would import upward |
 | `translation_plan.py` | `translation/plan.py` |  |
 | `translation_pipeline.py` | `translation/pipeline.py` |  |
 | `translation_engine.py` | `translation/engine.py` |  |
 | `translation_document.py` | `translation/document.py` | split |
 | `chunking.py` | `translation/chunking.py` |  |
-| `preflight.py` | `translation/preflight.py` |  |
+| `preflight.py` | `translation/preflight.py` | in REF-11 the v1 cache check became `v1/cache_check.py`, passed in by composition as `cache_check` |
 | `resume_reuse.py` | `translation/resume_reuse.py` | added in REF-08, out of `job_recovery.py` |
 | `translate_project.py` | `translation/project.py` | split |
 | `translate_batch.py` | `translation/batch.py` |  |
@@ -310,7 +311,7 @@ REF-15 break up by reason to change after they move.
 | `job_recovery_store.py` | `recovery/store.py` |  |
 | `legacy_translation.py` | `v1/translation.py` |  |
 | `html_translate.py` | `v1/html_translate.py` |  |
-| `translator.py` | `v1/translator.py` |  |
+| `translator.py` | `providers/libretranslate/client.py` | changed in REF-11: it is the LibreTranslate HTTP client, and the rich adapter uses it too, so it is not v1-only |
 | `cache.py` | `v1/cache.py` |  |
 | `cache_legacy_format.py` | `v1/cache_format.py` |  |
 | `cache_legacy_stream.py` | `v1/cache_stream.py` |  |

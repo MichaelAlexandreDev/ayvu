@@ -18,7 +18,7 @@ from .html_translate import HtmlTranslatedSegment, HtmlTranslationStats, TextTra
 from ..review_export import METADATA_CHAPTER_NAME, METADATA_SEGMENT_ID, METADATA_SEGMENT_KIND, ReviewSegment, format_segment_id
 from ..review_import import LegacyReviewInspection, ReviewImportError
 from ..knowledge.memory import TranslationMemory
-from .translator import Translator
+from ..providers.libretranslate.client import Translator
 from ..kernel import ChapterSelection, TranslationOptions
 from ..formats.epub.io import EpubDocument, _first_metadata, _get_opf_archive_path, _limited_documents, _opf_base_path, _resolve_selected_chapters, _translation_documents
 

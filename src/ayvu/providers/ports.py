@@ -13,9 +13,9 @@ from datetime import datetime
 from enum import StrEnum
 from typing import ClassVar, Protocol
 
-from .content import Constraint, ContentError, ProtectedPart, validate_protected_parts
-from .provenance import ProducerIdentity
-from .kernel import JobError, is_slug, validate_job_identity, validate_utc, JobFailure, JobFailureFamily, JobWarning
+from ..content import Constraint, ContentError, ProtectedPart, validate_protected_parts
+from ..provenance import ProducerIdentity
+from ..kernel import JobError, is_slug, validate_job_identity, validate_utc, JobFailure, JobFailureFamily, JobWarning
 
 PROVIDER_SCHEMA_VERSION = 1
 MAX_TEXT_CHARS = 1024 * 1024

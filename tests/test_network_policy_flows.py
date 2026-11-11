@@ -13,12 +13,12 @@ from ayvu import cli
 from ayvu.composition import cli as cli_composition
 from ayvu.preferences.model import AyvuConfig
 from ayvu.network.policy import NetworkPolicy
-from ayvu.provider_discovery import DiscoveryOutcome
-from ayvu.provider_network import NetworkClass, ProviderOperation
+from ayvu.providers.discovery import DiscoveryOutcome
+from ayvu.providers.network import NetworkClass, ProviderOperation
 from ayvu.v1.resume import ResumeStateStore, TranslationResumeState
 from test_network_policy import WireSocket, answer, deny_network, wire_reply
 from ayvu.kernel import LanguagePair, TranslationOptions
-from ayvu.translation import PreflightPolicyError
+from ayvu.translation.errors import PreflightPolicyError
 
 LANGUAGES = [{"code": "en", "name": "English", "targets": ["pt"]},
              {"code": "pt", "name": "Português", "targets": ["en"]}]
@@ -75,7 +75,7 @@ def test_production_preflight_none_stops_at_policy_before_stores_or_network(mini
 
 
 def test_shared_use_cases_and_cli_composition_use_the_same_snapshot_and_adapter(provider_wire):
-    from ayvu.provider_session import CLI_INSTANCE_ID
+    from ayvu.providers.session import CLI_INSTANCE_ID
     session = cli_composition.cli_provider_session(url="http://localhost:5000", timeout=2, retries=0, network_policy="loopback")
     adapter = session._service._entries[CLI_INSTANCE_ID][1]
     assert adapter._translator.network_decision is session.network_decision

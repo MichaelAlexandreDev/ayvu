@@ -11,17 +11,18 @@ from pathlib import Path
 from .builders import cache_admin, content, glossary, providers, review, translate_project
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation, TranslationReport, selected_model
-from ..batch_output_policy import AcceptedItem, OutputIntent
+from ..translation.batch_output import AcceptedItem, OutputIntent
 from ..v1.cache import TranslationCache
+from ..v1.cache_check import verify_cache_writable
 from ..preferences.config_facade import ConfigStore, default_glossaries_dir as _default_glossaries_dir
 from ..library.adapters import LocalLibraryFilesystem, ReaderLauncher
 from ..library import LibraryService
 from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
-from ..preflight import run_translation_preflight as _preflight
+from ..translation.preflight import run_translation_preflight as _preflight
 from ..v1.resume import ResumeStateStore, TranslationResumeState
-from ..translate_project import ContinuationTicket, TranslateObserver, TranslateProjectResult
-from ..translation_engine import EngineObserver
+from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
+from ..translation import EngineObserver
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
 
 
@@ -114,7 +115,7 @@ def read_review_input(path):
 
 
 def run_translation_preflight(**configuration):
-    return _preflight(**configuration)
+    return _preflight(**{"cache_check": verify_cache_writable, **configuration})
 
 
 def resolve_translation_project(processing_dir, epub_path, *, source, target, glossary_path, profile_name, **selections):

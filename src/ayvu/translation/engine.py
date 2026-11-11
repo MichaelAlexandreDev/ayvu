@@ -14,11 +14,11 @@ from dataclasses import dataclass, field
 from threading import Event
 from typing import Protocol
 
-from .artifacts import Artifact
-from .content import ContentDocument, TranslationUnit
-from .formats import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
-from .formats import FormatPublication, FormatService, FormatSource
-from .kernel import ChapterSelection, ChapterSelectionError, JobFailure, JobFailureFamily, CancellationToken
+from ..artifacts import Artifact
+from ..content import ContentDocument, TranslationUnit
+from ..formats import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
+from ..formats import FormatPublication, FormatService, FormatSource
+from ..kernel import ChapterSelection, ChapterSelectionError, JobFailure, JobFailureFamily, CancellationToken
 
 ENGINE_BEFORE_CHAPTER = "engine_before_chapter"
 ENGINE_BEFORE_UNIT = "engine_before_unit"

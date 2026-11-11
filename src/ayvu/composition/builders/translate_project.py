@@ -23,8 +23,8 @@ from ...artifacts.destination import DestinationFileOps, DestinationPublications
 from ...knowledge.cache.repository import SQLiteExactCache
 from ...knowledge.cache.schema import CacheSchemaError, SchemaState, classify_cache
 from ...content import ContentDocument, TranslationUnit
-from ...context_execution import ContextExecution
-from ...translation_context import ContextError
+from ...translation.context import ContextExecution
+from ...translation.context import ContextError
 from ...formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
 from ...formats.epub.io import SelectedChapter, detect_epub_language, resolve_chapter_selection
 from ...v1.epub import TranslationReport, _validate_worker_options, translate_epub  # noqa: F401 - the same door, for v1
@@ -41,9 +41,9 @@ from ...projects import ProjectError
 from ...projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ...projects.store import ProjectJsonRepository
 from ...provenance import ProvenanceError, declared_model
-from ...provider import ProviderRoute
-from ...provider_capabilities import Capability, ProviderRequirements
-from ...provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
+from ...providers import ProviderRoute
+from ...providers import Capability, ProviderRequirements
+from ...providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
 from ...v1.resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
     ResumeStateError,
@@ -51,7 +51,7 @@ from ...v1.resume import (  # noqa: F401 - the CLI still keeps this file while i
     TranslationResumeState,
     default_processing_dir,
 )
-from ...translate_project import (
+from ...translation import (
     AcceptedOutputPlan,
     ContinuationTicket,
     OutputValidation,
@@ -64,15 +64,15 @@ from ...translate_project import (
     TranslationRuntime,
     RuntimeContext,
 )
-from ...translation_engine import (
+from ...translation import (
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, TranslationResources, UnitExecution,
 )
-from ...translation_document import (
+from ...translation import (
     SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
 )
 from ...knowledge.memory import TranslationMemory
-from ...translation_plan import resolve_plan as resolve_translation_plan
-from ...v1.translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
+from ...translation import resolve_plan as resolve_translation_plan
+from ...providers.libretranslate.client import LibreTranslateTranslator, TranslatorError, RoutedTranslator
 from ...formats.epub.validation import ValidationResult, validate_output_epub
 from ...kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
 from ...translation import BookRefused, PreflightError, ProjectTranslationUnavailable, TranslationDryRunCancelled

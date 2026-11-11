@@ -7,12 +7,12 @@ from ayvu.provenance.model import ProducerIdentity
 from ayvu.knowledge.cache.identity import (
     CacheEligibilityState, CacheIneligibleReason, CanonicalValue, OpaqueSemanticRevision, SemanticRouteHop,
 )
-from ayvu.provider import ProviderRoute
-from ayvu.provider_capabilities import (
+from ayvu.providers.ports import ProviderRoute
+from ayvu.providers.capabilities import (
     Capability, CapabilityFact, EvidenceSource, ProviderCapabilitySnapshot, ProviderDescriptor, ProviderRequirements, SupportState,
     capability_fingerprint,
 )
-from ayvu.translation_plan import (
+from ayvu.translation.plan import (
     LINGUISTIC_STAGES, ResolvedTranslationPlan, TextStage, TranslationPlanError, resolve_plan,
 )
 

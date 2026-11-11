@@ -6,11 +6,11 @@ armazena tamanho e identidade antes de qualquer carregamento do conteúdo.
 from dataclasses import dataclass
 from typing import Callable
 
-from .content import ContentDocument
-from .knowledge.glossary import Snapshot, _valid_entries
-from .projects.profiles import ResolvedProfileSnapshot, GlossaryStage
-from .provider import Requirement, UnitReference
-from .translation_context import (
+from ...content import ContentDocument
+from ...knowledge.glossary import Snapshot, _valid_entries
+from ...projects.profiles import ResolvedProfileSnapshot, GlossaryStage
+from ...providers import Requirement, UnitReference
+from .model import (
     ContextCandidate, ContextEntryRevision, ContextError, ContextKind, ContextPolicyVersion, ContextSnapshot,
     ContextSourceRequest, ContextSourceResult, ContextSourceOversize, content_identity, utf8_size, _hash,
 )

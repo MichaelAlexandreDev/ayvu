@@ -18,7 +18,7 @@ from ..jobs import JobStoreError, JobRequest
 from .service import (
     RECOVERY_BETWEEN_CHUNKS, InvocationView, OutputEvidence, RecoveryCancelled, RecoveryProgress, RecoveryScan, SourceState,
 )
-from ..resume_reuse import ArtifactIntegrity, RecoveryReason, ResumeStage, StageEvidence
+from ..translation import ArtifactIntegrity, RecoveryReason, ResumeStage, StageEvidence
 from ..jobs import JobSnapshot
 from ..jobs.store import MAX_LIST_LIMIT, SqliteJobRepository
 from ..v1.resume_scan import LegacyStateEntry, scan_legacy_states
@@ -28,7 +28,7 @@ from ..projects.store import ConfigurationReferences, ProjectJsonRepository, can
 from ..provenance import ProvenanceError, ProducerIdentity
 from ..provenance.store import SqliteProvenanceRepository
 from ..v1.resume import RUNNING_STATUS, TranslationResumeState
-from ..translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_plan
+from ..translation import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_execution_plan
 from ..kernel import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions, JobError, CancellationToken
 
 RAW_RESULTS_ROLE = "raw_results"
@@ -52,7 +52,7 @@ def plan_fingerprints(state: TranslationResumeState, project: ProjectManifest, *
     """The plans this file could have run under. The file holds the flag, and the run may have accepted a prompt instead."""
     options = _options(state)
     return tuple(
-        resolve_plan(TranslateProjectCommand(project.project_id, project.source_sha256, options, OutputPlan(path=state.output_path),
+        resolve_execution_plan(TranslateProjectCommand(project.project_id, project.source_sha256, options, OutputPlan(path=state.output_path),
             overwrite=overwrite, execution_revision=state.execution_revision, producer=producer,
             additional_output_roles=() if request is None else tuple(role for role in request.output_roles if role != OUTPUT_ROLE)),
             project).input_fingerprint

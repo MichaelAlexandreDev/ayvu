@@ -16,9 +16,9 @@ from enum import StrEnum
 from typing import Callable, Protocol
 from uuid import uuid4
 
-from .artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactPathError, ArtifactRequest
-from .artifacts import ARTIFACT_SAFE_POINTS, ArtifactService
-from .knowledge.cache import (
+from ..artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactPathError, ArtifactRequest
+from ..artifacts import ARTIFACT_SAFE_POINTS, ArtifactService
+from ..knowledge.cache import (
     MAX_CACHE_ONLY_CANDIDATES,
     AuthorizedCacheScope,
     CacheAuthorizationPolicy,
@@ -47,32 +47,32 @@ from .knowledge.cache import (
     exact_entry_key,
     resolve_compatible_identities,
 )
-from .knowledge.memory.approved import MemoryError, MemoryQuery, MemoryScope, ScopeKind, RetrievalMode, ValueKind, PipelineStage
-from .translation.stages import (
+from ..knowledge.memory.approved import MemoryError, MemoryQuery, MemoryScope, ScopeKind, RetrievalMode, ValueKind, PipelineStage
+from .stages import (
     MemoryMatch, MemoryRetrieval, RetrievalDecision, RetrievalPolicy, RetrievalSource,
     plan_memory_pin, structural_compatibility, snippet,
 )
-from .content import ContentDocument, TranslationUnit
-from .context_execution import ContextExecution, plan_with_context
-from .translation_context import ContextError
-from .jobs import JobState, TranslationJob
+from ..content import ContentDocument, TranslationUnit
+from .context.execution import ContextExecution, plan_with_context
+from .context.model import ContextError
+from ..jobs import JobState, TranslationJob
 from .resume_reuse import REUSE_DIMENSIONS, ArtifactIntegrity, ResumeStage, StageEvidence, select_resume_stage
-from .jobs import (
+from ..jobs import (
     CancellationAcknowledgement, JobCorrelation, JobEvent, JobProgress)
-from .jobs import CancellationSource, JobEventSink
-from .provenance import (
+from ..jobs import CancellationSource, JobEventSink
+from ..provenance import (
     UNKNOWN, ActorKind, ConfigurationRef, ContextProvenance, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef,
 )
-from .provenance import ProvenanceRepository
-from .provider import ProviderStatus, TranslationProviderRequest, UnitReference
-from .provider_service import TranslationProvider, execute
-from .knowledge.memory import TranslationMemoryMatch
-from .translation_pipeline import (
+from ..provenance import ProvenanceRepository
+from ..providers import ProviderStatus, TranslationProviderRequest, UnitReference
+from ..providers import TranslationProvider, execute
+from ..knowledge.memory import TranslationMemoryMatch
+from .pipeline import (
     GlossaryOutcome, LinguisticOutcome, LinguisticSource, LinguisticStages, ProtectedContentError,
 )
-from .translation_plan import ResolvedTranslationPlan
-from .content import TAG_TOKEN_PATTERN, TextParts, protected_content_is_intact
-from .kernel import LanguagePair, JobValidationError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
+from .plan import ResolvedTranslationPlan
+from ..content import TAG_TOKEN_PATTERN, TextParts, protected_content_is_intact
+from ..kernel import LanguagePair, JobValidationError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
 
 # Version 2 records the producing dimensions, so a continuation can prove or name what changed.
 RAW_RESULTS_VERSION = 2
@@ -725,7 +725,7 @@ class _PlanBoundCache:
         return ExactCacheLookup(CacheLookupState.MISS, reason=reason)
 
     def get(self, text: str, language_pair: LanguagePair) -> ExactCacheLookup:
-        from .knowledge.cache import CACHE_ENTRY_V2_LIMITS
+        from ..knowledge.cache import CACHE_ENTRY_V2_LIMITS
         if len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text:
             return self._miss(CacheMissReason.CACHE_INELIGIBLE)
         if self._fingerprint is None:
@@ -781,7 +781,7 @@ class _PlanBoundCache:
         return result
 
     def set(self, text: str, language_pair: LanguagePair, translated: str) -> None:
-        from .knowledge.cache import CACHE_ENTRY_V2_LIMITS
+        from ..knowledge.cache import CACHE_ENTRY_V2_LIMITS
         if (len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text
                 or len(translated.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.value):
             return

@@ -272,6 +272,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Providers e tradução em pacotes (REF-11, #279): `ayvu.providers` (`ports`, `capabilities`, `discovery`,
+  `service`, `network`, `session` e `libretranslate`) e `ayvu.translation` (`plan`, `pipeline`, `engine`,
+  `document`, `chunking`, `preflight`, `resume_reuse`, `project`, `batch`, `batch_output` e `context`).
+  O cliente HTTP do LibreTranslate sai do v1 para `providers.libretranslate.client`, porque o adaptador
+  rico também o usa. A porta dos provedores fica em `providers.ports`, já que translation importa
+  providers. O preflight recebe a checagem do cache v1 da composição. Some `translation ↔ v1`.
 - Formatos em `ayvu.formats` (REF-10, #278): `formats.contracts`, `formats.service`, `formats.local`,
   `formats.epub` (`archive`, `adapter`, `io`, `html_structure`, `validation`) e
   `formats.markdown.writer`. O `epub_io.py` foi dividido: a leitura do EPUB fica em `formats.epub.io`,

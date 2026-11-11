@@ -15,9 +15,9 @@ from uuid import uuid4
 from ..jobs import JobState, TranslationJob
 from ..jobs import CancellationSource
 from ..jobs import JobSnapshot
-from ..translate_project import (INTERRUPTED, INTERRUPTED_AFTER_PUBLICATION, OWN_JOB_STATES, PUBLICATION_UNCOMMITTED,
+from ..translation import (INTERRUPTED, INTERRUPTED_AFTER_PUBLICATION, OWN_JOB_STATES, PUBLICATION_UNCOMMITTED,
     ContinuationTicket, TranslateProjectResult)
-from ..resume_reuse import INTEGRITY_REASONS, ArtifactIntegrity, REUSE_DIMENSIONS, RecoveryReason, ResumeStage, StageEvidence, StageSelection, select_resume_stage
+from ..translation import INTEGRITY_REASONS, ArtifactIntegrity, REUSE_DIMENSIONS, RecoveryReason, ResumeStage, StageEvidence, StageSelection, select_resume_stage
 from ..kernel import JobError, CancellationToken
 
 RECOVERY_BETWEEN_CHUNKS = "recovery_between_chunks"

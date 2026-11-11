@@ -32,7 +32,7 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 | jobs | `ayvu.jobs.service.JobRepository` | `ayvu.jobs.service.JobRepository` | Not a format concern |
 | resume | `ayvu.v1.resume.ResumeStateStore` | [`ayvu.recovery.service`](job-recovery.md) | Not a format concern |
 | output path | `ayvu.kernel.OutputPlan` | #145 | Naming and overwrite rules stay with the application. `ayvu.formats.service.OutputGuard` only refuses the source |
-| translation | `ayvu.v1.epub.translate_epub` | `ayvu.translation_engine.TranslationEngine` | Orchestration leaves the format layer in #145. An adapter never calls a provider. `ayvu.translation_document.DocumentTranslator` takes over after #153 |
+| translation | `ayvu.v1.epub.translate_epub` | `ayvu.translation.engine.TranslationEngine` | Orchestration leaves the format layer in #145. An adapter never calls a provider. `ayvu.translation.document.DocumentTranslator` takes over after #153 |
 
 ## Differences settled by #145
 

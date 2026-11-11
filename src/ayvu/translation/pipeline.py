@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Callable, Protocol
 
-from .knowledge.cache import (
+from ..knowledge.cache import (
     CacheEligibility,
     CacheLookupState,
     CacheMissReason,
@@ -18,14 +18,14 @@ from .knowledge.cache import (
     ExactCacheLookup,
 )
 from .chunking import split_text
-from .translation.stages import MemoryMatch, RetrievalDecision
-from .knowledge.memory import TranslationMemoryMatch
-from .translation_plan import LINGUISTIC_STAGES
-from .content import (
+from .stages import MemoryMatch, RetrievalDecision
+from ..knowledge.memory import TranslationMemoryMatch
+from .plan import LINGUISTIC_STAGES
+from ..content import (
     INTERNAL_MARKER_PATTERN, PROTECTED_TOKEN_PATTERN, TAG_TOKEN_PATTERN, ProtectedSpan, TextParts,
     protect_special_terms, protected_content_is_intact, special_term_spans,
 )
-from .kernel import LanguagePair
+from ..kernel import LanguagePair
 
 DEFAULT_MAX_RECOVERY_CALLS = 64
 

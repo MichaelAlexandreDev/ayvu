@@ -5,15 +5,15 @@ import math
 
 import pytest
 
-from ayvu.provider_capabilities import (
+from ayvu.providers.capabilities import (
     FEATURE_CAPABILITIES, FINGERPRINT_CAPABILITIES, MAX_LANGUAGE_TARGETS, MAX_LANGUAGES, MAX_LIMITS, NOT_PROBED,
     AvailabilityState, Capability, CapabilityFact, EvidenceSource, LanguageEvidence, LimitOrigin, LimitScope,
     LimitSemantics, LimitUnit, NegotiationDecision, ProviderAvailability, ProviderCapabilityError,
     ProviderCapabilitySnapshot, ProviderDescriptor, ProviderLimit, ProviderRequirements, SupportState,
     availability_projection, capability_fingerprint, fingerprint_components, negotiate, observation, snapshot_projection,
 )
-from ayvu.provider import ContextFeature, ConstraintsFeature, DeadlineFeature, ProtectedPartsFeature
-from ayvu.provider_service import ProviderAvailabilityProbe, observe_availability
+from ayvu.providers.ports import ContextFeature, ConstraintsFeature, DeadlineFeature, ProtectedPartsFeature
+from ayvu.providers.service import ProviderAvailabilityProbe, observe_availability
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
 LATER = NOW + timedelta(hours=1)

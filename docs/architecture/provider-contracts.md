@@ -26,9 +26,9 @@ to later issues.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.provider` | Domain | Request, result, features, routes, usage and allowlisted diagnostics |
-| `ayvu.provider_service` | Application | Provider and factory ports, registry, feature decisions and strict result checking |
-| `ayvu.provider_libretranslate` | Provider adapter | The compatibility adapter and its factory |
+| `ayvu.providers.ports` | Domain | Request, result, features, routes, usage and allowlisted diagnostics |
+| `ayvu.providers.service` | Application | Provider and factory ports, registry, feature decisions and strict result checking |
+| `ayvu.providers.libretranslate.adapter` | Provider adapter | The compatibility adapter and its factory |
 
 Failures and warnings reuse `JobFailure` and `JobWarning`, the producer identity reuses
 `ProducerIdentity`, and spans and constraints reuse the [content model](content-model.md),
@@ -67,7 +67,7 @@ producer and route, warnings, usage and a delivery state:
 **Unknown is explicit.** A model the provider does not report is `unknown`, and a usage
 value of `None` means not known, never zero.
 
-`provider_service.execute` runs a provider so that nothing it does can pass as a
+`providers.service.execute` runs a provider so that nothing it does can pass as a
 translation. A value of the wrong type, a different request ID, a conflicting route and
 a raised exception all become typed failures. `KeyboardInterrupt` still propagates.
 

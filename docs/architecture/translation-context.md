@@ -103,7 +103,7 @@ encaminha `context_unsupported` pelo canal de avisos existente da interface.
 
 ## Payload, cache e proveniência
 
-`joined_lf_v1` usa um `ContextItem` #141 de papel `translation_context`, com
+`joined_lf_v1` usa um `ContextItem` #141 de papel `translation.context.model`, com
 entradas inteiras separadas por LF. Assim, o limite de 16 itens de #141 não
 altera o teto de 64 entradas. A feature é obrigatória se alguma entrada
 selecionada o for. Payload e projeção semântica são sensíveis e ficam separados

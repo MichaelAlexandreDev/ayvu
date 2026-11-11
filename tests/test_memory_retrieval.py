@@ -28,8 +28,8 @@ from ayvu.translation.stages.memory_retrieval import (
     plan_memory_pin, similarity, snippet, structural_compatibility,
 )
 from ayvu.projects.schema import project_migration_runner
-from ayvu.provider import ProviderRoute
-from ayvu.translation_document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
+from ayvu.providers.ports import ProviderRoute
+from ayvu.translation.document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
 from approved_memory_fixtures import (
     MemoryEnvironment, NOW, PAIR, PIN, PROJECT_SCOPE, SCOPES, WORK_SCOPE, final, source,
 )

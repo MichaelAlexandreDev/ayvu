@@ -251,16 +251,16 @@ uv run ayvu --mode common translate livro.epub
 
 `src/ayvu/library/service.py` coordena o agrupamento de originais e traduções; `src/ayvu/library/adapters.py` implementa a varredura, a autorização e a abertura no leitor externo.
 
-`src/ayvu/v1/translator.py` define o contrato `Translator` e o backend `LibreTranslateTranslator`.
+`src/ayvu/providers/libretranslate/client.py` define o contrato `Translator` e o backend `LibreTranslateTranslator`.
 
 `src/ayvu/v1/cache.py` persiste traduções em SQLite usando idioma de origem, idioma de destino e hash do texto original. Também centraliza inspeção, limpeza filtrada, exportação JSON e importação JSON do cache.
 
 `src/ayvu/knowledge/glossary/rules.py` lê glossários JSON no formato simples e no formato com
 regras explícitas `translate`, `preserve` e `forbidden`.
 
-`src/ayvu/chunking.py` divide textos longos preservando ordem e evitando cortar palavras quando possível.
+`src/ayvu/translation/chunking.py` divide textos longos preservando ordem e evitando cortar palavras quando possível.
 
-`src/ayvu/preflight.py` valida idioma, glossário, cache, EPUB e tradutor antes da tradução real.
+`src/ayvu/translation/preflight.py` valida idioma, glossário, cache, EPUB e tradutor antes da tradução real.
 
 `src/ayvu/v1/resume.py` registra e lê estados locais de retomada em `~/Documentos/Livros/Processando`.
 

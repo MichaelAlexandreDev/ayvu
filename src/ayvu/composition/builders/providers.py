@@ -6,9 +6,9 @@ from __future__ import annotations
 
 from ...network.http import NetworkAuthorization
 from ...network import NetworkPolicy, resolve_network_policy
-from ...provider_session import CliProviderSession
+from ...providers.session import CliProviderSession
 from ...providers import ProviderSetupError
-from ...v1.translator import LibreTranslateTranslator, TranslatorError
+from ...providers.libretranslate.client import LibreTranslateTranslator, TranslatorError
 
 
 def cli_provider_session(*, url: str, timeout: float, retries: int, requests_per_second: float | None = None,

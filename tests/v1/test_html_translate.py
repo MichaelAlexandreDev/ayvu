@@ -20,7 +20,7 @@ from ayvu.v1.html_translate import (
     translate_html,
     translate_text,
 )
-from ayvu.v1.translator import Translator
+from ayvu.providers.libretranslate.client import Translator
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
 

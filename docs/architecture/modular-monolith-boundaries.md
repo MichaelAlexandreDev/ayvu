@@ -336,11 +336,11 @@ issue.
 | `src/ayvu/preferences/config_facade.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `composition.cli` e valores em `preferences.model` |
 | `src/ayvu/formats/epub/io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
 | `src/ayvu/v1/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
-| `src/ayvu/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
-| `src/ayvu/v1/translator.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
+| `src/ayvu/translation/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
+| `src/ayvu/providers/libretranslate/client.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
 | `src/ayvu/network/policy.py` | Vocabulário fechado none/loopback, classificação pura de destino e snapshot imutável por pedido (#159) | **Policies/Domain**; sem I/O ou dependência de interface; ver [contrato HTTP](network-policy.md) |
 | `src/ayvu/network/http.py` | Resolução injetável única e transporte Requests preso a sockaddrs loopback validados, sem ambiente ou redirects | **Providers/Infrastructure**; consome a decisão de Policies e não adiciona provedor nem entrada de interface |
-| `src/ayvu/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
+| `src/ayvu/translation/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
 | `src/ayvu/v1/cache.py` | Exact-cache identity, SQLite schema, querying, mutation, and JSON interchange | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
 | `src/ayvu/knowledge/memory/fuzzy.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
 | `src/ayvu/knowledge/memory/approved/model.py` | Governed TM identity, scope, value semantics and closed lifecycle | **Domain/Approved translation memory**; independent of operational cache and dataset consent |
@@ -550,5 +550,5 @@ its dependencies, and the compatibility baseline before changing code.
 - [`src/ayvu/v1/html_translate.py`](../../src/ayvu/v1/html_translate.py)
 - [`src/ayvu/v1/cache.py`](../../src/ayvu/v1/cache.py)
 - [`src/ayvu/v1/resume.py`](../../src/ayvu/v1/resume.py)
-- [`src/ayvu/v1/translator.py`](../../src/ayvu/v1/translator.py)
+- [`src/ayvu/providers/libretranslate/client.py`](../../src/ayvu/providers/libretranslate/client.py)
 - [`tests/test_workflow_characterization.py`](../../tests/test_workflow_characterization.py)

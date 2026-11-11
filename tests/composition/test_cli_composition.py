@@ -11,6 +11,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+from ayvu.v1.cache_check import verify_cache_writable
 import requests
 from typer.testing import CliRunner
 
@@ -21,8 +23,8 @@ from ayvu.preferences.model import AyvuConfig
 from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.jobs.events import JobOutcome, JobTerminalSummary
-from ayvu.preflight import run_translation_preflight
-from ayvu.translate_project import OutputValidation, TranslateProjectResult
+from ayvu.translation.preflight import run_translation_preflight
+from ayvu.translation.project import OutputValidation, TranslateProjectResult
 from ayvu.composition.builders.translate_project import ProjectTranslationRun
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode, JobFailure, JobFailureFamily
 
@@ -81,14 +83,14 @@ def test_cache_only_preflight_instruments_transport_and_provider_authority(minim
                          (root, 'ConfigStore')):
         monkeypatch.setattr(module, name, forbidden)
     monkeypatch.setattr(requests.Session, '__init__', forbidden)
-    monkeypatch.setattr('ayvu.preflight._create_checked_translator_factory', forbidden)
-    monkeypatch.setattr('ayvu.provider_service.ProviderRegistry.open', forbidden)
+    monkeypatch.setattr('ayvu.translation.preflight._create_checked_translator_factory', forbidden)
+    monkeypatch.setattr('ayvu.providers.service.ProviderRegistry.open', forbidden)
     # No secret resolver exists in the current CLI provider. Prevent entry to its entire composition boundary.
-    monkeypatch.setattr('ayvu.preflight.CliProviderSession', forbidden)
+    monkeypatch.setattr('ayvu.translation.preflight.CliProviderSession', forbidden)
     original = minimal_epub_path.read_bytes()
     result = run_translation_preflight(epub_path=minimal_epub_path, cache_path=tmp_path / 'only-cache.sqlite',
         glossary_path=None, translator_name='libretranslate', url='http://endpoint-canary.invalid',
-        timeout=1, retries=0, language_pair=LanguagePair('en', 'pt'), dry_run=False, cache_only=True)
+        timeout=1, retries=0, language_pair=LanguagePair('en', 'pt'), dry_run=False, cache_only=True, cache_check=verify_cache_writable)
     assert result.translator is None and result.translator_factory is None and result.route is None
     assert calls == []
     assert minimal_epub_path.read_bytes() == original
@@ -303,7 +305,8 @@ def test_preview_translation_does_not_validate_twice(tmp_path, monkeypatch):
 
 
 def test_compatibility_facades_export_identical_contracts():
-    from ayvu import preflight, batch_output_policy
+    from ayvu.translation import preflight as preflight
+    from ayvu.translation import batch_output as batch_output_policy
     from ayvu.preferences import config_facade as config
     from ayvu.preferences import model as config_values
     from ayvu.v1 import resume

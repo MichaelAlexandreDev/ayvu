@@ -6,20 +6,20 @@ from pathlib import Path
 import pytest
 import requests
 
-from ayvu.provider import (
+from ayvu.providers.ports import (
     ContextFeature, ContextItem, ConstraintsFeature, DeadlineFeature, ProtectedPartsFeature, ProviderRoute, Requirement,
 )
 from ayvu.content.model import Constraint, ProtectedPart
-from ayvu.provider_capabilities import (
+from ayvu.providers.capabilities import (
     FEATURE_CAPABILITIES, AvailabilityState, Capability, EvidenceSource, LimitOrigin, LimitSemantics, NegotiationDecision,
     ProviderRequirements, SupportState, availability_projection, capability_fingerprint, negotiate, snapshot_projection,
 )
-from ayvu.provider_libretranslate import (
+from ayvu.providers.libretranslate.adapter import (
     _SUPPORTED_FEATURES, ADAPTER_ID, ADAPTER_VERSION, DEFAULT_AVAILABILITY_TTL, LIBRETRANSLATE_DESCRIPTOR,
     LibreTranslateAvailabilityProbe, LibreTranslateProvider, discover_route, libretranslate_snapshot,
 )
-from ayvu.provider_service import observe_availability
-from ayvu.v1.translator import LibreTranslateTranslator, RequestRateLimiter, TranslatorError
+from ayvu.providers.service import observe_availability
+from ayvu.providers.libretranslate.client import LibreTranslateTranslator, RequestRateLimiter, TranslatorError
 from provider_fakes import FakeSession, http_response, request
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
@@ -288,7 +288,7 @@ def test_language_errors_are_sanitized_and_keep_typed_contracts(response, messag
 
 
 def test_capability_module_names_no_provider():
-    source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'provider_capabilities.py').read_text()
+    source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'providers/capabilities.py').read_text()
     assert 'libretranslate' not in source.lower() and 'localhost' not in source
     assert 'requests' not in [line.split()[1] for line in source.splitlines() if line.startswith('import ')]
 

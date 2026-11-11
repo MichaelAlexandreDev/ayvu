@@ -309,7 +309,7 @@ def test_interrupted_active_batch_item_can_resume_without_starting_next(tmp_path
     running = ResumeStateStore(processing).scan().running
     assert len(running) == 1 and running[0].completed_chapters
     resumed_session = FakeLibreTranslateSession(_direct_languages())
-    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: resumed_session)
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: resumed_session)
     resumed = CliRunner().invoke(cli.app, ["--mode", "developer", "resume", str(first), "--target", "pt"])
     assert resumed.exit_code == 0, resumed.output
     assert (output / "first-pt.epub").is_file()
@@ -388,7 +388,7 @@ def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_
     import sqlite3
 
     from ayvu.projects.store import ProjectJsonRepository
-    from ayvu.translate_batch import ItemStatus
+    from ayvu.translation.batch import ItemStatus
     from test_cli_translate_project import _jobs
 
     first = _write_epub(tmp_path / "first.epub")

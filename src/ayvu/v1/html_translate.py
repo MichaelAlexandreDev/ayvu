@@ -15,9 +15,9 @@ from ..formats.epub import (
     review_text_from_template,
 )
 from ..knowledge.memory import TranslationMemory, TranslationMemoryMatch
-from ..translation_pipeline import LegacyTextPipelineFacade, LinguisticSource
+from ..translation import LegacyTextPipelineFacade, LinguisticSource
 from ..content import TAG_TOKEN_PATTERN, protected_terms_are_intact as _protected_terms_are_intact
-from .translator import Translator
+from ..providers.libretranslate.client import Translator
 from ..kernel import LanguagePair
 
 

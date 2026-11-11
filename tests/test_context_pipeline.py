@@ -8,18 +8,18 @@ from uuid import UUID
 import pytest
 
 from ayvu.artifacts.model import Artifact, ArtifactState
-from ayvu.context_execution import ContextExecution, ResolvedContextEgressDecision
+from ayvu.translation.context.execution import ContextExecution, ResolvedContextEgressDecision
 from ayvu.jobs.model import JobRequest, JobState, new_job, transition_job, acquire_lease
 from ayvu.jobs.events import encode_event
 from ayvu.jobs.execution import InMemoryJobEventLog
 from ayvu.provenance.model import ProvenanceRecord, encode_record, decode_record
-from ayvu.provider import Requirement
-from ayvu.provider_capabilities import Capability, ProviderRequirements, SupportState
-from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
-from ayvu.translation_context import ContextCandidate, ContextCategory, ContextError, ContextLimits, TranslationContextBuilder
-from ayvu.translation_document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
-from ayvu.translation_plan import resolve_plan
-from ayvu.v1.translator import LibreTranslateTranslator
+from ayvu.providers.ports import Requirement
+from ayvu.providers.capabilities import Capability, ProviderRequirements, SupportState
+from ayvu.providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
+from ayvu.translation.context.model import ContextCandidate, ContextCategory, ContextError, ContextLimits, TranslationContextBuilder
+from ayvu.translation.document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
+from ayvu.translation.plan import resolve_plan
+from ayvu.providers.libretranslate.client import LibreTranslateTranslator
 from provider_fakes import FakeSession, http_response
 from test_translation_document import document, cue, Provider, PlanCache, Glossed, NOW, PROJECT, PRODUCER, ROUTE
 from test_translation_context import request, entry, Source, egress_decision
@@ -289,7 +289,7 @@ def test_context_execution_cancellation_discards_prepared_values():
 
 def test_real_rich_runtime_resources_pass_context_to_document_translator(tmp_path, monkeypatch):
     import ayvu.composition.builders.translate_project as composition
-    from ayvu.translate_project import RuntimeContext
+    from ayvu.translation.project import RuntimeContext
     s = scene()
     runtime = composition.RichTranslationRuntime(tmp_path / 'book.epub', TranslationOptions(language_pair=LanguagePair('en', 'pt')),
         lambda: None, tmp_path / 'cache.sqlite', 'model-v1', tmp_path / 'project.sqlite', tmp_path / 'backups',
@@ -344,7 +344,7 @@ def test_all_unit_bindings_are_checked_before_a_pinned_cache_port():
     s = scene()
     # O segundo elemento não está autorizado; nem a resolução do pin pode ocorrer.
     d = document(cue('a', 'Hello world', 1), cue('b', 'other unit', 2))
-    from ayvu.provider import UnitReference
+    from ayvu.providers.ports import UnitReference
     snapshot = replace(s.r.snapshot, unit=UnitReference(d.document_id, d.revision_id, d.units[0].unit_id), current=d.units[0])
     s.execution.requests = (replace(s.r, snapshot=snapshot, authorization=replace(s.r.authorization, unit=snapshot.unit)),)
     s.execution.prepare(NOW)
@@ -383,7 +383,7 @@ def test_pipeline_cache_ignores_unused_context_and_inert_profile_changes():
 
 def test_composition_binds_context_before_repositories_and_puts_effect_in_job_plan(tmp_path, monkeypatch):
     import ayvu.composition.builders.translate_project as composition
-    from ayvu.translate_project import TranslateObserver, TranslateProjectResult
+    from ayvu.translation.project import TranslateObserver, TranslateProjectResult
     from test_translation_context import OPERATION
     s = scene()
     # Relógio da fronteira real, sem rede nem projeto SQLite.
@@ -418,7 +418,7 @@ def test_composition_binds_context_before_repositories_and_puts_effect_in_job_pl
 
 
 def test_context_job_plan_changes_only_when_declared(tmp_path):
-    from ayvu.translate_project import TranslateProjectCommand, resolve_plan
+    from ayvu.translation.project import TranslateProjectCommand, resolve_execution_plan as resolve_plan
     # Reutiliza o manifesto mínimo já validado pelo contrato de projeto.
     from test_project import manifest
     project = manifest()
@@ -433,10 +433,10 @@ def test_context_job_plan_changes_only_when_declared(tmp_path):
 
 def test_document_pipeline_uses_owned_profile_neighbors_and_managed_terminology():
     from ayvu.content.model import ContextReference
-    from ayvu.context_source import snapshot_context_sources
+    from ayvu.translation.context.source import snapshot_context_sources
     from ayvu.knowledge.glossary.catalog import Snapshot, Entry
     from ayvu.projects.profiles.model import ProjectReference, ProjectTranslationProfile
-    from ayvu.translation_context import ContextCategory, ContextKind
+    from ayvu.translation.context.model import ContextCategory, ContextKind
     from test_translation_context import binding, facts, profile_snapshot
     from test_translation_document import locator
     d = document(cue('a', 'Alice and Bob', 1, context=(ContextReference('next', locator('b')),)),
@@ -504,7 +504,7 @@ def test_production_sqlite_exact_cache_reopens_with_context_hit_and_changed_cont
 
 @pytest.mark.parametrize('failure', ['authorization', 'second_source'])
 def test_multiunit_preparation_validates_every_authorization_and_never_keeps_partial_context(failure):
-    from ayvu.provider import UnitReference
+    from ayvu.providers.ports import UnitReference
     d = document(cue('a', 'first', 1), cue('b', 'second', 2))
     r = request((entry(),))
     requests = []
@@ -534,7 +534,7 @@ def test_composition_cancellation_stops_before_candidate_loading_and_project_por
     from contextlib import contextmanager
     import ayvu.composition.builders.translate_project as composition
     from ayvu.jobs.execution import CancellationSource
-    from ayvu.translate_project import TranslateObserver
+    from ayvu.translation.project import TranslateObserver
     from test_translation_context import OPERATION
     s = scene()
     s.source.calls.clear()

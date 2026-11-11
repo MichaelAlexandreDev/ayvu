@@ -30,13 +30,15 @@ from pathlib import Path
 
 import pytest
 
-from ayvu import provider_network
+from ayvu.providers import network as provider_network
 from ayvu.knowledge.memory.approved import service as approved_memory_service
 from ayvu.knowledge.cache import identity as cache_identity
 from ayvu.projects.profiles import model as project_profiles
 from ayvu.content import model as content
 from ayvu.v1 import cache
-from ayvu import translation_context, translation_document, translation_plan
+from ayvu.translation.context import model as translation_context
+from ayvu.translation import document as translation_document
+from ayvu.translation import plan as translation_plan
 from ayvu.knowledge.memory.approved.store import _digest as memory_digest
 from ayvu.knowledge.cache.identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop
 from ayvu.provenance.model import ProducerIdentity

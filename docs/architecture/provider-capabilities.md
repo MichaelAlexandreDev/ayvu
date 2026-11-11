@@ -28,8 +28,8 @@ routing preference and automatic tuning are not accepted here, and network polic
 [#159](https://github.com/MichaelAlexandreDev/ayvu/issues/159). The shared discovery use
 cases belong to [#128](https://github.com/MichaelAlexandreDev/ayvu/issues/128).
 
-The values are in `ayvu.provider_capabilities`, the probe port in `ayvu.provider_service`,
-and the LibreTranslate report in `ayvu.provider_libretranslate`.
+The values are in `ayvu.providers.capabilities`, the probe port in `ayvu.providers.service`,
+and the LibreTranslate report in `ayvu.providers.libretranslate.adapter`.
 
 ## Capabilities
 

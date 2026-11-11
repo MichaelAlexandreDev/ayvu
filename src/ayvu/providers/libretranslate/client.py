@@ -8,8 +8,8 @@ from typing import Protocol
 
 import requests
 
-from ..network import NetworkPolicy, NetworkPolicyError, resolve_network_policy
-from ..network.http import NetworkAuthorization, create_http_session
+from ...network import NetworkPolicy, NetworkPolicyError, resolve_network_policy
+from ...network.http import NetworkAuthorization, create_http_session
 
 
 SUPPORTED_TRANSLATORS = ("libretranslate",)

@@ -40,7 +40,7 @@ def _stop_on(text, error=KeyboardInterrupt):
 
 def _invoke(monkeypatch, arguments, session=None, stdin=None):
     session = session or Session()
-    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
     return runner.invoke(app, arguments, input=stdin), session
 
 

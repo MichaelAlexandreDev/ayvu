@@ -59,29 +59,29 @@ entries fail, so a rename cannot silently discard protection.
 | `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
 | `preferences.model` | Domain | Valores de preferências e conversões da fachada v1 |
 | `formats.epub.archive`, `formats.epub.adapter`, `formats.epub.io`, `formats.epub.html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
-| `translation_engine` | Application | One book through a format adapter and a unit executor |
-| `translate_project` | Application | One project's book as one durable job, from its ports |
+| `translation.engine` | Application | One book through a format adapter and a unit executor |
+| `translation.project` | Application | One project's book as one durable job, from its ports |
 | `recovery.service` | Application | Listing, inspecting and resuming interrupted translations |
 | `recovery.store` | Infrastructure | The read-only evidence recovery decides from |
 | `composition.builders.translate_project` | Composition | The current language work and validator behind those ports |
 | `artifacts.destination` | Infrastructure | Publishing a job's output to the file the user chose |
-| `v1.translator` | Provider adapter with transitional embedded port | Providers |
+| `providers.libretranslate.client` | Provider adapter with transitional embedded port | Providers |
 | `content.protection` | Domain | Protected terms, placeholders and their integrity checks |
-| `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |
-| `translation_pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
-| `translation_document` | Application | Rich document path: results, artifact, replay, events and provenance |
+| `translation.plan` | Domain | Resolved plan, stage identities and fingerprints |
+| `translation.pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
+| `translation.document` | Application | Rich document path: results, artifact, replay, events and provenance |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
-| `provider_capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
+| `providers.capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
 | `formats.contracts` | Domain | What a format claims, negotiation, and the values its operations exchange |
 | `formats.service` | Application | Format ports, registry and the checks before any format does work |
 | `formats.local` | Infrastructure | Local files as format sources, and the check that a destination is not the source |
 | `content_use_cases` | Application | Shared read-only inspect and visible-content export requests/results |
 | `formats.markdown.writer` | Infrastructure | Safe Markdown planning and atomic per-file publication |
 | `composition.builders.content` | Composition | Explicit format registry and local content workflow adapters |
-| `provider_network` | Domain | The network decision an operation must present, and its enforcement |
-| `provider_service` | Application | Provider and factory ports, registry and strict result checking |
-| `provider_discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
-| `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
+| `providers.network` | Domain | The network decision an operation must present, and its enforcement |
+| `providers.service` | Application | Provider and factory ports, registry and strict result checking |
+| `providers.discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
+| `providers.libretranslate.adapter` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
 | `composition.builders.providers` | Composition | Adaptador de montagem de provedor selecionado por `composition.cli` |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `knowledge.cache.admin` | Application | Typed cache administration use cases and ports |

@@ -5,14 +5,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from .v1.cache import TranslationCache
-from .formats.epub.io import inspect_epub
-from .knowledge.glossary import Glossary, GlossaryError, load_glossary
-from .provider_session import CliProviderSession
-from .provider_discovery import DiscoveryOutcome
-from .network import NetworkDecision, NetworkPolicy, NetworkPolicyError, resolve_network_policy, network_next_step
-from .network.http import NetworkAuthorization
-from .v1.translator import (
+from ..formats.epub.io import inspect_epub
+from ..knowledge.glossary import Glossary, GlossaryError, load_glossary
+from ..providers.session import CliProviderSession
+from ..providers import DiscoveryOutcome
+from ..network import NetworkDecision, NetworkPolicy, NetworkPolicyError, resolve_network_policy, network_next_step
+from ..network.http import NetworkAuthorization
+from ..providers.libretranslate.client import (
     RequestRateLimiter,
     RetryPolicy,
     RoutedTranslator,
@@ -22,8 +21,8 @@ from .v1.translator import (
     create_translator,
     validate_translator_name,
 )
-from .kernel import LanguagePair, LanguagePairError
-from .translation import PreflightError, PreflightPolicyError
+from ..kernel import LanguagePair, LanguagePairError
+from .errors import PreflightError, PreflightPolicyError
 
 
 @dataclass(frozen=True)
@@ -50,8 +49,10 @@ def run_translation_preflight(
     retry_backoff: float = 0.5,
     retry_backoff_max: float = 8.0,
     network_policy: NetworkPolicy | str | None = None,
-    cache_check: Callable[[Path], None] | None = None,
+    *,
+    cache_check: Callable[[Path], None],
 ) -> TranslationPreflightResult:
+    """``cache_check`` opens the cache and proves it writable; composition passes the v1 one."""
     _check_language_pair(language_pair)
     glossary = _load_checked_glossary(glossary_path)
     translator = None
@@ -81,7 +82,7 @@ def run_translation_preflight(
             network_authorization=authorization,
         )
         translator = translator_factory()
-    (cache_check or _check_cache)(cache_path)
+    _check_cache(cache_path, cache_check)
     _check_epub(epub_path)
     route: TranslationRoute | None = None
     if not dry_run and not cache_only:
@@ -179,10 +180,9 @@ def _create_checked_translator_factory(
     return factory
 
 
-def _check_cache(cache_path: Path) -> None:
+def _check_cache(cache_path: Path, cache_check: Callable[[Path], None]) -> None:
     try:
-        with TranslationCache(cache_path) as cache:
-            cache.verify_writable()
+        cache_check(cache_path)
     except (OSError, sqlite3.Error) as exc:
         raise PreflightError(
             "Não foi possível criar ou escrever o cache.",

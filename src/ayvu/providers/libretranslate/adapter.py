@@ -9,23 +9,23 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Callable
-from .provenance import NOT_APPLICABLE, UNKNOWN, ProducerIdentity
-from .provider import (
+from ...provenance import NOT_APPLICABLE, UNKNOWN, ProducerIdentity
+from ..ports import (
     DeadlineFeature, DeliveryState, ProviderError, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderRequest,
     TranslationProviderResult,
 )
-from .provider_capabilities import (
+from ..capabilities import (
     FEATURE_CAPABILITIES, AvailabilityState, Capability, CapabilityFact, EvidenceSource, LanguageEvidence, LimitOrigin,
     LimitScope, LimitSemantics, LimitUnit, MAX_LANGUAGE_TARGETS, MAX_LANGUAGES, ProviderAvailability,
     ProviderCapabilityError, ProviderCapabilitySnapshot, ProviderDescriptor, ProviderLimit, SupportState, observation,
 )
-from .provider_discovery import DiscoveredLanguage, DiscoveryObservation, ProviderDiscoveryError
-from .provider_service import FeatureDecision, ProviderInstance, decide_features, failed_result
-from .v1.translator import (
+from ..discovery import DiscoveredLanguage, DiscoveryObservation, ProviderDiscoveryError
+from ..service import FeatureDecision, ProviderInstance, decide_features, failed_result
+from .client import (
     LibreTranslateTranslator, RouteResolutionError, RoutedTranslator, TranslationRoute, Translator, TranslatorError,
     TranslatorLanguage, resolve_translation_route,
 )
-from .kernel import JobFailure, JobFailureFamily, normalize_failure
+from ...kernel import JobFailure, JobFailureFamily, normalize_failure
 
 ADAPTER_ID = "libretranslate"
 ADAPTER_VERSION = 1
