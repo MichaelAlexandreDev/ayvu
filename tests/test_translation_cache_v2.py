@@ -33,12 +33,8 @@ from ayvu.content.model import (
 from ayvu.jobs.model import JobLease, JobRequest, JobState, TranslationJob
 from ayvu.provenance.model import ProducerIdentity
 from ayvu.providers.ports import DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, TranslationProviderResult
-from ayvu.translation.document import (
-    DocumentTranslator,
-    ExecutionContext,
-    TranslationExecutionError,
-    UnitSource,
-)
+from ayvu.translation.document import DocumentTranslator
+from ayvu.translation.document_contracts import ExecutionContext, TranslationExecutionError, UnitSource
 from ayvu.translation.plan import ResolvedTranslationPlan
 from ayvu.translation.stages.memory_retrieval import RetrievalPolicy
 from ayvu.kernel import JobFailureFamily

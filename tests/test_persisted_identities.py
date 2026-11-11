@@ -38,7 +38,7 @@ from ayvu.projects.profiles import model as project_profiles
 from ayvu.content import model as content
 from ayvu.v1 import cache
 from ayvu.translation.context import model as translation_context
-from ayvu.translation import document as translation_document
+from ayvu.translation import raw_results as translation_raw_results
 from ayvu.translation import plan as translation_plan
 from ayvu.knowledge.memory.approved.store import _digest as memory_digest
 from ayvu.knowledge.cache.identity_values import CanonicalValue, SemanticRouteHop
@@ -154,7 +154,7 @@ GOLDEN = {
         lambda: memory_digest(["CreateCandidate", {"operation_id": "op-1"}]),
         "838c5b97825375dc91efac203b085c365af7c02c0a374d5b773f1668bf304af5"),
     "raw-results reuse dimension": (
-        lambda: translation_document._dimension_digest({"input": ["rev-1", "sha256:x", "en"], "title": "Capítulo"}),
+        lambda: translation_raw_results._dimension_digest({"input": ["rev-1", "sha256:x", "en"], "title": "Capítulo"}),
         "sha256:aca5b426889afe54ec666956d99cafb27f364e79b2fb3ef16c44e8bff8ea9792"),
 }
 

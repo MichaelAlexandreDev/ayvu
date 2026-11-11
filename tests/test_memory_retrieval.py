@@ -7,7 +7,6 @@ import logging
 import sqlite3
 from types import SimpleNamespace
 from uuid import uuid4
-
 import pytest
 
 from ayvu.knowledge.memory.approved.model import (
@@ -29,7 +28,8 @@ from ayvu.translation.stages.memory_retrieval import (
 )
 from ayvu.projects.schema import project_migration_runner
 from ayvu.providers.ports import ProviderRoute
-from ayvu.translation.document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
+from ayvu.translation.document import DocumentTranslator
+from ayvu.translation.document_contracts import ExecutionContext, TranslationExecutionError, UnitSource
 from approved_memory_fixtures import (
     MemoryEnvironment, NOW, PAIR, PIN, PROJECT_SCOPE, SCOPES, WORK_SCOPE, final, source,
 )

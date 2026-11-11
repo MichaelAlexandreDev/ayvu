@@ -303,6 +303,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 - `translation/project.py` dividido (REF-15, #283, terceira família): contratos, renovação do lease e
   execução ativa viram módulos próprios. Admissão e reconciliação ficam em `project.py`; a API de
   `ayvu.translation` e o fingerprint do plano não mudam.
+- `translation/document.py` dividido (REF-15, #283, quarta família): contratos, resultados brutos,
+  replay, proveniência e bindings viram módulos próprios. O tradutor e o estado da execução ficam em
+  `document.py`; a API de `ayvu.translation` e os bytes persistidos não mudam.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

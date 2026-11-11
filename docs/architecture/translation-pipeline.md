@@ -72,7 +72,12 @@ Veja a [seleção do runtime](translate-project.md#seleção-explícita-do-runti
 | `ayvu.content.protection` | Domain | Protected terms and placeholders, and checking that they survived |
 | `ayvu.translation.plan` | Domain | The resolved plan, stage identities and fingerprints |
 | `ayvu.translation.pipeline` | Application | The stages, their ports and the legacy facade |
-| `ayvu.translation.document` | Application | The rich path: per-unit results, document artifact, replay, events and provenance |
+| `ayvu.translation.document` | Application | Document admission, active unit execution, events and publication |
+| `ayvu.translation.document_contracts` | Application | Document contracts, safe points and protected content |
+| `ayvu.translation.raw_results` | Application | Canonical raw results, reuse dimensions and payload validation |
+| `ayvu.translation.document_replay` | Application | Proving and replaying current and ancestor raw results |
+| `ayvu.translation.document_provenance` | Application | Document production and replay lineage |
+| `ayvu.translation.document_bindings` | Application | Provider, cache and memory bindings for the current unit and plan |
 | `ayvu.translation.engine` | Application | One book through a format adapter and a unit executor, under the current flow's rules |
 | `ayvu.v1.translation` | Format | The executor over `translate_text` and the v1 cache, and the current report's types |
 | `ayvu.formats.epub.html_structure` | Format | Traversal, durable units and markup-safe reconstruction |

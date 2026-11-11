@@ -1,6 +1,5 @@
 """The rich path over the production artifact store and provenance, faked only at the provider port."""
 from __future__ import annotations
-
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -9,7 +8,6 @@ import json
 import logging
 import sqlite3
 from uuid import UUID
-
 import pytest
 import requests
 
@@ -28,10 +26,12 @@ from ayvu.providers.ports import DeliveryState, ProviderRoute, ProviderStatus, P
 from ayvu.providers.capabilities import Capability, ProviderRequirements
 from ayvu.providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
 from ayvu.providers.service import failed_result
-from ayvu.translation.document import (
-    PIPELINE_SAFE_POINTS, RAW_RESULTS_ROLE, SAFE_POINTS, DocumentTranslator, ExecutionContext, TranslationCancelled,
-    TranslationExecutionError, UnitSource,
+from ayvu.translation.document_contracts import (
+    PIPELINE_SAFE_POINTS, SAFE_POINTS, ExecutionContext, TranslationCancelled, TranslationExecutionError,
+    UnitSource,
 )
+from ayvu.translation.raw_results import RAW_RESULTS_ROLE
+from ayvu.translation.document import DocumentTranslator
 from ayvu.knowledge.memory.fuzzy import TranslationMemoryMatch
 from ayvu.translation.stages.memory_retrieval import RetrievalPolicy
 from ayvu.knowledge.cache.compatible_memory import CacheCompatibilityIdentity, CompatibleMemoryCandidate
@@ -370,7 +370,7 @@ def test_another_plan_does_not_see_the_cache_entries(env):
 
 def test_the_legacy_v1_ports_do_not_fit_the_generic_path():
     from ayvu.v1.html_translate import _LegacyV1Cache
-    from ayvu.translation.document import ExactCachePort, MemoryPort
+    from ayvu.translation.document_contracts import ExactCachePort, MemoryPort
     from ayvu.knowledge.memory.fuzzy import TranslationMemory
     assert 'key' in inspect.signature(ExactCachePort.lookup).parameters
     assert 'plan_fingerprint' not in inspect.signature(_LegacyV1Cache.get).parameters
