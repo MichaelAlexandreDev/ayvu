@@ -83,16 +83,19 @@ says otherwise.
 | 2 | `composition` |
 | 3 | `v1` |
 | 4 | `recovery` |
-| 5 | `translation`, `review` |
-| 6 | `projects` |
-| 7 | `preferences` |
-| 8 | `knowledge`, `providers`, `formats` |
-| 9 | `artifacts` |
-| 10 | `provenance` |
-| 11 | `jobs` |
-| 12 | `content`, `network`, `library`, `application` |
-| 13 | `kernel` |
+| 5 | `review` |
+| 6 | `translation` |
+| 7 | `projects` |
+| 8 | `preferences` |
+| 9 | `knowledge`, `providers`, `formats` |
+| 10 | `artifacts` |
+| 11 | `provenance` |
+| 12 | `jobs` |
+| 13 | `content`, `network`, `library`, `application` |
+| 14 | `kernel` |
 
+REF-12 (#280) gave `review` a row above `translation`: applying a review reads the translation result,
+and translation never reads review, so the row decides it without an exception.
 REF-07 (#275) and REF-08 (#276) moved `preferences` and `provenance` to follow their real imports.
 `provenance` reads the job each record belongs to, inside the same transaction, so it sits above `jobs`.
 `preferences` validates a declared model label with `provenance`, so it sits above `provenance`. Projects,

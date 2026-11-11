@@ -53,7 +53,7 @@ GLOSSARY_RULE_PRESERVE = "preserve"
 from .library import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
 from .projects import ProjectError
 from .recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
-from .review_application import (
+from .review import (
     ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
 )
 from .providers import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult

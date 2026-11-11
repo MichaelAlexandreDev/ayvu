@@ -33,7 +33,6 @@ PACKAGE_ALIASES = {"desktop": "interfaces"}
 
 LEGACY_GROUPS = {
     "content": ("content_use_cases",),
-    "review": ("review_application", "review_exchange", "review_export", "review_import"),
     "interfaces": ("cli", "cli_progress", "cli_contracts", "desktop_bootstrap"),
 }
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ayvu.review_export import REVIEW_CSV_COLUMNS, ReviewSegment, write_review_csv
+from ayvu.review.csv_export import REVIEW_CSV_COLUMNS, ReviewSegment, write_review_csv
 
 
 def test_write_review_csv_writes_segments_with_stable_columns(tmp_path: Path):

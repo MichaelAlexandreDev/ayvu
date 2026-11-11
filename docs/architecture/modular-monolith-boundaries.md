@@ -348,9 +348,9 @@ issue.
 | `src/ayvu/knowledge/memory/approved/store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](approved-translation-memory.md) |
 | `src/ayvu/knowledge/glossary/rules.py` | Glossary rules, matching, validation, and JSON persistence | Glossary semantics belong to **Knowledge**; JSON/filesystem persistence implements an **Infrastructure** port |
 | `src/ayvu/v1/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
-| `src/ayvu/review_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
-| `src/ayvu/review_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
-| `src/ayvu/review_exchange.py` | Versioned bounded v2 codec, identity validation, and mapping to stable unit reconstruction inputs | Review-package semantics belong to **Review**; EPUB structure remains in **Formats/EPUB**; no application orchestration or publication |
+| `src/ayvu/review/csv_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
+| `src/ayvu/review/csv_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
+| `src/ayvu/review/exchange.py` | Versioned bounded v2 codec, identity validation, and mapping to stable unit reconstruction inputs | Review-package semantics belong to **Review**; EPUB structure remains in **Formats/EPUB**; no application orchestration or publication |
 | `src/ayvu/library/service.py`, `src/ayvu/library/adapters.py` | Library discovery and launching a reader process | Discovery/open coordination belongs to **Application**; filesystem scanning and process launch are separate **Infrastructure** adapters with explicit authorization |
 | `src/ayvu/formats/epub/validation.py` | EPUB output validation and warnings using ebooklib/Beautiful Soup | Finding semantics belong to **Quality**; EPUB-specific inspection remains in the **Formats/EPUB** adapter |
 

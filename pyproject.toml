@@ -67,7 +67,8 @@ layers = [
   "composition",
   "v1",
   "recovery",
-  "translation : (review) : review_application : review_exchange : review_export : review_import",
+  "review",
+  "translation",
   "projects",
   "preferences",
   "knowledge : providers : formats",
@@ -100,39 +101,6 @@ source_modules = [
 ]
 forbidden_modules = [
   "ayvu.v1",
-]
-
-[[tool.importlinter.contracts]]
-id = "same-layer-translation"
-name = "D3: translation does not import the other modules of its layer (review)"
-type = "forbidden"
-allow_indirect_imports = true
-source_modules = [
-  "ayvu.translation",
-]
-forbidden_modules = [
-  "ayvu.review_application",
-  "ayvu.review_exchange",
-  "ayvu.review_export",
-  "ayvu.review_import",
-]
-
-[[tool.importlinter.contracts]]
-id = "same-layer-review"
-name = "D3: review does not import the other modules of its layer (translation)"
-type = "forbidden"
-allow_indirect_imports = true
-source_modules = [
-  "ayvu.review_application",
-  "ayvu.review_exchange",
-  "ayvu.review_export",
-  "ayvu.review_import",
-]
-forbidden_modules = [
-  "ayvu.translation",
-]
-ignore_imports = [
-  "ayvu.review_application -> ayvu.translation",  # REF-12 (#280): review depends on translation; D3 placement to revisit
 ]
 
 [[tool.importlinter.contracts]]

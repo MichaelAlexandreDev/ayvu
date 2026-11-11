@@ -15,8 +15,8 @@ from .cache import TranslationCache
 from ..formats.epub.archive import package_title, parse_package_for_edit, serialize_package
 from ..knowledge.glossary import Glossary, GlossaryUsage
 from .html_translate import HtmlTranslatedSegment, HtmlTranslationStats, TextTranslationResult, translate_html, translate_text
-from ..review_export import METADATA_CHAPTER_NAME, METADATA_SEGMENT_ID, METADATA_SEGMENT_KIND, ReviewSegment, format_segment_id
-from ..review_import import LegacyReviewInspection, ReviewImportError
+from ..review import METADATA_CHAPTER_NAME, METADATA_SEGMENT_ID, METADATA_SEGMENT_KIND, ReviewSegment, format_segment_id
+from ..review import LegacyReviewInspection, ReviewImportError
 from ..knowledge.memory import TranslationMemory
 from ..providers.libretranslate.client import Translator
 from ..kernel import ChapterSelection, TranslationOptions

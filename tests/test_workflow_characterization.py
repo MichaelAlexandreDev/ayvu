@@ -12,7 +12,7 @@ from typer.testing import CliRunner
 
 from ayvu.cli import app
 from ayvu.v1.resume import COMPLETED_STATUS, RUNNING_STATUS, ResumeStateStore
-from ayvu.review_exchange import decode_review_package, encode_review_package
+from ayvu.review.exchange import decode_review_package, encode_review_package
 
 
 runner = CliRunner()

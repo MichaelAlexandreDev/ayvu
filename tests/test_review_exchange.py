@@ -22,7 +22,7 @@ from ayvu.formats.contracts import ContentScope, ExtractionRequest, UnitTranslat
 from ayvu.formats.service import FormatRegistry, FormatService
 from ayvu.formats.epub.html_structure import extract_html_document, html_unit_template, reconstruct_html
 from ayvu.projects.model import ProjectManifest, ProjectRequest
-from ayvu.review_exchange import (
+from ayvu.review.exchange import (
     MAX_REVIEW_CELL_CHARS,
     MAX_REVIEW_COLUMNS,
     MAX_REVIEW_DOCUMENTS,
@@ -49,8 +49,8 @@ from ayvu.review_exchange import (
     restore_formula_cell,
     write_review_package,
 )
-from ayvu.review_export import ReviewSegment, write_review_csv
-from ayvu.review_import import LegacyReviewInspection, ReviewImportData, ReviewImportError, ReviewRow, read_review_csv
+from ayvu.review.csv_export import ReviewSegment, write_review_csv
+from ayvu.review.csv_import import LegacyReviewInspection, ReviewImportData, ReviewImportError, ReviewRow, read_review_csv
 from epub_fakes import epub_bytes
 
 
@@ -486,7 +486,7 @@ def _csv_bytes(records):
     ("MAX_REVIEW_NOTE_CHARS", 1, "invalid_reviewer_note"),
 ])
 def test_each_exchange_limit_has_a_bounded_failure(monkeypatch, limit_name, value, code):
-    import ayvu.review_exchange as exchange
+    import ayvu.review.exchange as exchange
 
     *_context, package = make_context()
     if limit_name == "MAX_REVIEW_NOTE_CHARS":
@@ -497,7 +497,7 @@ def test_each_exchange_limit_has_a_bounded_failure(monkeypatch, limit_name, valu
 
 
 def test_protected_part_cardinality_is_bounded(monkeypatch):
-    import ayvu.review_exchange as exchange
+    import ayvu.review.exchange as exchange
 
     html = '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>A <em>B</em> C</p></body></html>'
     _source, project, artifact, documents, machine, _package = make_context(html)
@@ -508,7 +508,7 @@ def test_protected_part_cardinality_is_bounded(monkeypatch):
 
 
 def test_path_reader_requests_only_one_byte_over_its_raw_limit(monkeypatch):
-    import ayvu.review_exchange as exchange
+    import ayvu.review.exchange as exchange
 
     calls = []
 
@@ -537,7 +537,7 @@ def test_path_reader_requests_only_one_byte_over_its_raw_limit(monkeypatch):
 
 
 def test_v2_column_cardinality_fails_before_csv_materializes_cells(monkeypatch):
-    import ayvu.review_exchange as exchange
+    import ayvu.review.exchange as exchange
 
     monkeypatch.setattr(exchange.csv, "reader", lambda *_args, **_kwargs: pytest.fail("csv.reader must not run"))
     raw = b"x," * (MAX_REVIEW_COLUMNS * 1000)
@@ -626,7 +626,7 @@ def test_legacy_v1_is_boundedly_inspectable_redacted_and_never_applicable(tmp_pa
                             ExtendedLegacyInspection(inspection.rows, inspection.duplicate_ids, inspection.warnings))
     assert subclass_result.value.code == "legacy_reexport_required"
 
-    monkeypatch.setattr("ayvu.review_import.MAX_REVIEW_BYTES", 3)
+    monkeypatch.setattr("ayvu.review.csv_import.MAX_REVIEW_BYTES", 3)
     with pytest.raises(ReviewImportError) as oversized:
         read_review_csv(csv_path)
     assert oversized.value.code == "review_file_too_large"

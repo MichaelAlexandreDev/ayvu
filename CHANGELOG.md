@@ -272,6 +272,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Revisão em `ayvu.review` (REF-12, #280): `review.application`, `review.exchange`,
+  `review.csv_export` e `review.csv_import`. Review ganha uma camada própria acima de translation,
+  porque aplica revisões sobre o resultado da tradução e translation nunca importa review. Somem a
+  última exceção entre módulos da mesma camada e os dois contratos que ela pedia.
 - Providers e tradução em pacotes (REF-11, #279): `ayvu.providers` (`ports`, `capabilities`, `discovery`,
   `service`, `network`, `session` e `libretranslate`) e `ayvu.translation` (`plan`, `pipeline`, `engine`,
   `document`, `chunking`, `preflight`, `resume_reuse`, `project`, `batch`, `batch_output` e `context`).

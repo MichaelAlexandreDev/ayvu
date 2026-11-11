@@ -23,7 +23,7 @@ from ayvu.preferences.model import PreferencesError
 from ayvu.preferences.service import PreferencesSnapshot
 from ayvu.projects.schema import open_provenance_repository
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
-from ayvu.review_exchange import decode_review_package
+from ayvu.review.exchange import decode_review_package
 from ayvu.translation.project import ContinuationTicket, TRANSLATE_BEFORE_START, TranslateObserver
 from ayvu.translation.engine import ENGINE_SAFE_POINTS
 from test_cli_translate_project import Session, _args, _book, _jobs

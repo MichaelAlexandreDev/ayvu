@@ -4,7 +4,7 @@ Issue: DESKTOP-118 / #149.
 
 ## Boundary
 
-`ayvu.review_application` defines versioned, framework-neutral command and
+`ayvu.review.application` defines versioned, framework-neutral command and
 result values plus `ExportReviewPackage`, `ValidateReviewPackage`, and
 `ApplyReviewPackage`. It imports no CLI, UI, CSV, EPUB/HTML parser, provider,
 network, SQLite, or filesystem adapter. `ayvu.composition.builders.review` wires those

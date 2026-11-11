@@ -18,7 +18,7 @@ from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.jobs.model import JobState
 from ayvu.jobs.events import JobCorrelation, JobEvent, JobOutcome, JobProgress
 from ayvu.jobs.execution import CancellationSource, InMemoryJobEventLog
-from ayvu.review_application import (
+from ayvu.review.application import (
     ApplyReviewPackage,
     ExportReviewPackage,
     MAX_REVIEW_PACKAGE_BYTES,
