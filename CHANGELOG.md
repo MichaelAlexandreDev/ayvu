@@ -291,6 +291,8 @@ lancadas e secoes versionadas quando uma release for publicada.
   move out of `app.py` into focused CLI modules, preserving behavior.
 - CLI split, sixth part (REF-14, #282): translate and resume commands move to `interfaces/cli/commands`,
   including the shared guided resume flow, preserving behavior.
+- CLI split, final part (REF-14, #282): the guided flow moves to `interfaces/cli/guided`, preserving
+  behavior and completing the split of `app.py`.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

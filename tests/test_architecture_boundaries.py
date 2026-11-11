@@ -39,7 +39,7 @@ CLI_ROOT = "ayvu.composition.cli"  # the only composition module that may import
 OWNERS = {
     "ayvu": Owner("surface", "Package"),
     **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "report", "output", "plan", "translate_options", "run", "run_support", "run_messages", "batch", "preview", "commands",
-      "commands.resume", "commands.translate", "commands.cache", "commands.cache_output", "commands.content", "commands.review", "commands.translator")},
+      "guided", "guided.menu", "guided.translation", "guided.glossaries", "guided.library", "guided.preferences", "guided.language", "commands.resume", "commands.translate", "commands.cache", "commands.cache_output", "commands.content", "commands.review", "commands.translator")},
     "ayvu.interfaces": Owner("interface", "Interfaces"), "ayvu.interfaces.cli": Owner("interface", "CLI"), "ayvu.jobs": Owner("domain", "Jobs"), "ayvu.artifacts": Owner("domain", "Artifacts"),
     "ayvu.recovery": Owner("application", "Jobs"), "ayvu.translation.resume_reuse": Owner("domain", "Translation"),
     **{f"ayvu.{name}": Owner("domain", "Knowledge") for name in ("knowledge", "knowledge.cache", "knowledge.memory",
@@ -431,9 +431,12 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
+    *(('ayvu.interfaces.cli.guided.glossaries', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.translate_options', 'knowledge.glossary.catalog')), *(('ayvu.interfaces.cli.guided.language', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.commands.translator', 'interfaces.cli.options', 'interfaces.cli.render', 'network.policy', 'providers.discovery')),
+    *(('ayvu.interfaces.cli.guided.library', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.render', 'library.service', 'preferences.model')), *(('ayvu.interfaces.cli.guided.menu', f"ayvu.{name}") for name in ('interfaces.cli.contracts', 'interfaces.cli.guided.glossaries', 'interfaces.cli.guided.language', 'interfaces.cli.guided.library', 'interfaces.cli.guided.preferences', 'interfaces.cli.guided.translation', 'interfaces.cli.options', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')),
+    *(('ayvu.interfaces.cli.guided.preferences', f"ayvu.{name}") for name in ('interfaces.cli.contracts', 'interfaces.cli.guided.language', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')), *(('ayvu.interfaces.cli.guided.translation', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.guided.glossaries', 'interfaces.cli.guided.language', 'interfaces.cli.options', 'interfaces.cli.preview', 'interfaces.cli.render', 'interfaces.cli.run', 'interfaces.cli.translate_options', 'preferences.model')),
     *(('ayvu.interfaces.cli.commands.translate', f"ayvu.{name}") for name in ('interfaces.cli.batch', 'interfaces.cli.options', 'interfaces.cli.render', 'interfaces.cli.run', 'interfaces.cli.settings', 'interfaces.cli.translate_options', 'kernel.values', 'network.policy')),
     *(('ayvu.interfaces.cli.commands.resume', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.plan', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.run', 'interfaces.cli.run_messages', 'interfaces.cli.settings', 'interfaces.cli.translate_options', 'kernel.values', 'network.policy', 'recovery.service', 'translation.project')),
-    *(('ayvu.interfaces.cli.app', f"ayvu.{name}") for name in ('interfaces.cli.commands.resume', 'interfaces.cli.commands.translate', 'interfaces.cli.preview', 'interfaces.cli.run', 'interfaces.cli.translate_options')), *(('ayvu.interfaces.cli.batch', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.output', 'interfaces.cli.plan', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.run', 'interfaces.cli.run_support', 'interfaces.cli.settings', 'interfaces.cli.translate_options', 'network.policy', 'preferences.model', 'translation.batch', 'translation.errors')),
+    *(('ayvu.interfaces.cli.app', f"ayvu.{name}") for name in ('interfaces.cli.commands.resume', 'interfaces.cli.commands.translate', 'interfaces.cli.preview', 'interfaces.cli.guided.menu')), *(('ayvu.interfaces.cli.batch', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.output', 'interfaces.cli.plan', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.run', 'interfaces.cli.run_support', 'interfaces.cli.settings', 'interfaces.cli.translate_options', 'network.policy', 'preferences.model', 'translation.batch', 'translation.errors')),
     *(('ayvu.interfaces.cli.plan', f"ayvu.{name}") for name in ('interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.render')), *(('ayvu.interfaces.cli.preview', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.options', 'interfaces.cli.output', 'interfaces.cli.plan', 'interfaces.cli.progress', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.run', 'interfaces.cli.run_messages', 'interfaces.cli.run_support', 'interfaces.cli.settings', 'network.policy', 'preferences.model', 'translation.errors')),
     *(('ayvu.interfaces.cli.run', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.output', 'interfaces.cli.plan', 'interfaces.cli.progress', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.run_messages', 'interfaces.cli.run_support', 'interfaces.cli.settings', 'interfaces.cli.translate_options', 'network.policy', 'preferences.model', 'projects.model', 'review.application', 'translation.batch', 'translation.errors', 'translation.project')), *(('ayvu.interfaces.cli.run_messages', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.plan', 'interfaces.cli.progress', 'interfaces.cli.render')),
     *(('ayvu.interfaces.cli.run_support', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'translation.batch', 'translation.errors')), *(('ayvu.interfaces.cli.translate_options', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.render', 'preferences.model')),
@@ -474,7 +477,7 @@ ALLOWED_INTERNAL_EDGES = {
       ('app', 'interfaces.cli.commands.review'), ('app', 'interfaces.cli.settings'), *(('commands.review', b) for b in (
       'composition.cli', 'interfaces.cli.render', 'interfaces.cli.settings', 'review.application')), *(('settings', b) for b in (
       'composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'preferences.model')),
-      ('options', 'network.policy'), ('render', 'providers.discovery'), ('app', 'interfaces.cli.report'), *(('report', b) for b in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')), *(('output', b) for b in ('interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')))),
+      ('options', 'network.policy'), ('render', 'providers.discovery'), *(('report', b) for b in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')), *(('output', b) for b in ('interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')))),
     ('ayvu.composition.builders.translate_project', 'ayvu.v1.epub'), ('ayvu.v1.translation', 'ayvu.v1.epub'), ('ayvu.composition.cli', 'ayvu.v1.cache_check'), ('ayvu.v1.cache_check', 'ayvu.v1.cache'),
     ('ayvu.formats.epub.io', 'ayvu.formats.epub.html_structure'), ('ayvu.formats.epub.validation', 'ayvu.formats.epub.html_structure'),
     ('ayvu.v1.epub', 'ayvu.formats.epub.archive'), ('ayvu.v1.epub', 'ayvu.formats.epub.io'),
@@ -523,8 +526,6 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.interfaces.cli.contracts", "ayvu.preferences.service"),
     ("ayvu.interfaces.cli.contracts", "ayvu.recovery.service"),
     ("ayvu.interfaces.cli.app", "ayvu.composition.cli"),
-    ("ayvu.interfaces.cli.app", "ayvu.interfaces.cli.contracts"),
-    ("ayvu.interfaces.cli.app", "ayvu.preferences.model"),
     ("ayvu.interfaces.cli.contracts", "ayvu.translation.project"),
     ("ayvu.preferences.config_facade", "ayvu.preferences.model"),
     ("ayvu.projects.profiles.model", "ayvu.knowledge.glossary.catalog"),
@@ -556,7 +557,6 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.knowledge.glossary.catalog_store", "ayvu.knowledge.glossary.catalog"),
     ("ayvu.knowledge.glossary.catalog_store", "ayvu.knowledge.glossary.rules"),
     ("ayvu.composition.builders.glossary", "ayvu.knowledge.glossary.catalog_store"),
-    ("ayvu.interfaces.cli.app", "ayvu.knowledge.glossary.catalog"),
     ("ayvu.knowledge.cache.admin", "ayvu.knowledge.cache.identity"),
     ("ayvu.knowledge.cache.admin", "ayvu.v1.cache_format"),
     ("ayvu.v1.cache_stream", "ayvu.knowledge.cache.admin"),
@@ -670,9 +670,7 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.projects.service", "ayvu.projects.model"),
     ("ayvu.projects.store", "ayvu.projects.model"),
     ("ayvu.projects.store", "ayvu.projects.service"),
-    ("ayvu.interfaces.cli.app", "ayvu.library.service"),
     ("ayvu.library.adapters", "ayvu.library.service"),
-    ("ayvu.interfaces.cli.app", "ayvu.providers.discovery"),
     ("ayvu.translation.preflight", "ayvu.providers.discovery"),
     *(("ayvu.providers.session", f"ayvu.{name}") for name in ("network.policy", "providers.capabilities",
       "providers.discovery", "providers.libretranslate.adapter", "providers.network", "providers.service", "providers.libretranslate.client")),

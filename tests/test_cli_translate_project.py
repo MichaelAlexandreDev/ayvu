@@ -22,7 +22,7 @@ import requests
 from typer.testing import CliRunner
 
 import ayvu.artifacts.destination as artifact_destination
-import ayvu.interfaces.cli.app as cli_module
+from ayvu.interfaces.cli import render as cli_module
 import ayvu.jobs.store as job_store
 import ayvu.composition.builders.review as review_composition
 import ayvu.composition.builders.translate_project as composition

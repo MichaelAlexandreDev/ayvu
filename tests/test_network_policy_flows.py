@@ -9,7 +9,8 @@ import socket
 import pytest
 from typer.testing import CliRunner
 
-from ayvu.interfaces.cli import app as cli, settings as cli_settings
+from ayvu.interfaces.cli import app as cli, settings as cli_settings, options as cli_options
+from ayvu.interfaces.cli.guided import library as guided_library
 from ayvu.composition import cli as cli_composition
 from ayvu.preferences.model import AyvuConfig
 from ayvu.network.policy import NetworkPolicy
@@ -128,7 +129,7 @@ def test_guided_language_discovery_inherits_root_selection_and_does_not_persist_
         assert [item[:2] for item in provider_wire[0]] == [("GET", "/languages")]
     for config in tmp_path.rglob("config.json"):
         assert "network_policy" not in config.read_text()
-    assert cli._selected_network_policy() is None  # Scoped input cannot leak into the next invocation.
+    assert cli_options._selected_network_policy() is None  # Scoped input cannot leak into the next invocation.
 
 
 @pytest.mark.parametrize("policy", ["none", "loopback"])
@@ -203,7 +204,7 @@ def test_external_reader_launch_is_outside_http_offline_receipt(tmp_path, monkey
     reached = deny_network(monkeypatch)
     session = cli_composition.cli_provider_session(url="http://localhost:5000", timeout=1, retries=0, network_policy="none")
     assert session.languages().outcome is DiscoveryOutcome.POLICY_DENIED
-    cli._open_library_book_path(service, ref, "Original")
+    guided_library._open_library_book_path(service, ref, "Original")
     assert len(invocations) == 1 and reached == []
     assert "fora da garantia offline" in capsys.readouterr().out
     result = service.open(ref)
