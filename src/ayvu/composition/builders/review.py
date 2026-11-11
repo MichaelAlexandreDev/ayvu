@@ -12,46 +12,46 @@ from collections.abc import Iterable
 from typing import Callable
 from uuid import uuid4
 
-from .artifact import (Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactError, ArtifactIntegrityError,
+from ...artifact import (Artifact, ArtifactCancelledError, ArtifactConflictError, ArtifactError, ArtifactIntegrityError,
                        ArtifactRequest, ArtifactState)
-from .artifact_destination import DestinationPublications, LocalDestinationPayloads
-from .artifact_service import ArtifactService
-from .artifact_store import LocalArtifactPayloads, SqliteArtifactRepository
-from .content import ContentDocument
-from .epub_format import EPUB_ADAPTER, epub_format_adapter
-from .format_adapter import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
-from .format_local import LocalFormatSource, LocalOutputGuard
-from .format_service import FormatPublication, FormatService, FormatRegistry, FormatSource
-from .html_structure import html_unit_template
-from .job import JobRequest, JobState, JobTerminalSummary, MAX_LEASE_DURATION
-from .job_events import (
+from ...artifact_destination import DestinationPublications, LocalDestinationPayloads
+from ...artifact_service import ArtifactService
+from ...artifact_store import LocalArtifactPayloads, SqliteArtifactRepository
+from ...content import ContentDocument
+from ...epub_format import EPUB_ADAPTER, epub_format_adapter
+from ...format_adapter import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
+from ...format_local import LocalFormatSource, LocalOutputGuard
+from ...format_service import FormatPublication, FormatService, FormatRegistry, FormatSource
+from ...html_structure import html_unit_template
+from ...job import JobRequest, JobState, JobTerminalSummary, MAX_LEASE_DURATION
+from ...job_events import (
     CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress)
-from .job_execution import CancellationSource, InMemoryJobEventLog
-from .job_service import JobRepository
-from .job_store import SqliteJobRepository
-from .project import ProjectManifest
-from .project_schema import (
+from ...job_execution import CancellationSource, InMemoryJobEventLog
+from ...job_service import JobRepository
+from ...job_store import SqliteJobRepository
+from ...project import ProjectManifest
+from ...project_schema import (
     open_artifact_service, open_job_repository, open_provenance_repository, project_migration_runner,
 )
-from .project_store import ProjectJsonRepository, file_digest
-from .provenance import (
+from ...project_store import ProjectJsonRepository, file_digest
+from ...provenance import (
     UNKNOWN, ActorKind, ProducerIdentity, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef,
 )
-from .provenance_store import SqliteProvenanceRepository
-from .review_application import (
+from ...provenance_store import SqliteProvenanceRepository
+from ...review_application import (
     REVIEW_APPLY_COMMAND_TYPE, REVIEW_EXPORT_COMMAND_TYPE, REVIEW_SAFE_POINTS, ReviewApplicationError,
     ReviewCounts, ReviewOperation, ReviewOperationResult, ReviewPackageExport, ReviewPackageIdentity,
     ReviewUseCasePorts, ReviewValidationMaterial, ExportReviewPackage, ValidateReviewPackage, ApplyReviewPackage,
 )
-from .review_exchange import (
+from ...review_exchange import (
     REVIEW_PACKAGE_SCHEMA_VERSION, ReviewExchangeError, ReviewPackage, ReviewReconstructionPlan,
     decode_review_package, encode_review_package, export_review_package, map_review_package,
 )
-from .review_import import ReviewImportError, read_review_csv_bytes
-from .translate_project import TranslateProjectResult
-from .translate_project import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
-from .translation_engine import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
-from .kernel import JobFailure, JobFailureFamily, JobWarning, CancellationToken
+from ...review_import import ReviewImportError, read_review_csv_bytes
+from ...translate_project import TranslateProjectResult
+from ...translate_project import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
+from ...translation_engine import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
+from ...kernel import JobFailure, JobFailureFamily, JobWarning, CancellationToken
 
 _MAX_PACKAGE_BYTES = 64 * 1024 * 1024
 _MAX_V1_BYTES = 32 * 1024 * 1024
@@ -1047,7 +1047,7 @@ class ReviewUseCases:
 
 def epub_review_formats() -> FormatService:
     registry = FormatRegistry()
-    from .epub_format import EPUB_REGISTRATION
+    from ...epub_format import EPUB_REGISTRATION
     registry.register(EPUB_REGISTRATION, epub_format_adapter())
     return FormatService(registry)
 

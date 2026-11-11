@@ -1,6 +1,7 @@
-"""Provider wiring selected by the explicit CLI composition boundary (#158).
+"""One LibreTranslate translator behind the shared provider discovery use cases (#158).
 
-The request snapshot is shared with the translator and the existing #128 use cases.
+The session carries the network decision each operation must present. The caller passes the translator
+in, so translation preflight and the CLI composition share one adapter.
 """
 from __future__ import annotations
 
@@ -12,13 +13,11 @@ from .provider_discovery import LanguagesResult, ProviderDiscoveryService, Provi
 from .provider_libretranslate import ADAPTER_ID, ADAPTER_VERSION, LibreTranslateDiscoveryAdapter
 from .provider_network import NetworkClass, ProviderOperation, ResolvedProviderNetworkDecision, network_binding
 from .provider_service import ProviderInstance
-from .translator import LibreTranslateTranslator, TranslatorError
+from .translator import LibreTranslateTranslator
 from .network_policy import NetworkPolicy, resolve_network_policy
-from .network_http import NetworkAuthorization
-from .providers import ProviderSetupError
 
 CLI_INSTANCE_ID = "libretranslate_cli"
-_ISSUER = "cli_composition"
+_ISSUER = "cli_composition"  # the issuer name since #158, a value and not a module path
 _POLICY_REVISION = 1
 _DECISION_LIFETIME = timedelta(minutes=5)
 _PREFLIGHT_REQUIREMENTS = ProviderRequirements((Capability.PLAIN_TEXT_INPUT, Capability.ROUTE_DISCOVERY))
@@ -63,17 +62,3 @@ class CliProviderSession:
     def preflight(self, source: str, target: str) -> ProviderPreflightResult:
         return self._service.preflight(CLI_INSTANCE_ID, self._decision(ProviderOperation.PREFLIGHT),
                                        _PREFLIGHT_REQUIREMENTS, source, target)
-
-
-def cli_provider_session(*, url: str, timeout: float, retries: int, requests_per_second: float | None = None,
-                         retry_backoff: float = 0.5, retry_backoff_max: float = 8.0,
-                         network_policy: NetworkPolicy | str | None = None) -> CliProviderSession:
-    try:
-        translator = LibreTranslateTranslator(
-            url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
-            network_authorization=NetworkAuthorization(resolve_network_policy(network_policy, url)))
-    except TranslatorError:
-        # Its message is not forwarded: a bad setting is reported with a code.
-        raise ProviderSetupError("invalid_provider_settings") from None
-    return CliProviderSession(translator)

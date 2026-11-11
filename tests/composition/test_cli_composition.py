@@ -14,15 +14,16 @@ import pytest
 import requests
 from typer.testing import CliRunner
 
-from ayvu import cli, cli_composition as root
-from ayvu.cli_contracts import _BookHooks, _BookRequest, _BookOutcome
+from ayvu import cli
+from ayvu.composition import cli as root
+from ayvu.composition.cli import _BookHooks, _BookRequest, _BookOutcome
 from ayvu.config_values import AyvuConfig
 from ayvu.epub_io import TranslationReport
 from ayvu.job import JobState
 from ayvu.job_events import JobOutcome, JobTerminalSummary
 from ayvu.preflight import run_translation_preflight
 from ayvu.translate_project import OutputValidation, TranslateProjectResult
-from ayvu.translate_project_composition import ProjectTranslationRun
+from ayvu.composition.builders.translate_project import ProjectTranslationRun
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode, JobFailure, JobFailureFamily
 
 
@@ -43,8 +44,8 @@ def deny_resources(monkeypatch):
         (sqlite3, 'connect'), (requests.Session, 'request'), (requests.Session, '__init__'),
         (root, 'TranslationCache'), (root, 'ProjectJsonRepository'),
         (root, 'ConfigStore'), (root, 'LocalLibraryFilesystem'), (root, 'ReaderLauncher'),
-        (root.provider_composition, 'LibreTranslateTranslator'),
-        (root.glossary_catalog_composition, 'managed_glossary_repository'),
+        (root.providers, 'LibreTranslateTranslator'),
+        (root.glossary, 'managed_glossary_repository'),
     ):
         monkeypatch.setattr(module, name, denied)
     return calls
@@ -83,7 +84,7 @@ def test_cache_only_preflight_instruments_transport_and_provider_authority(minim
     monkeypatch.setattr('ayvu.preflight._create_checked_translator_factory', forbidden)
     monkeypatch.setattr('ayvu.provider_service.ProviderRegistry.open', forbidden)
     # No secret resolver exists in the current CLI provider. Prevent entry to its entire composition boundary.
-    monkeypatch.setattr('ayvu.provider_composition.CliProviderSession', forbidden)
+    monkeypatch.setattr('ayvu.preflight.CliProviderSession', forbidden)
     original = minimal_epub_path.read_bytes()
     result = run_translation_preflight(epub_path=minimal_epub_path, cache_path=tmp_path / 'only-cache.sqlite',
         glossary_path=None, translator_name='libretranslate', url='http://endpoint-canary.invalid',
@@ -131,7 +132,7 @@ def test_cli_and_framework_free_consumer_receive_the_same_authoritative_result(
         assert observer.engine.on_chapter_start is callbacks.on_chapter_start
         seen.append(translation)
         return ProjectTranslationRun(result, report, None)
-    monkeypatch.setattr(root.translate_project_composition, 'translate_in_project', execute)
+    monkeypatch.setattr(root.translate_project, 'translate_in_project', execute)
     book, callbacks = request(tmp_path), hooks()
     other = root._translate_in_project(book, callbacks)
     terminal = cli._translate_in_project(book, callbacks)
@@ -150,7 +151,7 @@ def test_confirmation_is_handed_to_the_real_project_command_without_implicit_aut
         result = TranslateProjectResult('project', 'job', JobState.FAILED,
             failure=JobFailure(JobFailureFamily.INPUT, 'output_exists'))
         return ProjectTranslationRun(result, None, None)
-    monkeypatch.setattr(root.translate_project_composition, 'translate_in_project', execute)
+    monkeypatch.setattr(root.translate_project, 'translate_in_project', execute)
     root._translate_in_project(request(tmp_path, replace_existing=False), hooks())
     root._translate_in_project(request(tmp_path, replace_existing=True), hooks())
     assert captured == [False, True]
@@ -302,7 +303,8 @@ def test_preview_translation_does_not_validate_twice(tmp_path, monkeypatch):
 
 
 def test_compatibility_facades_export_identical_contracts():
-    from ayvu import config, config_values, preflight, resume, batch_output_policy, provider_composition
+    from ayvu import config, config_values, preflight, resume, batch_output_policy
+    from ayvu.composition.builders import providers as provider_composition
     from ayvu import cli, providers, translation
     for name in ('AyvuConfig', 'FolderNames', 'TranslationProfile', 'ConfigError', 'config_from_preferences'):
         assert getattr(config, name) is getattr(config_values, name)

@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -64,6 +66,16 @@ def test_update_lowers_and_drops_but_never_raises_or_adds(tmp_path):
     ledger = {"files": {"src/ayvu/big.py": 500, "src/ayvu/gone.py": 900}, "functions": {"src/ayvu/big.py::f": 85}}
     assert ratchet.update(ledger, actual) == {"files": {"src/ayvu/big.py": 450}, "functions": {"src/ayvu/big.py::f": 85}}
     assert ratchet.update({"files": {}, "functions": {}}, actual) == {"files": {}, "functions": {}}
+
+
+def test_move_carries_entries_with_their_sizes_and_never_overwrites():
+    ledger = {"files": {"src/ayvu/old.py": 500, "src/ayvu/other.py": 450},
+              "functions": {"src/ayvu/old.py::f": 90, "src/ayvu/old.pyx::g": 85}}
+    assert ratchet.move(ledger, "src/ayvu/old.py", "src/ayvu/pkg/new.py") == {
+        "files": {"src/ayvu/pkg/new.py": 500, "src/ayvu/other.py": 450},
+        "functions": {"src/ayvu/pkg/new.py::f": 90, "src/ayvu/old.pyx::g": 85}}
+    with pytest.raises(ValueError, match="already in the ledger"):
+        ratchet.move(ledger, "src/ayvu/old.py", "src/ayvu/other.py")
 
 
 def test_methods_and_nested_functions_are_named_by_qualified_name(tmp_path):

@@ -9,8 +9,11 @@ being lowered, so the list always matches the code.
 Usage:
   scripts/size_ratchet.py            report what differs from tests/size_ratchet.json
   scripts/size_ratchet.py --update   lower shrunk entries and drop entries back within the limit
+  scripts/size_ratchet.py --move OLD NEW
+                                     carry the entries of a file moved from OLD to NEW (with git mv)
 
---update never raises an entry and never adds one. Growth has to be undone in the code.
+--update never raises an entry and never adds one. Growth has to be undone in the code. --move renames
+entries and keeps their sizes, so a moved file is held to the size it had.
 """
 
 from __future__ import annotations
@@ -100,6 +103,17 @@ def update(ledger: dict[str, dict[str, int]], actual: dict[str, dict[str, int]])
     return result
 
 
+def move(ledger: dict[str, dict[str, int]], old: str, new: str) -> dict[str, dict[str, int]]:
+    """Renames the file entry OLD and its function entries to NEW, keeping every size."""
+    if any(name == new or name.startswith(new + "::") for entries in ledger.values() for name in entries):
+        raise ValueError(f"{new} is already in the ledger")
+
+    def renamed(name: str) -> str:
+        return new + name[len(old):] if name == old or name.startswith(old + "::") else name
+
+    return {kind: {renamed(name): size for name, size in entries.items()} for kind, entries in ledger.items()}
+
+
 def write(ledger: dict[str, dict[str, int]], path: Path = LEDGER) -> None:
     payload = {
         "_comment": "D10 size ratchet (REF-03, #271). Entries may only shrink; see scripts/size_ratchet.py.",
@@ -112,9 +126,15 @@ def write(ledger: dict[str, dict[str, int]], path: Path = LEDGER) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--update", action="store_true", help="lower shrunk entries and drop finished ones")
+    parser.add_argument("--move", nargs=2, action="append", default=[], metavar=("OLD", "NEW"),
+                        help="carry a moved file's entries to its new path")
     args = parser.parse_args(argv)
     actual = measure()
     ledger = load()
+    for old, new in args.move:
+        ledger = move(ledger, old, new)
+    if args.move and not args.update:
+        write(ledger)
     if args.update:
         ledger = update(ledger, actual)
         write(ledger)

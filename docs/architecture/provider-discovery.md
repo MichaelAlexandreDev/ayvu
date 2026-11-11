@@ -10,7 +10,7 @@ one directly. `languages`, `test-translator`, guided language selection and the 
 translation preflight all use it. Translation errors now omit URLs, response bodies and raw
 transport exceptions under #159, while retaining typed connection/timeout/protocol categories.
 
-`cli_composition` (#158) delegates to `ayvu.provider_composition`, which derives the
+`composition.cli` (#158) delegates to `ayvu.composition.builders.providers`, which derives the
 operation-bound decisions from the same immutable `none`/`loopback` snapshot enforced
 by the translator. Missing selection explicitly records the loopback compatibility
 default. See the [HTTP policy contract](network-policy.md). The shared use cases

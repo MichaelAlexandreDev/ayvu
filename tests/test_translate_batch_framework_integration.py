@@ -10,9 +10,9 @@ from ayvu.epub_io import detect_epub_language
 from ayvu.project_service import resolve_project
 from ayvu.project_store import ProjectJsonRepository, build_project_request
 from ayvu.translate_batch import BatchValidationError, ItemStatus
-from ayvu.translate_batch_composition import LocalBatchItem, LocalTranslateBatch, project_item_outcome
+from ayvu.composition.builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from ayvu.translate_project import TranslateObserver
-from ayvu.translate_project_composition import LegacyResources, ProjectTranslation, translate_in_project
+from ayvu.composition.builders.translate_project import LegacyResources, ProjectTranslation, translate_in_project
 from test_workflow_characterization import _write_epub
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions
 
@@ -27,7 +27,7 @@ class Translator:
 
 
 def test_client_resolves_each_book_lazily_and_executes_production_projects(tmp_path, monkeypatch):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
 
     sources = (_write_epub(tmp_path / "english.epub", language="en"),
                _write_epub(tmp_path / "french.epub", language="fr"))

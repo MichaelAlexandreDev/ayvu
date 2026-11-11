@@ -288,7 +288,7 @@ def test_context_execution_cancellation_discards_prepared_values():
 
 
 def test_real_rich_runtime_resources_pass_context_to_document_translator(tmp_path, monkeypatch):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
     from ayvu.translate_project import RuntimeContext
     s = scene()
     runtime = composition.RichTranslationRuntime(tmp_path / 'book.epub', TranslationOptions(language_pair=LanguagePair('en', 'pt')),
@@ -312,7 +312,7 @@ def test_real_rich_runtime_resources_pass_context_to_document_translator(tmp_pat
 
 
 def test_rich_runtime_denial_precedes_cache_preparation_and_provider_resolution(tmp_path):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
     s = scene(gate=Gate(lambda d: replace(d, allowed=False)))
     resolved = []
     runtime = composition.RichTranslationRuntime(tmp_path / 'book.epub', TranslationOptions(language_pair=LanguagePair('en', 'pt')),
@@ -382,7 +382,7 @@ def test_pipeline_cache_ignores_unused_context_and_inert_profile_changes():
 
 
 def test_composition_binds_context_before_repositories_and_puts_effect_in_job_plan(tmp_path, monkeypatch):
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
     from ayvu.translate_project import TranslateObserver, TranslateProjectResult
     from test_translation_context import OPERATION
     s = scene()
@@ -532,7 +532,7 @@ def test_multiunit_preparation_validates_every_authorization_and_never_keeps_par
 @pytest.mark.parametrize('binding', [False, True])
 def test_composition_cancellation_stops_before_candidate_loading_and_project_ports(tmp_path, monkeypatch, binding):
     from contextlib import contextmanager
-    import ayvu.translate_project_composition as composition
+    import ayvu.composition.builders.translate_project as composition
     from ayvu.job_execution import CancellationSource
     from ayvu.translate_project import TranslateObserver
     from test_translation_context import OPERATION

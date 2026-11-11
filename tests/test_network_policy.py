@@ -311,7 +311,8 @@ def test_help_explains_request_policy_and_external_reader(args):
 
 def test_import_contract_has_no_presentation_or_desktop_dependency():
     root = Path(__file__).resolve().parents[1] / "src" / "ayvu"
-    for name in ("network_policy", "network_http", "provider_network", "provider_discovery", "provider_composition", "translator"):
+    for name in ("network_policy", "network_http", "provider_network", "provider_discovery", "provider_session",
+                 "composition/builders/providers", "translator"):
         tree = ast.parse((root / f"{name}.py").read_text())
         imports = [node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
         imports += [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names]

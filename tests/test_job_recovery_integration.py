@@ -31,7 +31,7 @@ from ayvu.resume import ResumeStateStore, TranslationResumeState
 from ayvu.translate_project import (
     OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, ContinuationTicket, TranslateObserver, TranslateProjectCommand,
 )
-from ayvu.translate_project_composition import (
+from ayvu.composition.builders.translate_project import (
     LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
 )
 from test_cli_translate_project import ENCRYPTED_DOCUMENT, Session, _args, _book

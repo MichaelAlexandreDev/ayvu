@@ -272,6 +272,13 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Composição fora dos módulos (REF-05, #273): os oito `*_composition.py` vão para
+  `ayvu.composition.builders`, a raiz do CLI para `ayvu.composition.cli` e a do desktop
+  para `ayvu.composition.desktop`. Cada raiz é um módulo público próprio, então o desktop
+  não carrega a montagem do CLI. `CliProviderSession` vai para `ayvu.provider_session`,
+  porque o preflight a usa, e os tipos `_Book*` saem de `cli_contracts` para a raiz do CLI.
+  Nenhum módulo de capacidade importa um builder. `scripts/size_ratchet.py --move` leva as
+  entradas de um arquivo movido sem mudar seus tamanhos.
 - `cli_contracts.py` dividido (REF-04, #272, segunda parte): os erros de traduzir um livro
   (`PreflightError`, `PreflightPolicyError`, `BookRefused`, `TranslationDryRunCancelled`,
   `ProjectTranslationUnavailable`, `BatchOutputError`, `ResumeStateError`) vão para

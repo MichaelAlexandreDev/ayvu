@@ -79,7 +79,7 @@ def test_v2_gate_leaves_database_unchanged(tmp_path):
 def test_production_v1_services_never_use_whole_payload_ports(tmp_path, monkeypatch):
     from ayvu.cache import SCHEMA
     from ayvu.cache_admin import ExportRequest
-    from ayvu.cache_admin_composition import cache_admin_services
+    from ayvu.composition.builders.cache_admin import cache_admin_services
     from ayvu.cache_admin_store import SQLiteCacheStore, LocalCacheFiles
     source, destination, payload = tmp_path / 'source.sqlite', tmp_path / 'destination.sqlite', tmp_path / 'data.json'
     row = entry()

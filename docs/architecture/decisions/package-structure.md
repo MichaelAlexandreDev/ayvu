@@ -99,6 +99,10 @@ says otherwise.
 - The `*_composition.py` files go to `composition/builders/`. The roots go to `composition/cli.py`,
   `composition/desktop.py` and, later, `composition/server.py`.
 - A root selects and builds adapters. It runs no translation stage and holds no business rule.
+- Implemented in REF-05 (#273). Each root is a public module of its own, the one exception to D2: an
+  interface imports only its root, so the desktop does not load the CLI wiring, and later an edition does
+  not load another's. `composition/__init__.py` exports nothing. Only `composition/cli.py` imports
+  builders. The layers contract keeps every other module from importing `composition`.
 
 ### D6. Editions in composition
 - `composition/editions.py` declares what each edition enables (Lite, Free, AI).
@@ -255,6 +259,7 @@ REF-15 break up by reason to change after they move.
 | `provider_service.py` | `providers/service.py` |  |
 | `provider_network.py` | `providers/network.py` |  |
 | `provider_libretranslate.py` | `providers/libretranslate/adapter.py` |  |
+| `provider_session.py` | `providers/session.py` | added in REF-05, out of `provider_composition.py` |
 | `project.py` | `projects/model.py` |  |
 | `project_service.py` | `projects/service.py` |  |
 | `project_store.py` | `projects/store.py` |  |
@@ -292,14 +297,14 @@ REF-15 break up by reason to change after they move.
 | `cache_admin_legacy_store.py` | `v1/cache_admin_store.py` |  |
 | `resume.py` | `v1/resume.py` |  |
 | `legacy_resume.py` | `v1/resume_scan.py` |  |
-| `cli_contracts.py` | `interfaces/cli/contracts.py` | changed in REF-04: its errors went to `translation/errors.py` and `providers/errors.py`; the protocols only the CLI uses stay with the CLI |
+| `cli_contracts.py` | `interfaces/cli/contracts.py` | changed in REF-04: its errors went to `translation/errors.py` and `providers/errors.py`; the protocols only the CLI uses stay with the CLI. In REF-05 the `_Book*` request and outcome types went to `composition/cli.py`, the root that runs them |
 | `cli_composition.py` | `composition/cli.py` |  |
 | `desktop/bootstrap/composition.py` | `composition/desktop.py` |  |
 | `cache_admin_composition.py` | `composition/builders/cache_admin.py` |  |
 | `content_composition.py` | `composition/builders/content.py` |  |
 | `glossary_catalog_composition.py` | `composition/builders/glossary.py` |  |
 | `project_profile_composition.py` | `composition/builders/profiles.py` |  |
-| `provider_composition.py` | `composition/builders/providers.py` |  |
+| `provider_composition.py` | `composition/builders/providers.py` | changed in REF-05: `CliProviderSession` went to `provider_session.py`, because `preflight` uses it; only the factory is composition |
 | `review_composition.py` | `composition/builders/review.py` | split; it holds use cases |
 | `translate_batch_composition.py` | `composition/builders/translate_batch.py` |  |
 | `translate_project_composition.py` | `composition/builders/translate_project.py` |  |
@@ -327,7 +332,7 @@ REF-15 break up by reason to change after they move.
 | interfaces ↔ jobs | `resume` uses `cli_contracts` | REF-04 (splitting `cli_contracts`) |
 | interfaces ↔ providers | `provider_composition` uses `cli_contracts` | REF-04 and REF-05 |
 | interfaces ↔ translation | `preflight`, `batch_output_policy` and `translate_project_composition` use `cli_contracts` | REF-04 and REF-05 |
-| content ↔ formats | `content_composition` assembles formats | REF-05 |
+| content ↔ formats | `content_use_cases` uses the format ports; `content_composition` also did until REF-05 | REF-07 (a home for `content_use_cases`) |
 | formats ↔ review | `epub_io` reads and writes the review CSV | REF-10 |
 | formats ↔ translation | `html_structure` and `html_translate` use `translation_protection` and the pipeline | REF-06 (`html_translate` to v1) and REF-07 (`content/protection`) |
 | knowledge ↔ translation | `memory_retrieval` (in knowledge) uses `translation_plan` and `translation_protection` | REF-07 and REF-09 (`memory_retrieval` to the pipeline) |

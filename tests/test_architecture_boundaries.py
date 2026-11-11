@@ -34,6 +34,8 @@ class Exemption:
     expiry: str
 
 
+CLI_ROOT = "ayvu.composition.cli"  # the only composition module that may import another, by a declared edge
+
 OWNERS = {
     "ayvu": Owner("surface", "Package"),
     **{f"ayvu.kernel{part}": Owner("domain", "Kernel") for part in (
@@ -46,18 +48,19 @@ OWNERS = {
     "ayvu.project_profile_service": Owner("application", "Project profiles"),
     "ayvu.project_profile_store": Owner("infrastructure", "Project profiles"),
     "ayvu.profile_glossary_store": Owner("knowledge", "Project profiles"),
-    "ayvu.project_profile_composition": Owner("composition", "Project profiles"),
+    "ayvu.composition.builders.profiles": Owner("composition", "Project profiles"),
     "ayvu.chunking": Owner("domain", "Translation"),
     "ayvu.cli": Owner("interface", "CLI"),
-    "ayvu.cli_composition": Owner("composition", "CLI"),
+    "ayvu.composition": Owner("composition", "Composition"),
+    "ayvu.composition.cli": Owner("composition", "CLI"),
+    "ayvu.composition.builders": Owner("composition", "Composition"),
     "ayvu.cli_contracts": Owner("application", "CLI workflow ports"),
     **{name: Owner("domain", "Translation") for name in ("ayvu.translation", "ayvu.translation.errors")},
     **{name: Owner("domain", "Providers") for name in ("ayvu.providers", "ayvu.providers.errors")},
     "ayvu.config_values": Owner("domain", "Preferences"),
     "ayvu.desktop_bootstrap": Owner("interface", "Desktop"),
     "ayvu.desktop": Owner("interface", "Desktop"),
-    "ayvu.desktop.bootstrap": Owner("interface", "Desktop"),
-    "ayvu.desktop.bootstrap.composition": Owner("composition", "Desktop"),
+    "ayvu.composition.desktop": Owner("composition", "Desktop"),
     "ayvu.desktop.presentation": Owner("interface", "Desktop"),
     "ayvu.desktop.presentation.views": Owner("interface", "Desktop"),
     "ayvu.desktop.viewmodels": Owner("interface", "Desktop"),
@@ -73,8 +76,8 @@ OWNERS = {
     "ayvu.translate_project": Owner("application", "Translation"),
     "ayvu.translate_batch": Owner("application", "Translation"),
     "ayvu.batch_output_policy": Owner("infrastructure", "Translation"),
-    "ayvu.translate_project_composition": Owner("composition", "Translation"),
-    "ayvu.translate_batch_composition": Owner("composition", "Translation"),
+    "ayvu.composition.builders.translate_project": Owner("composition", "Translation"),
+    "ayvu.composition.builders.translate_batch": Owner("composition", "Translation"),
     "ayvu.artifact_destination": Owner("infrastructure", "Artifacts"),
     "ayvu.epub_archive": Owner("format", "EPUB"),
     "ayvu.epub_format": Owner("format", "EPUB"),
@@ -94,11 +97,11 @@ OWNERS = {
     "ayvu.cache_interchange": Owner("knowledge", "Cache administration"),
     "ayvu.cache_admin_v2_store": Owner("knowledge", "Cache administration"),
     "ayvu.cache_admin_store": Owner("knowledge", "Cache administration"),
-    "ayvu.cache_admin_composition": Owner("composition", "Cache administration"),
+    "ayvu.composition.builders.cache_admin": Owner("composition", "Cache administration"),
     "ayvu.glossary": Owner("knowledge", "Glossary"),
     "ayvu.glossary_catalog": Owner("application", "Glossary administration"),
     "ayvu.glossary_catalog_store": Owner("knowledge", "Glossary administration"),
-    "ayvu.glossary_catalog_composition": Owner("composition", "Glossary administration"),
+    "ayvu.composition.builders.glossary": Owner("composition", "Glossary administration"),
     "ayvu.memory_retrieval": Owner("application", "Approved translation memory"),
     "ayvu.translation_memory": Owner("domain", "Knowledge/TM"),
     "ayvu.approved_memory": Owner("domain", "Approved translation memory"),
@@ -135,10 +138,11 @@ OWNERS = {
     "ayvu.format_adapter": Owner("domain", "Formats"),
     "ayvu.format_service": Owner("application", "Formats"),
     "ayvu.format_local": Owner("infrastructure", "Formats"),
-    "ayvu.provider_composition": Owner("composition", "Providers"),
+    "ayvu.composition.builders.providers": Owner("composition", "Providers"),
     "ayvu.provider_discovery": Owner("application", "Translation"),
     "ayvu.provider_service": Owner("application", "Translation"),
     "ayvu.provider_libretranslate": Owner("provider", "Providers"),
+    "ayvu.provider_session": Owner("provider", "Providers"),
     "ayvu.provenance": Owner("domain", "Provenance"),
     "ayvu.provenance_service": Owner("application", "Provenance"),
     "ayvu.provenance_store": Owner("infrastructure", "Provenance"),
@@ -147,12 +151,12 @@ OWNERS = {
     "ayvu.review_import": Owner("infrastructure", "Review"),
     "ayvu.review_exchange": Owner("infrastructure", "Review"),
     "ayvu.review_application": Owner("application", "Review"),
-    "ayvu.review_composition": Owner("composition", "Review"),
+    "ayvu.composition.builders.review": Owner("composition", "Review"),
     "ayvu.library_service": Owner("application", "Library"),
     "ayvu.library_adapters": Owner("infrastructure", "Library"),
     "ayvu.content_use_cases": Owner("application", "Formats"),
     "ayvu.markdown_writer": Owner("infrastructure", "Formats"),
-    "ayvu.content_composition": Owner("composition", "Formats"),
+    "ayvu.composition.builders.content": Owner("composition", "Formats"),
 }
 # The synthetic fixtures still name the flat layout of #133, so their modules keep their owners here.
 TEST_OWNERS = {**OWNERS, "ayvu.application": Owner("application", "Translation"),
@@ -242,7 +246,7 @@ def check_tree(root: Path, owners: dict[str, Owner],
             if target in visited:
                 continue
             visited.add(target)
-            if target == "ayvu.cli_composition":
+            if target == CLI_ROOT:
                 continue
             if target in owners:
                 if owners[target].layer not in (ALLOWED_LAYER_DEPENDENCIES["interface"] - {"composition"}) | {"interface"}:
@@ -251,8 +255,8 @@ def check_tree(root: Path, owners: dict[str, Owner],
             elif forbidden(source, target, owners, allowed_edges):
                 raise BoundaryError(f"CLI transitive vendor: {source} -> {target}")
         check_cli_construction_imports(source, modules)
-    if "ayvu.cli_composition" in modules:
-        tree = modules["ayvu.cli_composition"][2]
+    if CLI_ROOT in modules:
+        tree = modules[CLI_ROOT][2]
         for node in tree.body:
             if isinstance(node, (ast.Assign, ast.AnnAssign)) and any(isinstance(part, (ast.Call, ast.Dict, ast.List, ast.Set)) for part in ast.walk(node)):
                 raise BoundaryError("eager CLI resource or hidden singleton")
@@ -284,17 +288,20 @@ def check_tree(root: Path, owners: dict[str, Owner],
 def check_cli_construction_imports(source, modules):
     """The presenter may import named factories, never an adapter re-export."""
     _, package, tree = modules[source]
-    if "ayvu.cli_composition" not in modules:
+    if CLI_ROOT not in modules:
         return
-    root_tree = modules["ayvu.cli_composition"][2]
-    factories = {node.name for node in root_tree.body if isinstance(node, ast.FunctionDef)}
+    root_tree = modules[CLI_ROOT][2]
+    # Named factories, and the request and outcome types the root itself defines.
+    factories = {node.name for node in root_tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     for node in ast.walk(tree):
         if not isinstance(node, (ast.Import, ast.ImportFrom)):
             continue
         targets = imports(source, package, ast.Module(body=[node], type_ignores=[]), modules)
-        if "ayvu.cli_composition" not in targets:
+        if CLI_ROOT not in targets:
             continue
-        if isinstance(node, ast.ImportFrom) and node.module in {"cli_composition", "ayvu.cli_composition"}:
+        # Names imported from a root, never the root module itself under another name.
+        if isinstance(node, ast.ImportFrom) and node.module and not any(
+                target.endswith("." + alias.name) for target, alias in zip(targets, node.names)):
             if any(alias.name not in factories for alias in node.names):
                 raise BoundaryError("CLI concrete re-export through composition")
         else:
@@ -380,7 +387,7 @@ def forbidden(
             if (source, target) not in allowed_edges:
                 return "undeclared internal edge"
             return None
-        if source == "ayvu.cli_composition" and destination.layer == "composition":
+        if source == CLI_ROOT and destination.layer == "composition":
             return None if (source, target) in allowed_edges else "undeclared internal edge"
         if destination.layer not in ALLOWED_LAYER_DEPENDENCIES[owner.layer]:
             return "dependency direction"
@@ -406,9 +413,9 @@ def forbidden(
 
 
 ALLOWED_INTERNAL_EDGES = {
-    ("ayvu.translate_project_composition", "ayvu.translation"),
+    ("ayvu.composition.builders.translate_project", "ayvu.translation"),
     ("ayvu.resume", "ayvu.translation"),
-    ("ayvu.provider_composition", "ayvu.providers"),
+    ("ayvu.composition.builders.providers", "ayvu.providers"),
     ("ayvu.preflight", "ayvu.translation"),
     ("ayvu.cli", "ayvu.providers"),
     ("ayvu.cli", "ayvu.translation"),
@@ -429,8 +436,8 @@ ALLOWED_INTERNAL_EDGES = {
     ('ayvu.translation_document', 'ayvu.context_execution'),
     ('ayvu.translation_document', 'ayvu.job_recovery'),
     ('ayvu.translation_document', 'ayvu.translation_context'),
-    ('ayvu.translate_project_composition', 'ayvu.context_execution'),
-    ('ayvu.translate_project_composition', 'ayvu.translation_context'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.context_execution'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.translation_context'),
     ("ayvu.cache_repository", "ayvu.approved_memory"),
     ("ayvu.memory_retrieval", "ayvu.translation_memory"),
     ("ayvu.memory_retrieval", "ayvu.approved_memory"),
@@ -443,56 +450,55 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.translation_document", "ayvu.approved_memory"),
     ("ayvu.translation_document", "ayvu.memory_retrieval"),
     ("ayvu.translation_pipeline", "ayvu.memory_retrieval"),
-    ("ayvu.translate_project_composition", "ayvu.approved_memory"),
-    ("ayvu.translate_project_composition", "ayvu.approved_memory_store"),
-    ("ayvu.translate_project_composition", "ayvu.memory_retrieval"),
-    ('ayvu.translate_project_composition', 'ayvu.translation_plan'),
-    ('ayvu.translate_project_composition', 'ayvu.provider_capabilities'),
-    ('ayvu.translate_project_composition', 'ayvu.provider'),
-    ('ayvu.translate_project_composition', 'ayvu.html_structure'),
-    ('ayvu.translate_project_composition', 'ayvu.glossary'),
-    ('ayvu.translate_project_composition', 'ayvu.content'),
-    ('ayvu.translate_project_composition', 'ayvu.cache_schema'),
-    ('ayvu.translate_project_composition', 'ayvu.cache_repository'),
+    ("ayvu.composition.builders.translate_project", "ayvu.approved_memory"),
+    ("ayvu.composition.builders.translate_project", "ayvu.approved_memory_store"),
+    ("ayvu.composition.builders.translate_project", "ayvu.memory_retrieval"),
+    ('ayvu.composition.builders.translate_project', 'ayvu.translation_plan'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.provider_capabilities'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.provider'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.html_structure'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.glossary'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.content'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.cache_schema'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.cache_repository'),
     ('ayvu.preferences', 'ayvu.provenance'),
-    ('ayvu.translate_project_composition', 'ayvu.translation_document'),
-    ('ayvu.translate_project_composition', 'ayvu.provider_libretranslate'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.translation_document'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.provider_libretranslate'),
 
     ("ayvu.provider_network", "ayvu.network_policy"),
     ("ayvu.provider_discovery", "ayvu.network_policy"),
     ("ayvu.cli", "ayvu.network_policy"),
     ("ayvu.preflight", "ayvu.network_policy"),
     ("ayvu.preflight", "ayvu.network_http"),
-    ("ayvu.provider_composition", "ayvu.network_policy"),
-    ("ayvu.provider_composition", "ayvu.network_http"),
+    ("ayvu.composition.builders.providers", "ayvu.network_policy"),
+    ("ayvu.composition.builders.providers", "ayvu.network_http"),
     ("ayvu.translator", "ayvu.network_policy"),
     ("ayvu.translator", "ayvu.network_http"),
     ("ayvu.network_http", "ayvu.network_policy"),
     ("ayvu.cli_contracts", "ayvu.config_values"),
     ("ayvu.cli_contracts", "ayvu.preferences_service"),
     ("ayvu.cli_contracts", "ayvu.job_recovery"),
-    ("ayvu.cli_composition", "ayvu.cache_admin_composition"),
-    ("ayvu.cli_composition", "ayvu.content_composition"),
-    ("ayvu.cli_composition", "ayvu.glossary_catalog_composition"),
-    ("ayvu.cli_composition", "ayvu.preflight"),
-    ("ayvu.cli_composition", "ayvu.provider_composition"),
-    ("ayvu.cli_composition", "ayvu.review_composition"),
-    ("ayvu.cli_composition", "ayvu.translate_batch_composition"),
-    ("ayvu.cli_composition", "ayvu.translate_project_composition"),
-    ("ayvu.cli", "ayvu.cli_composition"),
+    ("ayvu.composition.cli", "ayvu.composition.builders.cache_admin"),
+    ("ayvu.composition.cli", "ayvu.composition.builders.content"),
+    ("ayvu.composition.cli", "ayvu.composition.builders.glossary"),
+    ("ayvu.composition.cli", "ayvu.preflight"),
+    ("ayvu.composition.cli", "ayvu.composition.builders.providers"),
+    ("ayvu.composition.cli", "ayvu.composition.builders.review"),
+    ("ayvu.composition.cli", "ayvu.composition.builders.translate_batch"),
+    ("ayvu.composition.cli", "ayvu.composition.builders.translate_project"),
+    ("ayvu.cli", "ayvu.composition.cli"),
     ("ayvu.cli", "ayvu.cli_contracts"),
     ("ayvu.cli", "ayvu.config_values"),
-    ("ayvu.cli_composition", "ayvu.batch_output_policy"),
-    ("ayvu.cli_composition", "ayvu.cache"),
-    ("ayvu.cli_composition", "ayvu.cli_contracts"),
-    ("ayvu.cli_composition", "ayvu.config"),
-    ("ayvu.cli_composition", "ayvu.library_adapters"),
-    ("ayvu.cli_composition", "ayvu.library_service"),
-    ("ayvu.cli_composition", "ayvu.project_service"),
-    ("ayvu.cli_composition", "ayvu.project_store"),
-    ("ayvu.cli_composition", "ayvu.resume"),
-    ("ayvu.cli_composition", "ayvu.translate_project"),
-    ("ayvu.cli_composition", "ayvu.translation_engine"),
+    ("ayvu.composition.cli", "ayvu.batch_output_policy"),
+    ("ayvu.composition.cli", "ayvu.cache"),
+    ("ayvu.composition.cli", "ayvu.config"),
+    ("ayvu.composition.cli", "ayvu.library_adapters"),
+    ("ayvu.composition.cli", "ayvu.library_service"),
+    ("ayvu.composition.cli", "ayvu.project_service"),
+    ("ayvu.composition.cli", "ayvu.project_store"),
+    ("ayvu.composition.cli", "ayvu.resume"),
+    ("ayvu.composition.cli", "ayvu.translate_project"),
+    ("ayvu.composition.cli", "ayvu.translation_engine"),
     ("ayvu.cli_contracts", "ayvu.translate_project"),
     ("ayvu.config", "ayvu.config_values"),
     ("ayvu.config_values", "ayvu.preferences"),
@@ -510,23 +516,23 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.profile_glossary_store", "ayvu.glossary_catalog_store"),
     ("ayvu.profile_glossary_store", "ayvu.project_profile_service"),
     ("ayvu.profile_glossary_store", "ayvu.project_profiles"),
-    ("ayvu.project_profile_composition", "ayvu.glossary_catalog_store"),
-    ("ayvu.project_profile_composition", "ayvu.profile_glossary_store"),
-    ("ayvu.project_profile_composition", "ayvu.project_profile_service"),
-    ("ayvu.project_profile_composition", "ayvu.project_profile_store"),
-    ("ayvu.project_profile_composition", "ayvu.project_store"),
-    ("ayvu.translate_batch_composition", "ayvu.batch_output_policy"),
-    ("ayvu.translate_batch_composition", "ayvu.translate_batch"),
-    ("ayvu.translate_batch_composition", "ayvu.translate_project"),
-    ("ayvu.translate_batch_composition", "ayvu.job"),
-    ("ayvu.translate_batch_composition", "ayvu.job_events"),
-    ("ayvu.translate_batch_composition", "ayvu.job_execution"),
-    ("ayvu.translate_project_composition", "ayvu.job_execution"),
+    ("ayvu.composition.builders.profiles", "ayvu.glossary_catalog_store"),
+    ("ayvu.composition.builders.profiles", "ayvu.profile_glossary_store"),
+    ("ayvu.composition.builders.profiles", "ayvu.project_profile_service"),
+    ("ayvu.composition.builders.profiles", "ayvu.project_profile_store"),
+    ("ayvu.composition.builders.profiles", "ayvu.project_store"),
+    ("ayvu.composition.builders.translate_batch", "ayvu.batch_output_policy"),
+    ("ayvu.composition.builders.translate_batch", "ayvu.translate_batch"),
+    ("ayvu.composition.builders.translate_batch", "ayvu.translate_project"),
+    ("ayvu.composition.builders.translate_batch", "ayvu.job"),
+    ("ayvu.composition.builders.translate_batch", "ayvu.job_events"),
+    ("ayvu.composition.builders.translate_batch", "ayvu.job_execution"),
+    ("ayvu.composition.builders.translate_project", "ayvu.job_execution"),
     ("ayvu.batch_output_policy", "ayvu.artifact"),
     ("ayvu.cli", "ayvu.translate_batch"),
     ("ayvu.glossary_catalog_store", "ayvu.glossary_catalog"),
     ("ayvu.glossary_catalog_store", "ayvu.glossary"),
-    ("ayvu.glossary_catalog_composition", "ayvu.glossary_catalog_store"),
+    ("ayvu.composition.builders.glossary", "ayvu.glossary_catalog_store"),
     ("ayvu.cli", "ayvu.glossary_catalog"),
     ("ayvu.cache_admin", "ayvu.cache_identity"),
     ("ayvu.cache_admin", "ayvu.cache_legacy_format"),
@@ -538,7 +544,7 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.cache_admin_legacy_store", "ayvu.cache_admin_v2_store"),
     ("ayvu.cache_admin_legacy_store", "ayvu.cache_legacy_stream"),
     ("ayvu.cache_admin_legacy_store", "ayvu.cache_schema"),
-    ("ayvu.cache_admin_composition", "ayvu.cache_admin_legacy_store"),
+    ("ayvu.composition.builders.cache_admin", "ayvu.cache_admin_legacy_store"),
     ("ayvu.cache_interchange", "ayvu.cache_admin"),
     ("ayvu.cache_interchange", "ayvu.cache_identity"),
     ("ayvu.cache_interchange", "ayvu.provenance"),
@@ -549,8 +555,8 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.cache_admin_v2_store", "ayvu.cache_admin_store"),
     ("ayvu.cache_admin_v2_store", "ayvu.cache_schema"),
     ("ayvu.cache_admin_v2_store", "ayvu.cache_interchange"),
-    ("ayvu.cache_admin_composition", "ayvu.cache_admin_v2_store"),
-    ("ayvu.cache_admin_composition", "ayvu.cache_schema"),
+    ("ayvu.composition.builders.cache_admin", "ayvu.cache_admin_v2_store"),
+    ("ayvu.composition.builders.cache_admin", "ayvu.cache_schema"),
     ("ayvu.cli", "ayvu.cache_identity"),
     ("ayvu.cache_admin_store", "ayvu.cache_admin"),
     ("ayvu.cache_admin_store", "ayvu.cache"),
@@ -558,8 +564,8 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.cache_schema", "ayvu.cache"),
     ("ayvu.cache_repository", "ayvu.cache_schema"),
     ("ayvu.cache_repository", "ayvu.cache_identity"),
-    ("ayvu.cache_admin_composition", "ayvu.cache_admin"),
-    ("ayvu.cache_admin_composition", "ayvu.cache_admin_store"),
+    ("ayvu.composition.builders.cache_admin", "ayvu.cache_admin"),
+    ("ayvu.composition.builders.cache_admin", "ayvu.cache_admin_store"),
     ("ayvu.cli", "ayvu.cache_admin"),
     ("ayvu.cache_identity", "ayvu.provenance"),
     ("ayvu.translation_document", "ayvu.cache_identity"),
@@ -591,11 +597,11 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.markdown_writer", "ayvu.format_adapter"),
     ("ayvu.markdown_writer", "ayvu.format_local"),
     ("ayvu.markdown_writer", "ayvu.format_service"),
-    ("ayvu.content_composition", "ayvu.content_use_cases"),
-    ("ayvu.content_composition", "ayvu.epub_format"),
-    ("ayvu.content_composition", "ayvu.format_local"),
-    ("ayvu.content_composition", "ayvu.format_service"),
-    ("ayvu.content_composition", "ayvu.markdown_writer"),
+    ("ayvu.composition.builders.content", "ayvu.content_use_cases"),
+    ("ayvu.composition.builders.content", "ayvu.epub_format"),
+    ("ayvu.composition.builders.content", "ayvu.format_local"),
+    ("ayvu.composition.builders.content", "ayvu.format_service"),
+    ("ayvu.composition.builders.content", "ayvu.markdown_writer"),
     ("ayvu.provider_network", "ayvu.provider"),
     ("ayvu.provider_discovery", "ayvu.provenance"),
     ("ayvu.provider_discovery", "ayvu.provider"),
@@ -624,31 +630,31 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.review_application", "ayvu.job"),
     ("ayvu.review_application", "ayvu.job_events"),
     ("ayvu.review_application", "ayvu.translate_project"),
-    ("ayvu.review_composition", "ayvu.artifact"),
-    ("ayvu.review_composition", "ayvu.artifact_destination"),
-    ("ayvu.review_composition", "ayvu.artifact_service"),
-    ("ayvu.review_composition", "ayvu.artifact_store"),
-    ("ayvu.review_composition", "ayvu.content"),
-    ("ayvu.review_composition", "ayvu.epub_format"),
-    ("ayvu.review_composition", "ayvu.format_adapter"),
-    ("ayvu.review_composition", "ayvu.format_local"),
-    ("ayvu.review_composition", "ayvu.format_service"),
-    ("ayvu.review_composition", "ayvu.html_structure"),
-    ("ayvu.review_composition", "ayvu.job"),
-    ("ayvu.review_composition", "ayvu.job_events"),
-    ("ayvu.review_composition", "ayvu.job_execution"),
-    ("ayvu.review_composition", "ayvu.job_service"),
-    ("ayvu.review_composition", "ayvu.job_store"),
-    ("ayvu.review_composition", "ayvu.project"),
-    ("ayvu.review_composition", "ayvu.project_schema"),
-    ("ayvu.review_composition", "ayvu.project_store"),
-    ("ayvu.review_composition", "ayvu.provenance"),
-    ("ayvu.review_composition", "ayvu.provenance_store"),
-    ("ayvu.review_composition", "ayvu.review_application"),
-    ("ayvu.review_composition", "ayvu.review_exchange"),
-    ("ayvu.review_composition", "ayvu.review_import"),
-    ("ayvu.review_composition", "ayvu.translation_engine"),
-    ("ayvu.review_composition", "ayvu.translate_project"),
+    ("ayvu.composition.builders.review", "ayvu.artifact"),
+    ("ayvu.composition.builders.review", "ayvu.artifact_destination"),
+    ("ayvu.composition.builders.review", "ayvu.artifact_service"),
+    ("ayvu.composition.builders.review", "ayvu.artifact_store"),
+    ("ayvu.composition.builders.review", "ayvu.content"),
+    ("ayvu.composition.builders.review", "ayvu.epub_format"),
+    ("ayvu.composition.builders.review", "ayvu.format_adapter"),
+    ("ayvu.composition.builders.review", "ayvu.format_local"),
+    ("ayvu.composition.builders.review", "ayvu.format_service"),
+    ("ayvu.composition.builders.review", "ayvu.html_structure"),
+    ("ayvu.composition.builders.review", "ayvu.job"),
+    ("ayvu.composition.builders.review", "ayvu.job_events"),
+    ("ayvu.composition.builders.review", "ayvu.job_execution"),
+    ("ayvu.composition.builders.review", "ayvu.job_service"),
+    ("ayvu.composition.builders.review", "ayvu.job_store"),
+    ("ayvu.composition.builders.review", "ayvu.project"),
+    ("ayvu.composition.builders.review", "ayvu.project_schema"),
+    ("ayvu.composition.builders.review", "ayvu.project_store"),
+    ("ayvu.composition.builders.review", "ayvu.provenance"),
+    ("ayvu.composition.builders.review", "ayvu.provenance_store"),
+    ("ayvu.composition.builders.review", "ayvu.review_application"),
+    ("ayvu.composition.builders.review", "ayvu.review_exchange"),
+    ("ayvu.composition.builders.review", "ayvu.review_import"),
+    ("ayvu.composition.builders.review", "ayvu.translation_engine"),
+    ("ayvu.composition.builders.review", "ayvu.translate_project"),
     ("ayvu.job_service", "ayvu.job"),
     ("ayvu.job_events", "ayvu.job"),
     ("ayvu.job_execution", "ayvu.job"),
@@ -672,12 +678,11 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.library_adapters", "ayvu.library_service"),
     ("ayvu.cli", "ayvu.provider_discovery"),
     ("ayvu.preflight", "ayvu.provider_discovery"),
-    ("ayvu.provider_composition", "ayvu.provider_capabilities"),
-    ("ayvu.provider_composition", "ayvu.provider_discovery"),
-    ("ayvu.provider_composition", "ayvu.provider_libretranslate"),
-    ("ayvu.provider_composition", "ayvu.provider_network"),
-    ("ayvu.provider_composition", "ayvu.provider_service"),
-    ("ayvu.provider_composition", "ayvu.translator"),
+    *(("ayvu.provider_session", f"ayvu.{name}") for name in ("network_policy", "provider_capabilities",
+      "provider_discovery", "provider_libretranslate", "provider_network", "provider_service", "translator")),
+    ("ayvu.composition.builders.providers", "ayvu.provider_session"),
+    ("ayvu.preflight", "ayvu.provider_session"),
+    ("ayvu.composition.builders.providers", "ayvu.translator"),
     ("ayvu.epub_io", "ayvu.epub_archive"),
     ("ayvu.legacy_translation", "ayvu.content"),
     ("ayvu.legacy_translation", "ayvu.epub_archive"),
@@ -710,9 +715,9 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.job_recovery_store", "ayvu.resume"),
     ("ayvu.job_recovery_store", "ayvu.translate_project"),
     ("ayvu.cli", "ayvu.job_recovery"),
-    ("ayvu.translate_project_composition", "ayvu.resume"),
-    ("ayvu.translate_project_composition", "ayvu.job_recovery"),
-    ("ayvu.translate_project_composition", "ayvu.job_recovery_store"),
+    ("ayvu.composition.builders.translate_project", "ayvu.resume"),
+    ("ayvu.composition.builders.translate_project", "ayvu.job_recovery"),
+    ("ayvu.composition.builders.translate_project", "ayvu.job_recovery_store"),
     ("ayvu.translate_project", "ayvu.artifact"),
     ("ayvu.translate_project", "ayvu.format_adapter"),
     ("ayvu.translate_project", "ayvu.format_service"),
@@ -732,23 +737,23 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.preflight", "ayvu.epub_io"),
     ("ayvu.preflight", "ayvu.glossary"),
     ("ayvu.preflight", "ayvu.translator"),
-    ("ayvu.translate_project_composition", "ayvu.artifact"),
-    ("ayvu.translate_project_composition", "ayvu.artifact_destination"),
-    ("ayvu.translate_project_composition", "ayvu.job"),
-    ("ayvu.translate_project_composition", "ayvu.project"),
-    ("ayvu.translate_project_composition", "ayvu.provenance"),
-    ("ayvu.translate_project_composition", "ayvu.epub_format"),
-    ("ayvu.translate_project_composition", "ayvu.epub_io"),
-    ("ayvu.translate_project_composition", "ayvu.format_local"),
-    ("ayvu.translate_project_composition", "ayvu.format_service"),
-    ("ayvu.translate_project_composition", "ayvu.legacy_translation"),
-    ("ayvu.translate_project_composition", "ayvu.project_schema"),
-    ("ayvu.translate_project_composition", "ayvu.project_store"),
-    ("ayvu.translate_project_composition", "ayvu.translate_project"),
-    ("ayvu.translate_project_composition", "ayvu.translation_engine"),
-    ("ayvu.translate_project_composition", "ayvu.translation_memory"),
-    ("ayvu.translate_project_composition", "ayvu.translator"),
-    ("ayvu.translate_project_composition", "ayvu.validation"),
+    ("ayvu.composition.builders.translate_project", "ayvu.artifact"),
+    ("ayvu.composition.builders.translate_project", "ayvu.artifact_destination"),
+    ("ayvu.composition.builders.translate_project", "ayvu.job"),
+    ("ayvu.composition.builders.translate_project", "ayvu.project"),
+    ("ayvu.composition.builders.translate_project", "ayvu.provenance"),
+    ("ayvu.composition.builders.translate_project", "ayvu.epub_format"),
+    ("ayvu.composition.builders.translate_project", "ayvu.epub_io"),
+    ("ayvu.composition.builders.translate_project", "ayvu.format_local"),
+    ("ayvu.composition.builders.translate_project", "ayvu.format_service"),
+    ("ayvu.composition.builders.translate_project", "ayvu.legacy_translation"),
+    ("ayvu.composition.builders.translate_project", "ayvu.project_schema"),
+    ("ayvu.composition.builders.translate_project", "ayvu.project_store"),
+    ("ayvu.composition.builders.translate_project", "ayvu.translate_project"),
+    ("ayvu.composition.builders.translate_project", "ayvu.translation_engine"),
+    ("ayvu.composition.builders.translate_project", "ayvu.translation_memory"),
+    ("ayvu.composition.builders.translate_project", "ayvu.translator"),
+    ("ayvu.composition.builders.translate_project", "ayvu.validation"),
     ("ayvu.epub_io", "ayvu.html_translate"),
     ("ayvu.epub_io", "ayvu.translation_memory"),
     ("ayvu.review_exchange", "ayvu.artifact"),
@@ -802,7 +807,6 @@ ALLOWED_INTERNAL_EDGES = {
 
 
 EXCEPTIONS = {
-    ("ayvu.preflight", "ayvu.provider_composition"): Exemption("Translation", 158, "built in the shared composition root"),
     ("ayvu.epub_io", "ayvu.cache"): Exemption("Formats", 144, "EPUB adapter isolated from pipeline"),
     ("ayvu.epub_io", "ayvu.glossary"): Exemption("Formats", 144, "glossary coordinated by pipeline"),
     ("ayvu.epub_io", "ayvu.review_export"): Exemption("Review", 158, "legacy EPUB review projection removed with the old facade"),
@@ -1101,31 +1105,28 @@ def test_cli_transitive_dependencies_cannot_be_laundered_by_an_exemption(tmp_pat
 
 
 def test_cli_cannot_import_concrete_reexport_from_composition(tmp_path):
-    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
-    root = make_tree(tmp_path, 'ayvu.cli', 'from .cli_composition import TranslationCache', owners)
-    (root / 'cli_composition.py').write_text('from .cache import TranslationCache')
+    root = make_tree(tmp_path, 'ayvu.cli', 'from .composition.cli import TranslationCache')
+    (root / 'composition' / 'cli.py').write_text('from ..cache import TranslationCache')
     with pytest.raises(BoundaryError, match='concrete re-export'):
-        check_tree(root, owners, allowed_edges={('ayvu.cli', 'ayvu.cli_composition'), ('ayvu.cli_composition', 'ayvu.cache')})
+        check_tree(root, TEST_OWNERS, allowed_edges={('ayvu.cli', CLI_ROOT), (CLI_ROOT, 'ayvu.cache')})
 
 
 @pytest.mark.parametrize("code", ["services = dict()", "services = {}", "services = []"])
 def test_cli_composition_cannot_cache_a_mutable_or_eager_graph(tmp_path, code):
-    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
-    root = make_tree(tmp_path, 'ayvu.cli_composition', code, owners)
+    root = make_tree(tmp_path, CLI_ROOT, code)
     with pytest.raises(BoundaryError, match='singleton'):
-        check_tree(root, owners)
+        check_tree(root, TEST_OWNERS)
 
 
 @pytest.mark.parametrize('code', [
-    'from . import cli_composition as root',
-    'from ayvu import cli_composition',
-    'import ayvu.cli_composition as root',
+    'from .composition import cli as root',
+    'from ayvu.composition import cli',
+    'import ayvu.composition.cli as root',
 ])
 def test_cli_cannot_hide_composition_construction_behind_a_module_alias(tmp_path, code):
-    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
-    root = make_tree(tmp_path, 'ayvu.cli', code, owners)
+    root = make_tree(tmp_path, 'ayvu.cli', code)
     with pytest.raises(BoundaryError, match='named workflow factories'):
-        check_tree(root, owners, allowed_edges={('ayvu.cli', 'ayvu.cli_composition')})
+        check_tree(root, TEST_OWNERS, allowed_edges={('ayvu.cli', CLI_ROOT)})
 
 
 @pytest.mark.parametrize('code', [
@@ -1134,10 +1135,9 @@ def test_cli_cannot_hide_composition_construction_behind_a_module_alias(tmp_path
     '@cache\ndef service():\n return adapter()',
 ])
 def test_cli_composition_cannot_hide_a_cached_graph_in_a_factory(tmp_path, code):
-    owners = {**TEST_OWNERS, 'ayvu.cli_composition': Owner('composition', 'CLI')}
-    root = make_tree(tmp_path, 'ayvu.cli_composition', code, owners)
+    root = make_tree(tmp_path, CLI_ROOT, code)
     with pytest.raises(BoundaryError, match='singleton|eager CLI construction'):
-        check_tree(root, owners)
+        check_tree(root, TEST_OWNERS)
 
 
 # Pesquisa #167: registro separado, removível, nunca um módulo de produção.

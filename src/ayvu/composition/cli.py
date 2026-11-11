@@ -2,28 +2,70 @@
 
 Each named constructor creates only its selected workflow. Importing this module
 opens no stores and builds no provider. There is no registry, cached graph or singleton.
-Predecessor composition modules remain reusable implementation adapters.
+The builders in ``composition/builders`` remain reusable implementation adapters.
 """
 from __future__ import annotations
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
-from . import cache_admin_composition, content_composition, glossary_catalog_composition
-from . import provider_composition, review_composition, translate_project_composition
-from .batch_output_policy import OutputIntent
-from .translate_batch_composition import LocalBatchItem, LocalTranslateBatch, project_item_outcome
-from .cache import TranslationCache
-from .cli_contracts import _BookHooks, _BookRequest, _BookOutcome
-from .config import ConfigStore, default_glossaries_dir as _default_glossaries_dir
-from .library_adapters import LocalLibraryFilesystem, ReaderLauncher
-from .library_service import LibraryService
-from .project_service import resolve_project
-from .project_store import ProjectJsonRepository, build_project_request, translation_selections
-from .preflight import run_translation_preflight as _preflight
-from .resume import ResumeStateStore, TranslationResumeState
-from .translate_project import TranslateObserver
-from .translation_engine import EngineObserver
-from .translate_project_composition import LegacyResources, ProjectTranslation
-from .translate_project_composition import selected_model
-from .kernel import JobWarning, automatic_output_candidate
+from .builders import cache_admin, content, glossary, providers, review, translate_project
+from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
+from .builders.translate_project import LegacyResources, ProjectTranslation, TranslationReport, selected_model
+from ..batch_output_policy import AcceptedItem, OutputIntent
+from ..cache import TranslationCache
+from ..config import ConfigStore, default_glossaries_dir as _default_glossaries_dir
+from ..library_adapters import LocalLibraryFilesystem, ReaderLauncher
+from ..library_service import LibraryService
+from ..project_service import resolve_project
+from ..project_store import ProjectJsonRepository, build_project_request, translation_selections
+from ..preflight import run_translation_preflight as _preflight
+from ..resume import ResumeStateStore, TranslationResumeState
+from ..translate_project import ContinuationTicket, TranslateObserver, TranslateProjectResult
+from ..translation_engine import EngineObserver
+from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
+
+
+@dataclass(frozen=True, repr=False)
+class _BookHooks:
+    """What one book reports to the terminal and to the resume file while it runs."""
+
+    on_chapter_start: Callable[[int, int, str], None]
+    on_chapter_done: Callable[[int, int, str, object], None]
+    on_text_processed: Callable[[str], None]
+    on_validation: Callable[[int, int, str], None]
+
+
+@dataclass(frozen=True, repr=False)
+class _BookRequest:
+    epub_path: Path
+    output_plan: OutputPlan
+    replace_existing: bool
+    options: TranslationOptions
+    cache_path: Path
+    prepare: Callable[[], object]
+    project_id: str | None = None
+    source_sha256: str | None = None
+    processing_dir: Path | None = None
+    continuation: ContinuationTicket | None = None
+    operation_id: str | None = None
+    batch_plan: AcceptedItem | None = None
+    cancellation: object | None = None
+    on_project_result: Callable[[TranslateProjectResult], None] | None = None
+    translator_name: str = "libretranslate"
+    translator_models: dict[str, str] = field(default_factory=dict, repr=False)
+
+
+@dataclass(frozen=True, repr=False)
+class _BookOutcome:
+    """``failure`` is a bounded code. With it there is no report, because the run never reached one."""
+
+    report: TranslationReport | None = None
+    validation: object | None = None
+    failure: str | None = None
+    raised: Exception | None = None
+    warning: str | None = None
+    job_result: TranslateProjectResult | None = None
+    notices: tuple[str, ...] = ()
 
 
 def configuration_store() -> ConfigStore:
@@ -40,35 +82,35 @@ def default_glossaries_dir() -> Path:
 
 
 def open_content_use_cases():
-    return content_composition.open_content_use_cases()
+    return content.open_content_use_cases()
 
 
 def cache_admin_services(*args, **kwargs):
-    return cache_admin_composition.cache_admin_services(*args, **kwargs)
+    return cache_admin.cache_admin_services(*args, **kwargs)
 
 
 def read_scope_map_payload(*args, **kwargs):
-    return cache_admin_composition.read_scope_map_payload(*args, **kwargs)
+    return cache_admin.read_scope_map_payload(*args, **kwargs)
 
 
 def managed_glossary_repository(directory):
-    return glossary_catalog_composition.managed_glossary_repository(directory)
+    return glossary.managed_glossary_repository(directory)
 
 
 def cli_provider_session(**configuration):
-    return provider_composition.cli_provider_session(**configuration)
+    return providers.cli_provider_session(**configuration)
 
 
 def open_review_use_cases(processing_dir, *, source_path=None):
-    return review_composition.open_review_use_cases(processing_dir, source_path=source_path)
+    return review.open_review_use_cases(processing_dir, source_path=source_path)
 
 
 def destination_fingerprint(path):
-    return review_composition.destination_fingerprint(path)
+    return review.destination_fingerprint(path)
 
 
 def read_review_input(path):
-    return review_composition.read_review_input(path)
+    return review.read_review_input(path)
 
 
 def run_translation_preflight(**configuration):
@@ -96,39 +138,39 @@ def batch_item_outcome(*args, **kwargs):
 
 
 def book_refusal(*args, **kwargs):
-    return translate_project_composition.book_refusal(*args, **kwargs)
+    return translate_project.book_refusal(*args, **kwargs)
 
 
 def check_book(*args, **kwargs):
-    return translate_project_composition.check_book(*args, **kwargs)
+    return translate_project.check_book(*args, **kwargs)
 
 
 def default_processing_dir(*args, **kwargs):
-    return translate_project_composition.default_processing_dir(*args, **kwargs)
+    return translate_project.default_processing_dir(*args, **kwargs)
 
 
 def detect_epub_language(*args, **kwargs):
-    return translate_project_composition.detect_epub_language(*args, **kwargs)
+    return translate_project.detect_epub_language(*args, **kwargs)
 
 
 def interrupted_translations(*args, **kwargs):
-    return translate_project_composition.interrupted_translations(*args, **kwargs)
+    return translate_project.interrupted_translations(*args, **kwargs)
 
 
 def open_job_recovery(*args, **kwargs):
-    return translate_project_composition.open_job_recovery(*args, **kwargs)
+    return translate_project.open_job_recovery(*args, **kwargs)
 
 
 def resolve_chapter_selection(*args, **kwargs):
-    return translate_project_composition.resolve_chapter_selection(*args, **kwargs)
+    return translate_project.resolve_chapter_selection(*args, **kwargs)
 
 
 def translate_without_project(*args, **kwargs):
-    return translate_project_composition.translate_without_project(*args, **kwargs)
+    return translate_project.translate_without_project(*args, **kwargs)
 
 
 def validate_output(*args, **kwargs):
-    return translate_project_composition.validate_output(*args, **kwargs)
+    return translate_project.validate_output(*args, **kwargs)
 
 
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
@@ -160,7 +202,7 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
         preflight = book.prepare()
         return LegacyResources(preflight.translator, preflight.glossary, getattr(preflight, "translator_factory", None))
 
-    run = translate_project_composition.translate_in_project(
+    run = translate_project.translate_in_project(
         ProjectTranslation(
             book.processing_dir,
             book.project_id,

@@ -11,7 +11,7 @@ command and the guided offer run through them, with the prompts they always had.
 | `ayvu.job_recovery_store` | Infrastructure | Everything those rules read, without writing |
 | `ayvu.legacy_resume` | Infrastructure | Bounded reading of `*.ayvu-state.json` |
 
-`open_job_recovery` in `ayvu.translate_project_composition` puts them together.
+`open_job_recovery` in `ayvu.composition.builders.translate_project` puts them together.
 
 ## What a resume is today
 

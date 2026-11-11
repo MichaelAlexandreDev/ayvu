@@ -12,7 +12,7 @@ from ayvu.cache_admin import (
     ExecuteImportRequest, ExportRequest, FileRef, ImportRequest, ImportScopeMap,
     PreviewCleanRequest,
 )
-from ayvu.cache_admin_composition import cache_admin_services
+from ayvu.composition.builders.cache_admin import cache_admin_services
 from ayvu.cache_admin_store import CacheStorageError, LocalCacheFiles, SQLiteCacheStore
 from ayvu.cache_admin_v2_store import SQLiteCacheV2Store
 from ayvu.cache_repository import SQLiteExactCache

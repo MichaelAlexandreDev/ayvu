@@ -24,7 +24,7 @@ decisions are collected before processing. Dry runs still save the applicable
 automatic reports and missing-text files, but do not publish translated EPUBs.
 
 `TranslateBatch` orchestrates items in order through injected planning and item
-execution ports. `ayvu.translate_batch_composition` supplies a reusable production
+execution ports. `ayvu.composition.builders.translate_batch` supplies a reusable production
 composition that binds each item to its execution and the batch cancellation
 controller. Normal executions delegate to `TranslateProject`; dry runs use the
 existing project-free path. The batch does not run items concurrently. The

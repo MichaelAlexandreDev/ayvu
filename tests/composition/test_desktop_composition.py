@@ -9,7 +9,7 @@ import sys
 
 import pytest
 
-from ayvu.desktop.bootstrap.composition import DesktopFactories, DesktopOverrides, start
+from ayvu.composition.desktop import DesktopFactories, DesktopOverrides, start
 
 
 STAGES = ("configuration", "storage", "provider", "jobs", "application")
@@ -104,7 +104,7 @@ def test_rollback_continues_after_cleanup_failure(tmp_path: Path) -> None:
 
 def test_desktop_imports_have_no_host_side_effects(tmp_path: Path) -> None:
     env = {key: value for key, value in os.environ.items() if key not in {"HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME"}}
-    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     result = subprocess.run(
         [sys.executable, "-c", r"""
@@ -129,7 +129,7 @@ widgets.QApplication = widgets.QWidget = NoWidget
 qt.QtWidgets = widgets
 sys.modules.update({"PySide6": qt, "PySide6.QtWidgets": widgets})
 sys.addaudithook(audit)
-for name in ("ayvu.desktop", "ayvu.desktop.bootstrap", "ayvu.desktop.bootstrap.composition",
+for name in ("ayvu.desktop", "ayvu.composition.desktop",
              "ayvu.desktop.presentation", "ayvu.desktop.presentation.views", "ayvu.desktop.viewmodels",
              "ayvu.desktop.adapters", "ayvu.desktop.adapters.qt", "ayvu.desktop.resources", "ayvu.desktop.platform"):
     importlib.import_module(name)

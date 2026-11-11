@@ -12,7 +12,7 @@ Related issue: [#147 — Extract inspect and visible-content export application 
 | `ayvu.epub_format` | Format | Detects and inspects EPUBs; returns ordered visible body-text records |
 | `ayvu.html_structure` | Format | Selects visible body text from XHTML without including the document head |
 | `ayvu.markdown_writer` | Infrastructure | Validates the full destination plan and atomically publishes each Markdown file |
-| `ayvu.content_composition` | Composition | Registers the production EPUB adapter and provides local sources and the Markdown writer |
+| `ayvu.composition.builders.content` | Composition | Registers the production EPUB adapter and provides local sources and the Markdown writer |
 | `ayvu.cli` | Interface | Renders the existing table, messages, paths, and exit status |
 
 The application imports neither the CLI nor a concrete filesystem writer. It uses `FormatService` and a

@@ -9,7 +9,7 @@ import pytest
 
 from ayvu.cache_admin import (CacheRef, FileRef, CacheNamespace, CacheScopeMapping,
     ImportScopeMap, ExportRequest, ImportRequest, ExecuteImportRequest)
-from ayvu.cache_admin_composition import cache_admin_services
+from ayvu.composition.builders.cache_admin import cache_admin_services
 from ayvu.cache_identity import CacheAuthorizationPolicy, CacheValueKind, CacheScope, CacheScopeKind
 from ayvu.cache_repository import SQLiteExactCache, _digest, _entry_digest
 from ayvu.cache_schema import participating_connection, V2_COLUMNS

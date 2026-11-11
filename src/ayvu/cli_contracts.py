@@ -1,14 +1,12 @@
-"""CLI workflow ports and content-free failures. No concrete adapter or UI imports."""
+"""CLI workflow ports. No concrete adapter or UI imports."""
 from __future__ import annotations
-from collections.abc import Callable
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 from .config_values import AyvuConfig
 from .preferences_service import PreferencesSnapshot, UpdatePreferencesResult
 from .job_recovery import ListInterruptedJobs, InspectJobRecoverability, RequestJobResume, RecoveryEntry
-from .translate_project import ContinuationTicket, TranslateProjectResult, AcceptedOutputPlan
-from .kernel import OutputPlan, TranslationOptions, TranslationMemoryOptions
+from .translate_project import AcceptedOutputPlan
+from .kernel import TranslationMemoryOptions
 
 class GlossaryUsage(Protocol):
     applied_terms: dict[str, int]
@@ -128,47 +126,4 @@ class CacheImportReport(Protocol):
     skipped: int
     replaced: int
     total_read: int
-
-
-@dataclass(frozen=True, repr=False)
-class _BookHooks:
-    """What one book reports to the terminal and to the resume file while it runs."""
-
-    on_chapter_start: Callable[[int, int, str], None]
-    on_chapter_done: Callable[[int, int, str, object], None]
-    on_text_processed: Callable[[str], None]
-    on_validation: Callable[[int, int, str], None]
-
-
-@dataclass(frozen=True, repr=False)
-class _BookRequest:
-    epub_path: Path
-    output_plan: OutputPlan
-    replace_existing: bool
-    options: TranslationOptions
-    cache_path: Path
-    prepare: Callable[[], object]
-    project_id: str | None = None
-    source_sha256: str | None = None
-    processing_dir: Path | None = None
-    continuation: ContinuationTicket | None = None
-    operation_id: str | None = None
-    batch_plan: AcceptedItem | None = None
-    cancellation: object | None = None
-    on_project_result: Callable[[TranslateProjectResult], None] | None = None
-    translator_name: str = "libretranslate"
-    translator_models: dict[str, str] = field(default_factory=dict, repr=False)
-
-
-@dataclass(frozen=True, repr=False)
-class _BookOutcome:
-    """``failure`` is a bounded code. With it there is no report, because the run never reached one."""
-
-    report: TranslationReport | None = None
-    validation: object | None = None
-    failure: str | None = None
-    raised: Exception | None = None
-    warning: str | None = None
-    job_result: TranslateProjectResult | None = None
-    notices: tuple[str, ...] = ()
 

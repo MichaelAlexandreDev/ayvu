@@ -13,7 +13,7 @@ from ayvu.glossary_catalog_store import ManagedGlossaryRepository
 from ayvu.preferences_store import JsonPreferencesRepository
 from ayvu.profile_glossary_store import LegacyGlossaryResolver
 from ayvu.project import ProjectConflictError
-from ayvu.project_profile_composition import project_profile_service
+from ayvu.composition.builders.profiles import project_profile_service
 from ayvu.project_profile_service import ProfileOutcome, ProjectProfileService
 from ayvu.project_profile_store import JsonProjectProfileRepository, STATE_KEY
 from ayvu.project_profiles import (

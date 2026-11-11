@@ -37,7 +37,7 @@ from ayvu.review_application import (
     ReviewUseCasePorts,
     ValidateReviewPackage,
 )
-from ayvu.review_composition import LocalReviewOperations, _OperationState
+from ayvu.composition.builders.review import LocalReviewOperations, _OperationState
 from ayvu.translation_engine import EngineResult
 from ayvu.translate_project import TranslateProjectResult
 from ayvu.kernel import JobFailure, JobFailureFamily

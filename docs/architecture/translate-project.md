@@ -11,8 +11,8 @@ project to run in, so they keep the current flow behind `translate_without_proje
 
 ## Seleção explícita do runtime (#252)
 
-`ayvu.cli_composition` resolve `translator_models` para o tradutor escolhido e
-`ayvu.translate_project_composition` constrói `LegacyTranslationRuntime` ou
+`ayvu.composition.cli` resolve `translator_models` para o tradutor escolhido e
+`ayvu.composition.builders.translate_project` constrói `LegacyTranslationRuntime` ou
 `RichTranslationRuntime`. Sem rótulo, a composição e o fingerprint legados permanecem
 os mesmos. O rótulo válido (`[a-z0-9][a-z0-9_-]{0,47}`) produz o modelo
 `declared:<rótulo>`; `unknown` não foi tornado elegível. **Trocar o modelo do servidor
@@ -64,7 +64,7 @@ os mesmos ports do caminho legado, preservando o EPUB original.
 | `ayvu.translate_project` | Application | The command and result, the ports, the plan and the job from creation to its outcome |
 | `ayvu.translation_engine` | Application | One book through a format adapter and a unit executor |
 | `ayvu.artifact_destination` | Infrastructure | Publishing to the file the user chose, and the way back to it after a crash |
-| `ayvu.translate_project_composition` | Composition | The current language work and validator behind the ports, and the assembled use case |
+| `ayvu.composition.builders.translate_project` | Composition | The current language work and validator behind the ports, and the assembled use case |
 
 ## What happens, in order
 

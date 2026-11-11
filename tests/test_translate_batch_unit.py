@@ -359,7 +359,7 @@ def test_normalized_failure_and_warnings_preserve_codes_and_family():
 
 def test_cancellation_controller_accepts_command_and_returns_versioned_notice():
     from ayvu.translate_batch import BatchCancellationCommand, BatchCancellationNotice
-    from ayvu.translate_batch_composition import BatchCancellationController
+    from ayvu.composition.builders.translate_batch import BatchCancellationController
 
     controller = BatchCancellationController()
     assert controller.checkpoint("batch_before_item") is None
