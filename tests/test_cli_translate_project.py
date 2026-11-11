@@ -26,7 +26,8 @@ import ayvu.interfaces.cli.app as cli_module
 import ayvu.jobs.store as job_store
 import ayvu.composition.builders.review as review_composition
 import ayvu.composition.builders.translate_project as composition
-from ayvu.interfaces.cli.app import _BookOutcome, app
+from ayvu.interfaces.cli.app import app
+from ayvu.composition.cli import _BookOutcome
 from ayvu.interfaces.cli.run_messages import _print_translation_failure
 from ayvu.interfaces.cli.render import _TRANSLATION_FAILURES
 from ayvu.projects.schema import open_job_repository, open_provenance_repository
@@ -92,7 +93,6 @@ class Session:
 
     def close(self) -> None:
         pass
-
 
 def _document(body: str) -> str:
     return f'<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body>{body}</body></html>'
