@@ -319,7 +319,8 @@ def test_compatibility_facades_export_identical_contracts():
     assert preflight.PreflightError is translation.PreflightError is cli.PreflightError
     assert resume.ResumeStateError is translation.ResumeStateError is cli.ResumeStateError
     assert batch_output_policy.BatchOutputError is translation.BatchOutputError is cli.BatchOutputError
-    assert provider_composition.ProviderSetupError is providers.ProviderSetupError is cli.ProviderSetupError
+    from ayvu.interfaces.cli.commands import translator  # the CLI catches it where it calls the provider
+    assert provider_composition.ProviderSetupError is providers.ProviderSetupError is translator.ProviderSetupError
 
 
 def test_existing_cache_inspection_uses_only_selected_readonly_sqlite(tmp_path, monkeypatch):
