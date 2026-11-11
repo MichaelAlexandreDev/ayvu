@@ -17,17 +17,17 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from ayvu.cache import TranslationCache
+from ayvu.v1.cache import TranslationCache
 from ayvu.cli import EXISTING_OUTPUT_OVERWRITE_OPTION, app
 from ayvu.config import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.job import JobRequest, JobState
 from ayvu.job_recovery import (
     CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStage, ResumeStatus,
 )
-from ayvu.legacy_resume import MAX_LEGACY_STATE_BYTES, scan_legacy_states
+from ayvu.v1.resume_scan import MAX_LEGACY_STATE_BYTES, scan_legacy_states
 from ayvu.project_schema import PROJECT_MIGRATIONS, open_job_repository
 from ayvu.project_store import ProjectJsonRepository, build_project_request, translation_selections
-from ayvu.resume import ResumeStateStore, TranslationResumeState
+from ayvu.v1.resume import ResumeStateStore, TranslationResumeState
 from ayvu.translate_project import (
     OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, ContinuationTicket, TranslateObserver, TranslateProjectCommand,
 )
@@ -263,7 +263,7 @@ def _interrupt_real_cli(tmp_path, monkeypatch, arguments, stdin=None):
         if "Goodbye" in text:
             raise KeyboardInterrupt
     session = Session(on_post=stop)
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
     result = CliRunner().invoke(app, arguments, input=stdin)
     assert result.exit_code == 1, result.output
     return open_job_recovery(tmp_path / "processing").list_interrupted.execute().entries[0]
@@ -724,7 +724,7 @@ def test_nothing_identifying_reaches_a_result_an_event_or_a_log(tmp_path, caplog
 
 
 def test_the_error_from_a_bad_file_quotes_nothing_from_it(tmp_path):
-    from ayvu.legacy_resume import LegacyResumeError, inspect_legacy_resume
+    from ayvu.v1.resume_scan import LegacyResumeError, inspect_legacy_resume
     path = _write(tmp_path, "x.ayvu-state.json", {"version": 1, "status": "Canary status"})
     with pytest.raises(LegacyResumeError) as caught:
         inspect_legacy_resume(path)

@@ -4,8 +4,8 @@ Code in one top-level package of ``ayvu`` may use another top-level package only
 package's ``__init__.py`` exports, or that one of its subpackages' ``__init__.py`` exports (such as
 ``ayvu.kernel.sqlite``). It may not import a plain submodule. Imports inside a package are free. Top-level flat modules are not packages yet, so they are outside this check until they move.
 
-The composition roots are the one exception (D5): each is a public module of its own, so an interface loads
-only its root and not every edition's wiring.
+The composition roots are an exception (D5): each is a public module of its own, so an interface loads only
+its root and not every edition's wiring. The quarantined v1 modules are the other (D7).
 """
 
 from __future__ import annotations
@@ -20,8 +20,11 @@ SOURCE = Path(__file__).resolve().parents[1] / "src" / "ayvu"
 # Empty at the start: the only package today, desktop/, is not reached into.
 ALLOWED: dict[str, str] = {}
 
-# Plain modules that are a public API by themselves: the composition roots.
-PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"})
+# Plain modules that are a public API by themselves: the composition roots, and the v1 modules, which are
+# quarantined until REF-18 retires them, so no package API is designed for them (D7).
+PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (
+    "translation", "html_translate", "translator", "cache", "cache_format", "cache_stream", "cache_admin_store",
+    "resume", "resume_scan")})
 
 
 def packages(root: Path = SOURCE) -> set[str]:

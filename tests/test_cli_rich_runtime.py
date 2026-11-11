@@ -15,7 +15,7 @@ from typer.testing import CliRunner
 
 import ayvu.cli as cli
 import ayvu.composition.builders.translate_project as composition
-from ayvu.cache import CacheKey, TranslationCache
+from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.config_values import AyvuConfig
 from ayvu.job import JobState
 from ayvu.job_events import JobEventSequence, encode_event
@@ -69,7 +69,7 @@ def config(tmp_path, label="local-model-2026", **values):
 
 def invoke(tmp_path, monkeypatch, source, *arguments, session=None, output=None):
     session = session or Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
     result = runner.invoke(cli.app, _args(tmp_path, source, *arguments, output=output))
     return result, session
 
@@ -137,14 +137,14 @@ def test_rich_provider_failure_first_middle_last_is_resumable_without_partial_ep
     assert result.exit_code == 1 and "nenhum EPUB parcial" in " ".join(text(result).split())
     assert transport.posts == texts[:index + 1]
     assert not (tmp_path / "out.epub").exists()
-    from ayvu.resume import ResumeStateStore
+    from ayvu.v1.resume import ResumeStateStore
     checkpoint = ResumeStateStore(tmp_path / "processing").scan().running[0]
     assert checkpoint.execution_revision == 2
     assert "local-model-2026" not in repr(checkpoint.to_dict())
     parent = _jobs(tmp_path)[0]
     assert parent.state is JobState.FAILED and parent.terminal_summary.reason_code == "provider_server_error"
     resumed = Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: resumed)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: resumed)
     result = runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)])
     assert result.exit_code == 0, text(result)
     assert resumed.posts == texts[index:]
@@ -162,7 +162,7 @@ def test_resume_across_runtimes_is_refused_and_names_both_before_any_request(tmp
     original_jobs = _jobs(tmp_path)
     config(tmp_path, next_label)
     transport = Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: transport)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: transport)
     resumed = runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)])
     output = text(resumed)
     assert resumed.exit_code == 1 and "legacy/v1" in output and "rich/v2" in output
@@ -229,7 +229,7 @@ def test_preview_stays_on_v1_with_a_declared_model(tmp_path, monkeypatch):
     config(tmp_path)
     source = _book(tmp_path / "book.epub")
     session = Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
     result = runner.invoke(cli.app, ["--mode", "developer", "--preview", str(source)])
     assert result.exit_code == 0, text(result)
     assert (tmp_path / "books" / "Preview" / "book-preview.epub").exists()
@@ -240,7 +240,7 @@ def test_guided_translation_selects_rich_from_existing_configuration(tmp_path, m
     config(tmp_path)
     source = _book(tmp_path / "book.epub")
     transport = Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: transport)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: transport)
     result = runner.invoke(cli.app, [], input=f"1\n{source}\n1\ny\nn\n")
     assert result.exit_code == 0, text(result)
     job = _jobs(tmp_path)[0]
@@ -254,7 +254,7 @@ def test_each_batch_book_uses_rich_and_keeps_markdown_reports(tmp_path, monkeypa
     first = _book(tmp_path / "first.epub")
     second = _book(tmp_path / "second.epub", chapter_two="<p>A different ending.</p>")
     transport = Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: transport)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: transport)
     result = runner.invoke(cli.app, ["--mode", "developer", "translate", str(first), str(second), "--source", "en", "--target", "pt",
         "--cache", str(tmp_path / "cache.sqlite"), "--output-dir", str(tmp_path / "output"), "--retries", "0"])
     assert result.exit_code == 0, text(result)
@@ -285,7 +285,7 @@ def test_rich_job_cancellation_at_each_existing_safe_point(tmp_path, monkeypatch
     projects = ProjectJsonRepository(tmp_path / "processing")
     project = projects.resolve(build_project_request(source, source="en", target="pt")).project
     session = Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
     options = TranslationOptions(language_pair=LanguagePair(source="en", target="pt"))
     def prepare():
         from ayvu.preflight import run_translation_preflight
@@ -377,7 +377,7 @@ def test_tm_approved_epub_workflow_and_cache_clear_isolation_real_stores(tmp_pat
 
 
 def test_tm_empty_repository_provider_failure_and_resume_use_real_boundaries(tmp_path, monkeypatch):
-    from ayvu.resume import ResumeStateStore
+    from ayvu.v1.resume import ResumeStateStore
     config(tmp_path)
     source = _book(tmp_path / 'book.epub')
     first, transport = invoke(tmp_path, monkeypatch, source, '--translation-memory', session=Transport(failing='Goodbye reader.'))
@@ -386,7 +386,7 @@ def test_tm_empty_repository_provider_failure_and_resume_use_real_boundaries(tmp
     assert checkpoint.translation_memory_enabled
     assert not checkpoint.translation_memory_options().legacy_cache_compatibility
     resumed_transport = Transport()
-    monkeypatch.setattr('ayvu.translator.requests.Session', lambda: resumed_transport)
+    monkeypatch.setattr('ayvu.v1.translator.requests.Session', lambda: resumed_transport)
     result = runner.invoke(cli.app, ['--mode', 'developer', 'resume', str(source)])
     assert result.exit_code == 0, text(result)
     assert resumed_transport.posts == ['Goodbye reader.']

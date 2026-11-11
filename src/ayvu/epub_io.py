@@ -11,10 +11,10 @@ import xml.etree.ElementTree as ET
 from ebooklib import ITEM_DOCUMENT
 from ebooklib import epub
 
-from .cache import TranslationCache
+from .v1.cache import TranslationCache
 from .epub_archive import package_title, parse_package_for_edit, serialize_package
 from .glossary import Glossary, GlossaryUsage
-from .html_translate import (
+from .v1.html_translate import (
     HtmlTranslatedSegment,
     HtmlTranslationStats,
     TextTranslationResult,
@@ -31,7 +31,7 @@ from .review_export import (
 )
 from .review_import import LegacyReviewInspection, ReviewImportError
 from .translation_memory import TranslationMemory
-from .translator import Translator
+from .v1.translator import Translator
 from .kernel import ChapterSelection, ChapterSelectionError, TranslationOptions
 
 

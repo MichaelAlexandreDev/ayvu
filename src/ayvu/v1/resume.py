@@ -5,8 +5,8 @@ from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from .kernel import TranslationMemoryOptions, TranslationOptions
-from .translation import ResumeStateError
+from ..kernel import TranslationMemoryOptions, TranslationOptions
+from ..translation import ResumeStateError
 
 
 RESUME_STATE_VERSION = 1

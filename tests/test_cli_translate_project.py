@@ -30,7 +30,7 @@ from ayvu.cli import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_fai
 from ayvu.project_schema import open_job_repository, open_provenance_repository
 from ayvu.preflight import PreflightError
 from ayvu.project_store import ProjectJsonRepository, build_project_request
-from ayvu.resume import ResumeStateStore
+from ayvu.v1.resume import ResumeStateStore
 from ayvu.review_exchange import decode_review_package, encode_review_package
 from ayvu.epub_io import TranslationReport
 from ayvu.job import JobState, JobTerminalSummary
@@ -124,7 +124,7 @@ def _args(tmp_path: Path, source: Path, *more: str, output: Path | None = None) 
 
 def _run(tmp_path, monkeypatch, *more, source=None, session=None, output=None, mode_args=None, stdin=None):
     session = session or Session()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
     source = source or _book(tmp_path / "book.epub")
     return runner.invoke(app, mode_args or _args(tmp_path, source, *more, output=output), input=stdin), session
 
@@ -971,7 +971,7 @@ def test_the_resume_command_cannot_get_a_protected_book_through(tmp_path, monkey
     _book(plain, extra=(("META-INF/encryption.xml", ENCRYPTED_DOCUMENT),))
 
     session = Session()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
     result = runner.invoke(app, ["--mode", "developer", "resume", str(plain), "--target", "pt"])
 
     assert result.exit_code == 1 and "protegido" in result.output and not session.posts
@@ -1023,7 +1023,7 @@ CHILD = textwrap.dedent('''\
     import json, os, sys, time
     import requests
     from typer.testing import CliRunner
-    import ayvu.translator
+    import ayvu.v1.translator
     from ayvu import cli
     class Session:
         def mount(self, prefix, adapter):
@@ -1046,7 +1046,7 @@ CHILD = textwrap.dedent('''\
             return self._response({"translatedText": "PT:" + json["q"]})
         def close(self):
             pass
-    ayvu.translator.requests.Session = Session
+    ayvu.v1.translator.requests.Session = Session
     processing = sys.argv[1]
     cli._processing_dir = lambda _config: __import__("pathlib").Path(processing)
     CliRunner().invoke(cli.app, sys.argv[2:])

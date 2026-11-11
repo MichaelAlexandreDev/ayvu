@@ -19,7 +19,7 @@ from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslate
 from ayvu.translation_context import ContextCandidate, ContextCategory, ContextError, ContextLimits, TranslationContextBuilder
 from ayvu.translation_document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
 from ayvu.translation_plan import resolve_plan
-from ayvu.translator import LibreTranslateTranslator
+from ayvu.v1.translator import LibreTranslateTranslator
 from provider_fakes import FakeSession, http_response
 from test_translation_document import document, cue, Provider, PlanCache, Glossed, NOW, PROJECT, PRODUCER, ROUTE
 from test_translation_context import request, entry, Source, egress_decision

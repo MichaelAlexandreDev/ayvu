@@ -30,7 +30,7 @@ addressing, retention and cross-job reuse are not accepted here.
 | `ayvu.artifact` | Domain | Identity, lifecycle, derived locations and the reuse predicate |
 | `ayvu.artifact_service` | Application | Ports, publication order, reuse and reconciliation |
 | `ayvu.artifact_store` | Infrastructure | SQLite repository, contained files and injectable file operations |
-| `ayvu.legacy_resume` | Infrastructure | Read-only view of a legacy checkpoint |
+| `ayvu.v1.resume_scan` | Infrastructure | Read-only view of a legacy checkpoint |
 
 ## Lifecycle
 

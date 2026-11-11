@@ -8,7 +8,7 @@ from ...network_http import NetworkAuthorization
 from ...network_policy import NetworkPolicy, resolve_network_policy
 from ...provider_session import CliProviderSession
 from ...providers import ProviderSetupError
-from ...translator import LibreTranslateTranslator, TranslatorError
+from ...v1.translator import LibreTranslateTranslator, TranslatorError
 
 
 def cli_provider_session(*, url: str, timeout: float, retries: int, requests_per_second: float | None = None,

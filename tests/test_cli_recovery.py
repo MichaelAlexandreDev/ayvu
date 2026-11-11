@@ -14,7 +14,7 @@ from typer.testing import CliRunner
 from ayvu.cli import app
 from ayvu.config import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.job import JobState
-from ayvu.resume import ResumeStateStore
+from ayvu.v1.resume import ResumeStateStore
 from test_cli_translate_project import ENCRYPTED_DOCUMENT, Session, _args, _book, _jobs, _only_job
 from test_job_recovery_concurrency import CHILD
 
@@ -40,7 +40,7 @@ def _stop_on(text, error=KeyboardInterrupt):
 
 def _invoke(monkeypatch, arguments, session=None, stdin=None):
     session = session or Session()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: session)
     return runner.invoke(app, arguments, input=stdin), session
 
 

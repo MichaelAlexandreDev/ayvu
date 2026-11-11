@@ -117,7 +117,7 @@ being repaired. `busy` is a typed error, and retry policy belongs to the caller.
 
 ## Relationship to resume and control files
 
-`resume.py` keeps its `running`/`completed` values. The job modules do not import, read,
+`v1/resume.py` keeps its `running`/`completed` values. The job modules do not import, read,
 rewrite or delete `*.ayvu-state.json`, and a legacy checkpoint is not imported as a job.
 [Job recovery](job-recovery.md) reads them, as a record of how a run was invoked, and
 checks them against a job's fingerprint before believing them. A file that recomputes to

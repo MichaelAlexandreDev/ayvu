@@ -1,8 +1,8 @@
 import pytest
 
-from ayvu.cache import CacheKey, TranslationCache
+from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.preflight import PreflightError, run_translation_preflight
-from ayvu.translator import RequestRateLimiter, RoutedTranslator, TranslatorError, TranslatorLanguage
+from ayvu.v1.translator import RequestRateLimiter, RoutedTranslator, TranslatorError, TranslatorLanguage
 from ayvu.kernel import LanguagePair
 
 

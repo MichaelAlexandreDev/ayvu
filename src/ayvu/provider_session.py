@@ -13,7 +13,7 @@ from .provider_discovery import LanguagesResult, ProviderDiscoveryService, Provi
 from .provider_libretranslate import ADAPTER_ID, ADAPTER_VERSION, LibreTranslateDiscoveryAdapter
 from .provider_network import NetworkClass, ProviderOperation, ResolvedProviderNetworkDecision, network_binding
 from .provider_service import ProviderInstance
-from .translator import LibreTranslateTranslator
+from .v1.translator import LibreTranslateTranslator
 from .network_policy import NetworkPolicy, resolve_network_policy
 
 CLI_INSTANCE_ID = "libretranslate_cli"

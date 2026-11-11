@@ -5,14 +5,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from .cache import TranslationCache
+from .v1.cache import TranslationCache
 from .epub_io import inspect_epub
 from .glossary import Glossary, GlossaryError, load_glossary
 from .provider_session import CliProviderSession
 from .provider_discovery import DiscoveryOutcome
 from .network_policy import NetworkDecision, NetworkPolicy, NetworkPolicyError, resolve_network_policy, network_next_step
 from .network_http import NetworkAuthorization
-from .translator import (
+from .v1.translator import (
     RequestRateLimiter,
     RetryPolicy,
     RoutedTranslator,

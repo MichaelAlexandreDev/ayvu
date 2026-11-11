@@ -21,7 +21,7 @@ from .provider_capabilities import (
 )
 from .provider_discovery import DiscoveredLanguage, DiscoveryObservation, ProviderDiscoveryError
 from .provider_service import FeatureDecision, ProviderInstance, decide_features, failed_result
-from .translator import (
+from .v1.translator import (
     LibreTranslateTranslator, RouteResolutionError, RoutedTranslator, TranslationRoute, Translator, TranslatorError,
     TranslatorLanguage, resolve_translation_route,
 )

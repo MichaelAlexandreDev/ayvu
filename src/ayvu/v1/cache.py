@@ -8,7 +8,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from .kernel import LanguagePair
+from ..kernel import LanguagePair
 
 
 SCHEMA = """

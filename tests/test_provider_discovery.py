@@ -22,7 +22,7 @@ from ayvu.provider_network import (
     NetworkClass, NetworkDecisionError, ProviderOperation, ResolvedProviderNetworkDecision, network_binding,
 )
 from ayvu.provider_service import ProviderInstance
-from ayvu.translator import LibreTranslateTranslator
+from ayvu.v1.translator import LibreTranslateTranslator
 from provider_fakes import FakeSession, http_response
 from ayvu.kernel import JobFailure, JobFailureFamily
 

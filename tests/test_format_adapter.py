@@ -933,8 +933,8 @@ CONTRACT_MODULES = ("format_adapter", "format_service")
 
 def test_the_contract_imports_nothing_concrete():
     forbidden = {"ebooklib", "bs4", "lxml", "typer", "rich", "PySide6", "requests", "mcp", "sqlite3", "os", "shutil", "zipfile",
-                 "ayvu.translator", "ayvu.provider", "ayvu.provider_service", "ayvu.translation_pipeline", "ayvu.translation_document",
-                 "ayvu.artifact_store", "ayvu.job_store", "ayvu.cache", "ayvu.glossary", "ayvu.html_translate", "ayvu.epub_io", "ayvu.format_local"}
+                 "ayvu.v1.translator", "ayvu.provider", "ayvu.provider_service", "ayvu.translation_pipeline", "ayvu.translation_document",
+                 "ayvu.artifact_store", "ayvu.job_store", "ayvu.v1.cache", "ayvu.glossary", "ayvu.v1.html_translate", "ayvu.epub_io", "ayvu.format_local"}
     for name in CONTRACT_MODULES:
         tree = ast.parse((ROOT / "src" / "ayvu" / f"{name}.py").read_text())
         for node in ast.walk(tree):

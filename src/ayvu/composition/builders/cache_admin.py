@@ -7,7 +7,7 @@ from ...cache_admin import (ExecuteClean, ExportCache, ImportCache, InspectCache
                           PreviewImport, ExecuteImport, DiscardImport, ExportReceipt)
 from ...cache_admin_store import LocalCacheFiles, SQLiteCacheStore
 from ...cache_admin_v2_store import SQLiteCacheV2Store
-from ...cache_admin_legacy_store import SQLiteLegacyStreamingStore
+from ...v1.cache_admin_store import SQLiteLegacyStreamingStore
 from ... import cache_admin_store as legacy_store
 from ...cache_schema import SchemaState, classify_cache_waiting, _SUFFIXES
 from pathlib import Path

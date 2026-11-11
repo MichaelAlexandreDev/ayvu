@@ -11,7 +11,7 @@ import stat
 import tempfile
 from pathlib import Path
 
-from .cache import SCHEMA
+from .v1.cache import SCHEMA
 from .cache_admin import (CacheAdminError, CacheSummary, CachePair, CleanSelection, ImportCounts, checkpoint, report, validate_payload)
 from .cache_schema import CacheSchemaError, SchemaState, classify_cache, participating_admin_connection
 

@@ -272,6 +272,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Runtime v1 em quarentena (REF-06, #274): `legacy_translation`, `html_translate`, `translator`,
+  `cache`, `cache_legacy_format`, `cache_legacy_stream`, `cache_admin_legacy_store`, `resume` e
+  `legacy_resume` vão para `ayvu.v1`, que continua sendo o padrão sem rótulo de modelo. `v1` vira
+  uma camada abaixo de `composition`, e um contrato impede as interfaces de importá-lo. Os módulos
+  abaixo que ainda o importam ficam em exceções com a issue que remove cada uma. Os testes do v1
+  vão para `tests/v1/`, e `CORE_TEST_FILES` passa a usar caminhos dentro de `tests/`.
 - Composição fora dos módulos (REF-05, #273): os oito `*_composition.py` vão para
   `ayvu.composition.builders`, a raiz do CLI para `ayvu.composition.cli` e a do desktop
   para `ayvu.composition.desktop`. Cada raiz é um módulo público próprio, então o desktop

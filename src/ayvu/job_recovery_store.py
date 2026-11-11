@@ -21,7 +21,7 @@ from .job_recovery import (
 )
 from .job_service import JobSnapshot
 from .job_store import MAX_LIST_LIMIT, SqliteJobRepository
-from .legacy_resume import LegacyStateEntry, scan_legacy_states
+from .v1.resume_scan import LegacyStateEntry, scan_legacy_states
 from .project import ProjectError, ProjectManifest, ProjectSourceError
 from .project_schema import project_migration_runner
 from .project_store import (
@@ -30,7 +30,7 @@ from .project_store import (
 )
 from .provenance import ProvenanceError, ProducerIdentity
 from .provenance_store import SqliteProvenanceRepository
-from .resume import RUNNING_STATUS, TranslationResumeState
+from .v1.resume import RUNNING_STATUS, TranslationResumeState
 from .translate_project import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_plan
 from .kernel import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions, JobError, CancellationToken
 

@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import pytest
 from ebooklib import ITEM_DOCUMENT
 
-from ayvu.cache import TranslationCache
+from ayvu.v1.cache import TranslationCache
 from ayvu.epub_io import (
     EpubDocument,
     EpubReplacements,

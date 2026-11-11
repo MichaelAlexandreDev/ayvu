@@ -21,7 +21,7 @@ import pytest
 
 from ayvu.artifact import ArtifactRequest, ArtifactState
 from ayvu.artifact_destination import DestinationFileOps, LocalDestinationPayloads
-from ayvu.cache import TranslationCache
+from ayvu.v1.cache import TranslationCache
 from ayvu.epub_io import translate_epub
 from ayvu.glossary import load_glossary
 from ayvu.job import JobState, JobStoreError
@@ -36,7 +36,7 @@ from ayvu.translate_project import (
 )
 from ayvu.composition.builders.translate_project import LegacyOutputValidator, LegacyResources, LegacyTranslationRuntime, open_translate_project
 from ayvu.translation_engine import ENGINE_BEFORE_CHAPTER, ENGINE_BEFORE_UNIT, EngineObserver
-from ayvu.translator import TranslatorError
+from ayvu.v1.translator import TranslatorError
 from epub_fakes import OPF, XHTML, epub_bytes
 from ayvu.kernel import ChapterSelection, LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, JobFailure, JobFailureFamily
 

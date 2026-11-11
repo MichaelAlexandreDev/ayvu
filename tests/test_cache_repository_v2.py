@@ -183,8 +183,8 @@ def test_simultaneous_identical_and_provenance_writes(tmp_path, different_proven
 
 def test_migrated_legacy_exact_and_fuzzy_are_isolated_from_v2_workers(tmp_path):
     import sqlite3
-    from ayvu.cache import TranslationCache
-    from ayvu.html_translate import _LegacyV1Cache
+    from ayvu.v1.cache import TranslationCache
+    from ayvu.v1.html_translate import _LegacyV1Cache
     from ayvu.translation_memory import TranslationMemory
     path = tmp_path / "cache.sqlite"
     pair = LanguagePair("en", "pt")
@@ -286,7 +286,7 @@ def test_identity_uses_the_normative_entry_limit():
 
 def test_legacy_cache_dto_representations_omit_operational_content():
     from pathlib import Path
-    from ayvu.cache import CacheEntry, CacheExportReport, CacheKey, text_hash
+    from ayvu.v1.cache import CacheEntry, CacheExportReport, CacheKey, text_hash
     source, value = "CANARY-SOURCE", "CANARY-VALUE"
     key = CacheKey(source, LanguagePair("en", "pt"))
     legacy = CacheEntry("en", "pt", text_hash(source), source, value, "2026-11-05")

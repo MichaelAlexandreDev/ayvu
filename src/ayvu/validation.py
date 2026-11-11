@@ -10,7 +10,7 @@ from ebooklib import ITEM_DOCUMENT
 from ebooklib import epub
 
 from .epub_archive import resolve_internal_path as _resolve_internal_path
-from .html_translate import extract_visible_text
+from .v1.html_translate import extract_visible_text
 
 ProgressCallback = Callable[[int, int, str], None]
 

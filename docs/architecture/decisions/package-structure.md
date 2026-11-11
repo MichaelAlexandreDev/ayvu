@@ -111,6 +111,10 @@ says otherwise.
 
 ### D7. The v1 runtime in quarantine
 - v1 is today's default when no model label is set. Its files move to `v1/`.
+- Implemented in REF-06 (#274). `v1` is a required layer below `composition`, and a contract keeps the
+  interfaces from importing it. The modules below it that still import v1 do so under ignores owned by the
+  issue that removes each one; their cycles with `v1` are listed below. Each v1 module is public by itself,
+  so `v1/__init__.py` exports nothing: no package API is designed for code that is going away.
 - `v1` may import any module; no module imports `v1`, only `composition`.
 - The owner decided to retire v1. How and when is REF-18, after listing what only v1 does.
 
@@ -337,6 +341,9 @@ REF-15 break up by reason to change after they move.
 | formats ↔ translation | `html_structure` and `html_translate` use `translation_protection` and the pipeline | REF-06 (`html_translate` to v1) and REF-07 (`content/protection`) |
 | knowledge ↔ translation | `memory_retrieval` (in knowledge) uses `translation_plan` and `translation_protection` | REF-07 and REF-09 (`memory_retrieval` to the pipeline) |
 | artifacts ↔ formats | `artifact_destination` calls `format_local` and `format_service` | REF-08 (a port) |
+| formats ↔ v1 | `epub_io` uses the v1 cache, translator and HTML translation; `validation` uses `extract_visible_text` | REF-10 |
+| knowledge ↔ v1 | cache administration reads the v1 cache schema and format; `translation_memory` reads the v1 cache | REF-09 and REF-18 |
+| translation ↔ v1 | `preflight` builds the v1 translator and opens the v1 cache | REF-11 |
 
 ## Sequence
 

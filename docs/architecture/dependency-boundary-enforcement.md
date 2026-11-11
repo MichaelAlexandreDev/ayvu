@@ -41,7 +41,7 @@ entries fail, so a rename cannot silently discard protection.
 | `job_store` | Infrastructure | SQLite job adapter and job schema SQL |
 | `job_events` | Domain | Job events, outcomes, ordering rules and canonical serialization |
 | `job_execution` | Application | Event ports, bounded in-memory log and cooperative cancellation |
-| `legacy_resume` | Infrastructure | Read-only view of a legacy checkpoint |
+| `v1.resume_scan` | Infrastructure | Read-only view of a legacy checkpoint |
 | `artifact` | Domain | Artifact identity, lifecycle, derived locations and reuse predicate |
 | `artifact_service` | Application | Artifact ports, publication order, reuse and reconciliation |
 | `artifact_store` | Infrastructure | SQLite artifact records and contained local payload files |
@@ -58,14 +58,14 @@ entries fail, so a rename cannot silently discard protection.
 | `composition.cli` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
 | `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
 | `config_values` | Domain | Valores de preferências e conversões da fachada v1 |
-| `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `html_translate`, `legacy_translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `epub_archive`, `epub_format`, `epub_io`, `html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation_engine` | Application | One book through a format adapter and a unit executor |
 | `translate_project` | Application | One project's book as one durable job, from its ports |
 | `job_recovery` | Application | Listing, inspecting and resuming interrupted translations |
 | `job_recovery_store` | Infrastructure | The read-only evidence recovery decides from |
 | `composition.builders.translate_project` | Composition | The current language work and validator behind those ports |
 | `artifact_destination` | Infrastructure | Publishing a job's output to the file the user chose |
-| `translator` | Provider adapter with transitional embedded port | Providers |
+| `v1.translator` | Provider adapter with transitional embedded port | Providers |
 | `translation_protection` | Domain | Protected terms, placeholders and their integrity checks |
 | `translation_plan` | Domain | Resolved plan, stage identities and fingerprints |
 | `translation_pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
@@ -149,7 +149,7 @@ permanece uma exceção exata de composição entre capacidades, sem caminho dir
 da apresentação até esse módulo. A numeração #158 nessa exceção identifica a
 consolidação responsável, não uma autorização para duplicar serviços.
 The coupling of the
-`html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
+`v1.html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
 EPUB pipeline coupling expires in #144, after #141 separates the
 provider contract from its HTTP adapter. `html_structure` has no such coupling.
 Legacy review projection coupling expires in #158. Fuzzy memory's exact-cache and vendor coupling
