@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.interfaces.cli.app as cli
+from ayvu.interfaces.cli import app as cli, report as cli_report
 import ayvu.composition.cli as composition
 from test_workflow_characterization import (
     FakeLibreTranslateSession,
@@ -399,7 +399,7 @@ def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_
     output = tmp_path / "out"
     captured = []
     original_factory = composition.LocalTranslateBatch
-    original_save = cli._save_markdown_report
+    original_save = cli_report._save_markdown_report
     save_calls = []
 
     def fail_first_report(*args, **kwargs):
@@ -418,7 +418,7 @@ def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_
         service.use_case.execute = capture
         return service
 
-    monkeypatch.setattr(cli, "_save_markdown_report", fail_first_report)
+    monkeypatch.setattr(cli_report, "_save_markdown_report", fail_first_report)
     monkeypatch.setattr(composition, "LocalTranslateBatch", capture_factory)
     result = _run(first, second, output, "--continue-on-error", "--cache", str(tmp_path / "cache.sqlite"),
                   "--url", "http://localhost:5000", "--retries", "0")

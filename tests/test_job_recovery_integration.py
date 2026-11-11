@@ -16,9 +16,9 @@ from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
-
 from ayvu.v1.cache import TranslationCache
-from ayvu.interfaces.cli.app import EXISTING_OUTPUT_OVERWRITE_OPTION, app
+from ayvu.interfaces.cli.output import EXISTING_OUTPUT_OVERWRITE_OPTION
+from ayvu.interfaces.cli.app import app
 from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.jobs.model import JobRequest, JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus

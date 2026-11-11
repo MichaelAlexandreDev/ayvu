@@ -285,6 +285,8 @@ lancadas e secoes versionadas quando uma release for publicada.
   da configuração salva e da pasta de processamento vai para `interfaces/cli/settings.py`. Todo o CLI
   passa a buscar a pasta de processamento em `settings._processing_dir`, num só lugar, e os testes
   substituem esse ponto, em vez de uma cópia por módulo.
+- CLI split, fourth part (REF-14, #282): translation reports move to `interfaces/cli/report.py`, and
+  output locations and existing-file decisions to `interfaces/cli/output.py`, preserving behavior.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

@@ -38,7 +38,7 @@ CLI_ROOT = "ayvu.composition.cli"  # the only composition module that may import
 
 OWNERS = {
     "ayvu": Owner("surface", "Package"),
-    **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "commands",
+    **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "report", "output", "commands",
       "commands.cache", "commands.cache_output", "commands.content", "commands.review", "commands.translator")},
     "ayvu.interfaces": Owner("interface", "Interfaces"), "ayvu.interfaces.cli": Owner("interface", "CLI"), "ayvu.jobs": Owner("domain", "Jobs"), "ayvu.artifacts": Owner("domain", "Artifacts"),
     "ayvu.recovery": Owner("application", "Jobs"), "ayvu.translation.resume_reuse": Owner("domain", "Translation"),
@@ -468,7 +468,7 @@ ALLOWED_INTERNAL_EDGES = {
       ('app', 'interfaces.cli.commands.review'), ('app', 'interfaces.cli.settings'), *(('commands.review', b) for b in (
       'composition.cli', 'interfaces.cli.render', 'interfaces.cli.settings', 'review.application')), *(('settings', b) for b in (
       'composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'preferences.model')),
-      ('options', 'network.policy'), ('render', 'providers.discovery'))),
+      ('options', 'network.policy'), ('render', 'providers.discovery'), ('app', 'interfaces.cli.report'), ('app', 'interfaces.cli.output'), *(('report', b) for b in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')), *(('output', b) for b in ('interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')))),
     ('ayvu.composition.builders.translate_project', 'ayvu.v1.epub'), ('ayvu.v1.translation', 'ayvu.v1.epub'), ('ayvu.composition.cli', 'ayvu.v1.cache_check'), ('ayvu.v1.cache_check', 'ayvu.v1.cache'),
     ('ayvu.formats.epub.io', 'ayvu.formats.epub.html_structure'), ('ayvu.formats.epub.validation', 'ayvu.formats.epub.html_structure'),
     ('ayvu.v1.epub', 'ayvu.formats.epub.archive'), ('ayvu.v1.epub', 'ayvu.formats.epub.io'),
