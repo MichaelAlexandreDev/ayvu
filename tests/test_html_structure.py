@@ -6,8 +6,8 @@ import pytest
 from bs4 import BeautifulSoup
 
 from ayvu.content.model import AdapterIdentity, ContentDocument, LocaleState, SourceLocale
-from ayvu.format_adapter import UnitTranslation
-from ayvu.html_structure import (
+from ayvu.formats.contracts import UnitTranslation
+from ayvu.formats.epub.html_structure import (
     HTML_ADAPTER, HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, HtmlStructureError, extract_html_document, extract_visible_text, html_unit_template,
     reconstruct_html,
 )
@@ -422,7 +422,7 @@ def test_a_failure_leaves_the_input_alone_and_returns_nothing():
 
 
 def test_nothing_is_applied_before_every_unit_is_built(monkeypatch):
-    from ayvu import html_structure
+    from ayvu.formats.epub import html_structure as html_structure
 
     applied = []
     monkeypatch.setattr(html_structure, "replace_run", lambda run, nodes: applied.append(1))
@@ -437,7 +437,7 @@ def test_a_transient_document_has_no_identity_and_cannot_be_serialized():
     import copyreg
     import pickle
 
-    from ayvu.html_structure import TransientHtmlDocument, TransientHtmlRun
+    from ayvu.formats.epub.html_structure import TransientHtmlDocument, TransientHtmlRun
 
     document = TransientHtmlDocument(FIXTURES["nested"])
     run = document.runs[0]
@@ -452,7 +452,7 @@ def test_a_transient_document_has_no_identity_and_cannot_be_serialized():
 
 @pytest.mark.parametrize("name", FIXTURES)
 def test_a_transient_document_restores_unchanged_text_exactly_as_parsed(name):
-    from ayvu.html_structure import TransientHtmlDocument, has_translatable_text
+    from ayvu.formats.epub.html_structure import TransientHtmlDocument, has_translatable_text
 
     document = TransientHtmlDocument(FIXTURES[name])
     for run in document.runs:
@@ -462,8 +462,8 @@ def test_a_transient_document_restores_unchanged_text_exactly_as_parsed(name):
 
 
 def test_a_fragment_the_parser_cannot_read_shows_no_internal_marker(monkeypatch):
-    from ayvu import html_structure
-    from ayvu.html_structure import NavigableString, TransientHtmlDocument
+    from ayvu.formats.epub import html_structure as html_structure
+    from ayvu.formats.epub.html_structure import NavigableString, TransientHtmlDocument
 
     document = TransientHtmlDocument("<html><body><p>a <b>b</b></p></body></html>")
     # This is what the parser helper returns when no root element comes back.
@@ -474,7 +474,7 @@ def test_a_fragment_the_parser_cannot_read_shows_no_internal_marker(monkeypatch)
 
 
 def test_a_token_a_transient_run_does_not_have_stays_as_text():
-    from ayvu.html_structure import TransientHtmlDocument
+    from ayvu.formats.epub.html_structure import TransientHtmlDocument
 
     document = TransientHtmlDocument("<html><body><p>x</p></body></html>")
     document.restore(document.runs[0], "x __AYVU_TAG_7__")
@@ -482,7 +482,7 @@ def test_a_token_a_transient_run_does_not_have_stays_as_text():
 
 
 def test_a_transient_run_tolerates_a_closing_part_with_nothing_open():
-    from ayvu.html_structure import TransientHtmlDocument
+    from ayvu.formats.epub.html_structure import TransientHtmlDocument
 
     document = TransientHtmlDocument("<html><body><p>a <b>b</b></p></body></html>")
     document.restore(document.runs[0], "a __AYVU_TAG_1__b")
@@ -490,7 +490,7 @@ def test_a_transient_run_tolerates_a_closing_part_with_nothing_open():
 
 
 def test_a_transient_run_closes_what_was_left_open():
-    from ayvu.html_structure import TransientHtmlDocument
+    from ayvu.formats.epub.html_structure import TransientHtmlDocument
 
     document = TransientHtmlDocument("<html><body><p>a <b>b</b> c</p></body></html>")
     document.restore(document.runs[0], "a __AYVU_TAG_0__b c")
@@ -514,7 +514,7 @@ def test_the_result_is_a_content_document_with_the_given_identity():
 # Boundaries
 
 def test_the_module_imports_no_provider_cache_glossary_or_interface():
-    tree = ast.parse((Path(__file__).parents[1] / "src" / "ayvu" / "html_structure.py").read_text())
+    tree = ast.parse((Path(__file__).parents[1] / "src" / "ayvu" / "formats" / "epub" / "html_structure.py").read_text())
     forbidden = {"cache", "glossary", "translator", "translation_memory", "translation_pipeline", "translation_chunks", "provider", "provider_service",
                  "epub_io", "html_translate", "cli", "domain", "ebooklib", "typer", "rich", "requests", "sqlite3", "PySide6"}
     for node in ast.walk(tree):
@@ -525,7 +525,7 @@ def test_the_module_imports_no_provider_cache_glossary_or_interface():
 
 
 def test_translated_text_is_never_handed_to_a_parser():
-    source = (Path(__file__).parents[1] / "src" / "ayvu" / "html_structure.py").read_text()
+    source = (Path(__file__).parents[1] / "src" / "ayvu" / "formats" / "epub" / "html_structure.py").read_text()
     start = source.index("def _plan(")
     assert "BeautifulSoup(" not in source[start:].replace("BeautifulSoup(html, _PARSER)", "")
     assert "parse_fragment_nodes" not in source[start:] and "escape(" not in source[start:]

@@ -6,8 +6,8 @@ from zipfile import ZIP_BZIP2, ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 import pytest
 from ebooklib import epub
 
-from ayvu import epub_io
-from ayvu.epub_archive import DEFAULT_LIMITS, EpubArchive, EpubArchiveError, EpubLimits, declares_entities, resolve_internal_path
+from ayvu.formats.epub import io as epub_io
+from ayvu.formats.epub.archive import DEFAULT_LIMITS, EpubArchive, EpubArchiveError, EpubLimits, declares_entities, resolve_internal_path
 from epub_fakes import CONTAINER, OPF, epub_bytes, members, opf_with, zip_bytes
 
 
@@ -416,7 +416,7 @@ def test_errors_and_representations_hold_no_names_or_text():
 
 
 def test_the_module_imports_no_translation_html_or_interface():
-    source = (Path(__file__).parents[1] / "src" / "ayvu" / "epub_archive.py").read_text()
+    source = (Path(__file__).parents[1] / "src" / "ayvu" / "formats" / "epub" / "archive.py").read_text()
     assert not re.search(r"^from \.|^import ayvu|^from ayvu", source, re.MULTILINE)
     assert "ebooklib" not in source and "bs4" not in source and "print(" not in source
 

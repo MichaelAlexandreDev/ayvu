@@ -21,16 +21,16 @@ review use case and delegates reconstruction and validation to this adapter.
 
 | Module | Responsibility |
 | --- | --- |
-| `ayvu.epub_archive` | Reads the container against limits, copies an EPUB changing only what it is told to, and holds the OPF title edit the current flow also uses |
-| `ayvu.epub_format` | The descriptor and ports of the format contract |
-| `ayvu.html_structure` | Every XHTML document, so there is [no second segmenter](html-structure.md) |
+| `ayvu.formats.epub.archive` | Reads the container against limits, copies an EPUB changing only what it is told to, and holds the OPF title edit the current flow also uses |
+| `ayvu.formats.epub.adapter` | The descriptor and ports of the format contract |
+| `ayvu.formats.epub.html_structure` | Every XHTML document, so there is [no second segmenter](html-structure.md) |
 
 It imports no provider, cache, glossary or interface, even indirectly, and a test imports it alone to prove that.
 
 For visible-content export, the adapter returns one record per XHTML item in the current manifest order. It derives
 the output stem from the internal item name and delegates reader-visible body text selection to
-`html_structure.extract_body_visible_text`; the Markdown writer does not parse EPUB or HTML. The CLI keeps the
-existing `NNN-stem.md` names and text formatting. The old `epub_io.extract_markdown` helper remains as a legacy
+`formats.epub.html_structure.extract_body_visible_text`; the Markdown writer does not parse EPUB or HTML. The CLI keeps the
+existing `NNN-stem.md` names and text formatting. The old `formats.epub.io.extract_markdown` helper remains as a legacy
 facade, but `inspect` and `extract` no longer call it.
 
 ## Reading
@@ -142,4 +142,4 @@ so `two%20words.xhtml` finds its member, unlike the current check, which reports
 - The adapter is stricter than the current flow, and [the compatibility map](format-compatibility.md) lists what #145 has to settle.
 - A document is parsed in memory, so the limit on one document is also the limit on one chapter.
 - Extraction returns all documents at once. This has been tested on small books only.
-- Nothing in `ayvu.epub_format` limits how long a single member takes to read, because a safe point cannot interrupt a read.
+- Nothing in `ayvu.formats.epub.adapter` limits how long a single member takes to read, because a safe point cannot interrupt a read.

@@ -25,19 +25,13 @@ from ...knowledge.cache.schema import CacheSchemaError, SchemaState, classify_ca
 from ...content import ContentDocument, TranslationUnit
 from ...context_execution import ContextExecution
 from ...translation_context import ContextError
-from ...epub_format import EPUB_REGISTRATION, epub_format_adapter
-from ...epub_io import (  # noqa: F401 - the CLI's only door to the current EPUB path
-    SelectedChapter,
-    TranslationReport,
-    _validate_worker_options,
-    detect_epub_language,
-    resolve_chapter_selection,
-    translate_epub,
-)
-from ...format_local import LocalFormatSource, LocalOutputGuard
-from ...format_service import FormatPublication, FormatRegistry, FormatService
+from ...formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
+from ...formats.epub.io import SelectedChapter, detect_epub_language, resolve_chapter_selection
+from ...v1.epub import TranslationReport, _validate_worker_options, translate_epub  # noqa: F401 - the same door, for v1
+from ...formats.local import LocalFormatSource, LocalOutputGuard
+from ...formats import FormatPublication, FormatRegistry, FormatService
 from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
-from ...html_structure import html_unit_template, normalize_translated_text, without_xml_invalid
+from ...formats.epub import html_unit_template, normalize_translated_text, without_xml_invalid
 from ...jobs import JobState
 from ...jobs import CancellationSource
 from ...recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
@@ -79,7 +73,7 @@ from ...translation_document import (
 from ...knowledge.memory import TranslationMemory
 from ...translation_plan import resolve_plan as resolve_translation_plan
 from ...v1.translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
-from ...validation import ValidationResult, validate_output_epub
+from ...formats.epub.validation import ValidationResult, validate_output_epub
 from ...kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
 from ...translation import BookRefused, PreflightError, ProjectTranslationUnavailable, TranslationDryRunCancelled
 

@@ -527,8 +527,8 @@ def test_tokenized_text_stays_out_of_the_representation(env):
 
 
 def test_an_html_document_survives_the_rich_path_and_reconstruction(env):
-    from ayvu.format_adapter import UnitTranslation
-    from ayvu.html_structure import _parse, extract_html_document, reconstruct_html
+    from ayvu.formats.contracts import UnitTranslation
+    from ayvu.formats.epub.html_structure import _parse, extract_html_document, reconstruct_html
 
     html = ('<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="urn:epub"><body>'
             '<p>The <a epub:type="noteref" href="#n">world<!-- keep --></a> and <code>world</code>.</p><p>__AYVU_TAG_0__ world</p>'

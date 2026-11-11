@@ -18,11 +18,11 @@ from ...artifacts.destination import DestinationPublications, LocalDestinationPa
 from ...artifacts import ArtifactService
 from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
 from ...content import ContentDocument
-from ...epub_format import EPUB_ADAPTER, epub_format_adapter
-from ...format_adapter import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
-from ...format_local import LocalFormatSource, LocalOutputGuard
-from ...format_service import FormatPublication, FormatService, FormatRegistry, FormatSource
-from ...html_structure import html_unit_template
+from ...formats.epub.adapter import EPUB_ADAPTER, epub_format_adapter
+from ...formats import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
+from ...formats.local import LocalFormatSource, LocalOutputGuard
+from ...formats import FormatPublication, FormatService, FormatRegistry, FormatSource
+from ...formats.epub import html_unit_template
 from ...jobs import JobRequest, JobState, JobTerminalSummary, MAX_LEASE_DURATION
 from ...jobs import (
     CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress)
@@ -1045,7 +1045,7 @@ class ReviewUseCases:
 
 def epub_review_formats() -> FormatService:
     registry = FormatRegistry()
-    from ...epub_format import EPUB_REGISTRATION
+    from ...formats.epub.adapter import EPUB_REGISTRATION
     registry.register(EPUB_REGISTRATION, epub_format_adapter())
     return FormatService(registry)
 

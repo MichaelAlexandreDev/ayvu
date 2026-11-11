@@ -12,8 +12,8 @@ import stat
 from pathlib import Path
 from typing import BinaryIO
 
-from .format_adapter import AliasVerdict, FormatError
-from .format_service import FormatSource
+from .contracts import AliasVerdict, FormatError
+from .service import FormatSource
 
 _READ_FLAGS = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_BINARY", 0)
 _CHUNK_BYTES = 1024 * 1024

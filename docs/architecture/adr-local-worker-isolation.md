@@ -25,7 +25,7 @@ existe suporte Desktop entregue. A interpretação conservadora para esta matriz
 da #124 ainda dizem que o aceite está pendente; prevalece seu registro explícito.
 Esta pesquisa não modifica plataformas nem resolve os gates de release.
 
-O paralelismo de `epub_io.py` com `ThreadPoolExecutor`, callbacks da CLI e retomada
+O paralelismo de `formats/epub/io.py` com `ThreadPoolExecutor`, callbacks da CLI e retomada
 v1 continua intacto. A `main` já tem contratos de jobs e artefatos posteriores ao
 contexto original da issue; sua existência não é um supervisor de processos nem
 prova de contenção. A CLI `--help` foi executada em home/config/cwd temporários:

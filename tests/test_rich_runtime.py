@@ -338,9 +338,9 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
     from uuid import uuid4
     from zipfile import ZipFile
     from ayvu.artifacts.model import ArtifactRequest, mark_ready, new_artifact, record_payload
-    from ayvu.format_adapter import AliasVerdict
-    from ayvu.format_local import LocalFormatSource
-    from ayvu.format_service import FormatPublication
+    from ayvu.formats.contracts import AliasVerdict
+    from ayvu.formats.local import LocalFormatSource
+    from ayvu.formats.service import FormatPublication
     from ayvu.translation_engine import EngineRequest, TranslationEngine
     from test_cli_translate_project import _book
     from format_contract import FixedGuard

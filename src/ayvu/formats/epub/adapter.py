@@ -14,22 +14,22 @@ from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
 
-from .content import AdapterIdentity, ContentDocument, Locator, SemanticKind, TranslationUnit, build_document
-from .epub_archive import (
+from ...content import AdapterIdentity, ContentDocument, Locator, SemanticKind, TranslationUnit, build_document
+from .archive import (
     DEFAULT_LIMITS, RESOURCE_CODES, EpubArchive, EpubArchiveError, ManifestItem, package_title, parse_package_for_edit, resolve_internal_path,
     serialize_package,
 )
-from .format_adapter import (
+from ..contracts import (
     ContentScope, ExtractionRequest, FidelityAspect, FidelityClaim, FidelityLevel, FindingSeverity, FormatDescriptor, FormatInventory,
     FormatLimits, FormatMaturity, FormatOperation, FormatOperationError, FormatSignature, InventoryDocument, OperationClaim, OperationSupport,
     PreviewRequest, ReconstructionRequest, UnitTranslation, ValidationFinding, VisibleContentDocument,
 )
-from .format_service import FormatAdapter, FormatContext, FormatRegistration
+from ..service import FormatAdapter, FormatContext, FormatRegistration
 from .html_structure import (
     HTML_LOCATOR_SCHEMA, HTML_LOCATOR_VERSION, HTML_SEGMENTER_VERSION, HtmlStructureError, extract_body_visible_text,
     extract_html_document, extract_visible_text, plain_text_content, reconstruct_html, restore_plain_text,
 )
-from .kernel import JobFailure, JobFailureFamily
+from ...kernel import JobFailure, JobFailureFamily
 
 EPUB_ADAPTER = AdapterIdentity("epub", 1, HTML_SEGMENTER_VERSION)
 PACKAGE_LOCATOR_SCHEMA = "epub_package"

@@ -12,7 +12,7 @@ Related issue: [#143 — Isolate HTML segmentation and markup-safe reconstructio
 
 ## Decision and scope
 
-`ayvu.html_structure` knows where reader-visible text is in a document and how to put a translation back. It
+`ayvu.formats.epub.html_structure` knows where reader-visible text is in a document and how to put a translation back. It
 imports no provider, cache, memory, glossary, chunker or interface.
 
 | Entry | For | Identity |

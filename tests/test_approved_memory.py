@@ -503,7 +503,7 @@ def test_storage_failures_and_database_immutability_are_typed(env):
 
 def test_visible_source_omits_only_structural_markup_and_keeps_stable_content_reference():
     from ayvu.content.model import ProtectedPart
-    from ayvu.html_structure import html_unit_template, review_text_from_template
+    from ayvu.formats.epub.html_structure import html_unit_template, review_text_from_template
     from content_fixtures import epub_document, unit
     text = 'Hello <em>world</em> __AYVU_TAG_0__'
     doc = epub_document(units=[unit('body', text, protected_parts=(
@@ -522,7 +522,7 @@ def test_visible_source_omits_only_structural_markup_and_keeps_stable_content_re
 
 def test_format_projection_preserves_breaks_and_omits_hidden_inline_content():
     from ayvu.content.model import ProtectedPart
-    from ayvu.html_structure import html_unit_template, review_text_from_template
+    from ayvu.formats.epub.html_structure import html_unit_template, review_text_from_template
     from content_fixtures import epub_document, unit
     text = 'Hello<br/><script>UNRELATED SECRET</script>world'
     start = text.index('<script>')

@@ -9,14 +9,14 @@ from pathlib import Path
 import pytest
 
 from ayvu.content.model import AdapterIdentity, Locator, UnitContent, build_document
-from ayvu.format_adapter import (
+from ayvu.formats.contracts import (
     MAX_DETECTION_BYTES, AliasVerdict, ContentScope, DetectionEvidence, DetectionOutcome, ExtractionRequest, ExtractionResult, FidelityAspect,
     FidelityClaim, FidelityLevel, FidelityRequirement, FindingSeverity, FormatCancelledError, FormatError, FormatInventory,
     FormatLimits, FormatMaturity, FormatOperation, FormatOperationError, InventoryDocument, FormatRequirements, FormatSignature, InspectionResult, MaterializationResult,
     OperationClaim, OperationSupport, PreviewRequest, ReconstructionRequest, UnitTranslation, ValidationFinding, ValidationResult, negotiate_format,
 )
-from ayvu.format_local import LocalFormatSource, LocalOutputGuard
-from ayvu.format_service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
+from ayvu.formats.local import LocalFormatSource, LocalOutputGuard
+from ayvu.formats.service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
 from format_contract import PROJECT, CountingSource, FixedGuard, FormatAdapterContract, FormatEnv, FormatHarness
 from format_fakes import (
     CARDS_HEADER, CARDS_REGISTRATION, EVIDENCE, KIND, NOTES_REGISTRATION, CardsPorts, NotesPorts, all_fidelity, cards_adapter, cards_descriptor, notes_adapter,
@@ -463,7 +463,7 @@ def test_interrupts_are_not_swallowed(cards):
 
 def test_an_adapter_that_swallows_cancellation_still_returns_nothing(cards):
     from format_contract import TriggerToken
-    from ayvu.format_service import format_safe_points
+    from ayvu.formats.service import format_safe_points
 
     def extract(self, context, request):
         try:
@@ -928,13 +928,13 @@ def test_text_and_paths_stay_out_of_representations(cards):
 
 # Boundaries
 
-CONTRACT_MODULES = ("format_adapter", "format_service")
+CONTRACT_MODULES = ("formats/contracts", "formats/service")
 
 
 def test_the_contract_imports_nothing_concrete():
     forbidden = {"ebooklib", "bs4", "lxml", "typer", "rich", "PySide6", "requests", "mcp", "sqlite3", "os", "shutil", "zipfile",
                  "ayvu.v1.translator", "ayvu.provider", "ayvu.provider_service", "ayvu.translation_pipeline", "ayvu.translation_document",
-                 "ayvu.artifacts.store", "ayvu.jobs.store", "ayvu.v1.cache", "ayvu.knowledge.glossary", "ayvu.v1.html_translate", "ayvu.epub_io", "ayvu.format_local"}
+                 "ayvu.artifacts.store", "ayvu.jobs.store", "ayvu.v1.cache", "ayvu.knowledge.glossary", "ayvu.v1.html_translate", "ayvu.formats.epub.io", "ayvu.formats.local"}
     for name in CONTRACT_MODULES:
         tree = ast.parse((ROOT / "src" / "ayvu" / f"{name}.py").read_text())
         for node in ast.walk(tree):
@@ -956,7 +956,7 @@ def test_the_contract_never_branches_on_a_format_or_a_missing_method():
 
 
 def test_getattr_in_the_service_only_reads_declared_port_fields():
-    tree = ast.parse((ROOT / "src" / "ayvu" / "format_service.py").read_text())
+    tree = ast.parse((ROOT / "src" / "ayvu" / "formats" / "service.py").read_text())
     calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "getattr"]
     assert [call.args[1].id for call in calls] == ["field"]
 

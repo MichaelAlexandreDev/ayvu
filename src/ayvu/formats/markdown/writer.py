@@ -12,14 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .content_use_cases import (
+from ...content_use_cases import (
     OutputDirectoryRef, PlannedOutputFile, PublishedFileRef,
     WriterAuthorization, WriterPlan, WriterPublication,
 )
-from .format_adapter import AliasVerdict, VisibleContentDocument
-from .format_local import LocalFormatSource, LocalOutputGuard
-from .format_service import FormatSource
-from .kernel import JobFailure, JobFailureFamily
+from ..contracts import AliasVerdict, VisibleContentDocument
+from ..local import LocalFormatSource, LocalOutputGuard
+from ..service import FormatSource
+from ...kernel import JobFailure, JobFailureFamily
 
 # Not accepted in a file name on some system. A real chapter with one still exports, under a portable name.
 _NOT_PORTABLE = re.compile(r'[<>:"\\|?*\x00-\x1f\x7f]')

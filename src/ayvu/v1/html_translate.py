@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from .cache import CacheKey, TranslationCache
 from ..knowledge.glossary import Glossary, GlossaryUsage, apply_glossary_with_usage
-from ..html_structure import (
+from ..formats.epub import (
     IGNORED_INLINE_TAGS,
     IGNORED_TAGS,
     INLINE_TAGS,

@@ -272,6 +272,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Formatos em `ayvu.formats` (REF-10, #278): `formats.contracts`, `formats.service`, `formats.local`,
+  `formats.epub` (`archive`, `adapter`, `io`, `html_structure`, `validation`) e
+  `formats.markdown.writer`. O `epub_io.py` foi dividido: a leitura do EPUB fica em `formats.epub.io`,
+  e a tradução v1 do livro inteiro, com o CSV de revisão, vai para `v1/epub.py`, porque só o v1 a usa.
+  Formats não importa mais review nem v1, e somem `formats ↔ review` e `formats ↔ v1`.
 - Conhecimento em `ayvu.knowledge` (REF-09, #277): `knowledge.cache` (identidade, esquema,
   repositório, intercâmbio e administração), `knowledge.memory` (`fuzzy` e o subpacote `approved`) e
   `knowledge.glossary` (regras e catálogo). `memory_retrieval` vira `translation.stages`, porque é um

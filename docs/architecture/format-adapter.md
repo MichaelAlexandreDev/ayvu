@@ -19,11 +19,11 @@ a composition root.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.format_adapter` | Domain | Descriptor, claims, negotiation, requests and results |
-| `ayvu.format_service` | Application | Operation ports, registry and the checks before any work |
-| `ayvu.format_local` | Infrastructure | Local files as sources, and the check that a destination is not the source |
+| `ayvu.formats.contracts` | Domain | Descriptor, claims, negotiation, requests and results |
+| `ayvu.formats.service` | Application | Operation ports, registry and the checks before any work |
+| `ayvu.formats.local` | Infrastructure | Local files as sources, and the check that a destination is not the source |
 | `ayvu.content_use_cases` | Application | Typed inspect and visible-content export orchestration |
-| `ayvu.markdown_writer` | Infrastructure | Safe Markdown planning and atomic publication of each local file |
+| `ayvu.formats.markdown.writer` | Infrastructure | Safe Markdown planning and atomic publication of each local file |
 | `ayvu.composition.builders.content` | Composition | Registers the EPUB adapter and supplies local content use cases |
 
 Failures reuse `JobFailure`, content extraction for translation reuses `ContentDocument`, and cancellation reuses

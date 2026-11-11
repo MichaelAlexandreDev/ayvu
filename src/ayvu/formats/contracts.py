@@ -10,9 +10,9 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 
-from .artifacts import Artifact
-from .content import UNKNOWN_LOCALE, AdapterIdentity, ContentDocument, SourceLocale
-from .kernel import is_slug, JobFailure
+from ..artifacts import Artifact
+from ..content import UNKNOWN_LOCALE, AdapterIdentity, ContentDocument, SourceLocale
+from ..kernel import is_slug, JobFailure
 
 FORMAT_CONTRACT_VERSION = 1
 MAX_DETECTION_BYTES = 4096

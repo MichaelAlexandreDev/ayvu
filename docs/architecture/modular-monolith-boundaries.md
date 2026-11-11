@@ -31,7 +31,7 @@ still meet directly in several places:
 
 - `cli.py` parses input and renders output while also constructing collaborators
   and coordinating long workflows;
-- `epub_io.py` preserves the EPUB archive while also coordinating translation,
+- `formats/epub/io.py` preserves the EPUB archive while also coordinating translation,
   review, and memory collaborators;
 - `v1/html_translate.py` combines markup-safe reconstruction with translation
   stages such as cache, chunking, glossary, and translation memory;
@@ -334,7 +334,7 @@ issue.
 | `src/ayvu/cli_progress.py` | Rich progress adaptation and snapshots | **Interfaces/CLI** keeps Rich rendering; semantic progress DTOs and cancellation later belong to **Application/Jobs** |
 | `src/ayvu/kernel/values.py` (was `domain.py`, moved by REF-04) | Shared value objects and policies for languages, outputs, chapters, memory, and execution | Transitional domain collection; split only when a use case establishes ownership in **Domain**, **Translation**, **Jobs**, or **Policies** |
 | `src/ayvu/preferences/config_facade.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `composition.cli` e valores em `preferences.model` |
-| `src/ayvu/epub_io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
+| `src/ayvu/formats/epub/io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
 | `src/ayvu/v1/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
 | `src/ayvu/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
 | `src/ayvu/v1/translator.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
@@ -352,7 +352,7 @@ issue.
 | `src/ayvu/review_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
 | `src/ayvu/review_exchange.py` | Versioned bounded v2 codec, identity validation, and mapping to stable unit reconstruction inputs | Review-package semantics belong to **Review**; EPUB structure remains in **Formats/EPUB**; no application orchestration or publication |
 | `src/ayvu/library/service.py`, `src/ayvu/library/adapters.py` | Library discovery and launching a reader process | Discovery/open coordination belongs to **Application**; filesystem scanning and process launch are separate **Infrastructure** adapters with explicit authorization |
-| `src/ayvu/validation.py` | EPUB output validation and warnings using ebooklib/Beautiful Soup | Finding semantics belong to **Quality**; EPUB-specific inspection remains in the **Formats/EPUB** adapter |
+| `src/ayvu/formats/epub/validation.py` | EPUB output validation and warnings using ebooklib/Beautiful Soup | Finding semantics belong to **Quality**; EPUB-specific inspection remains in the **Formats/EPUB** adapter |
 
 ## Current flows and target seams
 
@@ -546,7 +546,7 @@ its dependencies, and the compatibility baseline before changing code.
 - [Translation workflow migration baseline](../translation-workflow-migration-baseline.md)
 - [Shared application use-case matrix](shared-use-case-matrix.md)
 - [`src/ayvu/cli.py`](../../src/ayvu/cli.py)
-- [`src/ayvu/epub_io.py`](../../src/ayvu/epub_io.py)
+- [`src/ayvu/formats/epub/io.py`](../../src/ayvu/formats/epub/io.py)
 - [`src/ayvu/v1/html_translate.py`](../../src/ayvu/v1/html_translate.py)
 - [`src/ayvu/v1/cache.py`](../../src/ayvu/v1/cache.py)
 - [`src/ayvu/v1/resume.py`](../../src/ayvu/v1/resume.py)

@@ -22,8 +22,8 @@ from typing import Protocol
 from uuid import uuid4
 
 from .artifacts import Artifact, ArtifactError, ArtifactRequest
-from .format_adapter import FormatError
-from .format_service import FormatPublication, FormatService, FormatSource
+from .formats import FormatError
+from .formats import FormatPublication, FormatService, FormatSource
 from .jobs import (
     MAX_LEASE_DURATION, JobLeaseError, JobRequest, JobState, JobTerminalSummary, TranslationJob)
 from .jobs import (
