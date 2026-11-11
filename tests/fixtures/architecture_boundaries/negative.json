@@ -29,7 +29,7 @@
   {"source":"ayvu.domain","code":"from . import cli","error":"forbidden"},
   {"source":"ayvu.formats.epub.io","code":"import ayvu.providers.libretranslate.client","error":"forbidden"},
   {"source":"ayvu.providers.libretranslate.client","code":"import ayvu.formats.epub.io","error":"forbidden"},
-  {"source":"ayvu.v1.cache","code":"import ayvu.cli_progress","error":"forbidden"},
+  {"source":"ayvu.v1.cache","code":"import ayvu.interfaces.cli.progress","error":"forbidden"},
   {"source":"ayvu.knowledge.glossary.rules","code":"from ayvu.v1.html_translate import TextParts","error":"forbidden"},
   {"source":"ayvu.cli","code":"import sqlite3","error":"forbidden"},
   {"source":"ayvu.desktop","code":"import ayvu.formats.epub.io","error":"forbidden"},

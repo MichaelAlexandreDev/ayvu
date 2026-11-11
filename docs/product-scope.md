@@ -19,7 +19,7 @@ Cada capacidade tem um único status:
 
 As afirmações de estado atual são sustentadas pelo [README](../README.md), pela
 [baseline de fluxos caracterizados](translation-workflow-migration-baseline.md),
-pela [CLI](../src/ayvu/cli.py) e pelos testes versionados. A issue
+pela [CLI](../src/ayvu/interfaces/cli/app.py) e pelos testes versionados. A issue
 [#132](https://github.com/DevStarrk1137/ayvu/issues/132) fornece a
 caracterização que migrações futuras devem preservar.
 
@@ -47,7 +47,7 @@ trabalho futuro.
 | Área | Capacidade | Status | Evidência ou direção pública |
 | --- | --- | --- | --- |
 | Tradução | Traduzir texto visível de XHTML/HTML em EPUB | **Existente** | [README](../README.md) e [baseline](translation-workflow-migration-baseline.md). |
-| Tradução | Preview, capítulos selecionados, batch, cache-only e retomada | **Existente** | [Baseline](translation-workflow-migration-baseline.md) e [CLI](../src/ayvu/cli.py). |
+| Tradução | Preview, capítulos selecionados, batch, cache-only e retomada | **Existente** | [Baseline](translation-workflow-migration-baseline.md) e [CLI](../src/ayvu/interfaces/cli/app.py). |
 | Preservação | Original imutável, ZIP conservador, `mimetype` não comprimido e assets não substituídos | **Existente** | [Baseline](translation-workflow-migration-baseline.md). |
 | Preservação | Garantia pixel-perfect para PDF, imagem, vídeo ou formatos não validados | **Intencionalmente não suportada** | O único vertical de produção é EPUB. |
 | Formatos | EPUB | **Existente** | [README](../README.md). |
@@ -60,7 +60,7 @@ trabalho futuro.
 | Providers | Segundo backend de tradução | **Adiada** | [#100](https://github.com/DevStarrk1137/ayvu/issues/100) está deferred. |
 | Memória e glossário | Glossário pós-cache e memória fuzzy opcional | **Existente** | [README](../README.md) e [baseline](translation-workflow-migration-baseline.md). |
 | Memória e glossário | Memória aprovada, cache v2 e administração segura | **Melhoria local-first** | [#153](https://github.com/DevStarrk1137/ayvu/issues/153), [#154](https://github.com/DevStarrk1137/ayvu/issues/154), [#155](https://github.com/DevStarrk1137/ayvu/issues/155) e [#161](https://github.com/DevStarrk1137/ayvu/issues/161). |
-| Interfaces | CLI com modos guiado e desenvolvedor | **Existente** | [README](../README.md) e [CLI](../src/ayvu/cli.py). |
+| Interfaces | CLI com modos guiado e desenvolvedor | **Existente** | [README](../README.md) e [CLI](../src/ayvu/interfaces/cli/app.py). |
 | Interfaces | Desktop, API local e MCP sobre os mesmos casos de uso | **Adaptação de interface** | [#123](https://github.com/DevStarrk1137/ayvu/issues/123); nenhuma dessas interfaces está entregue. |
 | IA | Assistência de terminologia, qualidade, estilo ou layout com autoridade limitada | **Experimental** | [#166](https://github.com/DevStarrk1137/ayvu/issues/166); não há runtime de IA entregue. |
 | Rede e privacidade | Endpoint de tradução escolhido explicitamente pelo usuário | **Existente** | [README](../README.md). |

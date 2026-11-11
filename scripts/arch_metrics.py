@@ -29,11 +29,10 @@ from pathlib import Path
 FILE_THRESHOLDS = (400, 800, 1000)
 FUNCTION_LIMIT = 80
 
-PACKAGE_ALIASES = {"desktop": "interfaces"}
+PACKAGE_ALIASES: dict[str, str] = {}
 
 LEGACY_GROUPS = {
     "content": ("content_use_cases",),
-    "interfaces": ("cli", "cli_progress", "cli_contracts", "desktop_bootstrap"),
 }
 
 

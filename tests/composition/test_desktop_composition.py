@@ -129,9 +129,9 @@ widgets.QApplication = widgets.QWidget = NoWidget
 qt.QtWidgets = widgets
 sys.modules.update({"PySide6": qt, "PySide6.QtWidgets": widgets})
 sys.addaudithook(audit)
-for name in ("ayvu.desktop", "ayvu.composition.desktop",
-             "ayvu.desktop.presentation", "ayvu.desktop.presentation.views", "ayvu.desktop.viewmodels",
-             "ayvu.desktop.adapters", "ayvu.desktop.adapters.qt", "ayvu.desktop.resources", "ayvu.desktop.platform"):
+for name in ("ayvu.interfaces.desktop", "ayvu.composition.desktop",
+             "ayvu.interfaces.desktop.presentation", "ayvu.interfaces.desktop.presentation.views", "ayvu.interfaces.desktop.viewmodels",
+             "ayvu.interfaces.desktop.adapters", "ayvu.interfaces.desktop.adapters.qt", "ayvu.interfaces.desktop.resources", "ayvu.interfaces.desktop.platform"):
     importlib.import_module(name)
 """],
         cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30, check=False,

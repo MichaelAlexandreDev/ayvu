@@ -8,7 +8,7 @@ from contextlib import closing
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.cli as cli
+import ayvu.interfaces.cli.app as cli
 import ayvu.composition.builders.translate_project as composition
 from ayvu.jobs.execution import InMemoryJobEventLog
 from ayvu.provenance.model import ProducerIdentity

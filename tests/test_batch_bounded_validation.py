@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.cli as cli
+import ayvu.interfaces.cli.app as cli
 import ayvu.composition.cli as composition
 
 

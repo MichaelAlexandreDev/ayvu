@@ -333,7 +333,7 @@ def test_migration_and_style_remain_inert_over_instrumented_libretranslate_trans
     # Migration, snapshot publication and cache replay must not reach transport.
     import requests
     from ayvu.preferences.config_facade import TranslationProfile
-    from ayvu.cli import _resolve_target_language, _resolve_glossary_path
+    from ayvu.interfaces.cli.app import _resolve_target_language, _resolve_glossary_path
     from ayvu.translation.pipeline import LegacyTextPipelineFacade, LinguisticSource
     from ayvu.providers.libretranslate.client import LibreTranslateTranslator
     from test_translation_pipeline import Cache, Glossed

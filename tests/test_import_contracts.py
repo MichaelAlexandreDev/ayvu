@@ -31,7 +31,7 @@ def test_the_layers_contract_follows_the_decision_and_is_exhaustive():
     layers = next(c for c in config["contracts"] if c["id"] == "layers")
     assert layers["type"] == "layers" and layers["exhaustive"] is True and layers["containers"] == ["ayvu"]
     first = [layer.split(" : ")[0] for layer in layers["layers"]]
-    assert first == ["(interfaces)", "composition", "v1", "recovery", "review", "translation", "projects", "preferences",
+    assert first == ["interfaces", "composition", "v1", "recovery", "review", "translation", "projects", "preferences",
                      "knowledge", "artifacts", "provenance", "jobs", "content", "kernel"]
 
 

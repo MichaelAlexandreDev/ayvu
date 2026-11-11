@@ -3,7 +3,7 @@ import json
 import pytest
 from typer.testing import CliRunner
 
-from ayvu.cli import app
+from ayvu.interfaces.cli.app import app
 
 
 @pytest.fixture(autouse=True)
@@ -14,7 +14,7 @@ def isolated_cli(tmp_path, monkeypatch):
 
 
 def test_import_all_is_rejected_before_destination_access(tmp_path, monkeypatch):
-    import ayvu.cli as cli
+    import ayvu.interfaces.cli.app as cli
     accessed = []
     def forbidden(*args, **kwargs):
         accessed.append(True)
@@ -224,7 +224,7 @@ def test_v2_cli_before_preserves_timestamp_microseconds(tmp_path):
 
 
 def test_invalid_before_diagnostic_never_echoes_untrusted_content(tmp_path, monkeypatch):
-    import ayvu.cli as cli
+    import ayvu.interfaces.cli.app as cli
     original = cli._print_expected_error
     details = []
     def observed(*args, **kwargs):

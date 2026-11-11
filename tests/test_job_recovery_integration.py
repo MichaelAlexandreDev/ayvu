@@ -18,7 +18,7 @@ import pytest
 from typer.testing import CliRunner
 
 from ayvu.v1.cache import TranslationCache
-from ayvu.cli import EXISTING_OUTPUT_OVERWRITE_OPTION, app
+from ayvu.interfaces.cli.app import EXISTING_OUTPUT_OVERWRITE_OPTION, app
 from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.jobs.model import JobRequest, JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
@@ -47,7 +47,7 @@ def _isolated_from_the_user(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ayvu.cli._processing_dir", lambda _config: tmp_path / "processing")
+    monkeypatch.setattr("ayvu.interfaces.cli.app._processing_dir", lambda _config: tmp_path / "processing")
 
 
 class Crash(BaseException):

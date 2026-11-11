@@ -2,7 +2,6 @@
   "_comment": "D10 size ratchet (REF-03, #271). Entries may only shrink; see scripts/size_ratchet.py.",
   "files": {
     "src/ayvu/artifacts/store.py": 520,
-    "src/ayvu/cli.py": 4201,
     "src/ayvu/composition/builders/review.py": 1066,
     "src/ayvu/composition/builders/translate_project.py": 590,
     "src/ayvu/content/model.py": 639,
@@ -10,6 +9,7 @@
     "src/ayvu/formats/contracts.py": 579,
     "src/ayvu/formats/epub/html_structure.py": 626,
     "src/ayvu/formats/service.py": 482,
+    "src/ayvu/interfaces/cli/app.py": 4201,
     "src/ayvu/kernel/sqlite/migrations.py": 439,
     "src/ayvu/knowledge/cache/admin.py": 605,
     "src/ayvu/knowledge/cache/admin_v2_store.py": 932,
@@ -81,13 +81,13 @@
     "tests/v1/test_translator.py": 440
   },
   "functions": {
-    "src/ayvu/cli.py::_run_batch_translation": 156,
-    "src/ayvu/cli.py::_run_preview": 96,
-    "src/ayvu/cli.py::_run_translation": 330,
-    "src/ayvu/cli.py::translate": 272,
     "src/ayvu/composition/builders/review.py::LocalReviewOperations.begin": 125,
     "src/ayvu/composition/builders/review.py::LocalReviewPackagePort._map_context": 97,
     "src/ayvu/content_use_cases.py::ExportVisibleContent.execute": 136,
+    "src/ayvu/interfaces/cli/app.py::_run_batch_translation": 156,
+    "src/ayvu/interfaces/cli/app.py::_run_preview": 96,
+    "src/ayvu/interfaces/cli/app.py::_run_translation": 330,
+    "src/ayvu/interfaces/cli/app.py::translate": 272,
     "src/ayvu/knowledge/cache/admin_v2_store.py::_execute_import": 102,
     "src/ayvu/knowledge/cache/admin_v2_store.py::_export": 101,
     "src/ayvu/knowledge/cache/admin_v2_store.py::_preview_import": 115,

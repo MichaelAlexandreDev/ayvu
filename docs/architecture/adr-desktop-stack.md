@@ -21,7 +21,7 @@ independent of Qt. This packaging change does not, by itself, make a supported O
 accessibility, or distribution claim. The ADR was accepted later; see the
 acceptance record below.
 
-The `ayvu.desktop` structure separates `presentation/views`, `viewmodels`,
+The `ayvu.interfaces.desktop` structure separates `presentation/views`, `viewmodels`,
 `adapters/qt`, `resources`, and `platform` concerns from `bootstrap`. The
 composition module `ayvu.composition.desktop` accepts explicit
 `DesktopOverrides` for the data directory, environment, clock, and platform,

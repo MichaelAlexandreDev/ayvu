@@ -13,7 +13,7 @@ from zipfile import ZipFile
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.cli as cli
+import ayvu.interfaces.cli.app as cli
 import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.preferences.model import AyvuConfig
