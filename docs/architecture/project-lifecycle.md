@@ -13,7 +13,7 @@ Related issue: [#134 — Versioned local project manifest](https://github.com/Mi
 ## Context
 
 The current CLI stores per-translation checkpoints in
-[`resume.py`](../../src/ayvu/resume.py). These record execution options and
+[`v1/resume.py`](../../src/ayvu/v1/resume.py). These record execution options and
 progress, but do not establish a durable project identity. Shared application
 workflows need a stable local reference that survives process restarts and
 interface changes.

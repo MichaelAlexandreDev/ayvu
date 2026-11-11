@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from ayvu.cache import CacheImportError, CacheKey, TranslationCache, text_hash
+from ayvu.v1.cache import CacheImportError, CacheKey, TranslationCache, text_hash
 from ayvu.kernel import LanguagePair
 
 

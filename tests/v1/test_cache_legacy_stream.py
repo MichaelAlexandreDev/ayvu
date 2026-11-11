@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from ayvu.cache_admin import CacheAdminError, validate_payload
-from ayvu.cache_legacy_stream import iter_legacy_entries
+from ayvu.v1.cache_stream import iter_legacy_entries
 
 
 def row(text='olá😀'):

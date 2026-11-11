@@ -534,7 +534,7 @@ def test_oversized_database_row_refused_before_text_materialization(tmp_path, mo
 @pytest.mark.parametrize('operation', ['import', 'export'])
 @pytest.mark.parametrize('alias', ['symlink', 'hardlink', 'fifo'])
 def test_unselected_v1_compatibility_rejects_file_aliases(tmp_path, monkeypatch, operation, alias):
-    from ayvu.cache import SCHEMA
+    from ayvu.v1.cache import SCHEMA
     from ayvu.composition.builders.cache_admin import cache_admin_services
     import sqlite3
     cache, payload, selected = tmp_path / 'legacy.sqlite', tmp_path / 'file.json', tmp_path / 'selected.json'
@@ -550,7 +550,7 @@ def test_unselected_v1_compatibility_rejects_file_aliases(tmp_path, monkeypatch,
         def forbidden_digest(*args, **kwargs):
             inspected.append('digest')
             raise AssertionError('alias must be refused before reading or staging')
-        monkeypatch.setattr('ayvu.cache_admin_legacy_store._file_digest', forbidden_digest)
+        monkeypatch.setattr('ayvu.v1.cache_admin_store._file_digest', forbidden_digest)
         result = services.import_cache.execute(ImportRequest(CacheRef(str(cache)), FileRef(str(selected))))
     else:
         result = services.export.execute(ExportRequest(CacheRef(str(cache)), FileRef(str(selected)), overwrite=True))

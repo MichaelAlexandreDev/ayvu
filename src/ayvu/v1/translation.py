@@ -12,19 +12,19 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-from .content import TranslationUnit
-from .epub_archive import EpubArchive, EpubArchiveError, package_title, parse_package_for_edit
-from .epub_io import TranslationReport, _validate_worker_options
-from .format_service import FormatPublication, FormatService, FormatSource
-from .html_structure import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
+from ..content import TranslationUnit
+from ..epub_archive import EpubArchive, EpubArchiveError, package_title, parse_package_for_edit
+from ..epub_io import TranslationReport, _validate_worker_options
+from ..format_service import FormatPublication, FormatService, FormatSource
+from ..html_structure import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
 from .html_translate import HtmlTranslationStats, TextTranslationResult, translate_text
-from .translation_memory import TranslationMemory
-from .translation_engine import (
+from ..translation_memory import TranslationMemory
+from ..translation_engine import (
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED,
     BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, TextStats, TranslationEngine,
     UnitExecution,
 )
-from .kernel import TranslationOptions
+from ..kernel import TranslationOptions
 
 EPUB_ADAPTER_ID = "epub"
 _REVIEW_KINDS = {ALT_TEXT_KIND: "alt"}

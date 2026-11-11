@@ -65,21 +65,32 @@ exhaustive = true
 layers = [
   "(interfaces) : desktop : cli : cli_progress : cli_contracts : desktop_bootstrap",
   "composition",
-  "(v1)",
+  "v1",
   "(recovery)",
-  "(translation) : translation_plan : translation_pipeline : translation_engine : translation_document : translation_protection : translation_context : context_execution : context_source : chunking : translate_project : translate_batch : batch_output_policy : legacy_translation : preflight : (review) : review_application : review_exchange : review_export : review_import",
+  "(translation) : translation_plan : translation_pipeline : translation_engine : translation_document : translation_protection : translation_context : context_execution : context_source : chunking : translate_project : translate_batch : batch_output_policy : preflight : (review) : review_application : review_exchange : review_export : review_import",
   "(projects) : project : project_service : project_store : project_schema : project_profiles : project_profile_service : project_profile_store : profile_glossary_store",
-  "(knowledge) : cache : cache_identity : cache_repository : cache_schema : cache_interchange : cache_legacy_format : cache_legacy_stream : cache_admin : cache_admin_store : cache_admin_v2_store : cache_admin_legacy_store : translation_memory : memory_retrieval : approved_memory : approved_memory_service : approved_memory_store : glossary : glossary_catalog : glossary_catalog_store : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_libretranslate : provider_session : translator : (formats) : format_adapter : format_service : format_local : epub_archive : epub_format : epub_io : html_structure : html_translate : validation : markdown_writer",
+  "(knowledge) : cache_identity : cache_repository : cache_schema : cache_interchange : cache_admin : cache_admin_store : cache_admin_v2_store : translation_memory : memory_retrieval : approved_memory : approved_memory_service : approved_memory_store : glossary : glossary_catalog : glossary_catalog_store : (providers) : provider : provider_capabilities : provider_discovery : provider_service : provider_network : provider_libretranslate : provider_session : (formats) : format_adapter : format_service : format_local : epub_archive : epub_format : epub_io : html_structure : validation : markdown_writer",
   "(artifacts) : artifact : artifact_service : artifact_store : artifact_destination",
-  "(jobs) : job : job_events : job_execution : job_service : job_store : job_recovery : job_recovery_store : resume : legacy_resume",
+  "(jobs) : job : job_events : job_execution : job_service : job_store : job_recovery : job_recovery_store",
   "content : content_use_cases : provenance : provenance_service : provenance_store : (network) : network_policy : network_http : preferences : preferences_service : preferences_store : config : config_values : (library) : library_service : library_adapters : (application)",
   "kernel",
 ]
 ignore_imports = [
+  "ayvu.cache_admin -> ayvu.v1.cache_format",  # REF-18 (#286): the v1 cache is retired with v1
+  "ayvu.cache_admin_store -> ayvu.v1.cache",  # REF-18 (#286): the v1 cache is retired with v1
+  "ayvu.cache_schema -> ayvu.v1.cache",  # REF-18 (#286): the v1 cache is retired with v1
+  "ayvu.epub_io -> ayvu.v1.cache",  # REF-10 (#278): epub_io is split; its v1 parts join v1
+  "ayvu.epub_io -> ayvu.v1.html_translate",  # REF-10 (#278): epub_io is split; its v1 parts join v1
+  "ayvu.epub_io -> ayvu.v1.translator",  # REF-10 (#278): epub_io is split; its v1 parts join v1
+  "ayvu.validation -> ayvu.v1.html_translate",  # REF-10 (#278): extract_visible_text moves to formats
+  "ayvu.job_recovery_store -> ayvu.v1.resume",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.job_recovery_store -> ayvu.v1.resume_scan",  # REF-08 (#276): resume orchestration moves to recovery/
+  "ayvu.translation_memory -> ayvu.v1.cache",  # REF-09 (#277): translation memory stops reading the v1 cache
+  "ayvu.preflight -> ayvu.v1.cache",  # REF-11 (#279): preflight moves to translation/ with the HTTP client out of v1
+  "ayvu.preflight -> ayvu.v1.translator",  # REF-11 (#279): preflight moves to translation/ with the HTTP client out of v1
+  "ayvu.provider_libretranslate -> ayvu.v1.translator",  # REF-11 (#279): the LibreTranslate HTTP client moves to providers/
+  "ayvu.provider_session -> ayvu.v1.translator",  # REF-11 (#279): the LibreTranslate HTTP client moves to providers/
   "ayvu.provenance_store -> ayvu.job",  # REF-04 (#272): job primitives move to kernel
-  "ayvu.resume -> ayvu.translation",  # REF-06 (#274): v1 moves to v1/, which may import any module
-  "ayvu.html_translate -> ayvu.translation_pipeline",  # REF-06 (#274): v1 moves to v1/
-  "ayvu.html_translate -> ayvu.translation_protection",  # REF-06 (#274): v1 moves to v1/
   "ayvu.content_use_cases -> ayvu.format_adapter",  # REF-07 (#275): content use cases need a home above formats (open question)
   "ayvu.content_use_cases -> ayvu.format_service",  # REF-07 (#275): content use cases need a home above formats (open question)
   "ayvu.html_structure -> ayvu.translation_protection",  # REF-07 (#275): translation_protection moves to content/protection
@@ -97,6 +108,22 @@ ignore_imports = [
   "ayvu.memory_retrieval -> ayvu.translation_protection",  # REF-09 (#277): memory_retrieval moves to translation/stages/
   "ayvu.epub_io -> ayvu.review_export",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
   "ayvu.epub_io -> ayvu.review_import",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
+]
+
+[[tool.importlinter.contracts]]
+id = "v1-quarantine"
+name = "D7: only composition imports v1 (the layers contract covers the modules below it)"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+  "ayvu.desktop",
+  "ayvu.cli",
+  "ayvu.cli_progress",
+  "ayvu.cli_contracts",
+  "ayvu.desktop_bootstrap",
+]
+forbidden_modules = [
+  "ayvu.v1",
 ]
 
 [[tool.importlinter.contracts]]
@@ -118,7 +145,6 @@ source_modules = [
   "ayvu.translate_project",
   "ayvu.translate_batch",
   "ayvu.batch_output_policy",
-  "ayvu.legacy_translation",
   "ayvu.preflight",
 ]
 forbidden_modules = [
@@ -153,7 +179,6 @@ forbidden_modules = [
   "ayvu.translate_project",
   "ayvu.translate_batch",
   "ayvu.batch_output_policy",
-  "ayvu.legacy_translation",
   "ayvu.preflight",
 ]
 ignore_imports = [
@@ -167,17 +192,13 @@ name = "D3: knowledge does not import the other modules of its layer (providers,
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
-  "ayvu.cache",
   "ayvu.cache_identity",
   "ayvu.cache_repository",
   "ayvu.cache_schema",
   "ayvu.cache_interchange",
-  "ayvu.cache_legacy_format",
-  "ayvu.cache_legacy_stream",
   "ayvu.cache_admin",
   "ayvu.cache_admin_store",
   "ayvu.cache_admin_v2_store",
-  "ayvu.cache_admin_legacy_store",
   "ayvu.translation_memory",
   "ayvu.memory_retrieval",
   "ayvu.approved_memory",
@@ -196,7 +217,6 @@ forbidden_modules = [
   "ayvu.provider_network",
   "ayvu.provider_libretranslate",
   "ayvu.provider_session",
-  "ayvu.translator",
   "ayvu.format_adapter",
   "ayvu.format_service",
   "ayvu.format_local",
@@ -204,7 +224,6 @@ forbidden_modules = [
   "ayvu.epub_format",
   "ayvu.epub_io",
   "ayvu.html_structure",
-  "ayvu.html_translate",
   "ayvu.validation",
   "ayvu.markdown_writer",
 ]
@@ -223,20 +242,15 @@ source_modules = [
   "ayvu.provider_network",
   "ayvu.provider_libretranslate",
   "ayvu.provider_session",
-  "ayvu.translator",
 ]
 forbidden_modules = [
-  "ayvu.cache",
   "ayvu.cache_identity",
   "ayvu.cache_repository",
   "ayvu.cache_schema",
   "ayvu.cache_interchange",
-  "ayvu.cache_legacy_format",
-  "ayvu.cache_legacy_stream",
   "ayvu.cache_admin",
   "ayvu.cache_admin_store",
   "ayvu.cache_admin_v2_store",
-  "ayvu.cache_admin_legacy_store",
   "ayvu.translation_memory",
   "ayvu.memory_retrieval",
   "ayvu.approved_memory",
@@ -252,7 +266,6 @@ forbidden_modules = [
   "ayvu.epub_format",
   "ayvu.epub_io",
   "ayvu.html_structure",
-  "ayvu.html_translate",
   "ayvu.validation",
   "ayvu.markdown_writer",
 ]
@@ -270,23 +283,18 @@ source_modules = [
   "ayvu.epub_format",
   "ayvu.epub_io",
   "ayvu.html_structure",
-  "ayvu.html_translate",
   "ayvu.validation",
   "ayvu.markdown_writer",
 ]
 forbidden_modules = [
   "ayvu.providers",
-  "ayvu.cache",
   "ayvu.cache_identity",
   "ayvu.cache_repository",
   "ayvu.cache_schema",
   "ayvu.cache_interchange",
-  "ayvu.cache_legacy_format",
-  "ayvu.cache_legacy_stream",
   "ayvu.cache_admin",
   "ayvu.cache_admin_store",
   "ayvu.cache_admin_v2_store",
-  "ayvu.cache_admin_legacy_store",
   "ayvu.translation_memory",
   "ayvu.memory_retrieval",
   "ayvu.approved_memory",
@@ -302,17 +310,10 @@ forbidden_modules = [
   "ayvu.provider_network",
   "ayvu.provider_libretranslate",
   "ayvu.provider_session",
-  "ayvu.translator",
 ]
 ignore_imports = [
-  "ayvu.html_translate -> ayvu.cache",  # REF-06 (#274): v1 moves to v1/
-  "ayvu.html_translate -> ayvu.glossary",  # REF-06 (#274): v1 moves to v1/
-  "ayvu.html_translate -> ayvu.translation_memory",  # REF-06 (#274): v1 moves to v1/
-  "ayvu.html_translate -> ayvu.translator",  # REF-06 (#274): v1 moves to v1/
-  "ayvu.epub_io -> ayvu.cache",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
   "ayvu.epub_io -> ayvu.glossary",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
   "ayvu.epub_io -> ayvu.translation_memory",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
-  "ayvu.epub_io -> ayvu.translator",  # REF-10 (#278): epub_io is split; review CSV and v1 parts leave formats
 ]
 
 [[tool.importlinter.contracts]]

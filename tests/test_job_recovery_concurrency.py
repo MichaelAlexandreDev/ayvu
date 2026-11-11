@@ -11,7 +11,7 @@ from datetime import timedelta
 
 import pytest
 
-from ayvu.cache import TranslationCache
+from ayvu.v1.cache import TranslationCache
 from ayvu.job import JobContinuationError, JobRequest, JobState
 from ayvu.job_recovery import CompatibilityStatus, RecoveryReason, RequiredDecision, ResumeRequest, ResumeStatus
 from ayvu.job_recovery_store import _options
@@ -28,7 +28,7 @@ CHILD = textwrap.dedent('''
     import json, os, pathlib, sys, time
     import requests
     from typer.testing import CliRunner
-    import ayvu.translator
+    import ayvu.v1.translator
     from ayvu import cli
     class Session:
         def mount(self, prefix, adapter):
@@ -51,7 +51,7 @@ CHILD = textwrap.dedent('''
             return self._response({"translatedText": "PT:" + json["q"]})
         def close(self):
             pass
-    ayvu.translator.requests.Session = Session
+    ayvu.v1.translator.requests.Session = Session
     processing = sys.argv[1]
     cli._processing_dir = lambda _config: pathlib.Path(processing)
     CliRunner().invoke(cli.app, sys.argv[2:])

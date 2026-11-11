@@ -303,7 +303,8 @@ def test_preview_translation_does_not_validate_twice(tmp_path, monkeypatch):
 
 
 def test_compatibility_facades_export_identical_contracts():
-    from ayvu import config, config_values, preflight, resume, batch_output_policy
+    from ayvu import config, config_values, preflight, batch_output_policy
+    from ayvu.v1 import resume
     from ayvu.composition.builders import providers as provider_composition
     from ayvu import cli, providers, translation
     for name in ('AyvuConfig', 'FolderNames', 'TranslationProfile', 'ConfigError', 'config_from_preferences'):
@@ -316,7 +317,7 @@ def test_compatibility_facades_export_identical_contracts():
 
 
 def test_existing_cache_inspection_uses_only_selected_readonly_sqlite(tmp_path, monkeypatch):
-    from ayvu.cache import SCHEMA
+    from ayvu.v1.cache import SCHEMA
     path = tmp_path / 'selected.sqlite'
     connect = sqlite3.connect
     connection = connect(path)

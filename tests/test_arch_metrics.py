@@ -41,7 +41,7 @@ def tree(tmp_path) -> Path:
     write(root, "beta/__init__.py", "thing = 1\n")
     write(root, "beta/tools.py", "from ..alpha import inner\n")
     write(root, "gamma/__init__.py", "x = 1\n")
-    write(root, "cache.py", "from .alpha import y\n")  # a legacy top-level module, grouped as knowledge
+    write(root, "cache_identity.py", "from .alpha import y\n")  # a legacy top-level module, grouped as knowledge
     write(root, "stray.py", "")
     return root
 

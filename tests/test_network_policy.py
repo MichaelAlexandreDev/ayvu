@@ -15,7 +15,7 @@ from typer.testing import CliRunner
 
 from ayvu.network_policy import NetworkPolicy, NetworkPolicyError, resolve_network_policy
 from ayvu.network_http import NetworkAuthorization
-from ayvu.translator import LibreTranslateTranslator, TranslatorError, TranslatorPolicyError
+from ayvu.v1.translator import LibreTranslateTranslator, TranslatorError, TranslatorPolicyError
 
 
 @pytest.fixture(autouse=True)
@@ -85,7 +85,7 @@ def deny_network(monkeypatch):
                          (requests.Session, "send"), (requests.Session, "__init__"),
                          (requests.adapters.HTTPAdapter, "send")]:
         monkeypatch.setattr(target, name, forbidden)
-    monkeypatch.setattr("ayvu.translator.LibreTranslatePayload", forbidden)
+    monkeypatch.setattr("ayvu.v1.translator.LibreTranslatePayload", forbidden)
     monkeypatch.setattr(requests.models.PreparedRequest, "prepare_body", forbidden)
     return reached
 
@@ -108,7 +108,7 @@ def test_none_precedes_translation_body_serialization(monkeypatch):
     def serialize(payload):
         serialized.append(payload)
         raise AssertionError("source serialized")
-    monkeypatch.setattr("ayvu.translator.LibreTranslatePayload.as_json", serialize)
+    monkeypatch.setattr("ayvu.v1.translator.LibreTranslatePayload.as_json", serialize)
     with pytest.raises(TranslatorPolicyError, match="motivo=strict_offline"):
         LibreTranslateTranslator(network_policy="none").translate("PRIVATE_SOURCE", "en", "pt")
     assert serialized == []
@@ -312,7 +312,7 @@ def test_help_explains_request_policy_and_external_reader(args):
 def test_import_contract_has_no_presentation_or_desktop_dependency():
     root = Path(__file__).resolve().parents[1] / "src" / "ayvu"
     for name in ("network_policy", "network_http", "provider_network", "provider_discovery", "provider_session",
-                 "composition/builders/providers", "translator"):
+                 "composition/builders/providers", "v1/translator"):
         tree = ast.parse((root / f"{name}.py").read_text())
         imports = [node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
         imports += [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names]

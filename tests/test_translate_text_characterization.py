@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import pytest
 
-from ayvu.cache import CacheKey, TranslationCache
-from ayvu.html_translate import translate_text
+from ayvu.v1.cache import CacheKey, TranslationCache
+from ayvu.v1.html_translate import translate_text
 from ayvu.translation_memory import TranslationMemory
-from ayvu.translator import Translator
+from ayvu.v1.translator import Translator
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
 PAIR = LanguagePair(source='en', target='pt')
@@ -238,7 +238,7 @@ def test_provider_echoing_a_protected_sentence_is_a_valid_result():
 
 
 def test_recovery_call_limit_is_enforced_through_the_existing_setting(monkeypatch):
-    monkeypatch.setattr('ayvu.html_translate.MAX_PROTECTED_RECOVERY_CALLS', 1)
+    monkeypatch.setattr('ayvu.v1.html_translate.MAX_PROTECTED_RECOVERY_CALLS', 1)
     events = Events()
     with pytest.raises(ValueError, match='^A recuperação excedeu o limite de chamadas ao tradutor.$'):
         translate_text('one foo_bar two foo_bar three', RecordingTranslator(events, fallback), RecordingCache(events), 'en', 'pt')

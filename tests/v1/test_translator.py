@@ -3,7 +3,7 @@ from __future__ import annotations
 import requests
 import pytest
 
-from ayvu.translator import (
+from ayvu.v1.translator import (
     LibreTranslateTranslator,
     RequestRateLimiter,
     RouteResolutionError,
@@ -88,7 +88,7 @@ def test_libretranslate_retries_5xx_before_success(monkeypatch: pytest.MonkeyPat
     )
     translator = LibreTranslateTranslator(retries=1)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     result = translator.translate("All right", "en", "pt")
 
@@ -107,7 +107,7 @@ def test_libretranslate_retries_429_before_success(monkeypatch: pytest.MonkeyPat
     )
     translator = LibreTranslateTranslator(retries=1)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     result = translator.translate("All right", "en", "pt")
 
@@ -126,7 +126,7 @@ def test_libretranslate_retries_any_5xx_before_success(monkeypatch: pytest.Monke
     )
     translator = LibreTranslateTranslator(retries=1)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     result = translator.translate("All right", "en", "pt")
 
@@ -147,7 +147,7 @@ def test_libretranslate_uses_exponential_backoff_with_max(monkeypatch: pytest.Mo
     )
     translator = LibreTranslateTranslator(retries=3, retry_backoff=0.25, retry_backoff_max=0.5)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     result = translator.translate("All right", "en", "pt")
 
@@ -167,8 +167,8 @@ def test_libretranslate_rate_limits_requests(monkeypatch: pytest.MonkeyPatch) ->
     )
     translator = LibreTranslateTranslator(retries=0, requests_per_second=2.0)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.monotonic", lambda: next(times))
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.monotonic", lambda: next(times))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     translator.translate("Hello", "en", "pt")
     translator.translate("World", "en", "pt")
@@ -193,8 +193,8 @@ def test_libretranslate_rate_limiter_is_shared_between_languages_and_translate(
     )
     translator = LibreTranslateTranslator(retries=0, requests_per_second=1.0)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.monotonic", lambda: next(times))
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.monotonic", lambda: next(times))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     translator.list_languages()
     translator.translate("Hello", "en", "pt")
@@ -214,8 +214,8 @@ def test_libretranslate_instances_can_share_rate_limiter(monkeypatch: pytest.Mon
     second = LibreTranslateTranslator(retries=0, rate_limiter=rate_limiter)
     first.session = first_session
     second.session = second_session
-    monkeypatch.setattr("ayvu.translator.time.monotonic", lambda: next(times))
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.monotonic", lambda: next(times))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     first.translate("Hello", "en", "pt")
     second.translate("World", "en", "pt")
@@ -269,7 +269,7 @@ def test_libretranslate_reports_connection_error_after_retries(monkeypatch: pyte
     )
     translator = LibreTranslateTranslator(url="http://localhost:5000", retries=1)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     with pytest.raises(TranslatorError) as error:
         translator.translate("Hello", "en", "pt")
@@ -323,7 +323,7 @@ def test_libretranslate_retries_languages_5xx_before_success(monkeypatch: pytest
     )
     translator = LibreTranslateTranslator(retries=1)
     translator.session = session
-    monkeypatch.setattr("ayvu.translator.time.sleep", lambda delay: sleeps.append(delay))
+    monkeypatch.setattr("ayvu.v1.translator.time.sleep", lambda delay: sleeps.append(delay))
 
     languages = translator.list_languages()
 

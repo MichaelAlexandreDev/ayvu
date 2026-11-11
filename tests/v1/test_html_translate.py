@@ -4,7 +4,7 @@ from collections import Counter
 import pytest
 from bs4 import BeautifulSoup
 
-from ayvu.cache import CacheKey, TranslationCache
+from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.translation_memory import TranslationMemory
 from ayvu.glossary import (
     GLOSSARY_RULE_FORBIDDEN,
@@ -13,14 +13,14 @@ from ayvu.glossary import (
     Glossary,
     GlossaryEntry,
 )
-from ayvu.html_translate import (
+from ayvu.v1.html_translate import (
     _protected_terms_are_intact,
     apply_reviewed_html,
     extract_visible_text,
     translate_html,
     translate_text,
 )
-from ayvu.translator import Translator
+from ayvu.v1.translator import Translator
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
 
@@ -161,7 +161,7 @@ def test_fuzzy_memory_rejects_concatenated_protected_terms(tmp_path):
 
 
 def test_marker_recovery_stops_at_global_call_limit(tmp_path, monkeypatch):
-    monkeypatch.setattr("ayvu.html_translate.MAX_PROTECTED_RECOVERY_CALLS", 2)
+    monkeypatch.setattr("ayvu.v1.html_translate.MAX_PROTECTED_RECOVERY_CALLS", 2)
     original = "Read CacheKey with care. Read CacheKey with care."
     key = CacheKey(text=original, language_pair=LanguagePair("en", "pt"))
     translator = DamagingMarkerTranslator()

@@ -8,7 +8,7 @@ from lxml import etree
 
 from ayvu import epub_format, epub_io
 from ayvu.artifact import ArtifactStoreError
-from ayvu.cache import TranslationCache
+from ayvu.v1.cache import TranslationCache
 from ayvu.epub_archive import EpubArchiveError
 from ayvu.epub_format import EPUB_REGISTRATION, epub_format_adapter
 from ayvu.format_adapter import (
@@ -614,8 +614,8 @@ def test_the_adapter_imports_no_provider_cache_glossary_or_interface():
     import subprocess
     import sys
 
-    forbidden = ("ayvu.cache", "ayvu.glossary", "ayvu.translator", "ayvu.translation_memory", "ayvu.translation_pipeline", "ayvu.provider", "ayvu.cli", "ayvu.epub_io",
-                 "ayvu.html_translate", "ayvu.validation", "ebooklib", "typer", "rich", "requests", "sqlite3")
+    forbidden = ("ayvu.v1.cache", "ayvu.glossary", "ayvu.v1.translator", "ayvu.translation_memory", "ayvu.translation_pipeline", "ayvu.provider", "ayvu.cli", "ayvu.epub_io",
+                 "ayvu.v1.html_translate", "ayvu.validation", "ebooklib", "typer", "rich", "requests", "sqlite3")
     source = (Path(__file__).parents[1] / "src" / "ayvu" / "epub_format.py").read_text()
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.ImportFrom):

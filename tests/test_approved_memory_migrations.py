@@ -4,7 +4,7 @@ import sqlite3
 
 from ayvu.approved_memory import MemoryScope, MemoryState, ScopeKind
 from ayvu.approved_memory_store import MEMORY_MIGRATIONS, memory_migration_runner, open_approved_memory
-from ayvu.cache import CacheKey, TranslationCache
+from ayvu.v1.cache import CacheKey, TranslationCache
 from approved_memory_fixtures import MemoryEnvironment, PAIR, PROJECT_SCOPE, SCOPES
 
 

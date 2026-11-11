@@ -291,7 +291,7 @@ def test_real_cache_only_batch_writes_outputs_and_missing_reports_without_provid
 
 
 def test_interrupted_active_batch_item_can_resume_without_starting_next(tmp_path, monkeypatch):
-    from ayvu.resume import ResumeStateStore
+    from ayvu.v1.resume import ResumeStateStore
 
     first = _write_epub(tmp_path / "first.epub", chapter_one="<p>First chapter text.</p>",
                         chapter_two='<p id="two">Interrupt when translating this sentence.</p>')
@@ -309,7 +309,7 @@ def test_interrupted_active_batch_item_can_resume_without_starting_next(tmp_path
     running = ResumeStateStore(processing).scan().running
     assert len(running) == 1 and running[0].completed_chapters
     resumed_session = FakeLibreTranslateSession(_direct_languages())
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: resumed_session)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: resumed_session)
     resumed = CliRunner().invoke(cli.app, ["--mode", "developer", "resume", str(first), "--target", "pt"])
     assert resumed.exit_code == 0, resumed.output
     assert (output / "first-pt.epub").is_file()

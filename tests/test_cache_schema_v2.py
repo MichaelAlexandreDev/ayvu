@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from ayvu import cache_schema as schema
-from ayvu.cache import SCHEMA, text_hash
+from ayvu.v1.cache import SCHEMA, text_hash
 
 
 class Cancel(BaseException):

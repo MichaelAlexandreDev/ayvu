@@ -279,7 +279,7 @@ def test_sqlite_vm_deadline_rolls_back_and_keeps_backup(tmp_path):
 
 def test_real_project_boundary_and_cache_preservation(tmp_path):
     from ayvu.project_store import ProjectJsonRepository, build_project_request
-    from ayvu.cache import TranslationCache, CacheKey
+    from ayvu.v1.cache import TranslationCache, CacheKey
     source = tmp_path / 'original.epub'
     source.write_bytes(b'synthetic-original')
     repository = ProjectJsonRepository(tmp_path / 'processing')

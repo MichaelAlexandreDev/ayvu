@@ -42,7 +42,7 @@ from ...job import JobState
 from ...job_execution import CancellationSource
 from ...job_recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from ...job_recovery_store import LocalRecoveryEvidence
-from ...legacy_translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
+from ...v1.translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
 from ...project import ProjectError
 from ...project_schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ...project_store import ProjectJsonRepository
@@ -50,7 +50,7 @@ from ...provenance import ProvenanceError, declared_model
 from ...provider import ProviderRoute
 from ...provider_capabilities import Capability, ProviderRequirements
 from ...provider_libretranslate import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
-from ...resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
+from ...v1.resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
     ResumeStateError,
     ResumeStateStore,
@@ -78,7 +78,7 @@ from ...translation_document import (
 )
 from ...translation_memory import TranslationMemory
 from ...translation_plan import resolve_plan as resolve_translation_plan
-from ...translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
+from ...v1.translator import LibreTranslateTranslator, TranslatorError, RoutedTranslator
 from ...validation import ValidationResult, validate_output_epub
 from ...kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
 from ...translation import BookRefused, PreflightError, ProjectTranslationUnavailable, TranslationDryRunCancelled

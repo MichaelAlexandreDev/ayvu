@@ -12,14 +12,14 @@ from .builders import cache_admin, content, glossary, providers, review, transla
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation, TranslationReport, selected_model
 from ..batch_output_policy import AcceptedItem, OutputIntent
-from ..cache import TranslationCache
+from ..v1.cache import TranslationCache
 from ..config import ConfigStore, default_glossaries_dir as _default_glossaries_dir
 from ..library_adapters import LocalLibraryFilesystem, ReaderLauncher
 from ..library_service import LibraryService
 from ..project_service import resolve_project
 from ..project_store import ProjectJsonRepository, build_project_request, translation_selections
 from ..preflight import run_translation_preflight as _preflight
-from ..resume import ResumeStateStore, TranslationResumeState
+from ..v1.resume import ResumeStateStore, TranslationResumeState
 from ..translate_project import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation_engine import EngineObserver
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate

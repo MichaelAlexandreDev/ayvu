@@ -203,7 +203,7 @@ def isolate(tmp_path, monkeypatch):
 
 def resume(tmp_path, monkeypatch, source):
     transport = Transport()
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: transport)
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: transport)
     return runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)]), transport
 
 
@@ -250,7 +250,7 @@ def test_a_second_resume_reaches_the_job_that_stored_the_results(tmp_path, monke
     first, _ = invoke(tmp_path, monkeypatch, source, session=Transport(failing="Goodbye reader."))
     assert first.exit_code == 1, text(first)
     # The middle job replays chapter one, publishes nothing new for it, and fails on chapter two again.
-    monkeypatch.setattr("ayvu.translator.requests.Session", lambda: Transport(failing="Goodbye reader."))
+    monkeypatch.setattr("ayvu.v1.translator.requests.Session", lambda: Transport(failing="Goodbye reader."))
     middle = runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)])
     assert middle.exit_code == 1, text(middle)
     composition.v2_cache_path(tmp_path / "cache.sqlite").unlink()

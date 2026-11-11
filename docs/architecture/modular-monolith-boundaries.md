@@ -33,7 +33,7 @@ still meet directly in several places:
   and coordinating long workflows;
 - `epub_io.py` preserves the EPUB archive while also coordinating translation,
   review, and memory collaborators;
-- `html_translate.py` combines markup-safe reconstruction with translation
+- `v1/html_translate.py` combines markup-safe reconstruction with translation
   stages such as cache, chunking, glossary, and translation memory;
 - SQLite, JSON, HTTP, subprocess, parser, and terminal types are exposed by
   modules that will eventually implement narrower ports.
@@ -335,19 +335,19 @@ issue.
 | `src/ayvu/kernel/values.py` (was `domain.py`, moved by REF-04) | Shared value objects and policies for languages, outputs, chapters, memory, and execution | Transitional domain collection; split only when a use case establishes ownership in **Domain**, **Translation**, **Jobs**, or **Policies** |
 | `src/ayvu/config.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `composition.cli` e valores em `config_values` |
 | `src/ayvu/epub_io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
-| `src/ayvu/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
+| `src/ayvu/v1/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
 | `src/ayvu/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
-| `src/ayvu/translator.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
+| `src/ayvu/v1/translator.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
 | `src/ayvu/network_policy.py` | Vocabulário fechado none/loopback, classificação pura de destino e snapshot imutável por pedido (#159) | **Policies/Domain**; sem I/O ou dependência de interface; ver [contrato HTTP](network-policy.md) |
 | `src/ayvu/network_http.py` | Resolução injetável única e transporte Requests preso a sockaddrs loopback validados, sem ambiente ou redirects | **Providers/Infrastructure**; consome a decisão de Policies e não adiciona provedor nem entrada de interface |
 | `src/ayvu/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
-| `src/ayvu/cache.py` | Exact-cache identity, SQLite schema, querying, mutation, and JSON interchange | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
+| `src/ayvu/v1/cache.py` | Exact-cache identity, SQLite schema, querying, mutation, and JSON interchange | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
 | `src/ayvu/translation_memory.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
 | `src/ayvu/approved_memory.py` | Governed TM identity, scope, value semantics and closed lifecycle | **Domain/Approved translation memory**; independent of operational cache and dataset consent |
 | `src/ayvu/approved_memory_service.py` | Governed TM commands, queries, use cases and repository port | **Application/Approved translation memory**; no SQLite or pipeline bridge |
 | `src/ayvu/approved_memory_store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](approved-translation-memory.md) |
 | `src/ayvu/glossary.py` | Glossary rules, matching, validation, and JSON persistence | Glossary semantics belong to **Knowledge**; JSON/filesystem persistence implements an **Infrastructure** port |
-| `src/ayvu/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
+| `src/ayvu/v1/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
 | `src/ayvu/review_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
 | `src/ayvu/review_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
 | `src/ayvu/review_exchange.py` | Versioned bounded v2 codec, identity validation, and mapping to stable unit reconstruction inputs | Review-package semantics belong to **Review**; EPUB structure remains in **Formats/EPUB**; no application orchestration or publication |
@@ -547,8 +547,8 @@ its dependencies, and the compatibility baseline before changing code.
 - [Shared application use-case matrix](shared-use-case-matrix.md)
 - [`src/ayvu/cli.py`](../../src/ayvu/cli.py)
 - [`src/ayvu/epub_io.py`](../../src/ayvu/epub_io.py)
-- [`src/ayvu/html_translate.py`](../../src/ayvu/html_translate.py)
-- [`src/ayvu/cache.py`](../../src/ayvu/cache.py)
-- [`src/ayvu/resume.py`](../../src/ayvu/resume.py)
-- [`src/ayvu/translator.py`](../../src/ayvu/translator.py)
+- [`src/ayvu/v1/html_translate.py`](../../src/ayvu/v1/html_translate.py)
+- [`src/ayvu/v1/cache.py`](../../src/ayvu/v1/cache.py)
+- [`src/ayvu/v1/resume.py`](../../src/ayvu/v1/resume.py)
+- [`src/ayvu/v1/translator.py`](../../src/ayvu/v1/translator.py)
 - [`tests/test_workflow_characterization.py`](../../tests/test_workflow_characterization.py)

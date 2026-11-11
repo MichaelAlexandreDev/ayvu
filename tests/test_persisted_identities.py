@@ -30,7 +30,8 @@ from pathlib import Path
 
 import pytest
 
-from ayvu import approved_memory_service, cache, cache_identity, content, project_profiles, provider_network
+from ayvu import approved_memory_service, cache_identity, content, project_profiles, provider_network
+from ayvu.v1 import cache
 from ayvu import translation_context, translation_document, translation_plan
 from ayvu.approved_memory_store import _digest as memory_digest
 from ayvu.cache_identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop

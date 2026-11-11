@@ -6,7 +6,7 @@ from threading import Event
 
 import pytest
 
-from ayvu.cache import SCHEMA
+from ayvu.v1.cache import SCHEMA
 from ayvu.cache_admin import (
     CacheFilter, CacheInterchangeLimits, CacheNamespace, CacheRef, CacheScopeMapping, ExecuteCleanRequest,
     ExecuteImportRequest, ExportRequest, FileRef, ImportRequest, ImportScopeMap,

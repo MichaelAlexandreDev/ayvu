@@ -245,15 +245,15 @@ uv run ayvu --mode common translate livro.epub
 
 `src/ayvu/epub_io.py` cuida de leitura, inspeção, extração, tradução estrutural e escrita do EPUB final.
 
-`src/ayvu/html_translate.py` traduz HTML/XHTML por bloco (parágrafos, títulos e itens de lista), substituindo tags inline por placeholders neutros e restaurando-as depois, preservando tags e atributos e ignorando conteúdo que não deve ser traduzido.
+`src/ayvu/v1/html_translate.py` traduz HTML/XHTML por bloco (parágrafos, títulos e itens de lista), substituindo tags inline por placeholders neutros e restaurando-as depois, preservando tags e atributos e ignorando conteúdo que não deve ser traduzido.
 
 `src/ayvu/review_application.py` define os casos de uso framework-neutral de exportação, validação e aplicação. `src/ayvu/composition/builders/review.py` conecta `TranslateProjectResult`, o codec e mapper v2, o adaptador EPUB e a publicação D106. `src/ayvu/review_exchange.py` define o pacote v2 canônico, limitado e ligado às unidades duráveis. `src/ayvu/review_import.py` mantém a inspeção v1 limitada e redigida; aplicar v1 retorna `legacy_reexport_required`.
 
 `src/ayvu/library_service.py` coordena o agrupamento de originais e traduções; `src/ayvu/library_adapters.py` implementa a varredura, a autorização e a abertura no leitor externo.
 
-`src/ayvu/translator.py` define o contrato `Translator` e o backend `LibreTranslateTranslator`.
+`src/ayvu/v1/translator.py` define o contrato `Translator` e o backend `LibreTranslateTranslator`.
 
-`src/ayvu/cache.py` persiste traduções em SQLite usando idioma de origem, idioma de destino e hash do texto original. Também centraliza inspeção, limpeza filtrada, exportação JSON e importação JSON do cache.
+`src/ayvu/v1/cache.py` persiste traduções em SQLite usando idioma de origem, idioma de destino e hash do texto original. Também centraliza inspeção, limpeza filtrada, exportação JSON e importação JSON do cache.
 
 `src/ayvu/glossary.py` lê glossários JSON no formato simples e no formato com
 regras explícitas `translate`, `preserve` e `forbidden`.
@@ -262,7 +262,7 @@ regras explícitas `translate`, `preserve` e `forbidden`.
 
 `src/ayvu/preflight.py` valida idioma, glossário, cache, EPUB e tradutor antes da tradução real.
 
-`src/ayvu/resume.py` registra e lê estados locais de retomada em `~/Documentos/Livros/Processando`.
+`src/ayvu/v1/resume.py` registra e lê estados locais de retomada em `~/Documentos/Livros/Processando`.
 
 `src/ayvu/cli_progress.py` adapta callbacks de tradução para `rich.Progress` e mantém contadores de textos.
 
@@ -427,7 +427,7 @@ traduções preferidas, termos preservados e termos proibidos. Antes de implemen
 o Ayvu ainda precisa definir formato, precedência, detecção de conflito e impacto
 no relatório.
 
-Antes de enviar texto ao tradutor, `src/ayvu/html_translate.py` protege termos especiais com placeholders internos e os restaura depois da chamada HTTP. O escopo protegido inclui URLs, caminhos de arquivo, comandos de terminal, versões como `v1.2.0`, placeholders, código inline e identificadores técnicos simples. A tradução restaurada é gravada no cache antes da aplicação do glossário.
+Antes de enviar texto ao tradutor, `src/ayvu/v1/html_translate.py` protege termos especiais com placeholders internos e os restaura depois da chamada HTTP. O escopo protegido inclui URLs, caminhos de arquivo, comandos de terminal, versões como `v1.2.0`, placeholders, código inline e identificadores técnicos simples. A tradução restaurada é gravada no cache antes da aplicação do glossário.
 
 O Ayvu verifica a sequência e a quantidade dos marcadores antes de restaurá-los.
 O reconhecimento de termos técnicos também considera as fronteiras junto a tags

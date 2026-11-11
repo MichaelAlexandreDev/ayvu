@@ -5,7 +5,7 @@ import json
 import pytest
 
 from ayvu.batch_output_policy import OutputIntent
-from ayvu.cache import TranslationCache
+from ayvu.v1.cache import TranslationCache
 from ayvu.epub_io import detect_epub_language
 from ayvu.project_service import resolve_project
 from ayvu.project_store import ProjectJsonRepository, build_project_request

@@ -9,7 +9,7 @@ command and the guided offer run through them, with the prompts they always had.
 | --- | --- | --- |
 | `ayvu.job_recovery` | Application | The requests and results, the rules, and the three use cases |
 | `ayvu.job_recovery_store` | Infrastructure | Everything those rules read, without writing |
-| `ayvu.legacy_resume` | Infrastructure | Bounded reading of `*.ayvu-state.json` |
+| `ayvu.v1.resume_scan` | Infrastructure | Bounded reading of `*.ayvu-state.json` |
 
 `open_job_recovery` in `ayvu.composition.builders.translate_project` puts them together.
 

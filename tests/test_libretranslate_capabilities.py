@@ -19,7 +19,7 @@ from ayvu.provider_libretranslate import (
     LibreTranslateAvailabilityProbe, LibreTranslateProvider, discover_route, libretranslate_snapshot,
 )
 from ayvu.provider_service import observe_availability
-from ayvu.translator import LibreTranslateTranslator, RequestRateLimiter, TranslatorError
+from ayvu.v1.translator import LibreTranslateTranslator, RequestRateLimiter, TranslatorError
 from provider_fakes import FakeSession, http_response, request
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)

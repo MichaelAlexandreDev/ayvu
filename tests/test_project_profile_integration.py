@@ -335,7 +335,7 @@ def test_migration_and_style_remain_inert_over_instrumented_libretranslate_trans
     from ayvu.config import TranslationProfile
     from ayvu.cli import _resolve_target_language, _resolve_glossary_path
     from ayvu.translation_pipeline import LegacyTextPipelineFacade, LinguisticSource
-    from ayvu.translator import LibreTranslateTranslator
+    from ayvu.v1.translator import LibreTranslateTranslator
     from test_translation_pipeline import Cache, Glossed
     sent = []
     def send(session, request, **kwargs):

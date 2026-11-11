@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from rapidfuzz import fuzz, process
 
-from .cache import TranslationCache
+from .v1.cache import TranslationCache
 from .kernel import LanguagePair, TranslationMemoryOptions
 
 

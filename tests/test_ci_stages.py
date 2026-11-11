@@ -140,7 +140,7 @@ def test_the_core_selection_collects_tests_only_from_the_core_files():
     )
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
     node_ids = [line for line in result.stdout.splitlines() if "::" in line]
-    files = {Path(node_id.split("::", 1)[0]).name for node_id in node_ids}
+    files = {Path(node_id.split("::", 1)[0]).relative_to("tests").as_posix() for node_id in node_ids}
     assert files == CORE_FILES
     # The full suite has over 5,000 tests; the core set must stay a small share of it.
     assert 500 < len(node_ids) < 2500

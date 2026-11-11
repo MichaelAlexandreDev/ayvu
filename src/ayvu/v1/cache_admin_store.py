@@ -9,11 +9,11 @@ from pathlib import Path
 from urllib.parse import quote
 
 from .cache import SCHEMA
-from .cache_admin import ImportCounts, CacheAdminError, checkpoint, report, _invalid
-from . import cache_admin_store as legacy
-from .cache_admin_store import CacheStorageError, _error
-from .cache_admin_v2_store import _safe_file, _file_digest, _file_identity
-from .cache_schema import (_location, _identity, classify_cache_waiting,
+from ..cache_admin import ImportCounts, CacheAdminError, checkpoint, report, _invalid
+from .. import cache_admin_store as legacy
+from ..cache_admin_store import CacheStorageError, _error
+from ..cache_admin_v2_store import _safe_file, _file_digest, _file_identity
+from ..cache_schema import (_location, _identity, classify_cache_waiting,
                            participating_admin_connection, SchemaState)
 
 # Legacy unknown objects require a disk-backed set of decoded key digests.
@@ -65,7 +65,7 @@ class SQLiteLegacyStreamingStore:
         stage_identity = None
         owned_dirs = []
         try:
-            from .cache_legacy_stream import iter_legacy_entries
+            from .cache_stream import iter_legacy_entries
             checkpoint(request, 'cache_before_read')
             raw_limit = min(legacy.MAX_FILE_BYTES, request.limits.raw_input)
             cache = _location(Path(request.cache.value))

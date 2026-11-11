@@ -10,7 +10,7 @@ import pytest
 from typer.testing import CliRunner
 
 from ayvu import cache_admin, cache_admin_store
-from ayvu.cache import CacheKey, TranslationCache
+from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.cache_admin import (CacheRef, FileRef, CacheFilter, InspectRequest, PreviewCleanRequest,
     ExecuteCleanRequest, ExportRequest, ImportRequest)
 from ayvu.composition.builders.cache_admin import cache_admin_services

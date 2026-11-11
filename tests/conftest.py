@@ -63,18 +63,19 @@ def minimal_epub_path(tmp_path: Path) -> Path:
 
 # Stage 3 of the test stages (docs/release-workflow.md): pull requests on GitHub run only the
 # tests marked `core`, to stay within the free Actions minutes. Each entry names an invariant
-# from AGENTS.md and the test files that protect it; tests/test_ci_stages.py checks the map.
+# from AGENTS.md and the test files that protect it, as paths under tests/; tests/test_ci_stages.py checks the map.
+TESTS = Path(__file__).resolve().parent
 CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
     "original_epub_unchanged": ("test_workflow_characterization.py", "test_cli.py", "test_epub_io.py"),
     "zip_structure_and_mimetype": ("test_epub_archive.py", "test_epub_format.py", "test_validation.py"),
-    "visible_text_and_tags": ("test_html_translate.py", "test_html_structure.py"),
+    "visible_text_and_tags": ("v1/test_html_translate.py", "test_html_structure.py"),
     "chunk_order_and_spacing": ("test_chunking.py",),
     "persisted_identities": ("test_persisted_identities.py",),
     "architecture_guardrails": ("test_size_ratchet.py", "test_import_contracts.py", "test_public_api.py"),
     "cache_keys_and_scope": (
-        "test_cache.py", "test_cache_identity.py", "test_translation_cache_v2.py", "test_cache_repository_v2.py",
+        "v1/test_cache.py", "test_cache_identity.py", "test_translation_cache_v2.py", "test_cache_repository_v2.py",
     ),
-    "resume": ("test_resume.py", "test_legacy_resume.py", "test_raw_results_resume.py"),
+    "resume": ("v1/test_resume.py", "v1/test_legacy_resume.py", "test_raw_results_resume.py"),
     "glossary": ("test_glossary.py", "test_glossary_catalog.py"),
     "cli_entry_points": ("test_cli.py", "test_cli_translate_project.py"),
     "local_only_network": ("test_network_policy.py",),
@@ -87,5 +88,5 @@ CORE_FILES = frozenset(name for names in CORE_TEST_FILES.values() for name in na
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     for item in items:
-        if item.path.name in CORE_FILES:
+        if item.path.relative_to(TESTS).as_posix() in CORE_FILES:
             item.add_marker(pytest.mark.core)

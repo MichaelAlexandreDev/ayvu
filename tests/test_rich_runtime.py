@@ -13,7 +13,7 @@ from threading import Barrier
 import pytest
 
 import ayvu.composition.builders.translate_project as composition
-from ayvu.cache import CacheKey, TranslationCache
+from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.cache_identity import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
 from ayvu.cache_schema import SchemaState, classify_cache
 from ayvu.config import ConfigStore
@@ -29,7 +29,7 @@ from ayvu.provider_libretranslate import LIBRETRANSLATE_PRODUCER, LIBRETRANSLATE
 from ayvu.translate_project import RuntimeContext
 from ayvu.translation_document import DocumentTranslator, PIPELINE_SAFE_POINTS, TranslationExecutionError
 from ayvu.translation_plan import ResolvedTranslationPlan, resolve_plan
-from ayvu.translator import LibreTranslateTranslator
+from ayvu.v1.translator import LibreTranslateTranslator
 from test_cache_repository_v2 import entry
 from test_cli_translate_project import Session
 from test_translation_cache_v2 import Env, NOW, document
@@ -472,7 +472,7 @@ def test_document_uses_the_renewed_lease_but_keeps_the_original_owner(tmp_path, 
 @pytest.mark.parametrize("revision", [1, 2])
 def test_checkpoint_stores_only_the_execution_revision_and_keeps_legacy_payload_unchanged(tmp_path, revision):
     from test_job_recovery_integration import Scene
-    from ayvu.resume import TranslationResumeState
+    from ayvu.v1.resume import TranslationResumeState
     scene = Scene(tmp_path)
     path = scene.save_state(execution_revision=revision)
     data = json.loads(path.read_text())

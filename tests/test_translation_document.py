@@ -50,7 +50,7 @@ from ayvu.cache_identity import (
     TRANSLATION_STAGE_AGGREGATE,
 )
 from ayvu.translation_plan import ResolvedTranslationPlan, resolve_plan
-from ayvu.translator import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
+from ayvu.v1.translator import LibreTranslateTranslator, RoutedTranslator, TranslationRoute
 from provider_fakes import FakeSession, http_response
 from ayvu.kernel import LanguagePair, JobFailureFamily, JobWarning, JobCancellationError, JobFailure
 
@@ -376,7 +376,7 @@ def test_another_plan_does_not_see_the_cache_entries(env):
 
 
 def test_the_legacy_v1_ports_do_not_fit_the_generic_path():
-    from ayvu.html_translate import _LegacyV1Cache
+    from ayvu.v1.html_translate import _LegacyV1Cache
     from ayvu.translation_document import ExactCachePort, MemoryPort
     from ayvu.translation_memory import TranslationMemory
     assert 'key' in inspect.signature(ExactCachePort.lookup).parameters
