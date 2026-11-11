@@ -12,7 +12,7 @@ from .cache import SCHEMA
 from ..knowledge.cache import ImportCounts, CacheAdminError, checkpoint, report, _invalid
 from ..knowledge.cache import admin_store as legacy
 from ..knowledge.cache.admin_store import CacheStorageError, _error
-from ..knowledge.cache.admin_v2_store import _safe_file, _file_digest, _file_identity
+from ..knowledge.cache.admin_v2_files import _safe_file, _file_digest, _file_identity
 from ..knowledge.cache.schema import _location, _identity, classify_cache_waiting, participating_admin_connection, SchemaState
 
 # Legacy unknown objects require a disk-backed set of decoded key digests.

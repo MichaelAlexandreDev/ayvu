@@ -204,7 +204,7 @@ src/ayvu/
   jobs/            model, events, execution, service, store
   artifacts/       model, service, store, destination
   formats/         contracts, service, local; epub/ (archive, adapter, io, html_structure, validation); markdown/
-  knowledge/       cache/ (identity, schema, repository, interchange, admin, admin_store, admin_v2_store);
+  knowledge/       cache/ (identity, schema, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
                    memory/ (fuzzy; approved/ model, service, store); glossary/ (rules, catalog, catalog_store)
   providers/       ports, capabilities, discovery, service, network, session;
                    libretranslate/ (client, adapter)
@@ -270,7 +270,7 @@ REF-15 break up by reason to change after they move.
 | `cache_interchange.py` | `knowledge/cache/interchange.py` |  |
 | `cache_admin.py` | `knowledge/cache/admin.py` |  |
 | `cache_admin_store.py` | `knowledge/cache/admin_store.py` |  |
-| `cache_admin_v2_store.py` | `knowledge/cache/admin_v2_store.py` | split |
+| `cache_admin_v2_store.py` | `knowledge/cache/admin_v2_store.py`, `admin_v2_queries.py`, `admin_v2_files.py`, `admin_v2_export.py`, `admin_v2_records.py`, `admin_v2_import.py` | split by cache administration responsibility in REF-15 |
 | `translation_memory.py` | `knowledge/memory/fuzzy.py` | in REF-09 it takes its candidates through the `FuzzyCandidates` protocol, so knowledge no longer imports the v1 cache |
 | `approved_memory.py` | `knowledge/memory/approved/model.py` |  |
 | `approved_memory_service.py` | `knowledge/memory/approved/service.py` |  |

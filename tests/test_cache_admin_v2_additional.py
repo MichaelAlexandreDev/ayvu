@@ -137,7 +137,7 @@ def test_staging_sqlite_limit_produces_real_disk_full_and_cleans_up(tmp_path, mo
             kwargs['factory'] = StageConnection
         return real_connect(database, *args, **kwargs)
 
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.sqlite3.connect', connect)
+    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_import.sqlite3.connect', connect)
     request = ImportRequest(CacheRef(str(cache)), FileRef(str(source)), scope_map=mapping, limits=limits)
     result = cache_admin_services().preview_import.execute(request)
     assert result.failure.code == 'disk_full'
@@ -156,7 +156,7 @@ def test_permission_errors_are_sanitized_and_preserve_files(tmp_path, monkeypatc
     before_cache, before_source = cache.read_bytes(), source.read_bytes()
     def denied(*args, **kwargs):
         raise PermissionError(errno.EACCES, 'SECRET-PRIVATE-PATH')
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.tempfile.mkstemp', denied)
+    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_import.tempfile.mkstemp', denied)
     services = cache_admin_services()
     if operation == 'import':
         result = services.preview_import.execute(ImportRequest(

@@ -120,7 +120,7 @@ def test_unused_map_source_rejected_before_mutation_and_stage_cleanup(cachewide,
     def forbidden_stage(*args, **kwargs):
         stages.append(True)
         raise AssertionError('scope coverage must fail before staging')
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.tempfile.mkstemp', forbidden_stage)
+    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_import.tempfile.mkstemp', forbidden_stage)
     result = services.preview_import.execute(ImportRequest(CacheRef(str(destination)), FileRef(str(exported)), scope_map=scope_map))
     assert result.failure.code == 'unmapped_scope'
     assert destination.read_bytes() == before

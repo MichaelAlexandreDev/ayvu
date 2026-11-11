@@ -306,6 +306,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 - `translation/document.py` dividido (REF-15, #283, quarta família): contratos, resultados brutos,
   replay, proveniência e bindings viram módulos próprios. O tradutor e o estado da execução ficam em
   `document.py`; a API de `ayvu.translation` e os bytes persistidos não mudam.
+- `knowledge/cache/admin_v2_store.py` dividido (REF-15, #283, quinta família): consultas SQLite,
+  arquivos, exportação, registros e importação passam a módulos próprios; os três coordenadores
+  longos delegam passos contíguos, preservando formatos, checkpoints e transações.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

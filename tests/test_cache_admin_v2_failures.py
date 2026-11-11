@@ -5,7 +5,6 @@ import json
 import os
 from dataclasses import replace
 from types import SimpleNamespace
-
 import pytest
 
 from ayvu.knowledge.cache.admin import (CacheAdminError, CacheInterchangeLimits, CacheNamespace,
@@ -13,6 +12,7 @@ from ayvu.knowledge.cache.admin import (CacheAdminError, CacheInterchangeLimits,
     ExportRequest, FileRef, ImportRequest, ImportScopeMap, PreviewImport)
 from ayvu.composition.builders.cache_admin import NamespaceCacheStore
 from ayvu.knowledge.cache.admin_v2_store import SQLiteCacheV2Store
+from ayvu.knowledge.cache import admin_v2_export as export_module
 from ayvu.knowledge.cache.interchange import iter_records, write_envelope
 from ayvu.knowledge.cache.repository import SQLiteExactCache
 from ayvu.knowledge.cache.schema import prepare_cache, participating_connection
@@ -92,7 +92,7 @@ def test_export_os_errors_redacted_and_atomic(tmp_path, monkeypatch, caplog, ope
     target = tmp_path / "out.json"
     target.write_text("original")
     def broken(*args): raise OSError(number, "SECRET-ERROR")
-    monkeypatch.setattr("ayvu.knowledge.cache.admin_v2_store.os." + operation, broken)
+    monkeypatch.setattr("os." + operation, broken)
     req = ExportRequest(CacheRef(str(cache)), FileRef(str(target)), overwrite=True, namespace=CacheNamespace.v2(item.key.scope))
     result = ExportCache(NamespaceCacheStore(), None).execute(req)
     assert result.failure.code == expected
@@ -116,7 +116,7 @@ def test_import_cancel_at_commit_rolls_back(env):
 
 def test_import_refuses_oversize_before_parser_or_stage(env, monkeypatch):
     path = src(env, [legacy("one")])
-    monkeypatch.setattr("ayvu.knowledge.cache.admin_v2_store.iter_records", lambda *a: pytest.fail("parser invoked"))
+    monkeypatch.setattr("ayvu.knowledge.cache.admin_v2_records.iter_records", lambda *a: pytest.fail("parser invoked"))
     result = PreviewImport(env.store).execute(request(env, path, limits=CacheInterchangeLimits(raw_input=path.stat().st_size - 1)))
     assert result.failure.code == "file_too_large"
     assert rows(env.path) == []
@@ -150,7 +150,7 @@ def test_unsafe_file_types_rejected(env, kind, mode):
 def test_multibatch_import_staging(env, monkeypatch):
     path = src(env, [legacy(str(i) + 'x' * 5000) for i in range(25)])
     assert path.stat().st_size > 65536
-    import ayvu.knowledge.cache.admin_v2_store as store_module
+    import ayvu.knowledge.cache.admin_v2_records as store_module
     real = store_module.iter_records
     passes = []
     class BoundedStream:
@@ -187,7 +187,7 @@ def test_multibatch_import_staging(env, monkeypatch):
 
 @pytest.mark.parametrize('parse_pass', [1, 2])
 def test_import_rejects_content_changed_only_while_parsing(env, monkeypatch, parse_pass):
-    import ayvu.knowledge.cache.admin_v2_store as module
+    import ayvu.knowledge.cache.admin_v2_records as module
     source = src(env, [legacy('one')])
     original = source.read_bytes()
     changed = original.replace(b'"translated_text": "ok"', b'"translated_text": "no"')
@@ -239,7 +239,7 @@ def test_temp_create_and_write_errors_preserve_destination(tmp_path, monkeypatch
     target = tmp_path / "out.json"
     target.write_text("original")
     def broken(*args, **kwargs): raise OSError(number, "SECRET-TEMP")
-    module = "ayvu.knowledge.cache.admin_v2_store.tempfile.mkstemp" if site == "mkstemp" else "ayvu.knowledge.cache.admin_v2_store.write_envelope"
+    module = "tempfile.mkstemp" if site == "mkstemp" else "ayvu.knowledge.cache.admin_v2_export.write_envelope"
     monkeypatch.setattr(module, broken)
     req = ExportRequest(CacheRef(str(cache)), FileRef(str(target)), overwrite=True, namespace=CacheNamespace.v2(item.key.scope))
     result = ExportCache(NamespaceCacheStore(), None).execute(req)
@@ -280,7 +280,7 @@ def test_cancel_preview_during_multibatch_leaves_database_unchanged(env):
 def test_import_stage_create_failure(env, monkeypatch, caplog, number, expected):
     source = src(env, [legacy("one")])
     def broken(*args, **kwargs): raise OSError(number, "SECRET-STAGE")
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.tempfile.mkstemp', broken)
+    monkeypatch.setattr('tempfile.mkstemp', broken)
     result = PreviewImport(env.store).execute(request(env, source))
     assert result.failure.code == expected
     assert 'SECRET-STAGE' not in repr(result) + caplog.text
@@ -318,7 +318,7 @@ def test_post_publication_directory_sync_failure_restores_target(tmp_path, monke
             if len(directory_calls) == 2:
                 raise OSError(errno.EIO, 'sync failure')
         return real_fsync(fd)
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.os.fsync', failing_fsync)
+    monkeypatch.setattr('os.fsync', failing_fsync)
     req = ExportRequest(CacheRef(str(cache)), FileRef(str(target)), overwrite=existing,
                         namespace=CacheNamespace.v2(item.key.scope))
     result = ExportCache(NamespaceCacheStore(), None).execute(req)
@@ -375,7 +375,7 @@ def test_substituted_preview_stage_cannot_modify_victim(env, monkeypatch, caplog
             path.symlink_to(victim)
             swapped.append(path)
         return connection
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.sqlite3.connect', substitute)
+    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_import.sqlite3.connect', substitute)
     result = PreviewImport(env.store).execute(request(env, source))
     assert swapped and result.failure.code == 'cache_identity_changed'
     assert victim.read_bytes() == before
@@ -390,8 +390,8 @@ def test_no_hardlinks_replace_failure_removes_placeholder(tmp_path, monkeypatch,
     target = tmp_path / 'new.json'
     def no_links(*args, **kwargs): raise OSError(errno.ENOTSUP, 'SECRET-LINK')
     def bad_replace(*args, **kwargs): raise OSError(errno.EIO, 'SECRET-REPLACE')
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.os.link', no_links)
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.os.replace', bad_replace)
+    monkeypatch.setattr('os.link', no_links)
+    monkeypatch.setattr('os.replace', bad_replace)
     result = ExportCache(NamespaceCacheStore(), None).execute(ExportRequest(
         CacheRef(str(cache)), FileRef(str(target)), namespace=CacheNamespace.v2(item.key.scope)))
     assert result.failure.code == 'file_error'
@@ -427,7 +427,7 @@ def test_substituted_publication_backup_rejected_before_publish(tmp_path, caplog
             if len(directory_calls) == 2:
                 raise OSError(errno.EIO, 'SECRET-SYNC')
         return real_fsync(fd)
-    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.os.fsync', fail_after_rename)
+    monkeypatch.setattr('os.fsync', fail_after_rename)
     req = ExportRequest(CacheRef(str(cache)), FileRef(str(target)), overwrite=True,
                         namespace=CacheNamespace.v2(item.key.scope), cancellation=swap)
     result = ExportCache(NamespaceCacheStore(), None).execute(req)
@@ -464,7 +464,7 @@ def test_corrupt_existing_v2_row_refused_before_replace(tmp_path, caplog):
 
 def test_integrity_check_failure_after_writes_rolls_back(env, monkeypatch, caplog):
     from contextlib import contextmanager
-    import ayvu.knowledge.cache.admin_v2_store as module
+    import ayvu.knowledge.cache.admin_v2_import as module
     path = src(env, [legacy('one'), legacy('two')])
     preview = PreviewImport(env.store).execute(request(env, path)).value
     original = module._import_connection
@@ -517,7 +517,7 @@ def test_oversized_database_row_refused_before_text_materialization(tmp_path, mo
         accessed.append('materialized')
         raise AssertionError('oversized rows must be rejected before row materialization')
     monkeypatch.setattr(module, '_selection', forbidden)
-    monkeypatch.setattr(module, '_sections', forbidden)
+    monkeypatch.setattr(export_module, '_sections', forbidden)
     namespace = CacheNamespace.v2(item.key.scope)
     store = NamespaceCacheStore()
     with pytest.raises(CacheAdminError, match='text_too_large'):
