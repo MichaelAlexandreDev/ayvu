@@ -9,14 +9,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Callable
 
-from .cache_identity import (
+from .identity import (
     CACHE_ENTRY_V2_LIMITS as LIMITS, MAX_CACHE_ONLY_CANDIDATES, AuthorizedCacheScope,
     CacheIdentityError, CacheLookupState, CacheMissReason, CacheValueKind, ExactCacheEntry,
     ExactCacheLookup, ExactEntryKey, PinnedExecutionIdentityReference, PutIfAbsentResult,
     PutIfAbsentState, source_content_digest, semantic_operation_from_canonical,
     _CONTENT_BEARING_MAPPING_KEYS, _CONTENT_BEARING_KEY_PARTS,
 )
-from .cache_schema import prepare_cache, participating_connection
+from .schema import prepare_cache, participating_connection
 
 _TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z\Z")
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
@@ -206,8 +206,8 @@ class SQLiteExactCache:
 
     def legacy_candidates(self, query, limits):
         """Bounded compatibility source; never reads v1 or infers missing stage metadata."""
-        from .approved_memory import RetrievalLimits
-        from .cache_identity import CompatibleMemoryQuery, TRANSLATION_STAGE_AGGREGATE
+        from ..memory.approved.model import RetrievalLimits
+        from .identity import CompatibleMemoryQuery, TRANSLATION_STAGE_AGGREGATE
         if (type(query) is not CompatibleMemoryQuery or type(limits) is not RetrievalLimits
                 or query.max_candidates > limits.candidates or query.value_kind is not TRANSLATION_STAGE_AGGREGATE):
             raise CacheIdentityError("invalid_memory_query")

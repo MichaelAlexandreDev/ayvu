@@ -8,8 +8,8 @@ from threading import Barrier
 
 import pytest
 
-from ayvu.glossary_catalog import Entry, GlossaryReference
-from ayvu.glossary_catalog_store import ManagedGlossaryRepository
+from ayvu.knowledge.glossary.catalog import Entry, GlossaryReference
+from ayvu.knowledge.glossary.catalog_store import ManagedGlossaryRepository
 from ayvu.preferences.store import JsonPreferencesRepository
 from ayvu.projects.profiles.glossary_store import LegacyGlossaryResolver
 from ayvu.projects.model import ProjectConflictError

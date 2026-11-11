@@ -13,7 +13,7 @@ from ayvu.context_execution import (
     ContextExecution, ResolvedContextEgressDecision, plan_with_context, require_context_egress,
 )
 from ayvu.context_source import SnapshotContextCandidateSource, StoredContextRevision, snapshot_context_sources
-from ayvu.glossary_catalog import Entry, Snapshot
+from ayvu.knowledge.glossary.catalog import Entry, Snapshot
 from ayvu.projects.profiles.model import ProjectReference, ProjectTranslationProfile
 from ayvu.provider import Requirement, UnitReference
 from ayvu.provider_network import ResolvedProviderNetworkDecision, NetworkClass

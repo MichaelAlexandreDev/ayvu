@@ -15,8 +15,8 @@ try:
 except ImportError:  # No safe cross-process lock implementation on this platform.
     fcntl = None
 
-from .glossary import Glossary, GlossaryEntry, glossary_to_dict, _parse_glossary_entries
-from .glossary_catalog import CatalogItem, Entry, GlossaryReference, LIMITS, Result, Snapshot
+from .rules import Glossary, GlossaryEntry, glossary_to_dict, _parse_glossary_entries
+from .catalog import CatalogItem, Entry, GlossaryReference, LIMITS, Result, Snapshot
 
 
 class _Failure(Exception):

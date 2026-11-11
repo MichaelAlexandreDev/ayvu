@@ -9,7 +9,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 
-from .cache_identity import (
+from .knowledge.cache import (
     CACHE_IDENTITY_VERSION,
     CacheEligibility,
     CacheEligibilityState,

@@ -28,7 +28,7 @@ from ayvu.cli import (
 )
 from ayvu.epub_io import TranslationReport
 from ayvu.jobs.model import JobState
-from ayvu.glossary import GlossaryUsage
+from ayvu.knowledge.glossary.rules import GlossaryUsage
 from ayvu.markdown_writer import MarkdownDirectoryWriter
 from ayvu.v1.html_translate import HtmlTranslationStats
 from ayvu.preflight import PreflightError

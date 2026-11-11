@@ -340,7 +340,7 @@ def test_prepared_context_cannot_execute_against_a_replaced_manifest_or_capabili
 
 
 def test_all_unit_bindings_are_checked_before_a_pinned_cache_port():
-    from ayvu.cache_identity import CacheOnlyMode, CacheOnlyRequest, PinnedExecutionIdentityReference
+    from ayvu.knowledge.cache.identity import CacheOnlyMode, CacheOnlyRequest, PinnedExecutionIdentityReference
     s = scene()
     # O segundo elemento não está autorizado; nem a resolução do pin pode ocorrer.
     d = document(cue('a', 'Hello world', 1), cue('b', 'other unit', 2))
@@ -434,7 +434,7 @@ def test_context_job_plan_changes_only_when_declared(tmp_path):
 def test_document_pipeline_uses_owned_profile_neighbors_and_managed_terminology():
     from ayvu.content.model import ContextReference
     from ayvu.context_source import snapshot_context_sources
-    from ayvu.glossary_catalog import Snapshot, Entry
+    from ayvu.knowledge.glossary.catalog import Snapshot, Entry
     from ayvu.projects.profiles.model import ProjectReference, ProjectTranslationProfile
     from ayvu.translation_context import ContextCategory, ContextKind
     from test_translation_context import binding, facts, profile_snapshot
@@ -475,7 +475,7 @@ def test_document_pipeline_uses_owned_profile_neighbors_and_managed_terminology(
 
 def test_context_cache_only_hit_never_resolves_a_gate_provider_dns_or_socket(monkeypatch):
     import socket
-    from ayvu.cache_identity import CacheOnlyRequest
+    from ayvu.knowledge.cache.identity import CacheOnlyRequest
     a = scene()
     a.translator.translate(a.d, a.context)
     b = scene(cache=a.cache)
@@ -490,7 +490,7 @@ def test_context_cache_only_hit_never_resolves_a_gate_provider_dns_or_socket(mon
 
 
 def test_production_sqlite_exact_cache_reopens_with_context_hit_and_changed_context_miss(tmp_path):
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     cache_path = tmp_path / 'exact.v2.sqlite'
     a = scene(cache=SQLiteExactCache(cache_path, clock=lambda: NOW))
     assert a.translator.translate(a.d, a.context).units[0].source is UnitSource.PROVIDER

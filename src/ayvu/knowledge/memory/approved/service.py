@@ -4,11 +4,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from .approved_memory import (
+from .model import (
     MemoryQuery,
     Candidate, MemoryEvent, MemoryPage, MemoryRevision, MemoryScope, MemorySource, MemoryState, TargetValue,
 )
-from .kernel import LanguagePair
+from ....kernel import LanguagePair
 
 
 @dataclass(frozen=True, repr=False)

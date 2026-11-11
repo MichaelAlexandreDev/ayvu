@@ -5,10 +5,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from ayvu.cache_admin import CacheAdminError
-from ayvu.cache_interchange import iter_records, validate_v2_entry, write_envelope
-from ayvu.cache_repository import SQLiteExactCache
-from ayvu.cache_schema import V2_COLUMNS, participating_connection
+from ayvu.knowledge.cache.admin import CacheAdminError
+from ayvu.knowledge.cache.interchange import iter_records, validate_v2_entry, write_envelope
+from ayvu.knowledge.cache.repository import SQLiteExactCache
+from ayvu.knowledge.cache.schema import V2_COLUMNS, participating_connection
 from test_cache_repository_v2 import entry
 
 
@@ -194,8 +194,8 @@ def test_cancel_between_entries(direction):
 
 def test_large_canonical_identity_and_maximum_provenance_together(tmp_path):
     from dataclasses import replace
-    from ayvu.cache_identity import CanonicalValue, CACHE_ENTRY_V2_LIMITS, exact_entry_key
-    from ayvu.cache_repository import _digest, _entry_digest
+    from ayvu.knowledge.cache.identity import CanonicalValue, CACHE_ENTRY_V2_LIMITS, exact_entry_key
+    from ayvu.knowledge.cache.repository import _digest, _entry_digest
     from test_translation_cache_v2 import make_plan
     operation = make_plan().semantic_operation
     parameters = tuple((f"k{i:02d}" + "k" * 990, CanonicalValue("string", "v" * 1000)) for i in range(29))
@@ -227,8 +227,8 @@ def test_large_canonical_identity_and_maximum_provenance_together(tmp_path):
 
 @pytest.mark.parametrize("field", ["source_text", "value", "metadata", "provenance", "created_at"])
 def test_actual_row_ceilings_and_one_over(v2row, field):
-    from ayvu.cache_identity import CACHE_ENTRY_V2_LIMITS, exact_entry_key
-    from ayvu.cache_repository import _digest, _entry_digest
+    from ayvu.knowledge.cache.identity import CACHE_ENTRY_V2_LIMITS, exact_entry_key
+    from ayvu.knowledge.cache.repository import _digest, _entry_digest
     desc, original = v2row
     base = entry()
     ceiling = getattr(CACHE_ENTRY_V2_LIMITS, "timestamp" if field == "created_at" else field)
@@ -257,7 +257,7 @@ def test_actual_row_ceilings_and_one_over(v2row, field):
 
 
 def test_actual_canonical_identity_one_over_rejected(v2row):
-    from ayvu.cache_identity import CACHE_ENTRY_V2_LIMITS
+    from ayvu.knowledge.cache.identity import CACHE_ENTRY_V2_LIMITS
     desc, item = v2row
     item["canonical_identity"] = " " * (CACHE_ENTRY_V2_LIMITS.canonical_identity + 1)
     with pytest.raises(CacheAdminError): validate_v2_entry(desc, item)
@@ -294,7 +294,7 @@ def test_actual_scope_reference_boundary():
     lambda p: p.update(operation="bad secret"),
 ])
 def test_reject_nested_malformed_provenance_even_with_valid_digests(v2row, mutate):
-    from ayvu.cache_repository import _digest, _entry_digest
+    from ayvu.knowledge.cache.repository import _digest, _entry_digest
     desc, item = v2row
     provenance = json.loads(item["provenance"])
     mutate(provenance)
@@ -370,8 +370,8 @@ def test_real_gib_input_boundary_streams_without_materializing():
 
 
 def test_real_gib_output_boundary_streams_without_materializing(v2row):
-    from ayvu.cache_identity import exact_entry_key
-    from ayvu.cache_repository import _entry_digest
+    from ayvu.knowledge.cache.identity import exact_entry_key
+    from ayvu.knowledge.cache.repository import _entry_digest
     desc, initial = v2row
     base = entry()
     max_value = 1024**2
@@ -385,7 +385,7 @@ def test_real_gib_output_boundary_streams_without_materializing(v2row):
         row = dict(initial, source_text=source, source_digest=key.source_content_digest, value='x' * size)
         row['entry_digest'] = _entry_digest(key, source, row['value'], row['canonical_identity'].encode(), row['metadata'].encode(), row['provenance'].encode(), row['created_at'], row['provenance_digest'])
         return row
-    from ayvu.cache_schema import V2_COLUMNS
+    from ayvu.knowledge.cache.schema import V2_COLUMNS
     fields = V2_COLUMNS[2:]
     sample = make(0, 0)
     encoded_len = len(json.dumps({k: sample[k] for k in fields}, ensure_ascii=False, separators=(',', ':'), allow_nan=False).encode())

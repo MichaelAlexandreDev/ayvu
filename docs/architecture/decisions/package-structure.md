@@ -70,6 +70,8 @@ The owner's answers on 2026-11-10:
   `__init__.py` exports only the model and the use cases. So code that needs a job's state or an artifact
   record does not load SQLite, HTTP or the filesystem code, the same reason `ayvu.kernel.sqlite` has its own
   API. `tests/test_public_api.py` lists the adapter modules and checks that no package import loads them.
+- A package whose parts are independent exports nothing itself and leaves the API to its subpackages, as
+  `knowledge` does with `knowledge.cache`, `knowledge.memory` and `knowledge.glossary` (REF-09).
 
 ### D3. One-way layers
 A lower layer never imports a higher one. Modules on the same row do not import each other unless the row
@@ -264,7 +266,7 @@ REF-15 break up by reason to change after they move.
 | `cache_admin.py` | `knowledge/cache/admin.py` |  |
 | `cache_admin_store.py` | `knowledge/cache/admin_store.py` |  |
 | `cache_admin_v2_store.py` | `knowledge/cache/admin_v2_store.py` | split |
-| `translation_memory.py` | `knowledge/memory/fuzzy.py` |  |
+| `translation_memory.py` | `knowledge/memory/fuzzy.py` | in REF-09 it takes its candidates through the `FuzzyCandidates` protocol, so knowledge no longer imports the v1 cache |
 | `approved_memory.py` | `knowledge/memory/approved/model.py` |  |
 | `approved_memory_service.py` | `knowledge/memory/approved/service.py` |  |
 | `approved_memory_store.py` | `knowledge/memory/approved/store.py` |  |

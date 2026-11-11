@@ -9,8 +9,8 @@ import sys
 
 import pytest
 
-from ayvu.cache_identity import OpaqueSemanticRevision, SemanticOperationV2, SemanticRouteHop
-from ayvu.glossary_catalog import GlossaryReference
+from ayvu.knowledge.cache.identity import OpaqueSemanticRevision, SemanticOperationV2, SemanticRouteHop
+from ayvu.knowledge.glossary.catalog import GlossaryReference
 from ayvu.preferences.model import GlobalPreferences, NamedPreferenceProfile, PreferencesError
 from ayvu.preferences.service import PreferencesSnapshot
 from ayvu.provenance.model import ProducerIdentity

@@ -10,9 +10,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Generic, Protocol, TypeVar
 
-from .v1.cache_format import validate as _validate_legacy, LegacyFormatError
-from .cache_identity import AuthorizedCacheScope, CACHE_ENTRY_V2_LIMITS, CacheEntryV2Limits
-from .kernel import JobFailure, JobFailureFamily, JobWarning
+from ...v1.cache_format import validate as _validate_legacy, LegacyFormatError
+from .identity import AuthorizedCacheScope, CACHE_ENTRY_V2_LIMITS, CacheEntryV2Limits
+from ...kernel import JobFailure, JobFailureFamily, JobWarning
 
 MAX_FILE_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 1_000_000

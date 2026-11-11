@@ -14,11 +14,11 @@ import pytest
 
 import ayvu.composition.builders.translate_project as composition
 from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.cache_identity import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
-from ayvu.cache_schema import SchemaState, classify_cache
+from ayvu.knowledge.cache.identity import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
+from ayvu.knowledge.cache.schema import SchemaState, classify_cache
 from ayvu.preferences.config_facade import ConfigStore
 from ayvu.preferences.model import AyvuConfig, config_from_preferences, config_to_preferences
-from ayvu.glossary import load_glossary
+from ayvu.knowledge.glossary.rules import load_glossary
 from ayvu.jobs.events import encode_event
 from ayvu.jobs.execution import CancellationSource
 from ayvu.preferences.model import GlobalPreferences, PreferencesError, preferences_from_mapping, preferences_to_mapping
@@ -153,7 +153,7 @@ def test_cache_is_refused_before_preparation_and_errors_are_sanitized(tmp_path, 
     path = composition.v2_cache_path(tmp_path / "cache.sqlite")
     calls = []
     if problem == "platform":
-        monkeypatch.setattr("ayvu.cache_schema._supported", lambda _: False)
+        monkeypatch.setattr("ayvu.knowledge.cache.schema._supported", lambda _: False)
     elif problem == "foreign":
         with sqlite3.connect(path) as conn:
             conn.execute("CREATE TABLE private(x)")
@@ -233,7 +233,7 @@ def test_existing_empty_v1_and_its_mode_are_untouched_without_hardlinks(tmp_path
 
 
 def test_a_held_preparation_lock_refuses_before_provider(tmp_path):
-    from ayvu.cache_schema import _application_lock
+    from ayvu.knowledge.cache.schema import _application_lock
     first = runtime(tmp_path)
     assert first.preflight() is None
     calls = []

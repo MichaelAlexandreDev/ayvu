@@ -32,10 +32,6 @@ FUNCTION_LIMIT = 80
 PACKAGE_ALIASES = {"desktop": "interfaces"}
 
 LEGACY_GROUPS = {
-    "knowledge": ("cache_identity", "cache_repository", "cache_schema", "cache_interchange", "cache_admin",
-                  "cache_admin_store", "cache_admin_v2_store", "translation_memory", "memory_retrieval",
-                  "approved_memory", "approved_memory_service", "approved_memory_store", "glossary",
-                  "glossary_catalog", "glossary_catalog_store"),
     "content": ("content_use_cases",),
     "formats": ("format_adapter", "format_service", "format_local", "epub_archive", "epub_format", "epub_io",
                 "html_structure", "validation", "markdown_writer"),

@@ -5,12 +5,12 @@ from threading import Barrier, Lock
 
 import pytest
 
-from ayvu.cache_identity import (
+from ayvu.knowledge.cache.identity import (
     CACHE_ENTRY_V2_LIMITS as LIMITS, CacheAuthorizationPolicy, CacheIdentityError,
     CacheLookupState, CacheProvenanceMetadata, ExactCacheEntry, PutIfAbsentState,
     TRANSLATION_STAGE_AGGREGATE, exact_entry_key,
 )
-from ayvu.cache_repository import SQLiteExactCache
+from ayvu.knowledge.cache.repository import SQLiteExactCache
 from test_translation_cache_v2 import Env, PROJECT, make_plan
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
@@ -81,7 +81,7 @@ def test_metadata_boundary_and_digest_mismatch(tmp_path):
 
 @pytest.mark.parametrize("column", ["created_at", "provenance", "value", "entry_digest", "provenance_digest"])
 def test_read_detects_corruption_and_redacts(tmp_path, column):
-    from ayvu.cache_schema import participating_connection
+    from ayvu.knowledge.cache.schema import participating_connection
     path = tmp_path / "secret.sqlite"
     cache = SQLiteExactCache(path)
     item = entry(source="CANARY-SOURCE", value="CANARY-VALUE")
@@ -96,8 +96,8 @@ def test_read_detects_corruption_and_redacts(tmp_path, column):
 
 def test_canonical_and_provenance_byte_limits_and_timestamp():
     import hashlib
-    from ayvu.cache_identity import CanonicalValue
-    from ayvu.cache_repository import _validate_payload
+    from ayvu.knowledge.cache.identity import CanonicalValue
+    from ayvu.knowledge.cache.repository import _validate_payload
     base = entry()
     operation = make_plan().semantic_operation
     parameters = tuple((f"p{i:03}", CanonicalValue("string", "x" * 1024)) for i in range(56))
@@ -185,7 +185,7 @@ def test_migrated_legacy_exact_and_fuzzy_are_isolated_from_v2_workers(tmp_path):
     import sqlite3
     from ayvu.v1.cache import TranslationCache
     from ayvu.v1.html_translate import _LegacyV1Cache
-    from ayvu.translation_memory import TranslationMemory
+    from ayvu.knowledge.memory.fuzzy import TranslationMemory
     path = tmp_path / "cache.sqlite"
     pair = LanguagePair("en", "pt")
     with TranslationCache(path) as legacy:
@@ -206,7 +206,7 @@ def test_migrated_legacy_exact_and_fuzzy_are_isolated_from_v2_workers(tmp_path):
 
 def test_production_cache_only_never_discovers_or_opens_network(tmp_path, monkeypatch):
     import socket
-    from ayvu.cache_identity import CacheOnlyRequest, PinnedExecutionIdentityReference
+    from ayvu.knowledge.cache.identity import CacheOnlyRequest, PinnedExecutionIdentityReference
     from test_translation_cache_v2 import document
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     Env(cache=cache).translate(document("hello", key="fill.txt"))
@@ -246,7 +246,7 @@ def test_canonical_oversize_dto_is_not_cacheable(tmp_path):
 
 
 def test_timestamp_exact_length_boundary():
-    from ayvu.cache_repository import _valid_timestamp
+    from ayvu.knowledge.cache.repository import _valid_timestamp
     exact = "2026-11-05T12:00:00.000000Z"
     assert len(exact) == LIMITS.timestamp and _valid_timestamp(exact)
     over = exact + "Z"
@@ -255,14 +255,14 @@ def test_timestamp_exact_length_boundary():
 
 def test_timestamp_uses_four_digit_year_and_normalizes_timezone():
     from datetime import timedelta, timezone
-    from ayvu.cache_repository import _timestamp, _valid_timestamp
+    from ayvu.knowledge.cache.repository import _timestamp, _valid_timestamp
     assert _timestamp(lambda: datetime(1, 1, 1, tzinfo=UTC)) == "0001-01-01T00:00:00.000000Z"
     assert _valid_timestamp("0001-01-01T00:00:00.000000Z")
     assert _timestamp(lambda: datetime(2026, 11, 5, 9, tzinfo=timezone(timedelta(hours=-3)))) == "2026-11-05T12:00:00.000000Z"
 
 
 def test_separate_utf8_ceilings_can_be_used_together_without_truncation(tmp_path):
-    from ayvu.cache_schema import participating_connection
+    from ayvu.knowledge.cache.schema import participating_connection
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     source = "á" * (LIMITS.source_text // 2)
     metadata = b'{"x":[0]}'
@@ -280,7 +280,7 @@ def test_separate_utf8_ceilings_can_be_used_together_without_truncation(tmp_path
 
 
 def test_identity_uses_the_normative_entry_limit():
-    from ayvu.cache_identity import MAX_CANONICAL_PAYLOAD_BYTES
+    from ayvu.knowledge.cache.identity import MAX_CANONICAL_PAYLOAD_BYTES
     assert MAX_CANONICAL_PAYLOAD_BYTES == LIMITS.canonical_identity == 64 * 1024
 
 

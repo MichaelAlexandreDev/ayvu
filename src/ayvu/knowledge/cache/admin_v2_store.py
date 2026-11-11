@@ -13,14 +13,14 @@ from threading import Lock
 from pathlib import Path
 from datetime import UTC, datetime
 
-from .cache_admin import CacheSummary, CachePair, CleanSelection, CacheNamespaceCount, CacheNamespace, CacheFilter, ExportReceipt, checkpoint, report
-from .cache_admin_store import CacheStorageError, _error, _filter, _final_mode, _new_file_mode, _NO_HARD_LINKS
-from .cache_schema import V2_COLUMNS, participating_connection, _SUFFIXES, classify_cache_waiting, SchemaState, _location, _identity, participating_admin_connection, _state
-from .cache_interchange import write_envelope
-from .cache_admin import validate_payload
-from .cache_admin_store import MAX_FILE_BYTES, MAX_ENTRIES
-from . import cache_admin_store as legacy_storage
-from .cache_identity import CACHE_ENTRY_V2_LIMITS
+from .admin import CacheSummary, CachePair, CleanSelection, CacheNamespaceCount, CacheNamespace, CacheFilter, ExportReceipt, checkpoint, report
+from .admin_store import CacheStorageError, _error, _filter, _final_mode, _new_file_mode, _NO_HARD_LINKS
+from .schema import V2_COLUMNS, participating_connection, _SUFFIXES, classify_cache_waiting, SchemaState, _location, _identity, participating_admin_connection, _state
+from .interchange import write_envelope
+from .admin import validate_payload
+from .admin_store import MAX_FILE_BYTES, MAX_ENTRIES
+from . import admin_store as legacy_storage
+from .identity import CACHE_ENTRY_V2_LIMITS
 
 
 def _scope(namespace):
@@ -419,8 +419,8 @@ SQLiteCacheV2Store.export_legacy = _export_legacy
 # of the cache schema and cannot be mistaken for the cache itself.
 import sqlite3
 from dataclasses import asdict
-from .cache_admin import FileRef, ImportPreview, ImportCounts, namespace_reference
-from .cache_interchange import iter_records, validate_v2_entry
+from .admin import FileRef, ImportPreview, ImportCounts, namespace_reference
+from .interchange import iter_records, validate_v2_entry
 
 _PREVIEW_KEY = secrets.token_bytes(32)
 _PREVIEWS = {}

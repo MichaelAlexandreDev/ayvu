@@ -13,18 +13,18 @@ import math
 import re
 from typing import Callable
 
-from .translation_memory import similarity_score
+from ...knowledge.memory import similarity_score
 
-from .approved_memory import (
+from ...knowledge.memory.approved import (
     MemoryQuery, MemoryRevision, MemoryScope, MemorySource, MemoryState, MemoryValidationError,
     PipelinePin, PipelineStage, RetrievalLimits, RetrievalMode, ValueKind, search_key, identity,
 )
-from .approved_memory_service import ApprovedMemoryRepository
-from .cache_identity import AuthorizedCacheScope, ExactEntryKey
-from .content import ContentDocument, TranslationUnit
-from .provenance import ConfigurationRef
-from .translation_plan import ResolvedTranslationPlan
-from .content import protected_content_is_intact, special_term_spans
+from ...knowledge.memory.approved import ApprovedMemoryRepository
+from ...knowledge.cache import AuthorizedCacheScope, ExactEntryKey
+from ...content import ContentDocument, TranslationUnit
+from ...provenance import ConfigurationRef
+from ...translation_plan import ResolvedTranslationPlan
+from ...content import protected_content_is_intact, special_term_spans
 
 
 class RetrievalSource(StrEnum):
@@ -217,7 +217,7 @@ class LegacyCacheCompatibility:
         self.repository, self.policy, self.apply_threshold = repository, policy, apply_threshold
 
     def lookup(self, query):
-        from .cache_identity import (
+        from ...knowledge.cache import (
             CacheCompatibilityIdentity, CompatibleMemoryCandidate, CompatibleMemoryQuery, TRANSLATION_STAGE_AGGREGATE,
         )
         if (type(query) is not CompatibleMemoryQuery or query.max_candidates > self.policy.limits.candidates

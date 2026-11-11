@@ -11,7 +11,7 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.cache_identity import (
+from ayvu.knowledge.cache.identity import (
     CACHE_IDENTITY_VERSION,
     MAX_CACHE_ONLY_CANDIDATES,
     MAX_CANONICAL_PAYLOAD_BYTES,
@@ -134,7 +134,7 @@ def test_mapping_insertion_order_and_independent_processes_are_deterministic():
     assert forward.canonical_payload() == reverse.canonical_payload()
     expected = forward.fingerprint
     code = (
-        "from ayvu.cache_identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop, "
+        "from ayvu.knowledge.cache.identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop, "
         "OpaqueSemanticRevision; from ayvu.provenance import ProducerIdentity; "
         "p=ProducerIdentity('provider@1','model@1','adapter@1','pipeline@1'); "
         "r=lambda n,v: OpaqueSemanticRevision('ayvu',n,1,v); "

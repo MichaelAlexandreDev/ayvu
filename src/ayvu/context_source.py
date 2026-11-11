@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from .content import ContentDocument
-from .glossary_catalog import Snapshot, _valid_entries
+from .knowledge.glossary import Snapshot, _valid_entries
 from .projects.profiles import ResolvedProfileSnapshot, GlossaryStage
 from .provider import Requirement, UnitReference
 from .translation_context import (

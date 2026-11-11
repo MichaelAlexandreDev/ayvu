@@ -12,7 +12,7 @@ import hashlib
 import re
 from uuid import UUID, uuid4
 
-from ...glossary_catalog import GlossaryReference
+from ...knowledge.glossary import GlossaryReference
 from ...preferences import NamedPreferenceProfile, PreferencesError
 from ..model import ProjectManifestError, validate_project_reference
 

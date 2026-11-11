@@ -11,9 +11,9 @@ import stat
 import tempfile
 from pathlib import Path
 
-from .v1.cache import SCHEMA
-from .cache_admin import (CacheAdminError, CacheSummary, CachePair, CleanSelection, ImportCounts, checkpoint, report, validate_payload)
-from .cache_schema import CacheSchemaError, SchemaState, classify_cache, participating_admin_connection
+from ...v1.cache import SCHEMA
+from .admin import (CacheAdminError, CacheSummary, CachePair, CleanSelection, ImportCounts, checkpoint, report, validate_payload)
+from .schema import CacheSchemaError, SchemaState, classify_cache, participating_admin_connection
 
 MAX_FILE_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 1_000_000

@@ -5,12 +5,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from ayvu import cache_identity, cache_interchange, cache_repository
-from ayvu.cache_admin import CacheAdminError
-from ayvu.cache_identity import CACHE_ENTRY_V2_LIMITS, CanonicalValue, exact_entry_key
-from ayvu.cache_interchange import iter_records, validate_v2_entry
-from ayvu.cache_repository import _digest, _entry_digest, SQLiteExactCache
-from ayvu.cache_schema import V2_COLUMNS, participating_connection
+from ayvu.knowledge.cache import identity as cache_identity
+from ayvu.knowledge.cache import interchange as cache_interchange
+from ayvu.knowledge.cache import repository as cache_repository
+from ayvu.knowledge.cache.admin import CacheAdminError
+from ayvu.knowledge.cache.identity import CACHE_ENTRY_V2_LIMITS, CanonicalValue, exact_entry_key
+from ayvu.knowledge.cache.interchange import iter_records, validate_v2_entry
+from ayvu.knowledge.cache.repository import _digest, _entry_digest, SQLiteExactCache
+from ayvu.knowledge.cache.schema import V2_COLUMNS, participating_connection
 from test_cache_repository_v2 import entry
 from test_translation_cache_v2 import make_plan
 

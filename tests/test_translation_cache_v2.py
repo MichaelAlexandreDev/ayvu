@@ -10,7 +10,7 @@ import pytest
 
 from ayvu.artifacts.model import new_artifact
 from ayvu.artifacts.service import ReuseResult
-from ayvu.cache_identity import (
+from ayvu.knowledge.cache.identity import (
     CacheAuthorizationPolicy,
     CacheCompatibilityIdentity,
     CacheLookupState,
@@ -51,7 +51,7 @@ from ayvu.translation_document import (
     UnitSource,
 )
 from ayvu.translation_plan import ResolvedTranslationPlan
-from ayvu.memory_retrieval import RetrievalPolicy
+from ayvu.translation.stages.memory_retrieval import RetrievalPolicy
 from ayvu.kernel import JobFailureFamily
 
 PROJECT = str(UUID(int=0x4321))

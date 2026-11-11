@@ -8,13 +8,13 @@ from __future__ import annotations
 import json
 import re
 
-from .cache_admin import _invalid, checkpoint, validate_payload, MAX_FILE_BYTES, MAX_ENTRIES
-from .cache_identity import (CacheAuthorizationPolicy, CacheScope, CacheScopeKind,
+from .admin import _invalid, checkpoint, validate_payload, MAX_FILE_BYTES, MAX_ENTRIES
+from .identity import (CacheAuthorizationPolicy, CacheScope, CacheScopeKind,
                              CacheValueKind, ExactEntryKey, CacheIdentityError,
                              CacheProvenanceMetadata, OpaqueSemanticRevision)
-from .provenance import ProducerIdentity
-from .cache_repository import _valid_row
-from .cache_schema import V2_COLUMNS
+from ...provenance import ProducerIdentity
+from .repository import _valid_row
+from .schema import V2_COLUMNS
 
 _ENTRY_FIELDS = V2_COLUMNS[2:]
 _LEGACY_FIELDS = ("source_lang", "target_lang", "original_text_hash", "original_text", "translated_text", "created_at")

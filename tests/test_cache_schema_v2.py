@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ayvu import cache_schema as schema
+from ayvu.knowledge.cache import schema as schema
 from ayvu.v1.cache import SCHEMA, text_hash
 
 
@@ -323,7 +323,7 @@ def test_process_crash_at_every_phase(tmp_path, phase):
     make_v1(p)
     rows = contents(p)
     script = """import os, sys
-from ayvu.cache_schema import prepare_cache
+from ayvu.knowledge.cache.schema import prepare_cache
 def checkpoint(phase):
     if phase == sys.argv[2]:
         os._exit(73)
@@ -558,7 +558,7 @@ def test_classification_io_errors_are_bounded_and_redacted(tmp_path, monkeypatch
 
 
 def test_unsupported_source_and_supported_new_destination(tmp_path, monkeypatch):
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     source = tmp_path / "legacy.sqlite"
     make_v1(source)
     original = source.read_bytes()

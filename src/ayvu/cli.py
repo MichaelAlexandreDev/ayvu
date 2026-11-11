@@ -14,12 +14,12 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from rich.table import Table
 
 from .translate_batch import ItemOutcome, ItemStatus
-from .cache_admin import (
+from .knowledge.cache import (
     CacheAdminError, CacheFilter, CacheRef, FileRef, InspectRequest,
     PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest,
     CacheNamespace, CacheScopeMapping, ImportScopeMap, ExecuteImportRequest,
 )
-from .cache_identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind, CacheIdentityError
+from .knowledge.cache import CacheAuthorizationPolicy, CacheScope, CacheScopeKind, CacheIdentityError
 from .cli_progress import TranslationProgress, TranslationProgressSnapshot
 from .preferences import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
 from .cli_contracts import (
@@ -36,7 +36,7 @@ from .composition.cli import (
     translation_checkpoint, _translate_without_project as execute_translate_without_project,
     _translate_in_project as execute_translate_in_project,
 )
-from .glossary_catalog import (
+from .knowledge.glossary import (
     Entry as GlossaryEntry, GlossaryReference, list_glossaries, read_glossary,
     create_glossary, update_glossary,
 )

@@ -18,7 +18,7 @@ from ..epub_io import TranslationReport, _validate_worker_options
 from ..format_service import FormatPublication, FormatService, FormatSource
 from ..html_structure import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
 from .html_translate import HtmlTranslationStats, TextTranslationResult, translate_text
-from ..translation_memory import TranslationMemory
+from ..knowledge.memory import TranslationMemory
 from ..translation_engine import (
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED,
     BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, TextStats, TranslationEngine,

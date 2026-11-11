@@ -55,7 +55,7 @@ def _options(project):
 @pytest.fixture
 def real_cache(tmp_path, monkeypatch):
     import socket
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     from test_translation_cache_v2 import PROJECT
 
@@ -77,7 +77,7 @@ def real_cache(tmp_path, monkeypatch):
 
 
 def test_v2_inspect_export_and_roundtrip_with_conflict(real_cache):
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     source, destination, output, mapping, project = real_cache
     inspected = CliRunner().invoke(app, ["cache", "inspect", "--cache", str(source), *_options(project)])
@@ -145,7 +145,7 @@ def test_stale_preview_reports_retry(real_cache, monkeypatch):
 
 
 def test_unmapped_source_fails_without_changing_destination(real_cache):
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     _, destination, output, mapping, _ = real_cache
     mapping.write_text(json.dumps([{"source": {"kind": "legacy-v1"}, "destination": {"kind": "legacy-v1"}}]))
@@ -185,8 +185,8 @@ def test_all_namespace_inspect_and_clean_dry_run(real_cache):
 @pytest.mark.parametrize('kind', ['work', 'local_user'])
 def test_cli_roundtrip_broader_scope_with_opaque_non_uuid_reference(tmp_path, kind):
     from dataclasses import replace
-    from ayvu.cache_identity import CacheScope, CacheScopeKind, CacheAuthorizationPolicy
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.identity import CacheScope, CacheScopeKind, CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     item = entry()
     scope = CacheScope(CacheScopeKind(kind), 'opaque-scope')
@@ -209,7 +209,7 @@ def test_cli_roundtrip_broader_scope_with_opaque_non_uuid_reference(tmp_path, ki
 
 def test_v2_cli_before_preserves_timestamp_microseconds(tmp_path):
     from datetime import UTC, datetime, timedelta
-    from ayvu.cache_repository import SQLiteExactCache
+    from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     source = tmp_path / 'microseconds.sqlite'
     item = entry()

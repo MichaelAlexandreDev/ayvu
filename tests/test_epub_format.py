@@ -614,7 +614,7 @@ def test_the_adapter_imports_no_provider_cache_glossary_or_interface():
     import subprocess
     import sys
 
-    forbidden = ("ayvu.v1.cache", "ayvu.glossary", "ayvu.v1.translator", "ayvu.translation_memory", "ayvu.translation_pipeline", "ayvu.provider", "ayvu.cli", "ayvu.epub_io",
+    forbidden = ("ayvu.v1.cache", "ayvu.knowledge.glossary", "ayvu.v1.translator", "ayvu.knowledge.memory", "ayvu.translation_pipeline", "ayvu.provider", "ayvu.cli", "ayvu.epub_io",
                  "ayvu.v1.html_translate", "ayvu.validation", "ebooklib", "typer", "rich", "requests", "sqlite3")
     source = (Path(__file__).parents[1] / "src" / "ayvu" / "epub_format.py").read_text()
     for node in ast.walk(ast.parse(source)):

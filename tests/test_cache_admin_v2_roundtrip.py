@@ -7,12 +7,12 @@ import sqlite3
 
 import pytest
 
-from ayvu.cache_admin import (CacheRef, FileRef, CacheNamespace, CacheScopeMapping,
+from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheNamespace, CacheScopeMapping,
     ImportScopeMap, ExportRequest, ImportRequest, ExecuteImportRequest)
 from ayvu.composition.builders.cache_admin import cache_admin_services
-from ayvu.cache_identity import CacheAuthorizationPolicy, CacheValueKind, CacheScope, CacheScopeKind
-from ayvu.cache_repository import SQLiteExactCache, _digest, _entry_digest
-from ayvu.cache_schema import participating_connection, V2_COLUMNS
+from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy, CacheValueKind, CacheScope, CacheScopeKind
+from ayvu.knowledge.cache.repository import SQLiteExactCache, _digest, _entry_digest
+from ayvu.knowledge.cache.schema import participating_connection, V2_COLUMNS
 from test_cache_repository_v2 import entry
 
 
@@ -119,7 +119,7 @@ def test_unused_map_source_rejected_before_mutation_and_stage_cleanup(cachewide,
     def forbidden_stage(*args, **kwargs):
         stages.append(True)
         raise AssertionError('scope coverage must fail before staging')
-    monkeypatch.setattr('ayvu.cache_admin_v2_store.tempfile.mkstemp', forbidden_stage)
+    monkeypatch.setattr('ayvu.knowledge.cache.admin_v2_store.tempfile.mkstemp', forbidden_stage)
     result = services.preview_import.execute(ImportRequest(CacheRef(str(destination)), FileRef(str(exported)), scope_map=scope_map))
     assert result.failure.code == 'unmapped_scope'
     assert destination.read_bytes() == before
@@ -195,7 +195,7 @@ def test_export_format_receipt_comes_from_the_pinned_snapshot(tmp_path):
 
 
 def test_v2_before_filter_canonicalizes_legacy_cli_spelling_and_utc_offsets(tmp_path):
-    from ayvu.cache_admin import CacheFilter, InspectRequest, PreviewCleanRequest, ExecuteCleanRequest
+    from ayvu.knowledge.cache.admin import CacheFilter, InspectRequest, PreviewCleanRequest, ExecuteCleanRequest
     path = tmp_path / 'cache.sqlite'
     item = entry()
     SQLiteExactCache(path, clock=lambda: datetime(2026, 11, 5, 10, 11, 12, 345678, UTC)).put_if_absent(item)

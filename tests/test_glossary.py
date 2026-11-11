@@ -1,6 +1,6 @@
 import pytest
 
-from ayvu.glossary import (
+from ayvu.knowledge.glossary.rules import (
     GLOSSARY_RULE_FORBIDDEN,
     GLOSSARY_RULE_PRESERVE,
     GLOSSARY_RULE_TRANSLATE,

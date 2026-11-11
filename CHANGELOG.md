@@ -272,6 +272,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Conhecimento em `ayvu.knowledge` (REF-09, #277): `knowledge.cache` (identidade, esquema,
+  repositório, intercâmbio e administração), `knowledge.memory` (`fuzzy` e o subpacote `approved`) e
+  `knowledge.glossary` (regras e catálogo). `memory_retrieval` vira `translation.stages`, porque é um
+  estágio do pipeline. A memória de tradução passa a receber os candidatos por um protocolo, então
+  knowledge não importa mais o cache v1. Somem `knowledge ↔ translation` e duas exceções.
 - Jobs, artefatos e projetos em pacotes (REF-08, #276, primeira parte): `ayvu.jobs`, `ayvu.artifacts`,
   `ayvu.projects` e `ayvu.projects.profiles`. `artifacts.destination` deixa de importar formats: a
   composição passa o guarda de saída e a publicação do formato. Os adaptadores (stores SQLite e JSON,

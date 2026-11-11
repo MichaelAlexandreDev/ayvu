@@ -5,8 +5,8 @@ import pytest
 from bs4 import BeautifulSoup
 
 from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.translation_memory import TranslationMemory
-from ayvu.glossary import (
+from ayvu.knowledge.memory.fuzzy import TranslationMemory
+from ayvu.knowledge.glossary.rules import (
     GLOSSARY_RULE_FORBIDDEN,
     GLOSSARY_RULE_PRESERVE,
     GLOSSARY_RULE_TRANSLATE,

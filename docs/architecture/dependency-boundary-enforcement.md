@@ -49,7 +49,7 @@ entries fail, so a rename cannot silently discard protection.
 | `provenance` | Domain | Lineage record values, explicit unknowns and canonical serialization |
 | `provenance.service` | Application | Provenance repository port and query results |
 | `provenance.store` | Infrastructure | Append-only SQLite lineage and bounded traversal |
-| `translation_memory` | Transitional domain | Knowledge/TM |
+| `knowledge.memory.fuzzy` | Transitional domain | Knowledge/TM |
 | `library` | Transitional application | Legacy library compatibility |
 | `library.service` | Application | Library discovery and authorized open coordination |
 | `library.adapters` | Infrastructure | Local library scanning and reader launch |
@@ -84,8 +84,8 @@ entries fail, so a rename cannot silently discard protection.
 | `provider_libretranslate` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
 | `composition.builders.providers` | Composition | Adaptador de montagem de provedor selecionado por `composition.cli` |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
-| `cache_admin` | Application | Typed cache administration use cases and ports |
-| `cache_admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
+| `knowledge.cache.admin` | Application | Typed cache administration use cases and ports |
+| `knowledge.cache.admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
 | `composition.builders.cache_admin` | Composition | Local cache administration adapters |
 | `config`, `resume`, `review_export`, `review_import` | Infrastructure | Preferences, Jobs, Review |
 

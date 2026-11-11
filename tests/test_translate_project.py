@@ -23,7 +23,7 @@ from ayvu.artifacts.model import ArtifactRequest, ArtifactState
 from ayvu.artifacts.destination import DestinationFileOps, LocalDestinationPayloads
 from ayvu.v1.cache import TranslationCache
 from ayvu.epub_io import translate_epub
-from ayvu.glossary import load_glossary
+from ayvu.knowledge.glossary.rules import load_glossary
 from ayvu.jobs.model import JobState, JobStoreError
 from ayvu.jobs.events import JobEventKind, encode_event
 from ayvu.jobs.execution import CancellationSource

@@ -1,7 +1,7 @@
 """Explicit local composition. No automatic migration or pipeline integration."""
 from pathlib import Path
 
-from ...glossary_catalog_store import ManagedGlossaryRepository
+from ...knowledge.glossary.catalog_store import ManagedGlossaryRepository
 from ...projects.profiles.glossary_store import LegacyGlossaryResolver
 from ...projects.profiles import ProjectProfileService
 from ...projects.profiles.store import JsonProjectProfileRepository

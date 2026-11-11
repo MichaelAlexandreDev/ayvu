@@ -13,7 +13,7 @@ from ebooklib import epub
 
 from .v1.cache import TranslationCache
 from .epub_archive import package_title, parse_package_for_edit, serialize_package
-from .glossary import Glossary, GlossaryUsage
+from .knowledge.glossary import Glossary, GlossaryUsage
 from .v1.html_translate import (
     HtmlTranslatedSegment,
     HtmlTranslationStats,
@@ -30,7 +30,7 @@ from .review_export import (
     format_segment_id,
 )
 from .review_import import LegacyReviewInspection, ReviewImportError
-from .translation_memory import TranslationMemory
+from .knowledge.memory import TranslationMemory
 from .v1.translator import Translator
 from .kernel import ChapterSelection, ChapterSelectionError, TranslationOptions
 

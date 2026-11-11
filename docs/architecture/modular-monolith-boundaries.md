@@ -342,11 +342,11 @@ issue.
 | `src/ayvu/network/http.py` | Resolução injetável única e transporte Requests preso a sockaddrs loopback validados, sem ambiente ou redirects | **Providers/Infrastructure**; consome a decisão de Policies e não adiciona provedor nem entrada de interface |
 | `src/ayvu/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
 | `src/ayvu/v1/cache.py` | Exact-cache identity, SQLite schema, querying, mutation, and JSON interchange | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
-| `src/ayvu/translation_memory.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
-| `src/ayvu/approved_memory.py` | Governed TM identity, scope, value semantics and closed lifecycle | **Domain/Approved translation memory**; independent of operational cache and dataset consent |
-| `src/ayvu/approved_memory_service.py` | Governed TM commands, queries, use cases and repository port | **Application/Approved translation memory**; no SQLite or pipeline bridge |
-| `src/ayvu/approved_memory_store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](approved-translation-memory.md) |
-| `src/ayvu/glossary.py` | Glossary rules, matching, validation, and JSON persistence | Glossary semantics belong to **Knowledge**; JSON/filesystem persistence implements an **Infrastructure** port |
+| `src/ayvu/knowledge/memory/fuzzy.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
+| `src/ayvu/knowledge/memory/approved/model.py` | Governed TM identity, scope, value semantics and closed lifecycle | **Domain/Approved translation memory**; independent of operational cache and dataset consent |
+| `src/ayvu/knowledge/memory/approved/service.py` | Governed TM commands, queries, use cases and repository port | **Application/Approved translation memory**; no SQLite or pipeline bridge |
+| `src/ayvu/knowledge/memory/approved/store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](approved-translation-memory.md) |
+| `src/ayvu/knowledge/glossary/rules.py` | Glossary rules, matching, validation, and JSON persistence | Glossary semantics belong to **Knowledge**; JSON/filesystem persistence implements an **Infrastructure** port |
 | `src/ayvu/v1/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
 | `src/ayvu/review_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
 | `src/ayvu/review_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
@@ -363,7 +363,7 @@ These traces keep the accepted boundaries anchored in production behavior.
 | Translate EPUB / batch | `cli.py` → `composition.cli` → `TranslateProject` / `TranslateBatch` e portas entregues | Serviços possuem execução, cancelamento e publicação; CLI projeta eventos e resultados |
 | Export review | `cli.py` → composição → `ExportReviewPackage` com o resultado exato da tradução | Reconstrução e publicação pertencem a Review e aos adaptadores D106 |
 | Apply review | `cli.py` → composição → `ValidateReviewPackage` / `ApplyReviewPackage` | Serviços validam revisões e publicam; v1 é recusado antes de inspecionar a origem |
-| Inspect, clean, export, or import cache | `cli.py` → composição → `cache_admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
+| Inspect, clean, export, or import cache | `cli.py` → composição → `knowledge.cache.admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
 | Resume interrupted translation | `cli.py` → composição → `recovery.service` → mesmo `TranslateProject` | Inspeção somente leitura, decisões explícitas e continuidade durável; checkpoint legado preservado |
 
 No target seam changes the current result, output naming, ordering, cache/glossary
