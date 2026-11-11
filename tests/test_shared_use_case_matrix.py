@@ -9,7 +9,7 @@ from typing import Any
 import typer
 from typer.main import get_command
 
-from ayvu.cli import app
+from ayvu.interfaces.cli.app import app
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,8 +43,8 @@ PUBLIC_LINK_TARGETS = {
     ROOT / "src" / "ayvu" / "v1" / "cache.py",
     ROOT / "src" / "ayvu" / "knowledge" / "cache" / "admin.py",
     ROOT / "src" / "ayvu" / "knowledge" / "cache" / "admin_store.py",
-    ROOT / "src" / "ayvu" / "cli.py",
-    ROOT / "src" / "ayvu" / "cli_progress.py",
+    ROOT / "src" / "ayvu" / "interfaces/cli/app.py",
+    ROOT / "src" / "ayvu" / "interfaces/cli/progress.py",
     ROOT / "src" / "ayvu" / "preferences" / "config_facade.py",
     ROOT / "src" / "ayvu" / "composition" / "builders" / "content.py",
     ROOT / "src" / "ayvu" / "content_use_cases.py",
@@ -372,7 +372,7 @@ def test_matrix_covers_every_current_presentation_helper_and_compatibility_deleg
         _, mappings, helpers, _ = line.split('|')
         assert set(re.findall(r'`([^`]+)`', mappings)) <= declared
         symbols.extend(re.findall(r'`([^`]+)`', helpers))
-    tree = ast.parse((ROOT / 'src/ayvu/cli.py').read_text())
+    tree = ast.parse((ROOT / 'src/ayvu/interfaces/cli/app.py').read_text())
     actual = {node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     assert len(symbols) == len(set(symbols)), 'helper classified more than once'
     assert set(symbols) == actual, 'unmapped or stale presentation helper'
@@ -381,4 +381,4 @@ def test_matrix_covers_every_current_presentation_helper_and_compatibility_deleg
 def test_installed_cli_entrypoint_still_targets_the_presenter():
     import tomllib
     project = tomllib.loads((ROOT / 'pyproject.toml').read_text())
-    assert project['project']['scripts']['ayvu'] == 'ayvu.cli:app'
+    assert project['project']['scripts']['ayvu'] == 'ayvu.interfaces.cli.app:app'

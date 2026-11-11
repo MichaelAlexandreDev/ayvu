@@ -2,11 +2,11 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Protocol
-from .preferences import AyvuConfig
-from .preferences import PreferencesSnapshot, UpdatePreferencesResult
-from .recovery import ListInterruptedJobs, InspectJobRecoverability, RequestJobResume, RecoveryEntry
-from .translation import AcceptedOutputPlan
-from .kernel import TranslationMemoryOptions
+from ...preferences import AyvuConfig
+from ...preferences import PreferencesSnapshot, UpdatePreferencesResult
+from ...recovery import ListInterruptedJobs, InspectJobRecoverability, RequestJobResume, RecoveryEntry
+from ...translation import AcceptedOutputPlan
+from ...kernel import TranslationMemoryOptions
 
 class GlossaryUsage(Protocol):
     applied_terms: dict[str, int]

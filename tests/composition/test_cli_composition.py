@@ -16,7 +16,7 @@ from ayvu.v1.cache_check import verify_cache_writable
 import requests
 from typer.testing import CliRunner
 
-from ayvu import cli
+from ayvu.interfaces.cli import app as cli
 from ayvu.composition import cli as root
 from ayvu.composition.cli import _BookHooks, _BookRequest, _BookOutcome
 from ayvu.preferences.model import AyvuConfig
@@ -264,7 +264,7 @@ def audit(event, args):
         if any(path.startswith(os.environ[name] + os.sep) for name in ('HOME', 'XDG_CONFIG_HOME')):
             raise AssertionError('user store opened')
 sys.addaudithook(audit)
-from ayvu.cli import app
+from ayvu.interfaces.cli.app import app
 app(['--help'])
 '''
     result = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True,
@@ -311,7 +311,8 @@ def test_compatibility_facades_export_identical_contracts():
     from ayvu.preferences import model as config_values
     from ayvu.v1 import resume
     from ayvu.composition.builders import providers as provider_composition
-    from ayvu import cli, providers, translation
+    from ayvu import providers, translation
+    from ayvu.interfaces.cli import app as cli
     for name in ('AyvuConfig', 'FolderNames', 'TranslationProfile', 'ConfigError', 'config_from_preferences'):
         assert getattr(config, name) is getattr(config_values, name)
     # REF-04 gave each error one owner; every module that raises or catches it sees the same class.

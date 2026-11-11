@@ -54,9 +54,9 @@ entries fail, so a rename cannot silently discard protection.
 | `library.service` | Application | Library discovery and authorized open coordination |
 | `library.adapters` | Infrastructure | Local library scanning and reader launch |
 | `preflight` | Composition | Translation |
-| `cli`, `cli_progress` | Interface | CLI |
+| `cli`, `interfaces.cli.progress` | Interface | CLI |
 | `composition.cli` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
-| `cli_contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
+| `interfaces.cli.contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
 | `preferences.model` | Domain | Valores de preferências e conversões da fachada v1 |
 | `formats.epub.archive`, `formats.epub.adapter`, `formats.epub.io`, `formats.epub.html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation.engine` | Application | One book through a format adapter and a unit executor |

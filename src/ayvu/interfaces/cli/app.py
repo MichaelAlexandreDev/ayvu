@@ -13,18 +13,18 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from .translation import ItemOutcome, ItemStatus
-from .knowledge.cache import (
+from ...translation import ItemOutcome, ItemStatus
+from ...knowledge.cache import (
     CacheAdminError, CacheFilter, CacheRef, FileRef, InspectRequest,
     PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest,
     CacheNamespace, CacheScopeMapping, ImportScopeMap, ExecuteImportRequest,
 )
-from .knowledge.cache import CacheAuthorizationPolicy, CacheScope, CacheScopeKind, CacheIdentityError
-from .cli_progress import TranslationProgress, TranslationProgressSnapshot
-from .preferences import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
-from .cli_contracts import (
+from ...knowledge.cache import CacheAuthorizationPolicy, CacheScope, CacheScopeKind, CacheIdentityError
+from .progress import TranslationProgress, TranslationProgressSnapshot
+from ...preferences import DEFAULT_BOOKS_DIR, AyvuConfig, ConfigError, FolderNames, TranslationProfile, config_from_preferences
+from .contracts import (
     AcceptedItem, ConfigStore, TranslationReport, ValidationResult, TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery, SelectedChapter, CacheSummaryRow, CacheImportReport)
-from .composition.cli import (
+from ...composition.cli import (
     _BookHooks, _BookRequest, _BookOutcome, configuration_store, library_service, default_glossaries_dir,
     open_content_use_cases, cache_admin_services, read_scope_map_payload,
     managed_glossary_repository, cli_provider_session, open_review_use_cases,
@@ -36,29 +36,29 @@ from .composition.cli import (
     translation_checkpoint, _translate_without_project as execute_translate_without_project,
     _translate_in_project as execute_translate_in_project,
 )
-from .knowledge.glossary import (
+from ...knowledge.glossary import (
     Entry as GlossaryEntry, GlossaryReference, list_glossaries, read_glossary,
     create_glossary, update_glossary,
 )
-from .kernel import (
+from ...kernel import (
     ChapterSelection, ChapterSelectionError, DEFAULT_PERFORMANCE_PROFILE, LanguagePair, OutputPlan,
     PERFORMANCE_PROFILES, PerformanceProfile, TranslationMemoryError, TranslationMemoryOptions,
     TranslationOptions, UserMode, default_preview_books_dir, default_translated_books_dir,
 )
-from .translation import BatchOutputError, BookRefused, PreflightError, ProjectTranslationUnavailable, ResumeStateError, TranslationDryRunCancelled
-from .providers import ProviderSetupError
+from ...translation import BatchOutputError, BookRefused, PreflightError, ProjectTranslationUnavailable, ResumeStateError, TranslationDryRunCancelled
+from ...providers import ProviderSetupError
 
 GLOSSARY_RULE_TRANSLATE = "translate"
 GLOSSARY_RULE_PRESERVE = "preserve"
-from .library import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
-from .projects import ProjectError
-from .recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
-from .review import (
+from ...library import Book as LibraryBook, LibraryService, ScanRequest, ListRequest, DescribeRequest, OpenRequest
+from ...projects import ProjectError
+from ...recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
+from ...review import (
     ReviewApplyCommand, ReviewExportCommand, ReviewOutcome, ReviewValidationCommand,
 )
-from .providers import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
-from .network import NetworkPolicy, network_next_step
-from .translation import ContinuationTicket, TranslateProjectResult
+from ...providers import SYNTHETIC_TEST_TEXT, DiscoveredLanguage, DiscoveryOutcome, LanguagesResult
+from ...network import NetworkPolicy, network_next_step
+from ...translation import ContinuationTicket, TranslateProjectResult
 
 
 app = typer.Typer(help="Translate local EPUB files with a local HTTP translator.")

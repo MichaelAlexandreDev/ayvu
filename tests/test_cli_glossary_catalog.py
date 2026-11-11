@@ -5,8 +5,8 @@ import json
 import pytest
 from typer.testing import CliRunner
 
-import ayvu.cli as cli_module
-from ayvu.cli import app
+import ayvu.interfaces.cli.app as cli_module
+from ayvu.interfaces.cli.app import app
 
 
 @pytest.fixture
@@ -14,12 +14,12 @@ def local_catalog(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ayvu.cli.default_processing_dir", lambda: tmp_path / "missing")
+    monkeypatch.setattr("ayvu.interfaces.cli.app.default_processing_dir", lambda: tmp_path / "missing")
     config = tmp_path / "config" / "ayvu" / "config.json"
     config.parent.mkdir(parents=True)
     config.write_text(json.dumps({"version": 1, "default_target_language": "pt"}))
     # The existing default configuration may deliberately ignore XDG_CONFIG_HOME.
-    monkeypatch.setattr("ayvu.cli.default_glossaries_dir", lambda: tmp_path / "glossaries")
+    monkeypatch.setattr("ayvu.interfaces.cli.app.default_glossaries_dir", lambda: tmp_path / "glossaries")
     return tmp_path / "glossaries"
 
 
@@ -89,7 +89,7 @@ def test_translation_invalid_selection_allows_another(local_catalog, tmp_path, m
 
 
 def _glossaries_dir(tmp_path):
-    from ayvu.cli import default_glossaries_dir
+    from ayvu.interfaces.cli.app import default_glossaries_dir
 
     directory = default_glossaries_dir()
     directory.mkdir(parents=True, exist_ok=True)

@@ -10,7 +10,7 @@ import pytest
 import requests
 from typer.testing import CliRunner
 
-from ayvu.cli import app
+from ayvu.interfaces.cli.app import app
 from ayvu.v1.resume import COMPLETED_STATUS, RUNNING_STATUS, ResumeStateStore
 from ayvu.review.exchange import decode_review_package, encode_review_package
 
@@ -171,7 +171,7 @@ def _xhtml_document(title: str, body: str) -> str:
 def _install_cli_environment(monkeypatch, tmp_path: Path, session: FakeLibreTranslateSession) -> Path:
     processing_dir = tmp_path / "processing"
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setattr("ayvu.cli._processing_dir", lambda _config: processing_dir)
+    monkeypatch.setattr("ayvu.interfaces.cli.app._processing_dir", lambda _config: processing_dir)
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
     return processing_dir
 

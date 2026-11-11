@@ -15,8 +15,8 @@ PROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["
 
 
 def test_desktop_extra_and_entry_points_are_optional() -> None:
-    assert PROJECT["scripts"]["ayvu"] == "ayvu.cli:app"
-    assert PROJECT["scripts"]["ayvu-desktop"] == "ayvu.desktop_bootstrap:main"
+    assert PROJECT["scripts"]["ayvu"] == "ayvu.interfaces.cli.app:app"
+    assert PROJECT["scripts"]["ayvu-desktop"] == "ayvu.interfaces.desktop.bootstrap:main"
     assert PROJECT["optional-dependencies"]["desktop"] == ["PySide6-Essentials==6.11.2"]
     for requirement in PROJECT["dependencies"] + PROJECT["optional-dependencies"]["dev"]:
         assert "pyside" not in requirement.lower() and "pyqt" not in requirement.lower()
@@ -50,20 +50,20 @@ sys.meta_path.insert(0, NoQt())
 
 
 def test_existing_cli_and_import_work_without_qt(tmp_path: Path, isolated_env: dict[str, str]) -> None:
-    result = run_python(BLOCK_QT + "\nimport ayvu\nfrom ayvu.cli import app\napp()", ["--help"], tmp_path, isolated_env)
+    result = run_python(BLOCK_QT + "\nimport ayvu\nfrom ayvu.interfaces.cli.app import app\napp()", ["--help"], tmp_path, isolated_env)
     assert result.returncode == 0, result.stderr
     assert "Usage" in result.stdout
 
 
 def test_desktop_help_without_qt(tmp_path: Path, isolated_env: dict[str, str]) -> None:
-    result = run_python(BLOCK_QT + "\nfrom ayvu.desktop_bootstrap import main\nsys.exit(main())", ["--help"], tmp_path, isolated_env)
+    result = run_python(BLOCK_QT + "\nfrom ayvu.interfaces.desktop.bootstrap import main\nsys.exit(main())", ["--help"], tmp_path, isolated_env)
     assert result.returncode == 0, result.stderr
     assert "usage:" in result.stdout.lower()
     assert "traceback" not in (result.stdout + result.stderr).lower()
 
 
 def test_missing_qt_has_actionable_diagnostic(tmp_path: Path, isolated_env: dict[str, str]) -> None:
-    result = run_python(BLOCK_QT + "\nfrom ayvu.desktop_bootstrap import main\nsys.exit(main())", [], tmp_path, isolated_env)
+    result = run_python(BLOCK_QT + "\nfrom ayvu.interfaces.desktop.bootstrap import main\nsys.exit(main())", [], tmp_path, isolated_env)
     output = result.stdout + result.stderr
     assert result.returncode != 0
     assert "ayvu[desktop]" in output
@@ -79,7 +79,7 @@ class BrokenQt(importlib.abc.MetaPathFinder):
         if fullname.split(".")[0] == "PySide6":
             raise ImportError("libEGL.so.1: cannot open shared object file")
 sys.meta_path.insert(0, BrokenQt())
-from ayvu.desktop_bootstrap import main
+from ayvu.interfaces.desktop.bootstrap import main
 raise SystemExit(main())
 '''
     result = run_python(code, [], tmp_path, isolated_env)
@@ -98,7 +98,7 @@ def test_available_qt_delegates_to_replaceable_start(tmp_path: Path, isolated_en
     isolated_env["PYTHONPATH"] = os.pathsep.join((str(fake_qt.parent), isolated_env["PYTHONPATH"]))
     result = run_python('''
 import sys
-import ayvu.desktop_bootstrap as bootstrap
+import ayvu.interfaces.desktop.bootstrap as bootstrap
 def replacement():
     print("delegated exactly once")
     return 37

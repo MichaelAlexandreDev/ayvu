@@ -167,7 +167,7 @@ def test_cli_gate_uses_isolated_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
     from typer.testing import CliRunner
-    from ayvu.cli import app
+    from ayvu.interfaces.cli.app import app
     from ayvu.knowledge.cache.schema import prepare_cache
     path = tmp_path / "cache.sqlite"
     _v1(path)

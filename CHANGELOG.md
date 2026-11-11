@@ -272,6 +272,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Interno
 
+- Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
+  `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
+  `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e
+  `ayvu.interfaces.desktop.bootstrap:main`. Com isso termina a sequência de movimentações:
+  só `content_use_cases` continua solto na raiz, à espera da decisão sobre onde ele mora.
 - Revisão em `ayvu.review` (REF-12, #280): `review.application`, `review.exchange`,
   `review.csv_export` e `review.csv_import`. Review ganha uma camada própria acima de translation,
   porque aplica revisões sobre o resultado da tradução e translation nunca importa review. Somem a

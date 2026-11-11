@@ -189,7 +189,7 @@ as it would have. A worker that commits to cancelling wins over a failure in ano
 
 ## What the CLI adds
 
-`ayvu.cli` turns each failure code into a message in its own table, and shows the exception's text only in developer
+`ayvu.interfaces.cli.app` turns each failure code into a message in its own table, and shows the exception's text only in developer
 mode. A book the adapter refuses by policy (protected content, unsafe names, duplicates, entities, the size and
 compression limits) is refused by `check_book` on every path, including dry run, preview and `resume`, before any
 translator is asked and before a resume file is written. A book the adapter merely cannot read is still judged by the

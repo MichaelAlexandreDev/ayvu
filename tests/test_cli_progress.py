@@ -1,6 +1,6 @@
 import pytest
 
-from ayvu.cli_progress import TextProgressCounters, TranslationProgress
+from ayvu.interfaces.cli.progress import TextProgressCounters, TranslationProgress
 
 
 def test_text_progress_counters_track_known_statuses():

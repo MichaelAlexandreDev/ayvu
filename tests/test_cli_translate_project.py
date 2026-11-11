@@ -22,11 +22,11 @@ import requests
 from typer.testing import CliRunner
 
 import ayvu.artifacts.destination as artifact_destination
-import ayvu.cli as cli_module
+import ayvu.interfaces.cli.app as cli_module
 import ayvu.jobs.store as job_store
 import ayvu.composition.builders.review as review_composition
 import ayvu.composition.builders.translate_project as composition
-from ayvu.cli import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_failure, app
+from ayvu.interfaces.cli.app import _TRANSLATION_FAILURES, _BookOutcome, _print_translation_failure, app
 from ayvu.projects.schema import open_job_repository, open_provenance_repository
 from ayvu.translation.preflight import PreflightError
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
@@ -55,7 +55,7 @@ def _isolated_from_the_user(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("ayvu.cli._processing_dir", lambda _config: tmp_path / "processing")
+    monkeypatch.setattr("ayvu.interfaces.cli.app._processing_dir", lambda _config: tmp_path / "processing")
 
 
 class Session:
@@ -1024,7 +1024,7 @@ CHILD = textwrap.dedent('''\
     import requests
     from typer.testing import CliRunner
     import ayvu.providers.libretranslate.client
-    from ayvu import cli
+    from ayvu.interfaces.cli import app as cli
     class Session:
         def mount(self, prefix, adapter):
             assert prefix == "http://"

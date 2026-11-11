@@ -29,7 +29,7 @@ Ayvu currently has a flat `src/ayvu` package. The modules are focused enough to
 be testable, but orchestration, presentation, policies, and concrete adapters
 still meet directly in several places:
 
-- `cli.py` parses input and renders output while also constructing collaborators
+- `interfaces/cli/app.py` parses input and renders output while also constructing collaborators
   and coordinating long workflows;
 - `formats/epub/io.py` preserves the EPUB archive while also coordinating translation,
   review, and memory collaborators;
@@ -327,11 +327,11 @@ issue.
 | Current module | Current responsibility | Target owner and disposition |
 | --- | --- | --- |
 | `src/ayvu/__init__.py` | Package version metadata | Package public surface; keep minimal and independent of functional modules |
-| `src/ayvu/cli.py` | Typer, fluxo guiado, confirmações, relatórios textuais e projeção de saídas | **Interfaces/CLI**; invoca contratos e funções nomeadas da composição consolidada por #158 |
+| `src/ayvu/interfaces/cli/app.py` | Typer, fluxo guiado, confirmações, relatórios textuais e projeção de saídas | **Interfaces/CLI**; invoca contratos e funções nomeadas da composição consolidada por #158 |
 | `src/ayvu/composition/cli.py` | Construção tardia e explícita dos serviços/adaptadores selecionados | **Composition/CLI**; reutiliza composições por capacidade, sem registro ou singleton |
-| `src/ayvu/cli_contracts.py` | Portas estruturais, resultados de compatibilidade e erros compartilhados | **Application**; sem infraestrutura ou framework de apresentação |
+| `src/ayvu/interfaces/cli/contracts.py` | Portas estruturais, resultados de compatibilidade e erros compartilhados | **Application**; sem infraestrutura ou framework de apresentação |
 | `src/ayvu/preferences/model.py` | Valores v1 e conversões de preferências | **Domain/Preferences**; `preferences/config_facade.py` preserva seus reexports de compatibilidade |
-| `src/ayvu/cli_progress.py` | Rich progress adaptation and snapshots | **Interfaces/CLI** keeps Rich rendering; semantic progress DTOs and cancellation later belong to **Application/Jobs** |
+| `src/ayvu/interfaces/cli/progress.py` | Rich progress adaptation and snapshots | **Interfaces/CLI** keeps Rich rendering; semantic progress DTOs and cancellation later belong to **Application/Jobs** |
 | `src/ayvu/kernel/values.py` (was `domain.py`, moved by REF-04) | Shared value objects and policies for languages, outputs, chapters, memory, and execution | Transitional domain collection; split only when a use case establishes ownership in **Domain**, **Translation**, **Jobs**, or **Policies** |
 | `src/ayvu/preferences/config_facade.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `composition.cli` e valores em `preferences.model` |
 | `src/ayvu/formats/epub/io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
@@ -360,11 +360,11 @@ These traces keep the accepted boundaries anchored in production behavior.
 
 | Flow | Current path | Incremental target seam |
 | --- | --- | --- |
-| Translate EPUB / batch | `cli.py` → `composition.cli` → `TranslateProject` / `TranslateBatch` e portas entregues | Serviços possuem execução, cancelamento e publicação; CLI projeta eventos e resultados |
-| Export review | `cli.py` → composição → `ExportReviewPackage` com o resultado exato da tradução | Reconstrução e publicação pertencem a Review e aos adaptadores D106 |
-| Apply review | `cli.py` → composição → `ValidateReviewPackage` / `ApplyReviewPackage` | Serviços validam revisões e publicam; v1 é recusado antes de inspecionar a origem |
-| Inspect, clean, export, or import cache | `cli.py` → composição → `knowledge.cache.admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
-| Resume interrupted translation | `cli.py` → composição → `recovery.service` → mesmo `TranslateProject` | Inspeção somente leitura, decisões explícitas e continuidade durável; checkpoint legado preservado |
+| Translate EPUB / batch | `interfaces/cli/app.py` → `composition.cli` → `TranslateProject` / `TranslateBatch` e portas entregues | Serviços possuem execução, cancelamento e publicação; CLI projeta eventos e resultados |
+| Export review | `interfaces/cli/app.py` → composição → `ExportReviewPackage` com o resultado exato da tradução | Reconstrução e publicação pertencem a Review e aos adaptadores D106 |
+| Apply review | `interfaces/cli/app.py` → composição → `ValidateReviewPackage` / `ApplyReviewPackage` | Serviços validam revisões e publicam; v1 é recusado antes de inspecionar a origem |
+| Inspect, clean, export, or import cache | `interfaces/cli/app.py` → composição → `knowledge.cache.admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
+| Resume interrupted translation | `interfaces/cli/app.py` → composição → `recovery.service` → mesmo `TranslateProject` | Inspeção somente leitura, decisões explícitas e continuidade durável; checkpoint legado preservado |
 
 No target seam changes the current result, output naming, ordering, cache/glossary
 semantics, or source immutability unless a later issue explicitly revises the
@@ -380,7 +380,7 @@ conditionals that belong to owned modules.
 
 ### CLI composition root
 
-A entrada instalada `ayvu = ayvu.cli:app` permanece a mesma. `cli.py` converte
+A entrada instalada `ayvu = ayvu.interfaces.cli.app:app` permanece a mesma. `interfaces/cli/app.py` converte
 argumentos e escolhas confirmadas em entradas dos serviços e apresenta seus
 resultados com Rich. `composition/cli.py` é a fronteira explícita que seleciona
 e constrói os adaptadores por fluxo; os módulos de composição das capacidades
@@ -457,7 +457,7 @@ Migration follows a strangler-style sequence around real use cases:
    ports required by that flow.
 3. Wrap the current production implementation in adapters before considering a
    rewrite; preserve the established archive and markup behavior.
-4. Move orchestration from `cli.py` behind the application entry point while the
+4. Move orchestration from `interfaces/cli/app.py` behind the application entry point while the
    CLI remains the active consumer.
 5. Run focused characterization and full regression tests, then remove only the
    duplicated orchestration proven unreachable.
@@ -545,7 +545,7 @@ its dependencies, and the compatibility baseline before changing code.
 - [Product scope and capability taxonomy](../product-scope.md)
 - [Translation workflow migration baseline](../translation-workflow-migration-baseline.md)
 - [Shared application use-case matrix](shared-use-case-matrix.md)
-- [`src/ayvu/cli.py`](../../src/ayvu/cli.py)
+- [`src/ayvu/interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py)
 - [`src/ayvu/formats/epub/io.py`](../../src/ayvu/formats/epub/io.py)
 - [`src/ayvu/v1/html_translate.py`](../../src/ayvu/v1/html_translate.py)
 - [`src/ayvu/v1/cache.py`](../../src/ayvu/v1/cache.py)

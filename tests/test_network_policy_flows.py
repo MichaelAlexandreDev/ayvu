@@ -9,7 +9,7 @@ import socket
 import pytest
 from typer.testing import CliRunner
 
-from ayvu import cli
+from ayvu.interfaces.cli import app as cli
 from ayvu.composition import cli as cli_composition
 from ayvu.preferences.model import AyvuConfig
 from ayvu.network.policy import NetworkPolicy

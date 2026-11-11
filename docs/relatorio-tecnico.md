@@ -239,7 +239,7 @@ uv run ayvu --mode common translate livro.epub
 
 ## 8. Responsabilidades dos módulos
 
-`src/ayvu/cli.py` concentra comandos Typer, argumentos, prompts, confirmações, progresso, relatórios e orquestração. Não deve receber regra pesada de EPUB, HTML ou HTTP.
+`src/ayvu/interfaces/cli/app.py` concentra comandos Typer, argumentos, prompts, confirmações, progresso, relatórios e orquestração. Não deve receber regra pesada de EPUB, HTML ou HTTP.
 
 `src/ayvu/kernel/values.py` guarda tipos de domínio compartilhados, como `LanguagePair`, `OutputPlan`, `TranslationOptions` e `UserMode`.
 
@@ -264,7 +264,7 @@ regras explícitas `translate`, `preserve` e `forbidden`.
 
 `src/ayvu/v1/resume.py` registra e lê estados locais de retomada em `~/Documentos/Livros/Processando`.
 
-`src/ayvu/cli_progress.py` adapta callbacks de tradução para `rich.Progress` e mantém contadores de textos.
+`src/ayvu/interfaces/cli/progress.py` adapta callbacks de tradução para `rich.Progress` e mantém contadores de textos.
 
 `src/ayvu/preferences/config_facade.py` define o formato inicial de configuração JSON, perfis de tradução, o caminho padrão do arquivo, leitura/gravação e resolução das pastas locais do Ayvu. O menu guiado de `Settings` permite alterar idioma padrão, pasta base, nomes das pastas das funcionalidades e app leitor, além de mostrar os perfis configurados.
 

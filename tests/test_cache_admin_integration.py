@@ -14,7 +14,7 @@ from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheFilter, InspectRequest, PreviewCleanRequest,
     ExecuteCleanRequest, ExportRequest, ImportRequest)
 from ayvu.composition.builders.cache_admin import cache_admin_services
-from ayvu.cli import app
+from ayvu.interfaces.cli.app import app
 from ayvu.kernel import LanguagePair
 
 
@@ -256,7 +256,7 @@ def test_clean_filters_select_exact_rows(tmp_path, filters, expected):
 
 def test_cli_absent_inspect_and_export_compatibility(tmp_path, monkeypatch):
     from typer.testing import CliRunner
-    from ayvu.cli import app
+    from ayvu.interfaces.cli.app import app
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)
@@ -275,7 +275,7 @@ def test_cli_absent_inspect_and_export_compatibility(tmp_path, monkeypatch):
 
 def test_cli_rejects_cache_as_export_destination(tmp_path, monkeypatch):
     from typer.testing import CliRunner
-    from ayvu.cli import app
+    from ayvu.interfaces.cli.app import app
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.chdir(tmp_path)

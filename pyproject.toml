@@ -37,8 +37,8 @@ dev = [
 ]
 
 [project.scripts]
-ayvu = "ayvu.cli:app"
-ayvu-desktop = "ayvu.desktop_bootstrap:main"
+ayvu = "ayvu.interfaces.cli.app:app"
+ayvu-desktop = "ayvu.interfaces.desktop.bootstrap:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -63,7 +63,7 @@ type = "layers"
 containers = ["ayvu"]
 exhaustive = true
 layers = [
-  "(interfaces) : desktop : cli : cli_progress : cli_contracts : desktop_bootstrap",
+  "interfaces",
   "composition",
   "v1",
   "recovery",
@@ -93,11 +93,7 @@ name = "D7: only composition imports v1 (the layers contract covers the modules 
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
-  "ayvu.desktop",
-  "ayvu.cli",
-  "ayvu.cli_progress",
-  "ayvu.cli_contracts",
-  "ayvu.desktop_bootstrap",
+  "ayvu.interfaces",
 ]
 forbidden_modules = [
   "ayvu.v1",

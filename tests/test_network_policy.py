@@ -272,7 +272,7 @@ def test_environment_proxy_and_netrc_cannot_supply_routing_or_credentials(tmp_pa
 
 @pytest.mark.parametrize("command", ["languages", "test-translator"])
 def test_cli_none_and_legacy_destination_denial_are_actionable_and_zero_io(monkeypatch, command):
-    from ayvu.cli import app
+    from ayvu.interfaces.cli.app import app
     reached = deny_network(monkeypatch)
     result = CliRunner().invoke(app, [command, "--network-policy", "none"])
     assert result.exit_code == 1, result.output
@@ -288,7 +288,7 @@ def test_cli_none_and_legacy_destination_denial_are_actionable_and_zero_io(monke
 @pytest.mark.parametrize("selection", [[], ["--network-policy", "loopback"], ["--network-policy", "none"]])
 @pytest.mark.parametrize("command", ["languages", "test-translator"])
 def test_cli_selection_uses_real_composition_and_requests(monkeypatch, command, selection):
-    from ayvu.cli import app
+    from ayvu.interfaces.cli.app import app
     monkeypatch.setattr(socket, "getaddrinfo", lambda *args: [answer()])
     sockets, _ = install_wire(monkeypatch, [wire_reply("[]" if command == "languages" else '{"translatedText":"Olá"}')])
     result = CliRunner().invoke(app, [command, *selection])
@@ -301,7 +301,7 @@ def test_cli_selection_uses_real_composition_and_requests(monkeypatch, command, 
 
 @pytest.mark.parametrize("args", [[], ["translate"], ["resume"], ["languages"], ["test-translator"]])
 def test_help_explains_request_policy_and_external_reader(args):
-    from ayvu.cli import app
+    from ayvu.interfaces.cli.app import app
     result = CliRunner().invoke(app, [*args, "--help"])
     # Typer forces color under GITHUB_ACTIONS, which splits option names with ANSI codes.
     output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)

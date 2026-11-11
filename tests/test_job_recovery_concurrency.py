@@ -30,7 +30,7 @@ CHILD = textwrap.dedent('''
     import requests
     from typer.testing import CliRunner
     import ayvu.providers.libretranslate.client
-    from ayvu import cli
+    from ayvu.interfaces.cli import app as cli
     class Session:
         def mount(self, prefix, adapter):
             assert prefix == "http://"
