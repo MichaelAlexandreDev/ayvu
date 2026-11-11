@@ -15,7 +15,7 @@ The package schema and CSV codec have independent versions:
 
 The first CSV record is `AYVU-REVIEW-PACKAGE,2,<canonical JSON metadata>`. The
 second record contains the fixed ordered columns listed in
-[`review/exchange.py`](../../src/ayvu/review/exchange.py). Rows are sorted by
+[`review/exchange_model.py`](../../src/ayvu/review/exchange_model.py). Rows are sorted by
 `(document_ref, unit_id)` on export and re-encoding. Metadata and protected-part JSON use ASCII
 escaping, sorted object keys, compact separators and no non-finite numbers. CSV
 uses RFC-style double-quote escaping and minimal quoting. The writer emits UTF-8
@@ -117,8 +117,12 @@ spreadsheet formulas and prompt-like text have no authority. Reconstruction
 restores only nodes already present in the matching `ContentDocument`.
 
 The pure API is `export_review_package`, `encode_review_package`,
-`decode_review_package`, `read_review_package`, `write_review_package` and
-`map_review_package` in `ayvu.review.exchange`. Mapping returns a
+`decode_review_package` and `map_review_package` in `ayvu.review`. Construction
+stays in `exchange.py`; `exchange_model.py` owns the contract and limits,
+`exchange_parts.py` the placeholders, `exchange_codec.py` the in-memory codec,
+and `exchange_mapping.py` the reconstruction mapping. The disk adapter
+`ayvu.review.exchange_files` exposes `read_review_package` and
+`write_review_package`. Mapping returns a
 `ReviewReconstructionPlan` with stable `ContentDocument` and `UnitTranslation`
 values for the format reconstructor. Parsing and mapping do not persist state,
 publish artifacts, write provenance/events, contact providers, reconstruct or

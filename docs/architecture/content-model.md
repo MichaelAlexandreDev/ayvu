@@ -18,7 +18,7 @@ context, protected parts and constraints. It does not know what a DOM node, a su
 cue or a page region is: format detail stays in an opaque locator only the adapter
 can interpret.
 
-The v2 review exchange in `ayvu.review.exchange` is the first caller of durable
+The v2 review exchange exposed by `ayvu.review` is the first caller of durable
 units: it binds them to a project/source/artifact revision and returns
 `UnitTranslation` values for structural reconstruction. It does not persist
 content or replace the legacy v1 `c####-s####` export used by the CLI. The

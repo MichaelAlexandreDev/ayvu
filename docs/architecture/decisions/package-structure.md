@@ -211,7 +211,8 @@ src/ayvu/
   projects/        model, service, store, schema; profiles/ (model, service, store, glossary_store)
   translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output;
                    stages/ (memory_retrieval); context/ (model, execution, source)
-  review/          application, exchange, csv_export, csv_import
+  review/          application, exchange, exchange_model, exchange_parts, exchange_mapping,
+                   exchange_codec, exchange_files, csv_export, csv_import
   recovery/        service, store
   v1/              translation, epub, html_translate, cache, cache_check, cache_format, cache_stream,
                    cache_admin_store, resume, resume_scan
@@ -307,7 +308,7 @@ REF-15 break up by reason to change after they move.
 | `context_execution.py` | `translation/context/execution.py` |  |
 | `context_source.py` | `translation/context/source.py` |  |
 | `review_application.py` | `review/application.py` |  |
-| `review_exchange.py` | `review/exchange.py` | split |
+| `review_exchange.py` | `review/exchange.py`, `exchange_model.py`, `exchange_parts.py`, `exchange_mapping.py`, `exchange_codec.py`, `exchange_files.py` | split by responsibility (REF-15) |
 | `review_export.py` | `review/csv_export.py` |  |
 | `review_import.py` | `review/csv_import.py` |  |
 | `job_recovery.py` | `recovery/service.py` | resume orchestration, out of jobs. In REF-08 its pure reuse rules went to `resume_reuse.py`, because the translation pipeline uses them and sits below recovery |
