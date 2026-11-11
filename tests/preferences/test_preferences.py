@@ -1,10 +1,10 @@
 from dataclasses import replace
 import json
-from pathlib import Path
 
 import pytest
 
 from ayvu.preferences.model import GlobalPreferences
+from tests.support.paths import PROJECT_ROOT
 from ayvu.preferences.service import GetPreferences, UpdatePreferences, get_preferences, update_preferences
 
 
@@ -40,7 +40,7 @@ def test_failed_update_keeps_intent_and_reports_persistence_separately():
 
 def test_field_classification_is_complete_executable_contract():
     from ayvu.preferences.model import NamedPreferenceProfile, preferences_to_mapping
-    contract = json.loads((Path(__file__).parents[1] /
+    contract = json.loads((PROJECT_ROOT /
         'docs/architecture/global-preferences-fields.json').read_text())
     fields = {entry['path']: entry for entry in contract['fields']}
     preferences = replace(GlobalPreferences(), profiles=(('test', NamedPreferenceProfile('pt', 'terms.json', 'technical')),))

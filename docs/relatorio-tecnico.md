@@ -91,7 +91,8 @@ ayvu/
 │   ├── test_chunking.py
 │   ├── test_cli.py
 │   ├── test_cli_progress.py
-│   ├── test_config.py
+│   ├── preferences/
+│   │   └── test_config.py
 │   ├── test_epub_io.py
 │   ├── test_glossary.py
 │   ├── test_html_translate.py

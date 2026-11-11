@@ -77,7 +77,7 @@ PUBLIC_LINK_TARGETS = {
     ROOT / "tests" / "test_cache_admin_integration.py",
     ROOT / "tests" / "test_cli.py",
     ROOT / "tests" / "test_cli_progress.py",
-    ROOT / "tests" / "test_config.py",
+    ROOT / "tests" / "preferences" / "test_config.py",
     ROOT / "tests" / "test_content_use_cases.py",
     ROOT / "tests" / "test_epub_io.py",
     ROOT / "tests" / "test_glossary.py",
