@@ -7,7 +7,6 @@ from pathlib import Path
 from ...artifacts import Artifact, ArtifactState
 from ...artifacts import ArtifactService
 from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
-from ...formats.epub.adapter import epub_format_adapter
 from ...formats import AliasVerdict
 from ...formats.local import LocalFormatSource, LocalOutputGuard
 from ...formats import FormatService, FormatSource
@@ -110,7 +109,7 @@ class LocalReviewPackagePort:
         package = export_review_package(
             project=project,
             machine_artifact=machine_artifact,
-            descriptor=epub_format_adapter().descriptor,
+            descriptor=self._formats.descriptor("epub"),
             format_version=inspected.inventory.format_version,
             documents=translation.engine.documents,
             machine_translations=machine_translations,

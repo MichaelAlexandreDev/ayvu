@@ -359,12 +359,12 @@ ALLOWED_INTERNAL_EDGES = {
        "review.application",)),
     *(("ayvu.composition.builders.review_context", f"ayvu.{name}") for name in (
        "artifacts.model", "composition.builders.review_files", "content.model", "formats.contracts",
-       "formats.epub.adapter", "formats.service", "jobs.model", "kernel.cancellation", "projects.model",
+       "formats.service", "jobs.model", "kernel.cancellation", "projects.model",
        "review.application", "review.exchange_mapping", "review.exchange_model",
        "translation.project_contracts",)),
     *(("ayvu.composition.builders.review_packages", f"ayvu.{name}") for name in (
        "artifacts.model", "artifacts.service", "artifacts.store", "composition.builders.review_context",
-       "composition.builders.review_files", "formats.contracts", "formats.epub.adapter",
+       "composition.builders.review_files", "formats.contracts",
        "formats.local", "formats.service", "jobs.model", "jobs.service", "jobs.store",
        "kernel.cancellation", "projects.model", "projects.schema", "projects.store", "provenance.model",
        "provenance.store", "review.application", "review.csv_import", "review.exchange",

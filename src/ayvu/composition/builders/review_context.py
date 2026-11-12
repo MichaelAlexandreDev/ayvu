@@ -8,7 +8,6 @@ from collections.abc import Iterable
 
 from ...artifacts import Artifact, ArtifactCancelledError, ArtifactIntegrityError, ArtifactRequest, ArtifactState
 from ...content import ContentDocument
-from ...formats.epub.adapter import epub_format_adapter
 from ...formats import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
 from ...formats import FormatPublication, FormatSource
 from ...jobs import JobState
@@ -89,7 +88,8 @@ def _map_review_context(self, package: ReviewPackage, identity: ReviewPackageIde
     machine_artifact, machine_job = _resolve_machine_context(self, identity, project)
     documents = _extract_package_documents(self._formats, actual_source, project, package, cancellation)
     machine_translations = self._machine_translations(package)
-    plan = _map_review_plan(package, project, machine_artifact, inspection.inventory.format_version,
+    plan = _map_review_plan(self._formats.descriptor("epub"), package, project, machine_artifact,
+                            inspection.inventory.format_version,
                             documents, machine_translations)
     _verify_machine_digest(self._formats, actual_source, package, project, identity, machine_artifact, machine_job,
                            inspection.inventory.format_version, documents, machine_translations, cancellation)
@@ -158,11 +158,11 @@ def _extract_package_documents(formats, actual_source, project, package, cancell
     return documents
 
 
-def _map_review_plan(package, project, machine_artifact, format_version, documents, machine_translations):
+def _map_review_plan(descriptor, package, project, machine_artifact, format_version, documents, machine_translations):
     try:
         plan = map_review_package(
             package, project=project, machine_artifact=machine_artifact,
-            descriptor=epub_format_adapter().descriptor,
+            descriptor=descriptor,
             format_version=format_version,
             documents=documents, machine_translations=machine_translations,
         )
@@ -179,7 +179,7 @@ def _verify_machine_digest(formats, actual_source, package, project, identity, m
     try:
         machine_plan = map_review_package(
             machine_package, project=project, machine_artifact=machine_artifact,
-            descriptor=epub_format_adapter().descriptor, format_version=format_version,
+            descriptor=formats.descriptor("epub"), format_version=format_version,
             documents=documents, machine_translations=machine_translations)
     except ReviewExchangeError as error:
         raise ReviewApplicationError(str(error)) from None
