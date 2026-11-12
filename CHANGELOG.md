@@ -300,6 +300,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 - `knowledge/cache/identity.py` dividido (REF-15, #283, segunda família): valores, escopos, entradas,
   resolução cache-only e memória compatível viram módulos próprios. A projeção e o decoder ficam em
   `identity.py`; a API de `ayvu.knowledge.cache` e as identidades persistidas não mudam.
+- `translation/project.py` dividido (REF-15, #283, terceira família): contratos, renovação do lease e
+  execução ativa viram módulos próprios. Admissão e reconciliação ficam em `project.py`; a API de
+  `ayvu.translation` e o fingerprint do plano não mudam.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

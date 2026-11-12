@@ -26,7 +26,7 @@ from ayvu.provenance.model import ProducerIdentity, ProvenanceValidationError, d
 from ayvu.providers.ports import ProviderRoute
 from ayvu.providers.capabilities import Capability, ProviderRequirements
 from ayvu.providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LIBRETRANSLATE_SAFE_POINTS, libretranslate_snapshot
-from ayvu.translation.project import RuntimeContext
+from ayvu.translation.project_contracts import RuntimeContext
 from ayvu.translation.document import DocumentTranslator, PIPELINE_SAFE_POINTS, TranslationExecutionError
 from ayvu.translation.plan import ResolvedTranslationPlan, resolve_plan
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator
@@ -107,7 +107,7 @@ def test_composition_refuses_a_present_invalid_label(label):
                                                      ("local-v1", composition.RichTranslationRuntime, 2)])
 def test_production_composition_constructs_only_the_selected_runtime(tmp_path, monkeypatch, label, expected, revision):
     from types import SimpleNamespace
-    from ayvu.translation.project import TranslateObserver, TranslateProjectResult
+    from ayvu.translation.project_contracts import TranslateObserver, TranslateProjectResult
     opened, commands, preparations = [], [], []
     project_id = document().project_id
     monkeypatch.setattr(composition, "ProjectJsonRepository", lambda _: SimpleNamespace(
@@ -385,7 +385,7 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
 def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp_path, monkeypatch, parent_version, new_version):
     from types import SimpleNamespace
     from ayvu.jobs.model import JobRequest, new_job
-    from ayvu.translation.project import ContinuationTicket, TranslateProjectCommand
+    from ayvu.translation.project_contracts import ContinuationTicket, TranslateProjectCommand
     from test_translate_batch_project_contract import _use_case, PROJECT, JOB, NOW, DIGEST, _options
     use_case, jobs = _use_case()
     parent = new_job(JobRequest(PROJECT, "translate_project", parent_version, "sha256:" + "a" * 64), JOB, NOW)
@@ -401,7 +401,7 @@ def test_generic_job_port_refuses_runtime_revision_mismatch_before_preflight(tmp
 
 def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_not_events(tmp_path, monkeypatch):
     from ayvu.jobs.events import JobEventSequence
-    from ayvu.translation.project import TranslateProjectCommand, resolve_execution_plan as job_plan
+    from ayvu.translation.project_contracts import TranslateProjectCommand, resolve_execution_plan as job_plan
     from ayvu.translation.engine import EngineResult
     from test_translate_batch_project_contract import _use_case, PROJECT, DIGEST, _options
     use_case, jobs = _use_case()
@@ -414,7 +414,7 @@ def test_generic_execution_identity_is_in_fingerprint_job_record_provenance_and_
     assert job_plan(changed, project).input_fingerprint != job_plan(rich, project).input_fingerprint
     provenance = []
     use_case._ports.provenance.append = provenance.append
-    monkeypatch.setattr("ayvu.translation.project.TranslationEngine.run", lambda *args: EngineResult(
+    monkeypatch.setattr("ayvu.translation.engine.TranslationEngine.run", lambda *args: EngineResult(
         failure=JobFailure(JobFailureFamily.PROVIDER_TRANSIENT, "provider_server_error", True)))
     result = use_case.execute(rich)
     assert result.state.value == "failed" and result.failure.code == "provider_server_error"
@@ -509,7 +509,7 @@ def test_rich_checkpoint_associates_with_the_recorded_job_without_current_config
     from ayvu.jobs.model import JobRequest, JobState, JobTerminalSummary, new_job, transition_job
     from ayvu.jobs.service import JobSnapshot
     from ayvu.recovery.service import CompatibilityStatus
-    from ayvu.translation.project import TranslateProjectCommand, resolve_execution_plan as job_plan
+    from ayvu.translation.project_contracts import TranslateProjectCommand, resolve_execution_plan as job_plan
     from test_job_recovery_integration import Scene
     scene = Scene(tmp_path)
     project = scene.project()

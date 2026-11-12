@@ -60,7 +60,10 @@ entries fail, so a rename cannot silently discard protection.
 | `preferences.model` | Domain | Valores de preferências e conversões da fachada v1 |
 | `formats.epub.archive`, `formats.epub.adapter`, `formats.epub.io`, `formats.epub.html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation.engine` | Application | One book through a format adapter and a unit executor |
-| `translation.project` | Application | One project's book as one durable job, from its ports |
+| `translation.project` | Application | Project admission, reconciliation and provenance, from its ports |
+| `translation.project_contracts` | Application | Project commands, plans, ports and results |
+| `translation.project_run` | Application | The active project job through its terminal outcome |
+| `translation.project_lease` | Application | Concurrent project job lease renewal |
 | `recovery.service` | Application | Listing, inspecting and resuming interrupted translations |
 | `recovery.store` | Infrastructure | The read-only evidence recovery decides from |
 | `composition.builders.translate_project` | Composition | The current language work and validator behind those ports |

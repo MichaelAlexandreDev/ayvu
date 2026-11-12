@@ -289,7 +289,7 @@ def test_context_execution_cancellation_discards_prepared_values():
 
 def test_real_rich_runtime_resources_pass_context_to_document_translator(tmp_path, monkeypatch):
     import ayvu.composition.builders.translate_project as composition
-    from ayvu.translation.project import RuntimeContext
+    from ayvu.translation.project_contracts import RuntimeContext
     s = scene()
     runtime = composition.RichTranslationRuntime(tmp_path / 'book.epub', TranslationOptions(language_pair=LanguagePair('en', 'pt')),
         lambda: None, tmp_path / 'cache.sqlite', 'model-v1', tmp_path / 'project.sqlite', tmp_path / 'backups',
@@ -383,7 +383,7 @@ def test_pipeline_cache_ignores_unused_context_and_inert_profile_changes():
 
 def test_composition_binds_context_before_repositories_and_puts_effect_in_job_plan(tmp_path, monkeypatch):
     import ayvu.composition.builders.translate_project as composition
-    from ayvu.translation.project import TranslateObserver, TranslateProjectResult
+    from ayvu.translation.project_contracts import TranslateObserver, TranslateProjectResult
     from test_translation_context import OPERATION
     s = scene()
     # Relógio da fronteira real, sem rede nem projeto SQLite.
@@ -418,7 +418,7 @@ def test_composition_binds_context_before_repositories_and_puts_effect_in_job_pl
 
 
 def test_context_job_plan_changes_only_when_declared(tmp_path):
-    from ayvu.translation.project import TranslateProjectCommand, resolve_execution_plan as resolve_plan
+    from ayvu.translation.project_contracts import TranslateProjectCommand, resolve_execution_plan as resolve_plan
     # Reutiliza o manifesto mínimo já validado pelo contrato de projeto.
     from test_project import manifest
     project = manifest()
@@ -534,7 +534,7 @@ def test_composition_cancellation_stops_before_candidate_loading_and_project_por
     from contextlib import contextmanager
     import ayvu.composition.builders.translate_project as composition
     from ayvu.jobs.execution import CancellationSource
-    from ayvu.translation.project import TranslateObserver
+    from ayvu.translation.project_contracts import TranslateObserver
     from test_translation_context import OPERATION
     s = scene()
     s.source.calls.clear()

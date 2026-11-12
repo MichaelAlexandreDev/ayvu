@@ -24,7 +24,7 @@ from ayvu.preferences.service import PreferencesSnapshot
 from ayvu.projects.schema import open_provenance_repository
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.review import decode_review_package
-from ayvu.translation.project import ContinuationTicket, TRANSLATE_BEFORE_START, TranslateObserver
+from ayvu.translation.project_contracts import ContinuationTicket, TRANSLATE_BEFORE_START, TranslateObserver
 from ayvu.translation.engine import ENGINE_SAFE_POINTS
 from test_cli_translate_project import Session, _args, _book, _jobs
 from test_translate_project import CancelAt
@@ -299,7 +299,7 @@ def test_rich_job_cancellation_at_each_existing_safe_point(tmp_path, monkeypatch
     points = tuple(dict.fromkeys((TRANSLATE_BEFORE_START, *ENGINE_SAFE_POINTS, *composition.epub_format_service().safe_points("epub"),
                                  *composition.DOCUMENT_SAFE_POINTS)))
     cancel = CancelAt(points, point)
-    from ayvu.translation.project import TranslateProjectCommand
+    from ayvu.translation.project_contracts import TranslateProjectCommand
     command = TranslateProjectCommand(project.project_id, project.source_sha256, options,
         OutputPlan.for_translation(source, tmp_path / "out.epub", options.language_pair), execution_revision=2, producer=runtime.producer,
         additional_output_roles=("raw_results",))

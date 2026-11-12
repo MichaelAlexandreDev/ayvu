@@ -61,7 +61,10 @@ os mesmos ports do caminho legado, preservando o EPUB original.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.translation.project` | Application | The command and result, the ports, the plan and the job from creation to its outcome |
+| `ayvu.translation.project` | Application | Admission, exclusion, reconciliation and provenance for the project use case |
+| `ayvu.translation.project_contracts` | Application | The command and result, the ports and the execution plan fingerprint |
+| `ayvu.translation.project_run` | Application | One active job from its acquired lease to its terminal outcome |
+| `ayvu.translation.project_lease` | Application | Concurrent renewal of the active job lease |
 | `ayvu.translation.engine` | Application | One book through a format adapter and a unit executor |
 | `ayvu.artifacts.destination` | Infrastructure | Publishing to the file the user chose, and the way back to it after a crash |
 | `ayvu.composition.builders.translate_project` | Composition | The current language work and validator behind the ports, and the assembled use case |

@@ -39,7 +39,7 @@ from ayvu.review.application import (
 )
 from ayvu.composition.builders.review import LocalReviewOperations, _OperationState
 from ayvu.translation.engine import EngineResult
-from ayvu.translation.project import TranslateProjectResult
+from ayvu.translation.project_contracts import TranslateProjectResult
 from ayvu.kernel import JobFailure, JobFailureFamily
 
 

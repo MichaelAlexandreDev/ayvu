@@ -15,7 +15,7 @@ from ayvu.translation.batch import BatchCommand, BatchValidationError, ItemOutco
 from ayvu.composition.builders.translate_batch import (
     BatchCancellationController, LocalBatchItem, LocalTranslateBatch, project_item_outcome,
 )
-from ayvu.translation.project import TranslateProjectResult
+from ayvu.translation.project_contracts import TranslateProjectResult
 from test_batch_output_policy import intent
 
 

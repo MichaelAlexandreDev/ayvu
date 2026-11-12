@@ -24,7 +24,7 @@ from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.jobs.events import JobOutcome, JobTerminalSummary
 from ayvu.translation.preflight import run_translation_preflight
-from ayvu.translation.project import OutputValidation, TranslateProjectResult
+from ayvu.translation.project_contracts import OutputValidation, TranslateProjectResult
 from ayvu.composition.builders.translate_project import ProjectTranslationRun
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode, JobFailure, JobFailureFamily
 

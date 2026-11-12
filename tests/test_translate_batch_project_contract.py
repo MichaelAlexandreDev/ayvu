@@ -15,9 +15,9 @@ from ayvu.jobs.model import JobState, acquire_lease, new_job, release_lease, tra
 from ayvu.jobs.events import encode_event
 from ayvu.translation.batch import ItemStatus
 from ayvu.composition.builders.translate_batch import BatchCancellationController, project_item_outcome
-from ayvu.translation.project import (TranslateCommandError, TranslateObserver, TranslateProject,
-                                    TranslateProjectCommand, TranslateProjectInterrupted, TranslateProjectPorts,
-                                    TranslateProjectResult)
+from ayvu.translation.project import TranslateProject
+from ayvu.translation.project_contracts import (TranslateCommandError, TranslateObserver, TranslateProjectCommand,
+                                    TranslateProjectInterrupted, TranslateProjectPorts, TranslateProjectResult)
 from ayvu.composition.builders.translate_project import ProjectTranslation, translate_in_project
 from ayvu.translation.engine import ENGINE_BEFORE_UNIT, EngineResult
 from test_batch_output_policy import intent
@@ -207,7 +207,7 @@ def test_real_project_active_cancellation_is_observed_after_blocking_transport(t
         assert engine._cancellation.checkpoint(ENGINE_BEFORE_UNIT) is not None
         return EngineResult(failure=JobFailure(JobFailureFamily.CANCELLED, "cancelled"))
 
-    monkeypatch.setattr("ayvu.translation.project.TranslationEngine.run", engine_run)
+    monkeypatch.setattr("ayvu.translation.engine.TranslationEngine.run", engine_run)
     command = TranslateProjectCommand(PROJECT, DIGEST, _options(), OutputPlan(tmp_path / "out.epub"))
     def run():
         with controller.bind(source):
@@ -229,7 +229,7 @@ def test_interrupted_exception_carries_settled_real_result(tmp_path, monkeypatch
     use_case, jobs = _use_case()
     def interrupt(*args):
         raise KeyboardInterrupt
-    monkeypatch.setattr("ayvu.translation.project.TranslationEngine.run", interrupt)
+    monkeypatch.setattr("ayvu.translation.engine.TranslationEngine.run", interrupt)
     command = TranslateProjectCommand(PROJECT, DIGEST, _options(), OutputPlan(tmp_path / "out.epub"))
     with pytest.raises(TranslateProjectInterrupted) as raised:
         use_case.execute(command)
@@ -260,7 +260,7 @@ def test_batch_public_projection_and_events_exclude_private_canaries(tmp_path, m
     use_case, _ = _use_case()
     def interrupt(*args):
         raise KeyboardInterrupt(canary)
-    monkeypatch.setattr("ayvu.translation.project.TranslationEngine.run", interrupt)
+    monkeypatch.setattr("ayvu.translation.engine.TranslationEngine.run", interrupt)
     command = TranslateProjectCommand(PROJECT, DIGEST, _options(), OutputPlan(tmp_path / f"{canary}.epub"))
     events = []
     with caplog.at_level("DEBUG"), pytest.raises(TranslateProjectInterrupted) as raised:
