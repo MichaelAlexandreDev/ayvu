@@ -4,15 +4,15 @@ import os
 from datetime import UTC, datetime
 
 
-from ayvu.content_use_cases import ExportFileState, ExportVisibleContent, ExportVisibleContentRequest, OutputDirectoryRef
+from ayvu.formats import ExportFileState, ExportVisibleContent, ExportVisibleContentRequest, OutputDirectoryRef
 from ayvu.formats.local import LocalFormatSource
 from ayvu.jobs.execution import CancellationSource
 from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 
 from ayvu.kernel import JobFailureFamily
 
-from tests.support.content_use_cases_support import RecordingWriter, SOURCE_REF, _export_changing_source_after
-from tests.support.content_use_cases_support import epub_service, export_request, write_epub
+from tests.support.format_use_cases_support import RecordingWriter, SOURCE_REF, _export_changing_source_after
+from tests.support.format_use_cases_support import epub_service, export_request, write_epub
 
 
 def test_production_writer_publishes_exact_markdown_atomically_and_keeps_original(minimal_epub_path, tmp_path, monkeypatch):

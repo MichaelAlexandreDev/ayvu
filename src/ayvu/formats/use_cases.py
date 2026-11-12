@@ -11,11 +11,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
 
-from .formats import (
+from .contracts import (
     DetectionOutcome, DetectionResult, FormatDescriptor, FormatInventory, VisibleContentDocument, valid_source_fingerprint,
 )
-from .formats import FormatService, FormatSource
-from .kernel import is_slug, JobFailure, JobFailureFamily, JobWarning, CancellationToken, JobCancellationError
+from .service import FormatService, FormatSource
+from ..kernel import is_slug, JobFailure, JobFailureFamily, JobWarning, CancellationToken, JobCancellationError
 
 CONTENT_BEFORE_INSPECTION = "content_before_inspection"
 CONTENT_BEFORE_EXPORT = "content_before_export"

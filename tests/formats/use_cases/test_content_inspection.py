@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 
-from ayvu.content_use_cases import ExportVisibleContent, ExportVisibleContentRequest, InspectContent, InspectContentRequest, OutputDirectoryRef
+from ayvu.formats import ExportVisibleContent, ExportVisibleContentRequest, InspectContent, InspectContentRequest, OutputDirectoryRef
 from ayvu.formats.local import LocalFormatSource
 from ayvu.formats.service import FormatAdapter, FormatRegistration, FormatRegistry, FormatService
 from ayvu.jobs.execution import CancellationSource
@@ -17,8 +17,8 @@ from tests.support.epub_fakes import OPF, epub_bytes
 from tests.support.format_fakes import NOTES_REGISTRATION, NotesPorts, notes_adapter, notes_descriptor
 from ayvu.kernel import JobFailureFamily
 
-from tests.support.content_use_cases_support import RecordingWriter, SOURCE_REF
-from tests.support.content_use_cases_support import epub_service, write_epub
+from tests.support.format_use_cases_support import RecordingWriter, SOURCE_REF
+from tests.support.format_use_cases_support import epub_service, write_epub
 
 
 def test_inspection_uses_registry_and_keeps_the_source_read_only(minimal_epub_path, monkeypatch, tmp_path):

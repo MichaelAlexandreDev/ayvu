@@ -174,7 +174,7 @@ OWNERS = {
     "ayvu.composition.builders.review_operations": Owner("composition", "Review"),
     "ayvu.library.service": Owner("application", "Library"),
     "ayvu.library.adapters": Owner("infrastructure", "Library"),
-    "ayvu.content_use_cases": Owner("application", "Formats"),
+    "ayvu.formats.use_cases": Owner("application", "Formats"),
     "ayvu.formats.markdown.writer": Owner("infrastructure", "Formats"),
     "ayvu.composition.builders.content": Owner("composition", "Formats"),
 }

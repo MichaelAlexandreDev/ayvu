@@ -5,12 +5,12 @@ import os
 
 import pytest
 
-from ayvu.content_use_cases import ExportVisibleContent
+from ayvu.formats import ExportVisibleContent
 from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 
 
-from tests.support.content_use_cases_support import _no_hard_links
-from tests.support.content_use_cases_support import epub_service, export_request, write_epub
+from tests.support.format_use_cases_support import _no_hard_links
+from tests.support.format_use_cases_support import epub_service, export_request, write_epub
 
 
 def test_exported_files_follow_the_umask_like_the_translated_epub(tmp_path):

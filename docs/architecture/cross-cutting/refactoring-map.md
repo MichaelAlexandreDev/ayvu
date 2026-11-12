@@ -25,7 +25,7 @@ REF-15 break up by reason to change after they move.
 | `provenance_service.py` | `provenance/service.py` |  |
 | `provenance_store.py` | `provenance/store.py` |  |
 | `content.py` | `content/model.py` |  |
-| `content_use_cases.py` | `content/use_cases.py` | not moved in REF-07: in `content/` it would make an import cycle with formats, whose adapter port imports content. Its home is the owner's open question |
+| `content_use_cases.py` | `formats/use_cases.py` | moved in REF-07 by the owner's decision of 2026-11-12; Formats owns the application orchestration, avoiding a cycle with content |
 | `translation_protection.py` | `content/protection.py` | used by formats and translation |
 | `job.py` | `jobs/model.py` | `is_slug`, `validate_job_identity` → `kernel/ids.py`; `validate_utc` → `kernel/clock.py` |
 | `job_events.py` | `jobs/events.py` | `JobFailure`, `JobFailureFamily`, `JobWarning`, `normalize_failure` → `kernel/failures.py` |

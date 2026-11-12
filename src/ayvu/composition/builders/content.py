@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ...content_use_cases import (
+from ...formats import (
     ExportVisibleContent, ExportVisibleContentRequest, ExportVisibleContentResult, InspectContent,
     InspectContentRequest, InspectContentResult, OutputDirectoryRef, SourceRef,
 )

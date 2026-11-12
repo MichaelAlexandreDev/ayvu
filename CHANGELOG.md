@@ -53,6 +53,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-07 (#275): os casos de uso de inspeção e exportação do texto visível vão para
+  `formats/use_cases.py` e são exportados por `ayvu.formats`; acaba o ciclo `content ↔ formats`.
+
 - REF-20 (#288), lote D: índice `docs/architecture/README.md`; a matriz de casos de uso vira o contrato
   `modules/interfaces-cli.md` e o snapshot `cross-cutting/cli-surface.md`; a verificação de dependências e o baseline
   da refatoração vão para `cross-cutting/`. `docs/architecture/` passa a ter só `decisions/`, `modules/` e

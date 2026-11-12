@@ -6,13 +6,14 @@ Related issue: [#147 — Extract inspect and visible-content export application 
 
 ## Ownership
 
-The package owner of `content_use_cases` remains open. This document keeps the
-application orchestration separate from the `ayvu.content` domain, format parsers
-and the Markdown writer; it does not authorize a code move.
+Formats owns `ayvu.formats.use_cases` at the application layer, by the owner's
+decision of 2026-11-12 (REF-07). Public names are exported by `ayvu.formats`.
+The orchestration stays separate from the `ayvu.content` domain, format parsers
+and the Markdown writer; content does not import Formats.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
-| `ayvu.content_use_cases` | Application | Framework-neutral requests, results, capability negotiation, progress, cancellation and per-file outcomes |
+| `ayvu.formats.use_cases` | Application | Framework-neutral requests, results, capability negotiation, progress, cancellation and per-file outcomes |
 | `ayvu.formats.epub.adapter` | Format | Detects and inspects EPUBs; returns ordered visible body-text records |
 | `ayvu.formats.epub.html_structure` | Format | Selects visible body text from XHTML without including the document head |
 | `ayvu.formats.markdown.writer` | Infrastructure | Validates the full destination plan and atomically publishes each Markdown file |
@@ -80,9 +81,9 @@ preserved, and the message does not claim a directory transaction.
 
 ## Enforced contracts
 
-- [test_content_export](../../../tests/content_use_cases/test_content_export.py).
-- [test_content_inspection](../../../tests/content_use_cases/test_content_inspection.py).
-- [test_content_redaction](../../../tests/content_use_cases/test_content_redaction.py).
+- [test_content_export](../../../tests/formats/use_cases/test_content_export.py).
+- [test_content_inspection](../../../tests/formats/use_cases/test_content_inspection.py).
+- [test_content_redaction](../../../tests/formats/use_cases/test_content_redaction.py).
 - [test_markdown_writer_filesystem](../../../tests/formats/markdown/test_markdown_writer_filesystem.py).
 - [test_markdown_writer_guards](../../../tests/formats/markdown/test_markdown_writer_guards.py).
 - [test_markdown_writer_publication](../../../tests/formats/markdown/test_markdown_writer_publication.py).
