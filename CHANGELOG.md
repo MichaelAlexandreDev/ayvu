@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote F: testes de cache movidos para seus pacotes,
+  com divisões por contrato e preservação dos testes e invariantes core.
+
 - REF-16 (#284), lote E: testes de jobs, artefatos e proveniência movidos para seus pacotes,
   com divisões por contrato e preservação dos testes e invariantes core.
 
