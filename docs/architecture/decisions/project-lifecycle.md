@@ -17,9 +17,9 @@ progress, but do not establish a durable project identity. Shared application
 workflows need a stable local reference that survives process restarts and
 interface changes.
 
-The [accepted modular boundaries](../modular-monolith-boundaries.md) assign project
+The [accepted modular boundaries](modular-monolith-boundaries.md) assign project
 contracts to the core and concrete storage to adapters. The
-[product threat model](../product-threat-model.md) identifies filesystem, content,
+[product threat model](product-threat-model.md) identifies filesystem, content,
 and credential boundaries; it remains `Proposed`.
 
 ## Decision

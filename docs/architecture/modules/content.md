@@ -77,7 +77,7 @@ refuse absolute paths, URLs and control characters.
   in two projects does not correlate. The project has no secret key, so someone who knows
   the UUID, the logical key and the locator could confirm a guess about a very short
   document. IDs must leave a project only after remapping, as the
-  [threat model](../product-threat-model.md) already requires for diagnostics. A per-project
+  [threat model](../decisions/product-threat-model.md) already requires for diagnostics. A per-project
   key would close this, but needs a manifest change and is left to a separate decision.
 - **The source digest is not a public ID** and no proof that content is safe to log. It is
   for divergence and integrity checks only.

@@ -230,7 +230,7 @@ transport exceptions under #159, while retaining typed connection/timeout/protoc
 `composition.cli` (#158) delegates to `ayvu.composition.builders.providers`, which derives the
 operation-bound decisions from the same immutable `none`/`loopback` snapshot enforced
 by the translator. Missing selection explicitly records the loopback compatibility
-default. See the [HTTP policy contract](../network-policy.md). The shared use cases
+default. See the [HTTP policy contract](../cross-cutting/network-policy.md). The shared use cases
 still do not evaluate URLs or duplicate policy classification.
 
 No code here names a provider or reads a URL. Adapters are registered explicitly at a composition
@@ -264,7 +264,7 @@ to and only before it expires, and `describe` reports expired evidence as unknow
 ### Network decision
 
 Every network operation takes a `ResolvedProviderNetworkDecision`, made elsewhere. It holds allow or
-deny, a class from the [threat model](../product-threat-model.md), a reason code, an optional policy
+deny, a class from the [threat model](../decisions/product-threat-model.md), a reason code, an optional policy
 reference, a policy revision, an issuer, validity times and a binding to one instance, configuration
 and operation.
 

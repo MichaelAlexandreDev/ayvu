@@ -7,7 +7,7 @@ Issue: [#160](https://github.com/DevStarrk1137/ayvu/issues/160).
 
 Local evidence: 2026-11-06 (UTC).
 
-Mandatory dependency: [threat model #129](../product-threat-model.md),
+Mandatory dependency: [threat model #129](product-threat-model.md),
 `Accepted` on 2026-11-05, present in the `main` baseline
 `79bcc6ec45d603bcab1d74da58021f1edf0657ca`.
 The [desktop ADR](adr-desktop-stack.md) is also `Accepted`; it does not provide

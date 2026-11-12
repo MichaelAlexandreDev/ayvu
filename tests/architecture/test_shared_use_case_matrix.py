@@ -35,7 +35,7 @@ OPTION_KINDS = {
     "presentation-only",
 }
 PUBLIC_LINK_TARGETS = {
-    ROOT / "docs" / "architecture" / "network-policy.md",
+    ROOT / "docs" / "architecture" / "cross-cutting" / "network-policy.md",
     ROOT / "README.md",
     ROOT / "docs" / "product-scope.md",
     ROOT / "docs" / "translation-workflow-migration-baseline.md",

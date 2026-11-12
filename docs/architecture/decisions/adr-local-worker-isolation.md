@@ -17,9 +17,9 @@ artifacts are versioned in that commit:
 | --- | --- |
 | #124 | [Desktop stack](adr-desktop-stack.md#acceptance-record): `Accepted`, maintainer approval on 2026-11-05; PySide6/Qt Widgets, Linux x86_64 as the first evaluation/product target; Windows/macOS deferred until native evidence |
 | #126 | [Events and cancellation](../modules/jobs.md): schema 1, single producer, outcome, failures and safe points |
-| #129 | [Threat model](../product-threat-model.md): `Accepted`, approval on 2026-11-05; a subprocess is not a sandbox |
+| #129 | [Threat model](product-threat-model.md): `Accepted`, approval on 2026-11-05; a subprocess is not a sandbox |
 | #137 | [Artifacts](job-artifacts.md): `Accepted`, staging/ready/abandoned, lease and reconciliation |
-| #159 | [HTTP policy](../network-policy.md): `none`/`loopback`, denial before I/O and no ambient authority |
+| #159 | [HTTP policy](../cross-cutting/network-policy.md): `none`/`loopback`, denial before I/O and no ambient authority |
 
 #124 accepts the toolkit while retaining distribution/accessibility gates. No
 Desktop support has been delivered. The conservative interpretation for this matrix

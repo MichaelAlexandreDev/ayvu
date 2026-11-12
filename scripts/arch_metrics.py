@@ -10,7 +10,7 @@ Usage: scripts/arch_metrics.py [--root src/ayvu] [--json]
 
 Grouping: a file inside a package belongs to its first package segment (``knowledge/cache/x.py`` is
 ``knowledge``). A top-level file is looked up in LEGACY_GROUPS, the grouping of the flat layout at
-5796e49 into the modules of docs/architecture/modular-monolith-boundaries.md. As files move into
+5796e49 into the modules of docs/architecture/cross-cutting/module-ownership.md. As files move into
 packages, their entries here stop being used and can be deleted.
 
 The script reads source only: it never imports Ayvu, runs no code, and needs no network.

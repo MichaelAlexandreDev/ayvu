@@ -15,7 +15,7 @@ scripts/arch_metrics.py --json   # the same, as JSON
 
 The script reads the source only: it does not import Ayvu and needs no network.
 - Files inside a package belong to their first package segment.
-- Top-level files belong to the module groups of the [module boundaries](modular-monolith-boundaries.md),
+- Top-level files belong to the module groups of the [module boundaries](decisions/modular-monolith-boundaries.md),
   listed in `LEGACY_GROUPS` inside the script.
 - Two groups that import each other in both directions count as one cycle pair.
 
