@@ -23,7 +23,6 @@
     "src/ayvu/v1/cache.py": 516,
     "src/ayvu/v1/epub.py": 691,
     "src/ayvu/v1/resume.py": 442,
-    "tests/test_job_recovery_integration.py": 586,
     "tests/test_local_worker_spike.py": 499,
     "tests/test_translate_project.py": 1250
   },
