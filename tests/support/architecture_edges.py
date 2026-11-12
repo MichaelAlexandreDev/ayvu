@@ -3,6 +3,9 @@
 from .architecture_cache_edges import CACHE_EDGES
 
 ALLOWED_INTERNAL_EDGES = {
+    *((f"ayvu.knowledge.cache.{a}", f"ayvu.knowledge.cache.{b}") for a, names in (
+       ("read_only", "entries identity_values read_only_queries scope schema"),
+       ("read_only_queries", "entries identity_values repository scope")) for b in names.split()),
     ("ayvu.composition.desktop", "ayvu.composition.editions"),
     ("ayvu.composition.desktop", "ayvu.composition.surface_rules"),
     ("ayvu.interfaces.cli.guided.menu", "ayvu.composition.cli"),  # REF-17: surface data from the root.

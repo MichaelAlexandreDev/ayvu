@@ -15,6 +15,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- REF-18 (#286), passo 2: leitor interno somente leitura do cache v2, com consultas exatas e enumeração limitada de
+  registros canônicos validados; ainda sem ligação à produção e sem efeito visível na CLI.
+
 - REF-18 (#286): aposentadoria do v1 aceita pelo dono: retraduzir os dados antigos e guardar os
   originais v1 como histórico; exigir modelo declarado; manter preview, dry run e workers.
 

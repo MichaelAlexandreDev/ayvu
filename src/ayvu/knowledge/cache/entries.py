@@ -46,6 +46,24 @@ def exact_entry_key(scope: AuthorizedCacheScope, value_kind: CacheValueKind, sem
     return ExactEntryKey(scope, value_kind, semantic_fingerprint, source_content_digest(source_text))
 
 
+@dataclass(frozen=True, repr=False)
+class CanonicalCacheRecord:
+    """Validated stored evidence; construction belongs to the cache adapters."""
+
+    key: ExactEntryKey
+    source_text: str = field(repr=False)
+    value: str = field(repr=False)
+    canonical_identity: bytes = field(repr=False)
+    metadata: bytes = field(repr=False)
+    provenance: bytes = field(repr=False)
+    created_at: str = field(repr=False)
+    provenance_digest: str = field(repr=False)
+    entry_digest: str = field(repr=False)
+
+    def __repr__(self) -> str:
+        return "CanonicalCacheRecord(<redacted>)"
+
+
 class CacheLookupState(StrEnum):
     HIT = "hit"
     MISS = "miss"

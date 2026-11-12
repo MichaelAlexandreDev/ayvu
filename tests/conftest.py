@@ -127,6 +127,8 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "knowledge/cache/test_cache_identity_canonical.py",
         "knowledge/cache/test_cache_identity_scope_resolution.py",
         "knowledge/cache/test_cache_repository_v2.py",
+        "knowledge/cache/test_cache_read_only.py",
+        "knowledge/cache/test_cache_read_only_refusals.py",
         "translation/test_translation_cache_v2_cache_only.py",
         "translation/test_translation_cache_v2_fuzzy.py",
         "translation/test_translation_cache_v2_identity.py",

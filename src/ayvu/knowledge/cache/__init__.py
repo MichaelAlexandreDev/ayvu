@@ -25,7 +25,7 @@ from .cache_only import (
     ResolvedCacheExecutionIdentity, resolve_compatible_identities,
 )
 from .entries import (
-    CacheLookupState, CacheMissReason, CacheProvenanceMetadata, ExactCacheEntry, ExactCacheLookup,
+    CacheLookupState, CacheMissReason, CacheProvenanceMetadata, CanonicalCacheRecord, ExactCacheEntry, ExactCacheLookup,
     ExactEntryKey, PutIfAbsentResult, PutIfAbsentState, exact_entry_key,
 )
 from .identity import SemanticOperationV2
@@ -37,7 +37,7 @@ __all__ = [
     "CacheFilter", "CacheIdentityConflict", "CacheIdentityError", "CacheIdentityResolutionState",
     "CacheIneligibleReason", "CacheLookupState", "CacheMissReason", "CacheNamespace", "CacheOnlyMode",
     "CacheOnlyRequest", "CacheProvenanceMetadata", "CacheRef", "CacheScope", "CacheScopeKind",
-    "CacheScopeMapping", "CacheValueKind", "CanonicalValue", "CompatibleMemoryCandidate",
+    "CacheScopeMapping", "CacheValueKind", "CanonicalCacheRecord", "CanonicalValue", "CompatibleMemoryCandidate",
     "CompatibleMemoryQuery", "DiscardImport", "ExactCacheEntry", "ExactCacheLookup", "ExactEntryKey",
     "ExecuteClean", "ExecuteCleanRequest", "ExecuteImport", "ExecuteImportRequest", "ExportCache",
     "ExportReceipt", "ExportRequest", "FileRef", "ImportCache", "ImportCounts", "ImportRequest",

@@ -29,6 +29,20 @@ this path when `translator_models.libretranslate` contains a valid label in
 by the user, never observed on the server. `unknown` remains ineligible.
 A new cache prepared at this boundary starts as v2.
 
+`read_only.ReadOnlyExactCache` is a separate public I/O adapter, not exported by the package
+and not yet wired to production. It opens an explicit v2 path with URI `mode=ro` in a short
+read transaction, reuses schema and payload validation, and returns an empty reader for an
+absent file. `lookup(key)` matches the writer's exact hit/miss/corruption contract;
+`canonical_records(scope, kind, source_digest, limit=...)` returns validated
+`CanonicalCacheRecord` evidence for the aggregate kind, failing on candidate overflow.
+The evidence DTO is a pure package export; it never loads SQLite.
+WAL header versions, WAL/SHM/journal sidecars and pending migration artifacts are refused
+before SQLite is opened. Schema classification inside the read snapshot refuses preparation
+or recovery without attempting either. Existing locks are opened read-only and acquired
+shared without chmod; without a lock, SQLite pins the stable rollback snapshot and the
+reader rechecks inode and artifacts around opening and reading. The owned-directory,
+cooperative migration protocol has the same non-cooperating replacement limit as `schema.py`.
+
 The #252 integration derives the sibling file by appending `.v2.sqlite` to the
 `--cache` name: `cache.sqlite` produces `cache.sqlite.v2.sqlite`. Original v1 is neither opened
 nor changed by the rich runtime; there is no migration, copying, querying or promotion of its
