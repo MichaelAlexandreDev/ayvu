@@ -70,9 +70,9 @@ scoped acceptances live in their own ADRs: [project lifecycle](decisions/project
 (`DEC-003`), [local storage](decisions/local-project-storage.md) (`DEC-012`) and
 [job lifecycle](decisions/job-lifecycle.md) (`DEC-004`) and [job artifacts](decisions/job-artifacts.md)
 (extending `DEC-004` and `DEC-012`), [provenance](decisions/provenance.md) (`DEC-014`) and
-[content model](content-model.md), [format adapter](format-adapter.md) and [EPUB format](epub-format.md) (`DEC-005`) and
-[provider contracts](provider-contracts.md) and
-[provider capabilities](provider-capabilities.md) (`DEC-008`) and
+[content model](decisions/content-model.md), [format adapter](decisions/format-adapter.md) and [EPUB format](decisions/epub-format.md) (`DEC-005`) and
+[provider contracts](decisions/provider-contracts.md) and
+[provider capabilities](decisions/provider-capabilities.md) (`DEC-008`) and
 [translation pipeline](translation-pipeline.md) (`DEC-007`).
 
 The [local workers and IPC](adr-local-worker-isolation.md) decision (#167) was

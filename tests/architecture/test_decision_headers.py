@@ -18,14 +18,14 @@ RECORDS = {
     "adr-desktop-stack.md": ("Accepted", "2026-10-02", "124"),
     "adr-local-worker-isolation.md": ("Accepted", "2026-11-06", "167"),
     "adr-secret-store-adapters.md": ("Proposed", "2026-11-06", "160"),
-    "content-model.md": ("Accepted", "2026-11-03", "140"),
+    "decisions/content-model.md": ("Accepted", "2026-11-03", "140"),
     "decisions/ai-assistance-authority.md": ("Proposed", "2026-11-10", "166"),
     "decisions/package-structure.md": ("Accepted", "2026-11-10", "267"),
     "decisions/rights-purpose-governance.md": ("Proposed", "2026-11-05", "165"),
     "decisions/v1-retirement.md": ("Proposed", "2026-11-12", "286"),
-    "epub-format.md": ("Accepted", "2026-11-04", "144"),
-    "format-adapter.md": ("Accepted", "2026-11-03", "127"),
-    "html-structure.md": ("Accepted", "2026-11-04", "143"),
+    "decisions/epub-format.md": ("Accepted", "2026-11-04", "144"),
+    "decisions/format-adapter.md": ("Accepted", "2026-11-03", "127"),
+    "decisions/html-structure.md": ("Accepted", "2026-11-04", "143"),
     "decisions/job-artifacts.md": ("Accepted", "2026-11-03", "137"),
     "decisions/job-lifecycle.md": ("Accepted", "2026-11-03", "136"),
     "decisions/local-project-storage.md": ("Accepted", "2026-11-03", "135"),
@@ -33,8 +33,8 @@ RECORDS = {
     "product-threat-model.md": ("Accepted", "2026-09-29", "129"),
     "decisions/project-lifecycle.md": ("Accepted", "2026-11-03", "134"),
     "decisions/provenance.md": ("Accepted", "2026-11-03", "138"),
-    "provider-capabilities.md": ("Accepted", "2026-11-03", "103"),
-    "provider-contracts.md": ("Accepted", "2026-11-03", "141"),
+    "decisions/provider-capabilities.md": ("Accepted", "2026-11-03", "103"),
+    "decisions/provider-contracts.md": ("Accepted", "2026-11-03", "141"),
     "translation-pipeline.md": ("Accepted", "2026-11-03", "142"),
 }
 HEADER = re.compile(
@@ -99,7 +99,7 @@ def test_proposed_contract_identity_and_vocabulary_are_preserved(relative: str, 
 
 
 @pytest.mark.parametrize("relative, implementation", [
-    ("content-inspect-export.md", "Implementation: Implemented"),
+    ("modules/content-use-cases.md", "Implementation: Implemented"),
     ("modules/review.md", "Implementation: Implemented; shared application use cases and CLI orchestration are connected."),
     ("shared-use-case-matrix.md", "Implementation: Implementation matrix consolidated in #158; this does not change ADR status."),
 ])

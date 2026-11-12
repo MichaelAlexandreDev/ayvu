@@ -1,11 +1,11 @@
 # Format compatibility map
 
 This map lists where each current EPUB behavior lives today and what owns it under the
-[format adapter contract](format-adapter.md). #147 moved the CLI `inspect` and `extract`
+[format adapter contract](../decisions/format-adapter.md). #147 moved the CLI `inspect` and `extract`
 flows to shared use cases; legacy functions remain callable where other compatibility
 paths still use them.
 
-The production adapter is in `ayvu.formats.epub.adapter`, documented in [EPUB format](epub-format.md).
+The production adapter is in `ayvu.formats.epub.adapter`, documented in [EPUB format](../decisions/epub-format.md).
 
 `tests/formats/test_format_contract_architecture.py` checks that every behavior below is present, that every symbol
 exists, and that jobs, retries and output paths are not assigned to a format.
@@ -30,7 +30,7 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 | visible text selection | `ayvu.v1.html_translate.extract_visible_text` for translation; `ayvu.formats.epub.html_structure.extract_body_visible_text` for Markdown export | `ayvu.formats.epub.html_structure` | #144 owns XHTML parsing and visibility selection; the Markdown writer does not parse markup |
 | html reconstruction | `ayvu.v1.html_translate.translate_html` | `ayvu.formats.epub.html_structure.reconstruct_html` | #144 delegates to it, with no second segmenter |
 | jobs | `ayvu.jobs.service.JobRepository` | `ayvu.jobs.service.JobRepository` | Not a format concern |
-| resume | `ayvu.v1.resume.ResumeStateStore` | [`ayvu.recovery.service`](modules/recovery.md) | Not a format concern |
+| resume | `ayvu.v1.resume.ResumeStateStore` | [`ayvu.recovery.service`](recovery.md) | Not a format concern |
 | output path | `ayvu.kernel.OutputPlan` | #145 | Naming and overwrite rules stay with the application. `ayvu.formats.service.OutputGuard` only refuses the source |
 | translation | `ayvu.v1.epub.translate_epub` | `ayvu.translation.engine.TranslationEngine` | Orchestration leaves the format layer in #145. An adapter never calls a provider. `ayvu.translation.document.DocumentTranslator` takes over after #153 |
 
@@ -62,3 +62,11 @@ use `ebooklib`, so these books stay refused until those two move.
 
 **Text warnings stay text.** The report keeps naming the file, because the use case still runs `validate_output_epub`
 behind its port. Moving to the adapter's findings loses which file, unless a finding gains a location first.
+
+## Enforced contracts
+
+- [test_format_contract_architecture](../../../tests/formats/test_format_contract_architecture.py).
+- [test_epub_archive_open](../../../tests/formats/epub/test_epub_archive_open.py).
+- [test_epub_archive_copy](../../../tests/formats/epub/test_epub_archive_copy.py).
+- [test_epub_format_reconstruction](../../../tests/formats/epub/test_epub_format_reconstruction.py).
+- [test_html_structure_reconstruction](../../../tests/formats/epub/test_html_structure_reconstruction.py).

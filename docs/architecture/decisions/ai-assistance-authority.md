@@ -39,14 +39,14 @@ presence satisfies the documentary dependency; it does not promote a proposal to
 | [#129](https://github.com/DevStarrk1137/ayvu/issues/129) | [Threat model](../product-threat-model.md), currently `Accepted`; T03/T04/T09/T11/T12, F04 and G02. The issue requested the `Proposed` artifact; the model's later acceptance does not accept roles or purpose governance. |
 | [#126](https://github.com/DevStarrk1137/ayvu/issues/126) | [Events, outcomes and cancellation](../modules/jobs.md): single producer, safe points, settle and terminal result; does not guarantee interruption of a blocking call. |
 | [#138](https://github.com/DevStarrk1137/ayvu/issues/138) | [DEC-014/provenance](provenance.md): opaque references, actors as types, parents and revisions; history is not authorization. |
-| [#140](https://github.com/DevStarrk1137/ayvu/issues/140) | [Content and units](../content-model.md): exact document, revision and unit, without using CSV position as identity. |
+| [#140](https://github.com/DevStarrk1137/ayvu/issues/140) | [Content and units](content-model.md): exact document, revision and unit, without using CSV position as identity. |
 | [#159](https://github.com/DevStarrk1137/ayvu/issues/159) | [Network policy](../network-policy.md): `none`/`loopback`, denial before egress, no remote/HTTPS or redirects. Current endpoints do not authorize assistance. |
 | [#164](https://github.com/DevStarrk1137/ayvu/issues/164) | [TranslationContextBuilder](../translation-context.md) and [versioned profile](../modules/projects-profiles.md): deterministic selection and exact snapshots; inert legacy style. |
 | [#165](https://github.com/DevStarrk1137/ayvu/issues/165) | [Rights/purpose governance](rights-purpose-governance.md), still `Proposed`: `PurposeGrant`, classes, independent gates and its own acceptance; no grant is presumed here. |
 
-Additional evidence: [provider/engine](../provider-contracts.md),
+Additional evidence: [provider/engine](provider-contracts.md),
 [pipeline](../translation-pipeline.md), [catalog #157](../modules/knowledge-glossary.md),
-[FormatAdapter #127](../format-adapter.md) and [EPUB #144](../epub-format.md).
+[FormatAdapter #127](format-adapter.md) and [EPUB #144](epub-format.md).
 This decision is documentary: it is not evidence of assistance execution, and
 no executable test of an assistance contract exists or is claimed.
 

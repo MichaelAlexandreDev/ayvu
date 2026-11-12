@@ -1,10 +1,14 @@
-# Inspect and visible-content export
+# Content inspection and export
 
 Implementation: Implemented
 
 Related issue: [#147 — Extract inspect and visible-content export application use cases](https://github.com/DevStarrk1137/ayvu/issues/147)
 
 ## Ownership
+
+The package owner of `content_use_cases` remains open. This document keeps the
+application orchestration separate from the `ayvu.content` domain, format parsers
+and the Markdown writer; it does not authorize a code move.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -73,3 +77,12 @@ The writer needs `dir_fd`, which Windows does not offer, so `extract` is not exp
 An export failure after at least one publication is presented with the completed count and the count that was not
 published. The output directory can therefore contain completed files after a failed command; unrelated files are
 preserved, and the message does not claim a directory transaction.
+
+## Enforced contracts
+
+- [test_content_export](../../../tests/content_use_cases/test_content_export.py).
+- [test_content_inspection](../../../tests/content_use_cases/test_content_inspection.py).
+- [test_content_redaction](../../../tests/content_use_cases/test_content_redaction.py).
+- [test_markdown_writer_filesystem](../../../tests/formats/markdown/test_markdown_writer_filesystem.py).
+- [test_markdown_writer_guards](../../../tests/formats/markdown/test_markdown_writer_guards.py).
+- [test_markdown_writer_publication](../../../tests/formats/markdown/test_markdown_writer_publication.py).
