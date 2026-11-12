@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import pytest
 
-from ayvu.content_use_cases import ExportVisibleContent, OutputDirectoryRef
+from ayvu.formats import ExportVisibleContent, OutputDirectoryRef
 from ayvu.formats.contracts import VisibleContentDocument
 from ayvu.formats.local import LocalFormatSource
 from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 
 
-from tests.support.content_use_cases_support import epub_service, export_request, write_epub
+from tests.support.format_use_cases_support import epub_service, export_request, write_epub
 
 
 @pytest.mark.parametrize("stem,code", [

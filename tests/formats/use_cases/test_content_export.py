@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from ayvu.content_use_cases import ExportFileState, ExportVisibleContent, ExportVisibleContentRequest, InspectContent, InspectContentRequest, OutputDirectoryRef, SourceRevision, WriterPlan
+from ayvu.formats import ExportFileState, ExportVisibleContent, ExportVisibleContentRequest, InspectContent, InspectContentRequest, OutputDirectoryRef, SourceRevision, WriterPlan
 from ayvu.formats.local import LocalFormatSource
 from ayvu.formats.service import FormatService
 from ayvu.jobs.execution import CancellationSource
@@ -15,8 +15,8 @@ from zipfile import ZIP_DEFLATED
 from tests.support.epub_fakes import ONE, OPF, TWO, epub_bytes
 from ayvu.kernel import JobFailure, JobFailureFamily
 
-from tests.support.content_use_cases_support import RecordingWriter, SOURCE_REF, _notes_registry
-from tests.support.content_use_cases_support import epub_service, export_request, write_epub
+from tests.support.format_use_cases_support import RecordingWriter, SOURCE_REF, _notes_registry
+from tests.support.format_use_cases_support import epub_service, export_request, write_epub
 
 
 def test_export_negotiates_capability_before_reading_content(tmp_path):

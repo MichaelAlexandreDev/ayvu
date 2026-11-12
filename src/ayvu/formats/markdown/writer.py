@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from ...content_use_cases import (
+from ..use_cases import (
     OutputDirectoryRef, PlannedOutputFile, PublishedFileRef,
     WriterAuthorization, WriterPlan, WriterPublication,
 )

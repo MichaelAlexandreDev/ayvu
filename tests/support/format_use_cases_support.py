@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 import pytest
 import requests
-from ayvu.content_use_cases import (
+from ayvu.formats import (
     CONTENT_BEFORE_PUBLICATION, ExportFileState, ExportVisibleContent, ExportVisibleContentRequest,
     InspectContent, InspectContentRequest, OutputDirectoryRef, PlannedOutputFile, PublishedFileRef,
     SourceRef, SourceRevision, WriterAuthorization, WriterPlan, WriterPublication,
