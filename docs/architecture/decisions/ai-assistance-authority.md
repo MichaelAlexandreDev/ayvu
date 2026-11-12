@@ -401,8 +401,8 @@ glossário e whitespace final. #164, quando explicitamente composto, seleciona
 contexto deterministicamente; ausência mantém o caminho anterior. Nenhuma dessas
 etapas requer papel, runtime de assistência, SDK, modelo de assistência,
 transporte novo ou no-op. “Rico” nomeia o runtime de tradução existente, não IA
-adicional. Os testes existentes `test_translate_text_characterization.py`,
-`test_translation_engine.py` e `test_translation_context.py` exercitam esses
+adicional. Os testes existentes `tests/v1/test_translate_text_characterization.py`,
+`tests/v1/test_translation_engine_parity.py`, `tests/v1/test_translation_engine_publication.py`, `tests/v1/test_translation_engine_workers.py` e `test_translation_context.py` exercitam esses
 caminhos sem assistência; falhas ambientais não são prova de sucesso.
 
 **PS — revisão de privacidade/segurança:** conferir seleção antes da carga e

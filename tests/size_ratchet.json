@@ -26,7 +26,6 @@
     "tests/test_cli.py": 1189,
     "tests/test_cli_translate_project.py": 994,
     "tests/test_context_pipeline.py": 496,
-    "tests/test_epub_io.py": 827,
     "tests/test_job_recovery_integration.py": 586,
     "tests/test_local_worker_spike.py": 499,
     "tests/test_memory_retrieval.py": 619,
@@ -35,8 +34,7 @@
     "tests/test_translate_project.py": 1250,
     "tests/test_translation_context.py": 550,
     "tests/test_translation_document.py": 714,
-    "tests/test_workflow_characterization.py": 447,
-    "tests/v1/test_html_translate.py": 944
+    "tests/test_workflow_characterization.py": 447
   },
   "functions": {
     "src/ayvu/content_use_cases.py::ExportVisibleContent.execute": 136,
