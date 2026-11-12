@@ -6,6 +6,8 @@ from pathlib import Path
 
 from tests.support.paths import PROJECT_ROOT as ROOT
 DECISION = ROOT / "docs" / "architecture" / "decisions" / "ai-assistance-authority.md"
+# Transitions and the adversarial review moved to a companion record of the same contract (REF-20).
+TRANSITIONS = ROOT / "docs" / "architecture" / "decisions" / "ai-assistance-authority-transitions.md"
 ROLES = ("TerminologyCandidateGenerator", "QualityFindingAssistant", "StyleSuggestionAssistant",
          "LayoutSuggestionAssistant")
 
@@ -46,16 +48,17 @@ def test_generic_abstractions_are_excluded_and_assigned_owners():
 
 
 def test_adversarial_review_covers_a01_to_a22_once_each():
-    cases = re.findall(r"^\| (A\d\d) \|", _text(), flags=re.MULTILINE)
+    cases = re.findall(r"^\| (A\d\d) \|", TRANSITIONS.read_text(encoding="utf-8"), flags=re.MULTILINE)
     assert cases == [f"A{index:02d}" for index in range(1, 23)]
 
 
 def test_role_states_and_human_gate_are_explicit():
     text = _text()
+    both = text + TRANSITIONS.read_text(encoding="utf-8")
     for state in ("absent", "disabled", "denied", "unavailable", "failed", "cancelled", "successful"):
-        assert f"| `{state}` |" in text
+        assert f"| `{state}` |" in both
     for transition in ("T0", "T1", "T2", "T3", "D0"):
-        assert f"| {transition} — " in text
+        assert f"| {transition} — " in both
     gate = _section(text, "## Binary human gate and acceptance checklist")
     assert "`Status: Proposed` to `Status: Accepted`" in gate
     assert gate.count("- [ ] ") == 9 and "- [x]" not in gate

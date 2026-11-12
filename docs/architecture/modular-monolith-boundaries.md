@@ -75,7 +75,7 @@ scoped acceptances live in their own ADRs: [project lifecycle](decisions/project
 [provider capabilities](decisions/provider-capabilities.md) (`DEC-008`) and
 [translation pipeline](decisions/translation-pipeline.md) (`DEC-007`).
 
-The [local workers and IPC](adr-local-worker-isolation.md) decision (#167) was
+The [local workers and IPC](decisions/adr-local-worker-isolation.md) decision (#167) was
 `Accepted` on 2026-11-10. There is still no production runner, and it does not change
 these accepted boundaries.
 
@@ -403,7 +403,7 @@ workflow; the desktop entry point remains a placeholder. A Desktop root may
 build the same application services with Desktop presenters and event-loop
 adapters. It must not import the CLI, reuse Rich objects, or create a parallel
 EPUB/cache/provider core. This accepted decision itself introduced neither the
-Desktop root nor a Qt dependency; see the [desktop evaluation](adr-desktop-stack.md)
+Desktop root nor a Qt dependency; see the [desktop evaluation](decisions/adr-desktop-stack.md)
 for the implementation's scope and the proposed toolkit decision.
 
 ### Future local API composition root

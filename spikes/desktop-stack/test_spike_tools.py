@@ -88,7 +88,7 @@ def test_bundle_measurement_counts_relative_link_text_without_following(tmp_path
 
 @pytest.mark.parametrize(
     "document",
-    [SPIKE.parents[1] / "docs/architecture/adr-desktop-stack.md",
+    [SPIKE.parents[1] / "docs/architecture/decisions/adr-desktop-stack.md",
      *SPIKE.glob("*.md"), *(SPIKE / "results").glob("*.md")],
     ids=lambda path: path.name,
 )

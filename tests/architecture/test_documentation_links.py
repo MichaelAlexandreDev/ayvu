@@ -26,7 +26,7 @@ PROVIDER_DISCOVERY = PROJECT_ROOT / "docs" / "architecture" / "modules" / "provi
 FORMAT_ADAPTER = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "format-adapter.md"
 HTML_STRUCTURE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "html-structure.md"
 EPUB_FORMAT = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "epub-format.md"
-LOCAL_WORKER = PROJECT_ROOT / "docs" / "architecture" / "adr-local-worker-isolation.md"
+LOCAL_WORKER = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "adr-local-worker-isolation.md"
 AI_ASSISTANCE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "ai-assistance-authority.md"
 REFACTOR_BASELINE = PROJECT_ROOT / "docs" / "architecture" / "refactor-baseline.md"
 PACKAGE_STRUCTURE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "package-structure.md"
@@ -73,6 +73,20 @@ C4_CONTRACTS = tuple(
 )
 C4_DOCUMENTS = (TRANSLATION_PIPELINE, *C4_CONTRACTS)
 
+C5_DOCUMENTS = tuple(
+    PROJECT_ROOT / "docs" / "architecture" / directory / name
+    for directory, name in (
+        ("decisions", "adr-desktop-stack.md"),
+        ("decisions", "adr-secret-store-adapters.md"),
+        ("decisions", "ai-assistance-authority-transitions.md"),
+        ("decisions", "rights-purpose-governance.md"),
+        ("decisions", "rights-purpose-grants.md"),
+        ("decisions", "rights-purpose-retention.md"),
+        ("decisions", "rights-purpose-examples.md"),
+        ("cross-cutting", "refactoring-map.md"),
+    )
+)
+
 
 def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
     target = target.strip()
@@ -88,8 +102,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY, HTML_STRUCTURE, EPUB_FORMAT, LOCAL_WORKER, WORKER_SPIKE, AI_ASSISTANCE, REFACTOR_BASELINE, PACKAGE_STRUCTURE, V1_RETIREMENT, WHERE_CODE_GOES, *C1_DOCUMENTS[1:], *C1_ENTRY_DOCUMENTS, *C2_DOCUMENTS, *C3_CONTRACTS, *C4_CONTRACTS],
-    ids=["product-scope", "product-threat-model", "module-boundaries", "preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility", "html-structure", "epub-format", "local-worker", "worker-spike", "ai-assistance-authority", "refactor-baseline", "package-structure", "v1-retirement", "where-code-goes", *(path.stem for path in C1_DOCUMENTS[1:]), "readme", "tutorial", *(path.relative_to(PROJECT_ROOT).as_posix() for path in C2_DOCUMENTS), *(path.relative_to(PROJECT_ROOT).as_posix() for path in C3_CONTRACTS), *(path.relative_to(PROJECT_ROOT).as_posix() for path in C4_CONTRACTS)],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY, HTML_STRUCTURE, EPUB_FORMAT, LOCAL_WORKER, WORKER_SPIKE, AI_ASSISTANCE, REFACTOR_BASELINE, PACKAGE_STRUCTURE, V1_RETIREMENT, WHERE_CODE_GOES, *C1_DOCUMENTS[1:], *C1_ENTRY_DOCUMENTS, *C2_DOCUMENTS, *C3_CONTRACTS, *C4_CONTRACTS, *C5_DOCUMENTS],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility", "html-structure", "epub-format", "local-worker", "worker-spike", "ai-assistance-authority", "refactor-baseline", "package-structure", "v1-retirement", "where-code-goes", *(path.stem for path in C1_DOCUMENTS[1:]), "readme", "tutorial", *(path.relative_to(PROJECT_ROOT).as_posix() for path in C2_DOCUMENTS), *(path.relative_to(PROJECT_ROOT).as_posix() for path in C3_CONTRACTS), *(path.relative_to(PROJECT_ROOT).as_posix() for path in C4_CONTRACTS), *(path.relative_to(PROJECT_ROOT).as_posix() for path in C5_DOCUMENTS)],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""
@@ -135,4 +149,9 @@ def test_local_markdown_target_resolution_detects_path_escape(target: str) -> No
 
 @pytest.mark.parametrize("document", C4_DOCUMENTS)
 def test_c4_documents_fit_the_line_budget(document: Path) -> None:
+    assert len(document.read_text(encoding="utf-8").splitlines()) <= 400
+
+
+@pytest.mark.parametrize("document", (*C5_DOCUMENTS, LOCAL_WORKER, AI_ASSISTANCE, PACKAGE_STRUCTURE))
+def test_c5_documents_fit_the_line_budget(document: Path) -> None:
     assert len(document.read_text(encoding="utf-8").splitlines()) <= 400
