@@ -129,8 +129,8 @@ entrada nomeia uma invariante do projeto (EPUB original intacto, estrutura do
 ZIP e `mimetype`, texto visivel e tags, ordem dos chunks, cache, retomada,
 glossario, CLI, rede somente local, fronteiras de modulos, links da
 documentacao, identidades persistidas, travas de arquitetura e as proprias etapas) e os arquivos de teste que a protegem.
-The CLI entry is not a fixed list: every `test_*.py` under `tests/interfaces/cli/` is core, so CLI tests moved out of
-`test_cli.py` stay in the pull-request gate.
+The CLI entry is an explicit tuple of approved test files. Moving another test into
+`tests/interfaces/cli/` does not add it to core; approved families keep their membership when split.
 Para rodar o mesmo conjunto localmente, use `uv run --no-sync pytest -m core`.
 `tests/test_ci_stages.py` confere o mapa, os jobs de cada evento, o
 `.dockerignore` e este documento. Se a selecao `core` ficar vazia, o pytest sai

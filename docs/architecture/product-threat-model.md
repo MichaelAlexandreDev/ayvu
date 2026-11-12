@@ -475,7 +475,7 @@ staged reconstruction, and legacy v1 apply refusal.
 [route tests](../../tests/providers/libretranslate/test_translator_routes.py),
 [cache tests](../../tests/v1/test_cache.py),
 [resume tests](../../tests/v1/test_resume.py),
-[library tests](../../tests/test_library.py) and
+[library tests](../../tests/library/test_library.py) and
 [CLI tests](../../tests/test_cli.py) supply narrower evidence. They are not proof
 of budgets, alias containment, privacy redaction or proposed runtime isolation.
 

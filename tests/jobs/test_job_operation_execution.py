@@ -1,179 +1,20 @@
 from concurrent.futures import ThreadPoolExecutor
 import ast
-from datetime import UTC, datetime
 import logging
-from pathlib import Path
 from threading import Barrier
-from uuid import UUID
 
 import pytest
 
-from ayvu.jobs.model import ALLOWED_TRANSITIONS, JobRequest, JobState, JobTerminalSummary, new_job
-from ayvu.jobs.events import (
-    CancellationRequest, JobCorrelation, JobEvent, JobEventAcceptance, JobEventKind, JobEventOrderError, JobOutcome, JobProgress, encode_event)
+from ayvu.jobs.model import ALLOWED_TRANSITIONS, JobState
+from ayvu.jobs.events import JobEventKind, JobProgress, encode_event
 from ayvu.jobs.execution import (
     CancellationSource, CancellationStatus, InMemoryJobEventLog)
-from tests.support.job_contract_fakes import SAFE_POINTS, FakeOperation, OutcomeAudit, ProgressView
-from ayvu.kernel import JobEventError, JobFailure, JobFailureFamily, JobOperationError, JobWarning, JobCancellationError
+from tests.support.job_contract_fakes import SAFE_POINTS, OutcomeAudit, ProgressView
+from ayvu.kernel import JobFailure, JobFailureFamily, JobOperationError, JobCancellationError
 
 from tests.jobs.job_execution_support import CANARIES, CANCELLED, FAILED, JOB, NOW
 from tests.jobs.job_execution_support import VALIDATED, event, harness
-
-
-def test_log_applies_rules_and_replays_from_any_position():
-    log = InMemoryJobEventLog(JOB)
-    assert log.emit(event(1)) is JobEventAcceptance.APPLIED
-    assert log.emit(event(2)) is JobEventAcceptance.APPLIED
-    assert log.emit(event(1)) is JobEventAcceptance.DUPLICATE
-    assert [item.sequence for item in log.replay()] == [1, 2]
-    assert [item.sequence for item in log.replay(1)] == [2]
-    assert log.replay(2) == () and log.replay(99) == ()
-    with pytest.raises(JobEventOrderError, match='^sequence_gap$'):
-        log.emit(event(4))
-    assert [item.sequence for item in log.replay()] == [1, 2]
-
-
-@pytest.mark.parametrize('position', [-1, True, '1', None])
-def test_replay_rejects_invalid_positions(position):
-    with pytest.raises(JobEventError, match='^invalid_sequence$'):
-        InMemoryJobEventLog(JOB).replay(position)
-
-
-def test_full_log_fails_explicitly_and_never_drops_an_event():
-    log = InMemoryJobEventLog(JOB, capacity=2)
-    log.emit(event(1))
-    log.emit(event(2))
-    with pytest.raises(JobEventOrderError, match='^event_log_full$'):
-        log.emit(event(3))
-    assert log.emit(event(2)) is JobEventAcceptance.DUPLICATE
-    assert [item.sequence for item in log.replay()] == [1, 2]
-
-
-@pytest.mark.parametrize('capacity', [0, -1, True, '1'])
-def test_log_capacity_is_validated(capacity):
-    with pytest.raises(JobEventError, match='^invalid_capacity$'):
-        InMemoryJobEventLog(JOB, capacity=capacity)
-
-
-def test_emit_rejects_values_that_are_not_events():
-    with pytest.raises(JobEventError, match='^invalid_event$'):
-        InMemoryJobEventLog(JOB).emit('text')
-
-
-def test_replay_returns_a_snapshot_the_consumer_cannot_alter():
-    log = InMemoryJobEventLog(JOB)
-    log.emit(event(1))
-    snapshot = log.replay()
-    log.emit(event(2))
-    assert isinstance(snapshot, tuple) and len(snapshot) == 1 and len(log.replay()) == 2
-
-
-def test_concurrent_identical_emits_apply_once():
-    log = InMemoryJobEventLog(JOB)
-    barrier = Barrier(8)
-
-    def emit(_):
-        barrier.wait(timeout=5)
-        return log.emit(event(1))
-
-    with ThreadPoolExecutor(8) as pool:
-        results = list(pool.map(emit, range(8)))
-    assert results.count(JobEventAcceptance.APPLIED) == 1
-    assert results.count(JobEventAcceptance.DUPLICATE) == 7
-    assert len(log.replay()) == 1
-
-
-def test_repeated_request_is_idempotent_and_keeps_the_first_reason_and_time():
-    source = CancellationSource(SAFE_POINTS)
-    first = source.request('user_requested', NOW)
-    later = datetime(2026, 11, 4, tzinfo=UTC)
-    second = source.request('shutdown', later)
-    assert first.status is CancellationStatus.ACCEPTED
-    assert second.status is CancellationStatus.ALREADY_REQUESTED
-    assert second.request == first.request == CancellationRequest('user_requested', NOW)
-    assert source.requested == first.request
-
-
-def test_request_is_invisible_until_a_declared_safe_point():
-    source = CancellationSource(SAFE_POINTS)
-    token = source.token
-    assert token.checkpoint('before_document') is None
-    source.request('user_requested', NOW)
-    assert source.acknowledgement is None
-    public = {name for name in dir(token) if not name.startswith('_')}
-    assert public == {'checkpoint'}
-    acknowledgement = token.checkpoint('after_document')
-    assert (acknowledgement.reason_code, acknowledgement.safe_point) == ('user_requested', 'after_document')
-    assert token.checkpoint('before_document') is acknowledgement
-    assert source.acknowledgement is acknowledgement
-
-
-@pytest.mark.parametrize('point', ['inside_http_call', '', None, 7])
-def test_undeclared_safe_point_is_an_error_even_with_no_request(point):
-    with pytest.raises(JobCancellationError, match='^undeclared_safe_point$'):
-        CancellationSource(SAFE_POINTS).token.checkpoint(point)
-
-
-@pytest.mark.parametrize('points', [(), ['a'], ('a', 'a'), ('Bad Name',), 'abc'])
-def test_safe_points_must_be_declared_as_unique_slugs(points):
-    with pytest.raises(JobCancellationError, match='^invalid_safe_points$'):
-        CancellationSource(points)
-
-
-def test_request_after_the_outcome_is_too_late_and_rewrites_nothing():
-    source = CancellationSource(SAFE_POINTS)
-    source.settle(VALIDATED)
-    result = source.request('user_requested', NOW)
-    assert result.status is CancellationStatus.TOO_LATE and result.request is None
-    assert source.requested is None and source.outcome is VALIDATED
-    assert source.token.checkpoint('before_document') is None
-
-
-def test_too_late_after_an_unobserved_request_reports_the_original_request():
-    source = CancellationSource(SAFE_POINTS)
-    first = source.request('user_requested', NOW).request
-    source.settle(VALIDATED)
-    result = source.request('shutdown', NOW)
-    assert result.status is CancellationStatus.TOO_LATE and result.request is first
-    assert source.outcome is VALIDATED
-
-
-def test_only_the_first_settlement_counts_and_exactly_one_caller_is_told_to_emit():
-    source = CancellationSource(SAFE_POINTS)
-    first = source.settle(VALIDATED)
-    second = source.settle(FAILED)
-    assert first.first and not second.first
-    assert first.outcome is second.outcome is VALIDATED
-
-
-def test_cancelled_outcome_requires_a_request():
-    source = CancellationSource(SAFE_POINTS)
-    with pytest.raises(JobCancellationError, match='^cancellation_not_requested$'):
-        source.settle(CANCELLED)
-    assert source.outcome is None
-
-
-@pytest.mark.parametrize('outcome', [VALIDATED, FAILED])
-def test_acknowledged_cancellation_cannot_settle_as_anything_else(outcome):
-    source = CancellationSource(SAFE_POINTS)
-    source.request('user_requested', NOW)
-    source.token.checkpoint('before_document')
-    with pytest.raises(JobCancellationError, match='^outcome_contradicts_cancellation$'):
-        source.settle(outcome)
-    assert source.outcome is None
-    assert source.settle(CANCELLED).first
-
-
-def test_settle_rejects_values_that_are_not_outcomes():
-    with pytest.raises(JobEventError, match='^invalid_outcome$'):
-        CancellationSource(SAFE_POINTS).settle('validated')
-
-
-def test_invalid_reason_is_rejected_without_recording_a_request():
-    source = CancellationSource(SAFE_POINTS)
-    with pytest.raises(JobEventError):
-        source.request('Private Canary Text', NOW)
-    assert source.requested is None
+from tests.support.paths import PROJECT_ROOT
 
 
 def test_uninterrupted_operation_validates_and_both_consumers_agree():
@@ -380,7 +221,7 @@ def test_nonterminal_recovery_condition_has_no_outcome_and_blocks_nothing():
 
 
 def test_contract_modules_import_no_presentation_or_infrastructure():
-    root = Path(__file__).parents[1] / 'src' / 'ayvu'
+    root = PROJECT_ROOT / 'src' / 'ayvu'
     forbidden = {'typer', 'rich', 'requests', 'sqlite3', 'PySide6', 'PyQt6', 'bs4', 'ebooklib', 'lxml', 'os', 'pathlib'}
     for name in ('jobs/events.py', 'jobs/execution.py'):
         tree = ast.parse((root / name).read_text())

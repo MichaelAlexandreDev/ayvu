@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def test_application_module_has_no_infrastructure_or_presentation_imports():
-    module = Path(__file__).parents[1] / "src" / "ayvu" / "knowledge/cache/admin.py"
+    module = PROJECT_ROOT / "src" / "ayvu" / "knowledge/cache/admin.py"
     tree = ast.parse(module.read_text(encoding="utf-8"))
     forbidden = {"sqlite3", "typer", "rich", "PyQt5", "PyQt6", "PySide2", "PySide6", "pathlib", "os", "tempfile"}
     for node in ast.walk(tree):
@@ -23,6 +23,7 @@ import json
 import pytest
 
 from ayvu.knowledge.cache import admin as admin
+from tests.support.paths import PROJECT_ROOT
 
 
 def payload(original="secret original", translated="secret translation"):

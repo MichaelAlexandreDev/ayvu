@@ -96,7 +96,8 @@ ayvu/
 │   ├── test_epub_io.py
 │   ├── test_glossary.py
 │   ├── test_html_translate.py
-│   ├── test_library.py
+│   ├── library/
+│   │   └── test_library.py
 │   ├── test_preflight.py
 │   ├── test_review_export.py
 │   ├── test_review_import.py
