@@ -1,0 +1,343 @@
+# Retirement of the v1 translation runtime
+
+Status: Proposed
+
+Decision-Date: `2026-11-12`
+
+Owners: the Ayvu repository owner and maintainer (inventory, compatibility and data-path acceptance);
+Composition and Translation (runtime selection and execution); Knowledge (cache and memory);
+Recovery (checkpoints and continuation); Formats (HTML/EPUB); Review (review exchange).
+
+Issue: [#286 — REF-18](https://github.com/MichaelAlexandreDev/ayvu/issues/286).
+
+## Proposal and acceptance boundary
+
+Retire the v1 runtime as decided in [D7](package-structure.md#d7-the-v1-runtime-in-quarantine).
+This first delivery inventories the observable contract and proposes the old-data path. It changes
+no runtime, default, cache, checkpoint, schema, fingerprint or user command. **Nothing is removed.**
+The owner must approve both this inventory and the data path before implementation/removal starts.
+Acceptance of the retirement direction does not settle the numbered questions below.
+
+Evidence is the local REF-19 base `9e35382`, inspected without network access. No owner's cache,
+checkpoint or book was opened; their existence is owner-supplied information, not a measured count.
+Here, “v1” means the quarantined runtime, not every contract with a version number of 1. “Rich”
+means the `DocumentTranslator` execution selected by a configured LibreTranslate model label.
+Paths and tests describe current code; proposed commands/messages below are specifications only.
+
+## Inventory and coverage
+
+There are **ten open compatibility decisions/gaps, G1–G10**. Several are intentional differences
+requiring acceptance rather than missing algorithms. Shared helpers still in v1 are listed separately
+as R1–R3; already covered workflows are not counted again. A component test proves only its stated
+scope, not end-to-end CLI parity. The current rich path still depends on v1 helpers.
+
+The principal wiring is [composition/cli.py](../../../src/ayvu/composition/cli.py) and
+[composition/builders/translate_project.py](../../../src/ayvu/composition/builders/translate_project.py).
+`_translate_in_project` uses `translate_in_project` to select `LegacyTranslationRuntime` or
+`RichTranslationRuntime`; `_translate_without_project` uses `translate_without_project` →
+`v1.epub.translate_epub`. The latter handles preview, dry run and project-free old resumptions.
+
+| Surface and observable v1 contract | Implementation and composition caller | Rich coverage, proof and exact remaining work |
+| --- | --- | --- |
+| **G1: `translate` without a model label**, including guided and batch translation | `LegacyTranslationRuntime` → [v1/translation.py](../../../src/ayvu/v1/translation.py) `LegacyUnitExecutor` / `LegacyExecutorPool`, through the project builder. `selected_model` returns `None` when the translator key is absent. | `RichTranslationRuntime` runs only with `translator_models.libretranslate` in `config.json`; its producer is `declared:<label>`, with command execution revision 2. [Selection test](../../../tests/composition/test_rich_runtime_selection.py) `test_production_composition_constructs_only_the_selected_runtime` proves both branches. [CLI execution](../../../tests/interfaces/cli/test_cli_rich_runtime_execution.py) proves actual stores, review and cache. Missing: the no-label default/setup policy; never silently manufacture a model label or reuse v1 entries. |
+| **G2: root `--preview EPUB` and guided preview** produce a bounded translated EPUB, default first 12 documents, configured Preview folder, overwrite confirmation and validation, without project/job creation | [CLI preview](../../../src/ayvu/interfaces/cli/preview.py) → `composition.cli._translate_without_project` → [v1/epub.py](../../../src/ayvu/v1/epub.py), `TranslationOptions.max_documents`; uses the v1 cache even with a label. | The format adapter already supports partial reconstruction: [EPUB reconstruction tests](../../../tests/formats/epub/test_epub_format_reconstruction.py) `test_a_preview_can_translate_one_document_and_leave_the_rest_identical` and `test_a_preview_with_no_results_keeps_every_member`. That is not a rich CLI preview. [Rich option tests](../../../tests/interfaces/cli/test_cli_rich_runtime_options.py) `test_preview_stays_on_v1_with_a_declared_model` and [preview tests](../../../tests/interfaces/cli/test_cli_preview.py) prove the current route/output. Missing: rich preview wiring and a decision on transient versus persisted identity/jobs. |
+| **G3: `--dry-run`**, also with workers, reads/counts/cache-lookups without provider translation or EPUB/project/job publication | Same project-free path into `v1.epub.translate_epub`; [v1/html_translate.py](../../../src/ayvu/v1/html_translate.py) → `LegacyTextPipelineFacade` in [pipeline.py](../../../src/ayvu/translation/pipeline.py). Existing preflight may create/check the v1 cache; this is not a promise of zero filesystem writes. | `DocumentTranslator.translate(dry_run=...)` exists in [document.py](../../../src/ayvu/translation/document.py), but CLI bypasses it. `test_declared_model_does_not_select_rich_for_dry_run` in the rich option tests and [project CLI tests](../../../tests/interfaces/cli/test_cli_project_translation.py) `test_dry_run_creates_no_job_and_no_project` delimit the contract. Missing: an equivalent non-publishing rich route and explicit cache side-effect policy, including `--dry-run --cache-only` precedence. |
+| **G4: `resume [EPUB] --target ...`, root/guided recovery offers**, invalid-file warnings, disambiguation and retry after interruption | [v1/resume.py](../../../src/ayvu/v1/resume.py) state/store and [v1/resume_scan.py](../../../src/ayvu/v1/resume_scan.py), called by `composition.cli.TranslationCheckpoint`, the project builder and `recovery.store`. [CLI resume](../../../src/ayvu/interfaces/cli/commands/resume.py) and recovery presentation invoke those roots. | Rich continuation exists: [CLI rich execution](../../../tests/interfaces/cli/test_cli_rich_runtime_execution.py) `test_rich_provider_failure_first_middle_last_is_resumable_without_partial_epub`; [raw resume tests](../../../tests/translation/test_raw_results_resume.py) `test_resume_replays_finished_documents_even_without_the_v2_cache`. Cross-runtime resume is deliberately refused before requests (`test_resume_across_runtimes_is_refused_and_names_both_before_any_request`). No conversion of v1 progress into proven rich results exists. Even rich checkpoints still use the class/file in `v1/`, with `version=1`, `execution_revision=2`; removing that module would break rich recovery too. |
+| **G5: v1 cache**: exact text/language hits, writes, fuzzy candidate lookup, JSON-v1 administration and old-data accessibility | [v1/cache.py](../../../src/ayvu/v1/cache.py) `TranslationCache`, `CacheKey`; CLI translation/cache-check roots. [Cache builder](../../../src/ayvu/composition/builders/cache_admin.py) uses `SQLiteCacheStore` plus [v1/cache_admin_store.py](../../../src/ayvu/v1/cache_admin_store.py) `SQLiteLegacyStreamingStore` and [v1/cache_stream.py](../../../src/ayvu/v1/cache_stream.py); [v1/cache_format.py](../../../src/ayvu/v1/cache_format.py) validates bounded JSON-v1 payloads. | [repository.py](../../../src/ayvu/knowledge/cache/repository.py) `SQLiteExactCache` is a different contract: semantic identity and authorized scope. Production appends `.v2.sqlite` to the whole `--cache` filename and leaves v1 untouched. CLI rich execution `test_rich_translate_real_stores_cache_and_review_with_instrumented_transport` proves non-reuse and byte preservation. Missing: approved disposition of legacy namespace/JSON readers and defaults, not another exact-cache implementation. Details below. |
+| **G6: legacy review CSV** and `apply-review` inspection/refusal | `v1.epub.translate_epub(review_segments=...)` collects positional `ReviewSegment` values; `v1.html_translate` also emits them. [csv_export.py](../../../src/ayvu/review/csv_export.py) retains the legacy writer. `v1.epub.apply_reviewed_epub` refuses `LegacyReviewInspection` with `legacy_reexport_required`; it does not apply CSV v1. | Current production `translate --review-output` already exports a **v2** package through [run.py](../../../src/ayvu/interfaces/cli/run.py), `open_review_use_cases` and [review builder](../../../src/ayvu/composition/builders/review.py), for project translations in either runtime. [CLI export test](../../../tests/interfaces/cli/test_cli_translate_review_export.py) `test_translate_command_delegates_v2_review_export_from_exact_project_result`, [CLI review tests](../../../tests/interfaces/cli/test_cli_review.py) `test_apply_review_command_rejects_v1_before_opening_epub_or_reconstructing`, and [legacy exchange tests](../../../tests/review/test_review_exchange_legacy.py) prove the boundary. Retain bounded inspection and re-export guidance; do not restore positional application. Decide whether the legacy writer has any remaining supported consumer; no new CSV identity migration is implied. |
+| `extract EPUB --output/-o DIR --overwrite` and `inspect EPUB` | Already independent of `v1/`: [CLI content](../../../src/ayvu/interfaces/cli/commands/content.py) → `composition.cli.open_content_use_cases` → [content builder](../../../src/ayvu/composition/builders/content.py) → [content_use_cases.py](../../../src/ayvu/content_use_cases.py), `FormatService`, EPUB adapter, [Markdown writer](../../../src/ayvu/formats/markdown/writer.py). No v1 caller remains here. | Covered, not a retirement gap. [CLI content tests](../../../tests/interfaces/cli/test_cli_content.py) `test_extract_command_preserves_filenames_text_order_and_original`, `test_extract_command_keeps_the_nonempty_directory_conflict_message` and `test_inspect_command_preserves_the_six_current_fields`; [format extraction](../../../tests/formats/test_format_service_extraction.py) covers the application path. Preserve numbered Markdown filenames, visible-text order, directory conflict/partial-publication errors and untouched input. |
+| **HTML v1**, including block/inline text, ignored script/style/code/pre, whitespace, comments, attributes, nested/void tags, literal markers, optional image alt, protected terms and ordered chunks | `v1.html_translate.translate_html` / `translate_text` / `apply_reviewed_html`, called by `v1.epub` and `v1.translation.LegacyUnitExecutor`; composition reaches them through the project builder. Structural extraction/reconstruction already delegates to Formats. | [html_structure.py](../../../src/ayvu/formats/epub/html_structure.py), `DocumentTranslator`, shared pipeline and [protection.py](../../../src/ayvu/content/protection.py) cover the responsibilities. [Rich protection test](../../../tests/translation/test_translation_document_protection.py) `test_an_html_document_survives_the_rich_path_and_reconstruction`, [HTML reconstruction tests](../../../tests/formats/epub/test_html_structure_reconstruction.py) `test_translated_text_never_becomes_markup`, and [extraction tests](../../../tests/formats/epub/test_html_structure_extraction.py) prove structure, tokens, whitespace and ignored text. Compare the remaining v1 characterization corpus before deletion; these tests do not claim all legacy malformed-input recovery is byte-equivalent. |
+| **EPUB v1 reconstruction**, selected chapters, title/navigation metadata, alt text, unchanged members/assets, mimetype, validation and original preservation | `v1.epub.translate_epub` and `_copy_epub_with_replacements` are the project-free reconstruction; ordinary v1 project execution already uses `TranslationEngine` and the format adapter via `LegacyUnitExecutor`. Archive I/O is in [formats/epub/io.py](../../../src/ayvu/formats/epub/io.py), not v1. | [EPUB adapter](../../../src/ayvu/formats/epub/adapter.py) (`_EpubPorts.reconstruct` / `_materialize`), [archive.py](../../../src/ayvu/formats/epub/archive.py) and [engine.py](../../../src/ayvu/translation/engine.py) cover rich production. [Composition execution tests](../../../tests/composition/test_rich_runtime_execution.py) `test_rich_engine_reconstructs_actual_epub_preserving_structure` runs metadata/alt combinations and a cache repeat; EPUB reconstruction `test_only_translated_members_change_and_every_other_keeps_its_bytes` and `test_the_adapter_and_the_current_flow_write_the_same_package` provide additional parity. Remaining preview/dry-run integration is G2/G3; publication differences are G10. |
+| **Preflight `cache_check`** must detect an unwritable cache before translation | [v1/cache_check.py](../../../src/ayvu/v1/cache_check.py) `verify_cache_writable` opens v1 and calls its rollback-based write probe. `composition.cli.run_translation_preflight` injects it into [preflight.py](../../../src/ayvu/translation/preflight.py); callers include preview and project-free runs. | Rich `preflight` constructs `SQLiteExactCache` before provider preparation; `prepare_translation(project_backed=True, label present)` supplies a no-op to the later legacy check. [Preparation tests](../../../tests/composition/test_rich_runtime_preparation.py) `test_prepare_cache_is_complete_before_provider_preparation_and_preserves_v1` and `test_cache_is_refused_before_preparation_and_errors_are_sanitized` prove it. Replace the default callback only after G2/G3/G7 are wired, preserving errors and ordering; do not just delete the injection parameter. |
+| Markdown/terminal reports, counters, progress, errors, glossary usage, validation warnings, report directory and non-overwriting names | [CLI report](../../../src/ayvu/interfaces/cli/report.py) renders `v1.epub.TranslationReport`. Both runtimes currently use `v1.translation.read_package` and `to_report` in the project builder. Single runs offer a report; batches auto-save reports. | Already visible in rich CLI: `test_each_batch_book_uses_rich_and_keeps_markdown_reports` in rich option tests; [report tests](../../../tests/interfaces/cli/test_cli_report.py) cover configured/default destinations, memory/context rows and declining the offer. R1 below must move the shared report conversion/type without changing output. Missing-text output is G7; provider-failure output is G10. |
+| **Glossary after translation and after raw-cache reuse**, never bake downstream substitutions into raw cache | `v1.html_translate.translate_text` → shared `LinguisticStages`: exact lookup, optional fuzzy, provider/protection/chunks, raw cache write, then `_finish` applies glossary and restores outer whitespace. `LegacyTranslationRuntime` supplies the glossary. | Covered: rich resources pass `apply_glossary_with_usage` to `DocumentTranslator`. [Rich cache identity test](../../../tests/translation/test_translation_cache_v2_identity.py) `test_rich_cache_hit_reapplies_downstream_glossary_after_protected_restoration`; [v1 characterization](../../../tests/v1/test_translate_text_characterization.py) `test_raw_translation_is_cached_before_the_glossary_changes_it` and `test_glossary_applies_to_a_cache_hit_without_rewriting_the_cache`. Preserve this invariant during every step. Governed memory's already-final approved values with matching pins intentionally skip another glossary pass; they are not raw v1 cache hits. |
+| **G7: `--cache-only`, `--require-full-cache`, `--missing-output`**, no translator calls, use hits, leave source for misses, optional partial EPUB, block EPUB when full coverage is required; `.txt` missing originals | v1 cache/HTML execution and project engine, with `report.missing_texts`; [run.py](../../../src/ayvu/interfaces/cli/run.py) and CLI report save explicit or automatic `<book>-<target>-missing.txt`. `require-full-cache` and `missing-output` require cache-only; explicit missing-output is rejected for multiple books. | Rich component support exists: [cache_only.py](../../../src/ayvu/knowledge/cache/cache_only.py), `CacheOnlyRequest.pinned` / `resolve_compatible`, `DocumentTranslator`, [cache-only tests](../../../tests/translation/test_translation_cache_v2_cache_only.py) `test_cache_only_opens_no_socket_and_resolves_no_name_in_either_mode` and `test_cache_only_zero_or_many_candidates_are_typed_partial_outcomes_and_pins_are_exact`. Production `check_rich_options` refuses both flags. Missing: local identity resolution and no-provider preflight, propagation of miss/ambiguous/corrupt outcomes to `UnitExecution.missing_text`, full-coverage gate and CLI files/exit codes. `_DocumentExecutor` currently maps missing status but does not supply that missing-text field. [CLI cache controls](../../../tests/interfaces/cli/test_cli_translate_cache_controls.py) characterize the v1 files/gate. |
+| **G8: performance profiles and `--workers N`**: per-worker translator/cache, stable book order, shared rate limiter and restrictions on memory | [kernel values](../../../src/ayvu/kernel/values.py) profiles; [translate_options.py](../../../src/ayvu/interfaces/cli/translate_options.py) resolves overrides; `LegacyExecutorPool`, engine executor pool, and project-free `v1.epub` threads. | Rich refuses `workers != 1` before cache/provider; rich option test `test_cli_unsupported_rich_options_name_the_actual_refusal`. `low`, `standard`, `custom` work sequentially; `high` defaults to four workers and is refused unless overridden to one. [v1 worker tests](../../../tests/v1/test_translation_engine_workers.py) `test_workers_each_get_their_own_executor_and_results_stay_in_book_order` and [execution profile CLI tests](../../../tests/interfaces/cli/test_cli_translate_execution_profiles.py) prove old behavior. Missing: safe rich document concurrency with event phases, lease/cancellation, provider/cache ownership and deterministic results, or explicit acceptance of sequential-only operation and a revised high profile. |
+| **G9: `--translation-memory`, `--tm-apply-threshold`, `--tm-suggest-threshold`** over the v1 cache, including cache-only fuzzy reuse | `LegacyTranslationRuntime.resources` constructs [TranslationMemory](../../../src/ayvu/knowledge/memory/fuzzy.py) over `TranslationCache.fuzzy_candidates`; default thresholds 0.95 apply / 0.80 suggest, enabled only on request, incompatible with multiple workers. No concrete v1 import is needed by that memory module: it consumes a protocol. | Rich uses governed approved memory through [memory_retrieval.py](../../../src/ayvu/translation/stages/memory_retrieval.py); fuzzy is suggestion-only unless conservative auto-apply is explicitly selected at >=0.98. `--tm-legacy-cache-compatibility` reads eligible **v2 machine** candidates, never unstaged v1 rows (`repository.legacy_candidates`). [Retrieval pipeline tests](../../../tests/translation/stages/test_memory_retrieval_pipeline.py) and [v1 memory tests](../../../tests/v1/test_html_translate_cache_memory.py) cover distinct policies. Gap: approve the loss of automatic old-cache fuzzy reuse; do not advertise the rich compatibility flag as a v1 importer. |
+| **G10: failures and partial publication**, `--fail-fast`, report/exit behavior and continuation | `v1.epub` and the legacy unit executor can retain source for failed units, record errors and publish a partial translation when fail-fast is off; fail-fast stops publication. The [v1 parity tests](../../../tests/v1/test_translation_engine_parity.py) compare the old and engine paths; [publication tests](../../../tests/v1/test_translation_engine_publication.py) characterize errors, invalid characters and refusal cases. | Rich provider failure always stops the book without publishing a partial EPUB; successful segments remain cached and completed documents may be replayed. CLI rich execution `test_rich_provider_failure_first_middle_last_is_resumable_without_partial_epub` proves this intentional change. Gap: explicit acceptance of stricter publication and corresponding error/report differences; do not weaken rich behavior merely to make a snapshot identical. Cache-only partial output remains a separate G7 contract. |
+
+### Configuration, flags and output details that must survive review
+
+The complete translation option surface is in [commands/translate.py](../../../src/ayvu/interfaces/cli/commands/translate.py).
+The table above identifies the v1-specific branches. The following grouping prevents shared options
+from being mistaken for v1-only features or silently dropped with their old callers:
+
+- Input/output and selection: `--output/-o`, `--output-dir`, `--overwrite`, `--source`, `--target`,
+  `--chapters`, multiple EPUBs and `--continue-on-error` already use shared output plans, chapter
+  selection, project execution and batch coordination. Rich batch proof is the named rich option test;
+  [workflow batch tests](../../../tests/interfaces/cli/test_workflow_batch_preview.py) and
+  [workflow translation tests](../../../tests/interfaces/cli/test_workflow_translation_resume.py) freeze
+  collision, overwrite and original-preservation behavior. No directory-input expansion is promised
+  just because an old comparison script attempts it.
+- `--translate-metadata` translates title/navigation text, not authors/identifiers; image alt is opt-in
+  with `--translate-alt-text`, not OCR. The rich structure test above covers both switches. Preserve
+  selection order, navigation handling, unchanged assets, links, protected terms and source bytes.
+- Provider controls `--translator libretranslate`, `--url`, `--timeout`, `--retries`,
+  `--requests-per-second`, `--retry-backoff`, `--retry-backoff-max`, `--chunk-limit` and invocation-only
+  `--network-policy none|loopback` are shared through provider/preflight composition. Credentials in
+  URLs and unsupported network routes remain refused. [Rich policy tests](../../../tests/interfaces/cli/test_cli_rich_runtime_policy.py)
+  and [preflight route tests](../../../tests/translation/test_preflight_provider_routes.py) cover those
+  gates. Cache-only must avoid discovery as well as translation; an ordinary warm rich cache run still
+  performs language discovery, as the rich CLI execution test proves.
+- `--profile` resolves saved target/glossary defaults; `--glossary` and config profile/glossary paths
+  remain effective, and legacy `style` stays inert. `translator_models.libretranslate` is presently
+  the runtime selector; changing a server's model requires changing its declared label. Configured
+  library `books_dir`/folders, `preview_dir` and `reports_dir` remain presentation/output preferences,
+  not cache identity. Tests: [target profiles](../../../tests/interfaces/cli/test_cli_translate_target_profiles.py),
+  [model labels](../../../tests/preferences/test_rich_runtime_model_label.py), preview/report tests above.
+- Performance settings `(workers, requests/s, retries, initial/max backoff, chunk limit)` are:
+  `low=(1,1,4,1/12,1500)`, `standard=(1,unlimited,2,0.5/8,3000)`,
+  `high=(4,unlimited,2,0.5/8,4000)`, `custom` starts from standard. Explicit execution flags override
+  the profile. They are not the same as translation `--profile`; old checkpoints store effective
+  values, not the performance profile name. Do not silently clamp high/workers during retirement.
+- Existing report fields include chapters, translated/cache/memory/suggestion/missing/alt counts,
+  errors, validation and glossary required/forbidden/usage information. Rich keeps the normal reports
+  but currently imports their DTO/conversion from v1 (R1). Progress callbacks and terminal wording
+  are observable alongside files; G10 explicitly identifies the failure-path changes.
+- Legacy CSV columns are `segment_id`, `source_epub`, `output_epub`, `chapter_index`, `chapter_name`,
+  `document_name`, `document_path`, `segment_kind`, `source_language`, `target_language`, `from_cache`,
+  `original`, `translated`. Positional IDs such as `c0001-s0001` and `metadata-title` cannot establish
+  v2 unit identity. `apply-review ORIGINAL CSV --validate-only` inspects/refuses legacy input rather
+  than authorizing application; `--output/-o` and `--overwrite` apply only to valid v2 reconstruction.
+  V2 export is identifiable by the `AYVU-REVIEW-PACKAGE,2,` preamble, not by a `.csv` extension.
+
+### Legacy cache administration is its own compatibility surface
+
+[CLI cache commands](../../../src/ayvu/interfaces/cli/commands/cache.py) offer `inspect`, `clean`,
+`export` and `import`. Without a namespace they operate the legacy cache; selecting v2 requires
+explicit namespace/scope/project authority. The default `--cache` is `.cache/traducoes.sqlite`;
+rich production therefore uses `.cache/traducoes.sqlite.v2.sqlite`. Filters are `--source`, `--target`, `--before`; clean
+requires a filter or `--all`, previews with `--dry-run`, and requires `--yes` for mutation. Export
+accepts a positional output file and `--overwrite`; import accepts a file and `--replace`. Outputs include counts
+by language pair and creation range, selection counts, and inserted/replaced/kept import counts.
+Absent read-only inspect/export must not create the cache. Preserve refusal of exporting over the
+database/sidecars, bounded parsing, duplicate/hash validation, transaction rollback, cancellation,
+lock waiting, output permissions and atomic file publication.
+
+Evidence: [legacy CLI tests](../../../tests/interfaces/cli/test_cache_admin_legacy_commands.py),
+[CLI cache tests](../../../tests/interfaces/cli/test_cli_cache.py),
+[streaming store tests](../../../tests/v1/test_cache_admin_legacy_stream.py),
+[stream parser tests](../../../tests/v1/test_cache_legacy_stream.py) and
+[administration gate tests](../../../tests/knowledge/cache/test_cache_admin_v2_gate.py).
+V2 already implements scoped inspect/clean/export/import in
+[admin_v2_store.py](../../../src/ayvu/knowledge/cache/admin_v2_store.py) and its siblings; proof:
+[v2 CLI tests](../../../tests/interfaces/cli/test_cache_admin_cli_v2.py) and
+[round-trip tests](../../../tests/knowledge/cache/test_cache_admin_v2_roundtrip.py).
+That does not make JSON-v1 a semantic-v2 import. `CacheScopeMapping` explicitly refuses cross-kind
+mapping (`legacy_scope_isolated`), tested by [v2 admin contracts](../../../tests/knowledge/cache/test_cache_admin_v2_contracts.py)
+`test_map_rejects_duplicate_sources_all_and_legacy_promotion`. Legacy operations on v2/partial databases require v2 administration
+(`v2-admin-required`), preventing accidental projection or destructive “upgrade”. This is part of G5.
+
+## Imports from lower layers and the remaining cycle
+
+These are **all five REF-18 exceptions** in [pyproject.toml](../../../pyproject.toml), not new permissions:
+
+| Lower-layer import | What it consumes today | What must exist outside v1 before removal |
+| --- | --- | --- |
+| `recovery.store → v1.resume` | `RUNNING_STATUS`, `TranslationResumeState`; builds options/configuration references, checks execution revision, reconstructs plan fingerprints and progress. | **R2:** Recovery-owned checkpoint contract/codec with the same persisted fields, defaults and revision discrimination, plus the accepted G4 legacy-data disposition. Rich checkpoints need this too. |
+| `recovery.store → v1.resume_scan` | `LegacyStateEntry`, `scan_legacy_states`; bounded read-only discovery, opaque references, invalid/unsupported distinctions and safe inspection. | A Recovery adapter preserving the scanner/inspection guarantees and rich association. Keep an isolated old-file reader if approved, without importing an executable v1 runtime. |
+| `knowledge.cache.admin → v1.cache_format` | `validate`, `LegacyFormatError` for bounded JSON-v1 import validation. | **R3:** Knowledge-owned legacy interchange codec if archival administration remains supported; otherwise an approved refusal/export-before-retirement policy. |
+| `knowledge.cache.admin_store → v1.cache` | Only `SCHEMA`, to create the `translations` table for legacy administration/import. It does not need `TranslationCache`. | A single Knowledge-owned legacy schema definition preserving the table/unique key exactly, retained for the approved archive reader/importer. |
+| `knowledge.cache.schema → v1.cache` | `SCHEMA as LEGACY_SCHEMA`, used when creating the legacy namespace alongside the v2 schema. | That same Knowledge-owned schema. New v2 files currently still contain `translations` and the ledger's `legacy_namespace='legacy-v1'`; deleting the table/tag would require a separate versioned D9 migration, not a file move. |
+
+`scripts/arch_metrics.py` on this base reports two cycles: `content ↔ formats` and
+`knowledge ↔ v1`. The latter is real: the three Knowledge imports above point upwards; v1 points
+back through glossary, memory and cache administration/schema. In particular `v1.cache_admin_store`
+imports Knowledge's admin ports, `admin_store`, `admin_v2_files` and schema; `v1.cache_stream` imports
+Knowledge limits/interchange. Knowledge's fuzzy memory now consumes a `FuzzyCandidates` protocol;
+the historical cycle-table description mentioning `translation_memory` is not another current
+concrete v1 import. Move the legacy schema/codec/storage responsibility together under Knowledge,
+rewire composition, and remove only the now-stale exceptions in that same mechanical PR. Removing
+runtime classes alone will not break this cycle. The unrelated content/formats cycle remains separate.
+
+Other composition dependencies requiring extraction before deleting the directory:
+
+- **R1:** Both runtimes call `v1.translation.read_package` and `to_report`, and return
+  `v1.epub.TranslationReport`; rich `facts()`/`report()` still do so. Put report values/conversion
+  with Translation and book-fact extraction with Formats, behind their public APIs. Preserve output
+  and persisted identities, and update CLI imports through its composition root; no re-export shim.
+- **R2:** `TranslationCheckpoint` still creates/saves through `ResumeStateStore`, including rich
+  `execution_revision=2`. Move the shared checkpoint implementation; do not remove rich resumability.
+- **R3:** Cache composition constructs `SQLiteLegacyStreamingStore`. Retaining an archival reader
+  means moving its bounded codec/storage to Knowledge, not retaining `v1/` as a runtime fallback.
+  The v1 writable probe is replaced by the corresponding active cache's preparation boundary.
+
+## Old data: alternatives and recommendation
+
+### Facts that bound any conversion
+
+The v1 SQLite table contains `id`, `source_lang`, `target_lang`, `original_text_hash`,
+`original_text`, `translated_text`, `created_at`; its unique key is the language pair plus SHA-256
+of the original UTF-8 text. Text can be a tokenized block template, not just visible prose. The
+runtime stores restored protected terms before downstream glossary processing, but a row carries
+no trustworthy stage declaration and could have been imported. It records no producer/model,
+route hops/capabilities/configuration snapshot, semantic pipeline/segmentation/protection/
+normalization revisions, chunk limit, prompt/context/terminology identity, authorized scope,
+document revision/unit binding or proven approval. A matching string, URL or present-day label
+does not recover any of those facts.
+
+V2 [identity.py](../../../src/ayvu/knowledge/cache/identity.py),
+[entries.py](../../../src/ayvu/knowledge/cache/entries.py) and scope policy require those semantic
+dimensions, value kind and provenance, separately from the source digest. Unknown producer data
+is ineligible for exact reuse; [document cache tests](../../../tests/translation/test_translation_document_cache_memory.py)
+`test_the_legacy_v1_ports_do_not_fit_the_generic_path` and
+`test_the_generic_path_cannot_reach_the_legacy_cache` freeze the boundary. **For a standalone v1
+cache, zero rows can honestly become eligible v2 exact hits from that cache alone.** Independent
+durable evidence could justify an individually verified reconstruction in a separate proposal;
+this document authorizes neither guessed identity nor blanket promotion/approval.
+
+V1 `*.ayvu-state.json` is an invocation/progress record: paths, languages, translator URL/name,
+glossary/profile, execution controls, selection/metadata/alt/memory settings, timestamps and
+completed/failed/current chapter names/counts. Old missing optional fields receive defaults;
+missing execution revision means 1. It holds neither raw translations nor rich per-unit identity.
+Chapter completion lists are not proof of reusable rich results. Old resume re-runs extraction and
+uses the v1 cache, rather than restoring a partially built EPUB from those lists. A matching
+project may supply a source hash and old job association, but not a missing v2 producer/stage identity.
+[Recovery CLI tests](../../../tests/interfaces/cli/test_cli_recovery.py)
+`test_an_old_file_runs_as_it_always_did_with_no_project_and_no_job` and
+`test_an_old_file_stays_byte_for_byte_when_it_is_only_read_or_when_the_translator_is_down` capture this.
+
+### A. One-time import into v2 storage, with legacy quarantine
+
+For caches, an importer can preserve the six interchange fields exactly in `legacy-v1` within a
+separate v2 container, plus an external manifest of source digest, schema, row/key counts and
+validation/rejection counts. It must not populate semantic exact entries. The existing
+[schema preparation](../../../src/ayvu/knowledge/cache/schema.py) already demonstrates this distinction:
+`prepare_cache` preserves legacy rows, makes a verified `.v1-backup.sqlite`, and builds an empty
+`cache_entries_v2`. Production rich composition deliberately refuses a v1 database placed at the
+sibling filename; this lower-level migration is **not** the production import path today.
+An approved import would operate on a copy/snapshot, not the owner's live source in place.
+
+For states, convert only validated invocation settings into a **new translation request**, retaining
+the original checkpoint as evidence and recording an import/source reference without claiming
+`continuation_of` a rich job. Re-inspect the book and resolve genuine current model/configuration
+and project identity; require a destination plan. Do not copy completed chapters into completed
+rich units or change `execution_revision` in the old JSON. Report unreadable/invalid/unsupported
+states individually; one bad file must not hide the others. An actual rich checkpoint with execution
+revision 2 is preserved/moved by R2, not downgraded into this legacy conversion.
+
+Benefits: archives pairs and invocation settings, aids audit/manual review, avoids retyping valid
+options. Costs: importer, archive support and verification obligations; no reduction in provider
+work without independently established identity. Lost for execution: legacy warm hits/fuzzy reuse,
+chapter progress credit and unproved lineage, not the archived bytes. JSON export omits internal
+SQLite row IDs, so retain the SQLite snapshot if IDs/physical history matter.
+
+The user would see “legacy archive imported; N pairs retained, 0 eligible exact entries” plus
+accepted/rejected counts, and “old progress archived; new translation required” for states. These
+are proposed messages, not current UI. Undo by deselecting the newly created archive/request and
+using the untouched originals with the frozen pre-retirement version; remove only newly owned
+outputs after verification. Restoring a whole migrated database backup later would discard new
+v2 writes, so never overwrite an active database as an automatic rollback.
+
+### B. Translate again with the rich runtime — recommended
+
+Keep verified offline copies of the old caches/checkpoints and use the original EPUB to start a new
+rich job with a real declared model, current glossary/options and a new destination. Build the v2
+cache from newly observed provider work; subsequent runs/recovery reuse only proven v2 entries
+and raw artifacts. Offer an explicit bounded summary of old invocation settings if useful, without
+calling it progress migration. The first new run has no v1 hits and may take a full translation's
+time; wording/segmentation may change with provider or pipeline. Existing independently valid v2
+entries remain reusable under their own identities.
+
+Benefits: smaller retirement scope, honest identity/provenance, no speculative conversion or
+long-lived executable v1 fallback. Costs: compute/time, unavailable old model risk, changed wording
+and manual review of differences. An old cache-only book cannot be reproduced offline from v1
+rows by this route; the owner must finish it with the frozen v1 release before removal or accept
+the loss. Preserve old outputs and reviewed text for comparison; retranslation does not recreate
+human review or approve a new translation.
+
+The user sees a legacy-data notice before work, the new cache location, the need to translate again
+and an explicit output destination; rich `resume` continues only the new job chain. No silent
+deletion, overwriting of originals or claim of migrated progress. Undo by retaining the old output,
+restoring the old configuration in an isolated pre-retirement checkout and selecting the old
+cache/state copies. A rich job is never resumed as v1. Keep both configurations/data sets separate;
+rollback after runtime removal uses the frozen release, not a hidden compatibility shim.
+
+**Recommendation:** B for executable results, with immutable legacy snapshots and optional A only
+as archival interchange/request assistance when the owner values it. Do not build an exact-cache
+importer that cannot establish exact identity. Before removal, decide whether remaining v1 jobs
+must finish on the frozen version and whether archival JSON-v1 administration remains supported.
+
+### Integrity proof required for either accepted path
+
+Use only synthetic fixtures for development, including tokenized/Unicode/whitespace text, imported
+rows, conflicts, corrupt hashes, malformed states, missing sources and interrupted writes. A later
+owner-authorized real-data procedure must first stop writers or take a consistent SQLite snapshot
+including committed WAL data; hashing only the live main file is insufficient. Keep source/backup
+digests and manifest, `PRAGMA integrity_check`, counts per language/key, every preserved field and
+recomputed source hash. Compare the complete sorted logical row set, not just counts; maintain an
+explicit rejected/conflict ledger, never silently repair, normalize, deduplicate or replace data.
+
+Prove that imported legacy rows yield **no** v2 exact hits and no invented model/stage/approval;
+source snapshots/checkpoints and existing outputs stay byte-identical. For states, round-trip all
+present/absent defaults, reject cross-runtime continuation, and prove no fabricated completed units.
+For retranslation, verify fresh lineage, cache isolation, original and untranslated member bytes,
+HTML/token integrity, EPUB validation and a later resume with the provider unavailable where
+proven results suffice. New translations need human quality comparison, not byte equality to v1.
+Exercise cancellation, disk-full/permission failure, concurrent writers and a crash at each import
+phase; verify reopen, idempotency and rollback without damaging existing v2 entries.
+Existing examples are [schema migration tests](../../../tests/knowledge/cache/test_cache_schema_v2_migration.py),
+[snapshot recovery tests](../../../tests/knowledge/cache/test_cache_schema_v2_snapshot_recovery.py),
+v2 round-trip tests and raw-results resume tests above; no one-time retirement importer is tested
+or implemented by this delivery.
+
+## Ordered implementation after approval
+
+The following are proposed REF-18 follow-up issue/PR scopes, **not created issue numbers**. Keep
+one migration open at a time (D13); gap closure is retirement work, not unrelated feature work.
+Do not mix file moves with a behavior change. Any accepted contract change gets its own behavioral
+PR, updated decision/test expectation and explicit owner acceptance. D9 identities remain frozen
+unless a separately approved versioned migration changes them.
+
+| Order / proposed issue or PR | Kind under D13 | Exit proof |
+| --- | --- | --- |
+| 0. Accept this inventory, G1–G10 dispositions and cache/state path | Documentation only | Recorded owner answers to the questions; no production/data change. This document stays Proposed until that acceptance is recorded. |
+| 1. Extract R1–R3 to Translation/Formats, Recovery and Knowledge, in sequential focused PRs | Mechanical, use `git mv` where applicable, no shims | Same reports, checkpoint bytes/defaults and cache schema/namespace; imports updated in the same PR. Remove matching ignores and prove the Knowledge/v1 cycle disappears. Preserve the rich checkpoint format as well as old readers. |
+| 2. Close G2/G3 preview/dry-run integration, G7 cache-only/missing outputs, G8 workers or approved sequential profile policy; one focused PR per behavior | Behavioral | CLI tests with and without configured labels before changing the default. Preview selection/validation, dry-run side effects, no DNS/session/provider in cache-only, ambiguous/corrupt identity, full-coverage no-output, missing originals and worker cancellation/order. G5/G6 readers must remain available pending data disposition. |
+| 3. Settle G1 model setup, G9 memory and G10 failure/publication differences; lock the approved compatibility matrix | Behavioral | Explicit acceptance and tests for each intended difference; preserve glossary-after-raw-cache invariant. No fabricated default identity or implicit v1 fuzzy promotion. Verify existing shared flags, extraction, review, reports and HTML/EPUB corpus against both current branches. |
+| 4. Switch production default/selection to rich, including guided/batch/project-free surfaces | Behavioral | Before switch: run comparisons against frozen main once without labels and once with real configured fixture labels; record expected branch differences, never claim cross-runtime byte parity. After switch: e2e CLI with a real loopback HTTP server, new default/setup gate, preview/dry run, cache warm repeat, cache-only and interruption/resume, review export/apply and report publication. Keep old-data handling explicit while pending final cleanup. |
+| 5. Deliver the accepted old-data path: B notices/new requests, optionally A archive importer | Behavioral | Synthetic integrity/crash/rollback proof above, count/digest manifest and user-visible outcomes. Only then perform any separately authorized real-data operation. Old files remain retained; no bulk identity promotion. If B is chosen, this is a migration guide/notice, not an unnecessary importer. |
+| 6. Remove unused `v1/` code and imports, legacy execution selection and obsolete tests after their useful characterization has moved to the new owners | Mechanical only after earlier PRs make deletion behavior-neutral | No production/test imports or lower-layer ignores pointing to v1; no v1 reachability. Keep supported archival/checkpoint contracts in their owning modules. Full e2e after deletion and rollback rehearsal using frozen release/copies. Any remaining behavior removal, including legacy admin/CSV writer, happens in a prior separate behavioral PR. |
+
+For every code PR: full suite plainly and with `GITHUB_ACTIONS=true`, Docker stage, persisted
+identity tests, link/package checks, import/public-API/size checks, `scripts/arch_metrics.py` and
+`git diff --check`. Compare source changes with frozen main using the 71 CLI scenarios in
+`ayvu-auto/ferramentas/compare158.py` and the 42 translation/resume scenarios in
+`compare_resume159.py`, adapting **copies** to current CLI syntax, interpreter, isolated fixture
+directories and label/no-label configuration. Do not execute the historical scripts unchanged:
+they contain absolute paths and old invocations, and the resume script writes under ferramentas.
+
+Those scripts inspect terminal output, provider requests, cache rows, EPUB members/output hashes,
+state JSON, auxiliary files, file modes and staging leftovers; their scenarios include extract,
+preview, glossary, profiles/workers, cache-only/missing output, review, overwrite, signal/kill,
+old/invalid/several states, missing/changed/protected source and provider-down recovery. Normalized
+timestamps/IDs and sorted text hashes can hide differences; retain exact identity/row/token tests
+and targeted assertions alongside snapshots. Reading the scripts is inventory evidence, not a claim
+that comparisons/e2e/Docker were run for this documentation-only delivery.
+
+## Questions for the owner
+
+1. **Is the inventory complete enough to accept, including all ten gaps and shared R1–R3?**
+   Recommendation: accept only after checking any personally relied-on command/output against it;
+   keep the runtime until every gap has a recorded implementation or intentional-change disposition.
+2. **May we retranslate old data instead of treating v1 pairs/progress as exact v2 results?**
+   Recommendation: B; retain verified immutable originals. Add A only for archive/request convenience,
+   with zero promoted exact entries and no migrated completion credit.
+3. **Must old offline/cache-only jobs finish before removal, and how long are old files retained?**
+   Recommendation: finish essential jobs with a frozen pre-retirement release first; retain snapshots
+   until the owner validates replacement books and explicitly authorizes deletion in another task.
+4. **What happens when no model label is configured after the switch?**
+   Recommendation: require a genuine owner-declared label in setup and fail clearly before provider
+   calls if missing; no v1 fallback or invented model identity. Accept the change to unattended runs.
+5. **Must rich preview/dry run preserve today's absence of project/job creation?**
+   Recommendation: yes; specify a transient route and its cache effects before implementation.
+6. **Must parallel workers/high profile survive, or is sequential-only operation acceptable?**
+   Recommendation: preserve workers if relied on; otherwise explicitly accept a sequential high-profile
+   redesign before the default switch. Never silently change the effective worker count.
+7. **Accept rich failure behavior and governed memory instead of old partial EPUB/fuzzy auto-reuse?**
+   Recommendation: yes: no partial EPUB on provider failure, fuzzy suggestions by default, explicit
+   conservative policy for approved reuse; old unstaged cache rows remain excluded.
+8. **Retain JSON-v1 cache administration and CSV-v1 inspection after runtime removal?**
+   Recommendation: retain bounded archive inspection/export and CSV re-export guidance in Knowledge/
+   Review for the transition; decide the need for legacy clean/import/writer separately. Never apply
+   positional CSV-v1 edits or relabel legacy namespace data as semantic v2.
