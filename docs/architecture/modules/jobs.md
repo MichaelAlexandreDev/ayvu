@@ -19,7 +19,7 @@ contracts, checkpoints, artifacts, retry policy, scheduling and workers are not
 accepted here. Progress, outcome and cancellation contracts were defined separately,
 under `DEC-017`, in [job events and cancellation](#events-outcomes-and-cooperative-cancellation); they
 persist nothing. Checkpoints and artifacts were accepted separately in
-[job artifacts](../decisions/job-artifacts.md). [`TranslateProject`](../translate-project.md) and
+[job artifacts](../decisions/job-artifacts.md). [`TranslateProject`](translation-project.md) and
 [job recovery](recovery.md) are what use jobs.
 
 | Module | Layer | Responsibility |

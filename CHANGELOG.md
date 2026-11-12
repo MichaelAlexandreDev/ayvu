@@ -50,6 +50,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote C4: registro do pipeline separado dos contratos de tradução,
+  projeto e contexto por módulo, com links e leitores preservados.
+
 - REF-20 (#288), lote C3: registros de conteúdo, formatos e providers separados dos contratos
   por módulo, com tabela de compatibilidade, links e leitores preservados.
 
@@ -299,7 +302,7 @@ lancadas e secoes versionadas quando uma release for publicada.
   uso `TranslateProject`, como um job durável com um único resultado final. Prompts,
   relatórios, nomes de saída e códigos de saída não mudam, salvo o que está abaixo.
   Dry-run e preview continuam sem projeto. Veja
-  `docs/architecture/translate-project.md`.
+  `docs/architecture/modules/translation-project.md`.
 - `resume` e a oferta do modo guiado agora retomam pelo job da tradução interrompida,
   com um novo job ligado a ele, sempre que o arquivo de estado corresponde a esse job.
   Os prompts não mudam. Um arquivo antigo sem job correspondente segue pelo caminho

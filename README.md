@@ -700,7 +700,7 @@ Esse banco também tem o [registro durável de jobs](docs/architecture/modules/j
 o [registro de artefatos e checkpoints](docs/architecture/modules/artifacts.md) e o
 [registro de proveniência](docs/architecture/modules/provenance.md). Cada tradução com projeto
 vira um job nesse banco, do começo ao resultado final, e o
-[caso de uso](docs/architecture/translate-project.md) explica o que acontece em cada caso.
+[caso de uso](docs/architecture/modules/translation-project.md) explica o que acontece em cada caso.
 Dry-run e preview não têm projeto e não criam job.
 Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
 consulta e fragmentos. Autenticação por referências de credenciais é trabalho

@@ -13,7 +13,7 @@ Decision: extends `DEC-005`, scoped to the format port, its descriptor and its r
 
 Every format reaches Ayvu through one contract, which states what it can do, how faithfully, and on what
 evidence. EPUB is the only format behind it, in [the EPUB adapter](epub-format.md), and `translate` reaches it through
-[the use case](../translate-project.md). There are no plugins, nothing is discovered, and adapters are registered explicitly at
+[the use case](../modules/translation-project.md). There are no plugins, nothing is discovered, and adapters are registered explicitly at
 a composition root.
 
 | Module | Layer | Responsibility |
