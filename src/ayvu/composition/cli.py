@@ -365,5 +365,5 @@ def cli_surface(edition_id: str) -> CliSurface:
 
 
 def installed_cli_surface() -> CliSurface:
-    """Declare the installed selection; the presenter adopts this in a later PR."""
+    """Declare the installed presentation surface without acquiring resources."""
     return cli_surface("cli_free")

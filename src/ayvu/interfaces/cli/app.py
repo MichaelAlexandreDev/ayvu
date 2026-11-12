@@ -8,21 +8,11 @@ from .render import console
 from .options import NETWORK_POLICY_HELP, _invocation_network_policy
 from .commands import cache, content, resume, review, translate, translator
 from .commands.resume import _offer_detected_translation_resume, _print_processing_translation_states
-from ...composition.cli import open_job_recovery
+from ...composition.cli import CliSurface, installed_cli_surface, open_job_recovery
 from ...kernel import UserMode
 from ...network import NetworkPolicy
 
 
-app = typer.Typer(help="Translate local EPUB files with a local HTTP translator.")
-
-
-cache_app = typer.Typer(help="Inspect, clean, export, and import the translation cache.")
-
-
-app.add_typer(cache_app, name="cache")
-
-
-@app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
     network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
@@ -45,6 +35,7 @@ def main(
         # ctx.params contains options of the callback itself.
         if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k not in {"mode", "network_policy"}):
             mode = UserMode.COMMON
+    surface = ctx.obj
     ctx.ensure_object(dict)
     ctx.obj["mode"] = mode
     ctx.obj["network_policy"] = network_policy
@@ -64,43 +55,44 @@ def main(
     if _offer_detected_translation_resume(found, recovery, mode=mode):
         return
 
-    if menu._run_guided_main_flow(ctx, mode=mode):
+    if menu._run_guided_main_flow(ctx, mode=mode, surface=surface):
         return
 
     console.print(ctx.get_help())
 
 
-app.command()(content.inspect)
+def create_app(surface: CliSurface) -> typer.Typer:
+    """Bind a resolved surface to independent command registrations and invocation state."""
+    # The immutable initial object is replaced by main's fresh invocation dictionary.
+    application = typer.Typer(
+        help="Translate local EPUB files with a local HTTP translator.",
+        context_settings={"obj": surface},
+    )
+    cache_app = typer.Typer(help="Inspect, clean, export, and import the translation cache.")
+    application.callback(invoke_without_command=True)(main)
+    bindings = {
+        ("inspect",): content.inspect,
+        ("test-translator",): translator.test_translator,
+        ("languages",): translator.languages,
+        ("cache", "inspect"): cache.cache_inspect,
+        ("cache", "clean"): cache.cache_clean,
+        ("cache", "export"): cache.cache_export,
+        ("cache", "import"): cache.cache_import,
+        ("translate",): translate.translate,
+        ("resume",): resume.resume,
+        ("extract",): content.extract,
+        ("apply-review",): review.apply_review,
+    }
+    for path, handler in bindings.items():
+        if path in surface.commands:
+            target = cache_app if path[0] == "cache" else application
+            target.command(path[-1])(handler)
+    if cache_app.registered_commands:
+        application.add_typer(cache_app, name="cache")
+    return application
 
 
-app.command('test-translator')(translator.test_translator)
-
-
-app.command('languages')(translator.languages)
-
-
-cache_app.command('inspect')(cache.cache_inspect)
-
-
-cache_app.command('clean')(cache.cache_clean)
-
-
-cache_app.command('export')(cache.cache_export)
-
-
-cache_app.command('import')(cache.cache_import)
-
-
-app.command()(translate.translate)
-
-
-app.command()(resume.resume)
-
-
-app.command()(content.extract)
-
-
-app.command('apply-review')(review.apply_review)
+app = create_app(installed_cli_surface())
 
 
 if __name__ == "__main__":
