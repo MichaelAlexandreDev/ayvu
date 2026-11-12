@@ -54,9 +54,9 @@ rules below. Each link opens the module's current API or the decision that expla
 | 13 | [content](../../../src/ayvu/content/__init__.py): documents, units and protection; [network](../../../src/ayvu/network/__init__.py): network policy and HTTP adapter; [library](../../../src/ayvu/library/__init__.py): library discovery and reader adapters; `application`: only truly cross-cutting contracts, [not created after REF-04](../decisions/package-structure.md#open-questions). These are independent. |
 | 14 | [kernel](../../../src/ayvu/kernel/__init__.py): identifiers, UTC, cancellation, failures/warnings and common language values. Shared by at least three modules; imports no Ayvu module (D4). Migration infrastructure has its own [kernel.sqlite API](../../../src/ayvu/kernel/sqlite/__init__.py). |
 
-The remaining flat [content_use_cases.py](../../../src/ayvu/content_use_cases.py) has an unresolved home:
-moving it into content would create the formats cycle recorded in the decision's file map. Its
-existing import ignore is not a placement precedent. The root [ayvu/__init__.py](../../../src/ayvu/__init__.py)
+The [inspection and export use cases](../../../src/ayvu/formats/use_cases.py) belong to Formats at the
+application layer, by the owner's decision of 2026-11-12 (REF-07). Their public names are exported by
+`ayvu.formats`; content stays independent of Formats. The root [ayvu/__init__.py](../../../src/ayvu/__init__.py)
 is package metadata, not a shared-capability bucket.
 
 ## Imports and wiring

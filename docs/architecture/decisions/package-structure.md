@@ -233,7 +233,7 @@ The table of where each flat module was planned to go is in the [refactoring fil
 | interfaces ↔ jobs | `resume` uses `cli_contracts` | REF-04 (splitting `cli_contracts`) |
 | interfaces ↔ providers | `provider_composition` uses `cli_contracts` | REF-04 and REF-05 |
 | interfaces ↔ translation | `preflight`, `batch_output_policy` and `translate_project_composition` use `cli_contracts` | REF-04 and REF-05 |
-| content ↔ formats | `content_use_cases` uses the format ports; `content_composition` also did until REF-05 | REF-07 (a home for `content_use_cases`) |
+| content ↔ formats | Resolved: inspection and export orchestration now lives in `formats/use_cases.py`; content does not import formats | REF-07, owner's decision of 2026-11-12 |
 | formats ↔ review | `epub_io` reads and writes the review CSV | REF-10 |
 | formats ↔ translation | `html_structure` and `html_translate` use `translation_protection` and the pipeline | REF-06 (`html_translate` to v1) and REF-07 (`content/protection`) |
 | knowledge ↔ translation | `memory_retrieval` (in knowledge) uses `translation_plan` and `translation_protection` | REF-07 and REF-09 (`memory_retrieval` to the pipeline) |

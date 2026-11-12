@@ -75,7 +75,7 @@ layers = [
   "artifacts",
   "provenance",
   "jobs",
-  "content : content_use_cases : network : library : (application)",
+  "content : network : library : (application)",
   "kernel",
 ]
 ignore_imports = [
@@ -84,7 +84,6 @@ ignore_imports = [
   "ayvu.knowledge.cache.admin -> ayvu.v1.cache_format",  # REF-18 (#286): the v1 cache is retired with v1
   "ayvu.knowledge.cache.admin_store -> ayvu.v1.cache",  # REF-18 (#286): the v1 cache is retired with v1
   "ayvu.knowledge.cache.schema -> ayvu.v1.cache",  # REF-18 (#286): the v1 cache is retired with v1
-  "ayvu.content_use_cases -> ayvu.formats",  # REF-07 (#275): content use cases need a home above formats (open question)
 ]
 
 [[tool.importlinter.contracts]]
@@ -145,7 +144,6 @@ type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
   "ayvu.content",
-  "ayvu.content_use_cases",
 ]
 forbidden_modules = [
   "ayvu.network",
@@ -162,7 +160,6 @@ source_modules = [
 ]
 forbidden_modules = [
   "ayvu.content",
-  "ayvu.content_use_cases",
   "ayvu.library",
 ]
 
@@ -176,6 +173,5 @@ source_modules = [
 ]
 forbidden_modules = [
   "ayvu.content",
-  "ayvu.content_use_cases",
   "ayvu.network",
 ]

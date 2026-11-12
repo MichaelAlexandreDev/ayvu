@@ -84,7 +84,7 @@ entries fail, so a rename cannot silently discard protection.
 | `formats.contracts` | Domain | What a format claims, negotiation, and the values its operations exchange |
 | `formats.service` | Application | Format ports, registry and the checks before any format does work |
 | `formats.local` | Infrastructure | Local files as format sources, and the check that a destination is not the source |
-| `content_use_cases` | Application | Shared read-only inspect and visible-content export requests/results |
+| `formats.use_cases` | Application | Shared read-only inspect and visible-content export requests/results |
 | `formats.markdown.writer` | Infrastructure | Safe Markdown planning and atomic per-file publication |
 | `composition.builders.content` | Composition | Explicit format registry and local content workflow adapters |
 | `providers.network` | Domain | The network decision an operation must present, and its enforcement |

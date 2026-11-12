@@ -2,14 +2,14 @@ from __future__ import annotations
 
 
 
-from ayvu.content_use_cases import ExportVisibleContent, ExportVisibleContentRequest, OutputDirectoryRef, PlannedOutputFile, PublishedFileRef, SourceRevision, WriterAuthorization, WriterPlan, WriterPublication
+from ayvu.formats import ExportVisibleContent, ExportVisibleContentRequest, OutputDirectoryRef, PlannedOutputFile, PublishedFileRef, SourceRevision, WriterAuthorization, WriterPlan, WriterPublication
 from ayvu.formats.contracts import VisibleContentDocument
 from ayvu.formats.local import LocalFormatSource
 
 from ayvu.kernel import JobFailure, JobFailureFamily
 
-from tests.support.content_use_cases_support import RecordingWriter, SOURCE_REF
-from tests.support.content_use_cases_support import epub_service, export_request, write_epub
+from tests.support.format_use_cases_support import RecordingWriter, SOURCE_REF
+from tests.support.format_use_cases_support import epub_service, export_request, write_epub
 
 
 def test_export_content_and_path_canaries_stay_out_of_default_representations(tmp_path):
