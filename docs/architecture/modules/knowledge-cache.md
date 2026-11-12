@@ -1,5 +1,23 @@
 # Cache storage and administration
 
+## Legacy cache ownership
+
+REF-18 R3 moves the preserved legacy administration implementation into Knowledge:
+[`legacy_schema.py`](../../../src/ayvu/knowledge/cache/legacy_schema.py) holds the single original
+`SCHEMA` definition; `schema.LEGACY_SCHEMA`, `admin_store` and the streaming store consume it locally.
+The runtime in `v1/cache.py` imports the same value through `ayvu.knowledge.cache.SCHEMA`.
+[`legacy_format.py`](../../../src/ayvu/knowledge/cache/legacy_format.py) owns `validate` and
+`LegacyFormatError`; [`legacy_stream.py`](../../../src/ayvu/knowledge/cache/legacy_stream.py) owns
+the bounded reader; [`legacy_admin_store.py`](../../../src/ayvu/knowledge/cache/legacy_admin_store.py)
+provides the SQLite adapter `SQLiteLegacyStreamingStore`, constructed by
+`composition/builders/cache_admin.py`. The `legacy_` prefix distinguishes these contracts from v2.
+The package API exports the schema value without loading SQLite adapters.
+
+JSON-v1 inspection and export continue during the accepted retirement transition. This extraction
+preserves existing import/cleanup behavior too, including SQL bytes, the unique key, validation,
+messages and `legacy_namespace='legacy-v1'`. `TranslationCache` and `v1/cache_check.py` remain
+with the runtime. Dedicated streaming tests now live in `tests/knowledge/cache/`.
+
 ## Standalone SQLite cache v2
 
 The local `knowledge/cache/schema.py` module is independent of the project executor. The
@@ -237,6 +255,9 @@ Preview makes two batched parsing passes: the first checks the envelope and full
 In explicit export, replacement also uses a restricted, incremental temporary copy of the previous destination to restore it if directory synchronization fails after rename. This copy obeys the configured output limit; a larger previous destination requires another output path. New files follow umask; replacements preserve previous permissions. No partial result is announced as success.
 
 ## Enforced contracts
+
+- [`tests/knowledge/cache/test_cache_legacy_stream.py`](../../../tests/knowledge/cache/test_cache_legacy_stream.py)
+- [`tests/knowledge/cache/test_cache_admin_legacy_stream.py`](../../../tests/knowledge/cache/test_cache_admin_legacy_stream.py)
 
 - [`tests/knowledge/cache/test_cache_repository_v2.py`](../../../tests/knowledge/cache/test_cache_repository_v2.py)
 - [`tests/knowledge/cache/test_cache_schema_v2_migration.py`](../../../tests/knowledge/cache/test_cache_schema_v2_migration.py)

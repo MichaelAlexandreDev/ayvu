@@ -7,7 +7,8 @@ import threading
 from pathlib import Path
 import pytest
 from ayvu.knowledge.cache import schema as schema
-from ayvu.v1.cache import SCHEMA, text_hash
+from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
+from ayvu.v1.cache import text_hash
 
 class Cancel(BaseException):
     pass

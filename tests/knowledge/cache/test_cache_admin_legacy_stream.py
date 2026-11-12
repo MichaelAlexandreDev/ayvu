@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 
 from ayvu.knowledge.cache.admin import CacheRef, FileRef, ImportRequest, CacheAdminError
-from ayvu.v1.cache_admin_store import SQLiteLegacyStreamingStore
+from ayvu.knowledge.cache.legacy_admin_store import SQLiteLegacyStreamingStore
 from ayvu.knowledge.cache.schema import classify_cache, SchemaState, prepare_cache
 
 
@@ -77,7 +77,7 @@ def test_v2_gate_leaves_database_unchanged(tmp_path):
 
 
 def test_production_v1_services_never_use_whole_payload_ports(tmp_path, monkeypatch):
-    from ayvu.v1.cache import SCHEMA
+    from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
     from ayvu.knowledge.cache.admin import ExportRequest
     from ayvu.composition.builders.cache_admin import cache_admin_services
     from ayvu.knowledge.cache.admin_store import SQLiteCacheStore, LocalCacheFiles
@@ -164,7 +164,7 @@ def test_existing_conflicts_skip_or_replace_without_collapsing(tmp_path):
 
 
 def test_sql_failure_rolls_back_preceding_insert(tmp_path):
-    from ayvu.v1.cache import SCHEMA
+    from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
     cache, source = tmp_path / 'cache.sqlite', tmp_path / 'input.json'
     with sqlite3.connect(cache) as conn:
         conn.execute(SCHEMA)

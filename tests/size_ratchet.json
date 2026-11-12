@@ -20,7 +20,7 @@
     "src/ayvu/review/application.py": 701,
     "src/ayvu/translation/context/model.py": 516,
     "src/ayvu/translation/engine.py": 418,
-    "src/ayvu/v1/cache.py": 516,
+    "src/ayvu/v1/cache.py": 503,
     "src/ayvu/v1/epub.py": 691,
     "src/ayvu/v1/resume.py": 442
   },
@@ -31,11 +31,11 @@
     "src/ayvu/interfaces/cli/preview.py::_run_preview": 96,
     "src/ayvu/interfaces/cli/run.py::_run_translation": 330,
     "src/ayvu/knowledge/cache/interchange.py::iter_records": 82,
+    "src/ayvu/knowledge/cache/legacy_admin_store.py::SQLiteLegacyStreamingStore.import_cache": 155,
     "src/ayvu/knowledge/cache/schema.py::prepare_cache": 109,
     "src/ayvu/knowledge/glossary/catalog_store.py::ManagedGlossaryRepository._write": 86,
     "src/ayvu/review/application.py::ApplyReviewPackage.execute": 82,
     "src/ayvu/translation/context/model.py::TranslationContextBuilder._build": 87,
-    "src/ayvu/v1/cache_admin_store.py::SQLiteLegacyStreamingStore.import_cache": 155,
     "src/ayvu/v1/epub.py::translate_epub": 130,
     "src/ayvu/v1/html_translate.py::translate_html": 81
   }

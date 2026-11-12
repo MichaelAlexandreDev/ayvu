@@ -7,6 +7,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ## Nao publicado
 
+### Alterado
+
+- REF-18 (#286), extração R3: esquema SQL, codec JSON-v1 e administração legada por streaming
+  passam de `v1/` para `knowledge/cache/`, com os imports e testes dedicados atualizados.
+  O ciclo Knowledge/v1 desaparece; comportamento, mensagens, namespace e identidades são preservados.
+
 ### Adicionado
 
 - REF-18 (#286): aposentadoria do v1 aceita pelo dono: retraduzir os dados antigos e guardar os
