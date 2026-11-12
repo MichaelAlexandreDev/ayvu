@@ -20,8 +20,9 @@ from typer.testing import CliRunner
 import ayvu.artifacts.destination as artifact_destination
 from ayvu.interfaces.cli import render as cli_module
 import ayvu.jobs.store as job_store
-from ayvu.composition.builders import review as review_composition, review_files, translate_project as composition
-from ayvu.composition.builders.review_operations import LocalReviewOperations
+from ayvu.composition.builders import review as review_composition, translate_project as composition
+from ayvu.review import local_files as review_files
+from ayvu.review.local_operations import LocalReviewOperations
 from ayvu.interfaces.cli.app import app
 from ayvu.composition.cli import _BookOutcome
 from ayvu.interfaces.cli.run_messages import _print_translation_failure

@@ -9,12 +9,15 @@ from .language import _prompt_target_language_code
 from .. import settings
 
 from pathlib import Path
+from collections.abc import Callable
+from dataclasses import dataclass
 import typer
 from rich.table import Table
 from ..settings import _refuse_invalid_translator_models
 from ....preferences import DEFAULT_BOOKS_DIR, AyvuConfig, FolderNames, config_from_preferences
 from ..contracts import ConfigStore
 from ....kernel import UserMode
+from ....composition.cli import CliSurface
 
 from ..render import console
 from ..options import DEFAULT_TARGET_LANGUAGE
@@ -41,14 +44,35 @@ GUIDED_HELP_OPTION = "6"
 GUIDED_EXIT_OPTION = "0"
 
 
-def _run_guided_main_flow(ctx: typer.Context, mode: UserMode) -> bool:
+@dataclass(frozen=True)
+class _GuidedAction:
+    key: str
+    label: str
+    execute: Callable[[], None]
+
+
+def _guided_main_actions(surface: CliSurface, ctx: typer.Context, config: AyvuConfig) -> tuple[_GuidedAction, ...]:
+    bindings = {
+        "translate": ("Translate a book", lambda: _run_guided_translation(config)),
+        "preview": ("Generate preview", lambda: _run_guided_preview(config)),
+        "library": ("Open library", lambda: _run_guided_library(config)),
+        "settings": ("Settings", lambda: _run_guided_settings(config)),
+        "glossaries": ("Glossaries", lambda: _run_guided_glossaries()),
+        "help": ("Show command help", lambda: console.print(ctx.get_help())),
+        "exit": ("Exit", lambda: console.print("Canceled.")),
+    }
+    return tuple(_GuidedAction(key, *bindings[action]) for key, action in surface.menu_actions)
+
+
+def _run_guided_main_flow(ctx: typer.Context, mode: UserMode, surface: CliSurface) -> bool:
     if mode == UserMode.DEVELOPER:
         return False
 
     config = _load_or_init_config()
-    _print_guided_main_menu()
+    actions = _guided_main_actions(surface, ctx, config)
+    _print_guided_main_menu(actions)
     choice = typer.prompt("Choose an option", default=GUIDED_PREVIEW_OPTION).strip()
-    return _handle_guided_main_choice(choice, ctx, config)
+    return _handle_guided_main_choice(choice, ctx, actions)
 
 
 def _load_or_init_config(store: ConfigStore | None = None) -> AyvuConfig:
@@ -113,48 +137,20 @@ def _print_feature_folder_paths(config: AyvuConfig) -> None:
     console.print(table)
 
 
-def _print_guided_main_menu() -> None:
+def _print_guided_main_menu(actions: tuple[_GuidedAction, ...]) -> None:
     table = Table(title="Ayvu")
     table.add_column("Option")
     table.add_column("Action")
-    table.add_row(GUIDED_TRANSLATE_OPTION, "Translate a book")
-    table.add_row(GUIDED_PREVIEW_OPTION, "Generate preview")
-    table.add_row(GUIDED_LIBRARY_OPTION, "Open library")
-    table.add_row(GUIDED_SETTINGS_OPTION, "Settings")
-    table.add_row(GUIDED_GLOSSARY_OPTION, "Glossaries")
-    table.add_row(GUIDED_HELP_OPTION, "Show command help")
-    table.add_row(GUIDED_EXIT_OPTION, "Exit")
+    for action in actions:
+        table.add_row(action.key, action.label)
     console.print(table)
 
 
-def _handle_guided_main_choice(choice: str, ctx: typer.Context, config: AyvuConfig) -> bool:
-    if choice == GUIDED_TRANSLATE_OPTION:
-        _run_guided_translation(config)
-        return True
-
-    if choice == GUIDED_PREVIEW_OPTION:
-        _run_guided_preview(config)
-        return True
-
-    if choice == GUIDED_LIBRARY_OPTION:
-        _run_guided_library(config)
-        return True
-
-    if choice == GUIDED_SETTINGS_OPTION:
-        _run_guided_settings(config)
-        return True
-
-    if choice == GUIDED_GLOSSARY_OPTION:
-        _run_guided_glossaries()
-        return True
-
-    if choice == GUIDED_HELP_OPTION:
-        console.print(ctx.get_help())
-        return True
-
-    if choice == GUIDED_EXIT_OPTION:
-        console.print("Canceled.")
-        return True
+def _handle_guided_main_choice(choice: str, ctx: typer.Context, actions: tuple[_GuidedAction, ...]) -> bool:
+    for action in actions:
+        if choice == action.key:
+            action.execute()
+            return True
 
     console.print("[red]Unknown option.[/red]")
     console.print(ctx.get_help())

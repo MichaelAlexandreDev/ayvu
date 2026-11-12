@@ -116,13 +116,15 @@ imports are layer rules instead of exceptions.
 - Implemented in REF-05 (#273). Each root is a public module of its own, the one exception to D2: an
   interface imports only its root, so the desktop does not load the CLI wiring, and later an edition does
   not load another's. `composition/__init__.py` exports nothing. Only `composition/cli.py` imports
-  builders from outside composition. Review builder siblings use only their declared internal edges;
-  their location remains unchanged pending an owner decision. The layers contract keeps every other
-  module from importing `composition`.
+  builders from outside composition. The local review adapters moved to
+  `review/local_*.py` by the owner's decision of 2026-11-12; the review builder only wires them.
+  The layers contract keeps every other module from importing `composition`.
 - REF-17 PR B adds pure surface data to the CLI root: `CliSurface`,
   `project_cli_surface`, `cli_surface` and `installed_cli_surface`. These factories
-  acquire no resources. The installed presenter still uses its existing registration;
-  consuming the projection is PR C, desktop/binding integration is PR D.
+  acquire no resources. PR C adds `create_app(surface)` in the presenter: each call
+  creates independent Typer registrations and includes the cache group only with
+  selected children. The installed `app` consumes `installed_cli_surface()` at the
+  same entrypoint. Desktop/binding integration remains PR D.
 - The private `editions`, `feature_catalog` and `surface_rules` modules may only use
   their declared internal edges. They are not public APIs or root reexports. Interfaces
   receive immutable command paths, menu key/action pairs and effective recipe IDs,
@@ -147,7 +149,9 @@ imports are layer rules instead of exceptions.
   edition. Architecture tests cover imports, aliases/reexports, dynamic paths and product
   identifiers. New distributions select their edition at packaging time inside composition.
 - Lite declares `low` and summary reporting. Simple glossary means one file per translation;
-  its interface is deferred. PR B describes these choices without changing installed flows.
+  its interface is deferred. PR C registers only projected commands and uses one
+  selected action collection for guided menu display and dispatch, preserving existing
+  keys and their gaps. Registered command signatures and installed flows stay intact.
   Option/argument/preset enforcement and capability-based resume admission belong to the
   follow-up batch E; #285 is scoped to B, C and D. No continuation issue is created here.
 
@@ -236,7 +240,8 @@ src/ayvu/
   translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output;
                    stages/ (memory_retrieval); context/ (model, execution, source)
   review/          application, exchange, exchange_model, exchange_parts, exchange_mapping,
-                   exchange_codec, exchange_files, csv_export, csv_import
+                   exchange_codec, exchange_files, csv_export, csv_import;
+                   local_files, local_context, local_packages, local_start, local_operations
   recovery/        service, store
   v1/              translation, epub, html_translate, cache, cache_check, resume, resume_scan
   composition/     cli, desktop, editions (later); builders/

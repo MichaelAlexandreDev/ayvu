@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import pytest
 from tests.support.public_api_support import exported_names as package_exports
-from tests.support.architecture_owners import OWNERS, Owner, REVIEW_BUILDERS, EDITION_DATA_MODULES
+from tests.support.architecture_owners import OWNERS, Owner, EDITION_DATA_MODULES
 from tests.support.architecture_edges import ALLOWED_INTERNAL_EDGES
 from tests.support.paths import PROJECT_ROOT, TESTS_ROOT
 
@@ -28,7 +28,7 @@ class Exemption:
     expiry: str
 
 
-CLI_ROOT = "ayvu.composition.cli"  # the CLI construction root; review siblings also declare internal edges
+CLI_ROOT = "ayvu.composition.cli"  # the CLI construction root
 
 
 # The synthetic fixtures still name the flat layout of #133, so their modules keep their owners here.
@@ -301,8 +301,7 @@ def forbidden(
             if (source, target) not in allowed_edges:
                 return "undeclared internal edge"
             return None
-        if destination.layer == "composition" and (source == CLI_ROOT or {source, target} <= REVIEW_BUILDERS
-                or {source, target} <= EDITION_DATA_MODULES):
+        if destination.layer == "composition" and (source == CLI_ROOT or {source, target} <= EDITION_DATA_MODULES):
             return None if (source, target) in allowed_edges else "undeclared internal edge"
         if source != "ayvu" and target.startswith(source + "."):
             return None  # D2: a package's __init__.py re-exports its own submodules

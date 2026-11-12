@@ -111,7 +111,7 @@ REF-15 break up by reason to change after they move.
 | `glossary_catalog_composition.py` | `composition/builders/glossary.py` |  |
 | `project_profile_composition.py` | `composition/builders/profiles.py` |  |
 | `provider_composition.py` | `composition/builders/providers.py` | changed in REF-05: `CliProviderSession` went to `provider_session.py`, because `preflight` uses it; only the factory is composition |
-| `review_composition.py` | `composition/builders/review.py` and sibling `review_files.py`, `review_context.py`, `review_packages.py`, `review_start.py`, `review_operations.py` | split in REF-15; the builder wires use cases, siblings own local execution |
+| `review_composition.py` | `composition/builders/review.py` and `review/local_*.py` (`local_files.py`, `local_context.py`, `local_packages.py`, `local_start.py`, `local_operations.py`) | split in REF-15; the siblings moved to `review/local_*.py` by the owner's decision of 2026-11-12; the builder only wires them |
 | `translate_batch_composition.py` | `composition/builders/translate_batch.py` |  |
 | `translate_project_composition.py` | `composition/builders/translate_project.py` |  |
 | `cli.py` | `interfaces/cli/app.py` | split into `interfaces/cli/commands/` and `render.py` (REF-14) |

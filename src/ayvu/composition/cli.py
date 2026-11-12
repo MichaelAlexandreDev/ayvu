@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from . import editions, surface_rules
 from .builders import cache_admin, content, glossary, providers, review, translate_project
-from .builders import review_files
+from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation, TranslationReport, selected_model
 from ..translation.batch_output import AcceptedItem, OutputIntent
@@ -365,5 +365,5 @@ def cli_surface(edition_id: str) -> CliSurface:
 
 
 def installed_cli_surface() -> CliSurface:
-    """Declare the installed selection; the presenter adopts this in a later PR."""
+    """Declare the installed presentation surface without acquiring resources."""
     return cli_surface("cli_free")
