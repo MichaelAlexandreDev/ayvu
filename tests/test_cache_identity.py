@@ -11,43 +11,23 @@ from uuid import UUID
 
 import pytest
 
-from ayvu.knowledge.cache.identity import (
-    CACHE_IDENTITY_VERSION,
-    MAX_CACHE_ONLY_CANDIDATES,
-    MAX_CANONICAL_PAYLOAD_BYTES,
-    MAX_COLLECTION_ENTRIES,
-    MAX_OPAQUE_SCALAR_BYTES,
-    MAX_ROUTE_HOPS,
-    AuthorizedCacheScope,
-    CacheAuthorizationPolicy,
-    CacheCompatibilityIdentity,
-    CacheIdentityError,
-    CacheIdentityResolutionState,
-    CacheLookupState,
-    CacheMissReason,
-    CacheOnlyMode,
-    CacheOnlyRequest,
-    CacheProvenanceMetadata,
-    CacheScope,
-    CacheScopeKind,
-    CacheValueKind,
-    CanonicalValue,
-    CompatibleMemoryCandidate,
-    CompatibleMemoryQuery,
-    ExactCacheEntry,
-    ExactCacheLookup,
-    ExactEntryKey,
-    OpaqueSemanticRevision,
-    PinnedExecutionIdentityReference,
-    PutIfAbsentResult,
-    PutIfAbsentState,
-    SemanticOperationV2,
-    SemanticRouteHop,
-    TRANSLATION_STAGE_AGGREGATE,
-    candidate_matches_query,
-    exact_entry_key,
+from ayvu.knowledge.cache.identity_values import (
+    CACHE_IDENTITY_VERSION, MAX_CACHE_ONLY_CANDIDATES, MAX_COLLECTION_ENTRIES, MAX_OPAQUE_SCALAR_BYTES,
+    MAX_ROUTE_HOPS, CacheIdentityError, CacheValueKind, CanonicalValue, OpaqueSemanticRevision,
+    SemanticRouteHop, TRANSLATION_STAGE_AGGREGATE,
+)
+from ayvu.knowledge.cache.identity import MAX_CANONICAL_PAYLOAD_BYTES, SemanticOperationV2
+from ayvu.knowledge.cache.scope import AuthorizedCacheScope, CacheAuthorizationPolicy, CacheScope, CacheScopeKind
+from ayvu.knowledge.cache.compatible_memory import (
+    CacheCompatibilityIdentity, CompatibleMemoryCandidate, CompatibleMemoryQuery, candidate_matches_query,
+)
+from ayvu.knowledge.cache.cache_only import (
+    CacheIdentityResolutionState, CacheOnlyMode, CacheOnlyRequest, PinnedExecutionIdentityReference,
     resolve_compatible_identities,
-    source_content_digest,
+)
+from ayvu.knowledge.cache.entries import (
+    CacheLookupState, CacheMissReason, CacheProvenanceMetadata, ExactCacheEntry, ExactCacheLookup,
+    ExactEntryKey, PutIfAbsentResult, PutIfAbsentState, exact_entry_key, source_content_digest,
 )
 from ayvu.provenance.model import ProducerIdentity
 
@@ -134,8 +114,9 @@ def test_mapping_insertion_order_and_independent_processes_are_deterministic():
     assert forward.canonical_payload() == reverse.canonical_payload()
     expected = forward.fingerprint
     code = (
-        "from ayvu.knowledge.cache.identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop, "
-        "OpaqueSemanticRevision; from ayvu.provenance import ProducerIdentity; "
+        "from ayvu.knowledge.cache.identity import SemanticOperationV2; "
+        "from ayvu.knowledge.cache.identity_values import CanonicalValue, SemanticRouteHop, OpaqueSemanticRevision; "
+        "from ayvu.provenance import ProducerIdentity; "
         "p=ProducerIdentity('provider@1','model@1','adapter@1','pipeline@1'); "
         "r=lambda n,v: OpaqueSemanticRevision('ayvu',n,1,v); "
         "h=SemanticRouteHop('en','pt',p,'capfp:v1:'+'a'*64); "

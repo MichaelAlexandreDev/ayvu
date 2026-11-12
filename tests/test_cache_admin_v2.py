@@ -39,7 +39,7 @@ def test_import_preview_execution_and_stale_revision(tmp_path):
 
 def test_v2_export_remap_and_conflict(tmp_path):
     from ayvu.knowledge.cache.admin import ExportRequest
-    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy
     from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     source_cache, target_cache, payload = (tmp_path / n for n in ('source.sqlite', 'target.sqlite', 'data.json'))
@@ -82,7 +82,7 @@ def test_direct_adapter_export_satisfies_application_port(tmp_path, legacy):
 
 def test_empty_v2_export_and_clean_do_not_create_cache(tmp_path):
     from ayvu.knowledge.cache.admin import ExportRequest
-    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy
     cache, output = tmp_path / 'missing.sqlite', tmp_path / 'out.json'
     ns = CacheNamespace.v2(CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004321').resolve())
     store = SQLiteCacheV2Store()
@@ -196,7 +196,7 @@ def test_many_to_one_remapping_checks_complete_row(tmp_path, divergent, reverse,
     from dataclasses import replace
     from datetime import UTC, datetime
     from ayvu.knowledge.cache.admin import ExportRequest
-    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy
+    from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy
     from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     original = entry()
@@ -301,7 +301,7 @@ def test_export_rejects_replaced_staging_file(tmp_path):
 def test_preview_binds_broader_scope_authority(tmp_path):
     from dataclasses import replace
     from ayvu.knowledge.cache.admin import ExportRequest
-    from ayvu.knowledge.cache.identity import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
+    from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
     from ayvu.knowledge.cache.repository import SQLiteExactCache
     from test_cache_repository_v2 import entry
     scope = CacheScope(CacheScopeKind.WORK, 'shared')

@@ -20,7 +20,7 @@ from .interchange import write_envelope
 from .admin import validate_payload
 from .admin_store import MAX_FILE_BYTES, MAX_ENTRIES
 from . import admin_store as legacy_storage
-from .identity import CACHE_ENTRY_V2_LIMITS
+from .identity_values import CACHE_ENTRY_V2_LIMITS
 
 
 def _scope(namespace):

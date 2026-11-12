@@ -11,17 +11,24 @@ from .admin import (
     MAX_TEXT_LENGTH, PreviewClean, PreviewCleanRequest, PreviewImport, _invalid, checkpoint, report,
     validate_payload,
 )
-from .identity import (
-    AuthorizedCacheScope, CACHE_ENTRY_V2_LIMITS, CACHE_IDENTITY_VERSION, CacheAuthorizationPolicy,
-    CacheCompatibilityIdentity, CacheEligibility, CacheEligibilityState, CacheIdentityConflict,
-    CacheIdentityError, CacheIdentityResolutionState, CacheIneligibleReason, CacheLookupState,
-    CacheMissReason, CacheOnlyMode, CacheOnlyRequest, CacheProvenanceMetadata, CacheScope, CacheScopeKind,
-    CacheValueKind, CanonicalValue, CompatibleMemoryCandidate, CompatibleMemoryQuery, ExactCacheEntry,
-    ExactCacheLookup, ExactEntryKey, MAX_CACHE_ONLY_CANDIDATES, OpaqueSemanticRevision,
-    PinnedExecutionIdentityReference, PutIfAbsentResult, PutIfAbsentState, ResolvedCacheExecutionIdentity,
-    SemanticOperationV2, SemanticRouteHop, TRANSLATION_STAGE_AGGREGATE, candidate_matches_query,
-    exact_entry_key, resolve_compatible_identities,
+from .scope import AuthorizedCacheScope, CacheAuthorizationPolicy, CacheScope, CacheScopeKind
+from .identity_values import (
+    CACHE_ENTRY_V2_LIMITS, CACHE_IDENTITY_VERSION, CacheEligibility, CacheEligibilityState,
+    CacheIdentityConflict, CacheIdentityError, CacheIneligibleReason, CacheValueKind, CanonicalValue,
+    MAX_CACHE_ONLY_CANDIDATES, OpaqueSemanticRevision, SemanticRouteHop, TRANSLATION_STAGE_AGGREGATE,
 )
+from .compatible_memory import (
+    CacheCompatibilityIdentity, CompatibleMemoryCandidate, CompatibleMemoryQuery, candidate_matches_query,
+)
+from .cache_only import (
+    CacheIdentityResolutionState, CacheOnlyMode, CacheOnlyRequest, PinnedExecutionIdentityReference,
+    ResolvedCacheExecutionIdentity, resolve_compatible_identities,
+)
+from .entries import (
+    CacheLookupState, CacheMissReason, CacheProvenanceMetadata, ExactCacheEntry, ExactCacheLookup,
+    ExactEntryKey, PutIfAbsentResult, PutIfAbsentState, exact_entry_key,
+)
+from .identity import SemanticOperationV2
 
 __all__ = [
     "AuthorizedCacheScope", "CACHE_ENTRY_V2_LIMITS", "CACHE_IDENTITY_VERSION", "CacheAdminError",

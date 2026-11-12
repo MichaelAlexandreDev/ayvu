@@ -194,7 +194,7 @@ def test_cancel_between_entries(direction):
 
 def test_large_canonical_identity_and_maximum_provenance_together(tmp_path):
     from dataclasses import replace
-    from ayvu.knowledge.cache.identity import CanonicalValue, CACHE_ENTRY_V2_LIMITS, exact_entry_key
+    from ayvu.knowledge.cache import CanonicalValue, CACHE_ENTRY_V2_LIMITS, exact_entry_key
     from ayvu.knowledge.cache.repository import _digest, _entry_digest
     from test_translation_cache_v2 import make_plan
     operation = make_plan().semantic_operation
@@ -227,7 +227,7 @@ def test_large_canonical_identity_and_maximum_provenance_together(tmp_path):
 
 @pytest.mark.parametrize("field", ["source_text", "value", "metadata", "provenance", "created_at"])
 def test_actual_row_ceilings_and_one_over(v2row, field):
-    from ayvu.knowledge.cache.identity import CACHE_ENTRY_V2_LIMITS, exact_entry_key
+    from ayvu.knowledge.cache import CACHE_ENTRY_V2_LIMITS, exact_entry_key
     from ayvu.knowledge.cache.repository import _digest, _entry_digest
     desc, original = v2row
     base = entry()
@@ -257,7 +257,7 @@ def test_actual_row_ceilings_and_one_over(v2row, field):
 
 
 def test_actual_canonical_identity_one_over_rejected(v2row):
-    from ayvu.knowledge.cache.identity import CACHE_ENTRY_V2_LIMITS
+    from ayvu.knowledge.cache.identity_values import CACHE_ENTRY_V2_LIMITS
     desc, item = v2row
     item["canonical_identity"] = " " * (CACHE_ENTRY_V2_LIMITS.canonical_identity + 1)
     with pytest.raises(CacheAdminError): validate_v2_entry(desc, item)
@@ -370,7 +370,7 @@ def test_real_gib_input_boundary_streams_without_materializing():
 
 
 def test_real_gib_output_boundary_streams_without_materializing(v2row):
-    from ayvu.knowledge.cache.identity import exact_entry_key
+    from ayvu.knowledge.cache.entries import exact_entry_key
     from ayvu.knowledge.cache.repository import _entry_digest
     desc, initial = v2row
     base = entry()

@@ -5,10 +5,12 @@ from threading import Barrier, Lock
 
 import pytest
 
-from ayvu.knowledge.cache.identity import (
-    CACHE_ENTRY_V2_LIMITS as LIMITS, CacheAuthorizationPolicy, CacheIdentityError,
-    CacheLookupState, CacheProvenanceMetadata, ExactCacheEntry, PutIfAbsentState,
-    TRANSLATION_STAGE_AGGREGATE, exact_entry_key,
+from ayvu.knowledge.cache.identity_values import (
+    CACHE_ENTRY_V2_LIMITS as LIMITS, CacheIdentityError, TRANSLATION_STAGE_AGGREGATE,
+)
+from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy
+from ayvu.knowledge.cache.entries import (
+    CacheLookupState, CacheProvenanceMetadata, ExactCacheEntry, PutIfAbsentState, exact_entry_key,
 )
 from ayvu.knowledge.cache.repository import SQLiteExactCache
 from test_translation_cache_v2 import Env, PROJECT, make_plan
@@ -96,7 +98,7 @@ def test_read_detects_corruption_and_redacts(tmp_path, column):
 
 def test_canonical_and_provenance_byte_limits_and_timestamp():
     import hashlib
-    from ayvu.knowledge.cache.identity import CanonicalValue
+    from ayvu.knowledge.cache.identity_values import CanonicalValue
     from ayvu.knowledge.cache.repository import _validate_payload
     base = entry()
     operation = make_plan().semantic_operation
@@ -206,7 +208,7 @@ def test_migrated_legacy_exact_and_fuzzy_are_isolated_from_v2_workers(tmp_path):
 
 def test_production_cache_only_never_discovers_or_opens_network(tmp_path, monkeypatch):
     import socket
-    from ayvu.knowledge.cache.identity import CacheOnlyRequest, PinnedExecutionIdentityReference
+    from ayvu.knowledge.cache.cache_only import CacheOnlyRequest, PinnedExecutionIdentityReference
     from test_translation_cache_v2 import document
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     Env(cache=cache).translate(document("hello", key="fill.txt"))

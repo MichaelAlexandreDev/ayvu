@@ -9,8 +9,8 @@ import logging
 import pytest
 
 from ayvu.knowledge.cache import admin as a
-from ayvu.knowledge.cache.identity import (CacheAuthorizationPolicy, CacheScope, CacheScopeKind,
-                                 CACHE_ENTRY_V2_LIMITS)
+from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
+from ayvu.knowledge.cache.identity_values import CACHE_ENTRY_V2_LIMITS
 
 
 def namespace(name="sensitive-project"):

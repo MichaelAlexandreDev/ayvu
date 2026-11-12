@@ -9,7 +9,7 @@ import sys
 
 import pytest
 
-from ayvu.knowledge.cache.identity import OpaqueSemanticRevision, SemanticOperationV2, SemanticRouteHop
+from ayvu.knowledge.cache import OpaqueSemanticRevision, SemanticOperationV2, SemanticRouteHop
 from ayvu.knowledge.glossary.catalog import GlossaryReference
 from ayvu.preferences.model import GlobalPreferences, NamedPreferenceProfile, PreferencesError
 from ayvu.preferences.service import PreferencesSnapshot

@@ -16,8 +16,8 @@ from ayvu.knowledge.memory.approved.model import (
 )
 from ayvu.artifacts.service import ArtifactService
 from ayvu.artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
-from ayvu.knowledge.cache.identity import (CacheAuthorizationPolicy, CacheProvenanceMetadata, ExactCacheEntry,
-    TRANSLATION_STAGE_AGGREGATE, exact_entry_key)
+from ayvu.knowledge.cache import (CacheAuthorizationPolicy, CacheProvenanceMetadata, ExactCacheEntry,
+                                  TRANSLATION_STAGE_AGGREGATE, exact_entry_key)
 from ayvu.knowledge.cache.repository import SQLiteExactCache
 from ayvu.content.model import ProtectedPart
 from ayvu.jobs.model import JobState
@@ -522,7 +522,7 @@ def test_fuzzy_ranking_puts_the_higher_score_first_within_scope(env):
 
 
 def test_legacy_query_n_plus_one_fails_before_repository():
-    from ayvu.knowledge.cache.identity import CompatibleMemoryQuery
+    from ayvu.knowledge.cache.compatible_memory import CompatibleMemoryQuery
     class Forbidden:
         def legacy_candidates(self, *args):
             pytest.fail('invalid legacy query reached repository')

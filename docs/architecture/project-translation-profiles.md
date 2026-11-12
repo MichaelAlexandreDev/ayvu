@@ -129,7 +129,7 @@ ausente e classificação incompleta falham antes da publicação.
 | Alvo/glossário | inspect | inert | Nenhum pedido ou lookup autorizado por esse plano |
 
 `raw_semantic_contribution()` fornece argumentos limitados para
-`knowledge.cache.identity.OpaqueSemanticRevision` da #153. Sua referência `profile_effect:`
+`knowledge.cache.identity_values.OpaqueSemanticRevision` da #153. Sua referência `profile_effect:`
 é resolvida por `state.raw_projection(reference)` a evidência bruta durável
 presente nos snapshots. Ela depende só da partição bruta e versão da política;
 nunca use o hash do snapshot completo no cache. A identidade geral de provedor,

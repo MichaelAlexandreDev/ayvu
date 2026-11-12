@@ -9,7 +9,8 @@ from ayvu.knowledge.cache import identity as cache_identity
 from ayvu.knowledge.cache import interchange as cache_interchange
 from ayvu.knowledge.cache import repository as cache_repository
 from ayvu.knowledge.cache.admin import CacheAdminError
-from ayvu.knowledge.cache.identity import CACHE_ENTRY_V2_LIMITS, CanonicalValue, exact_entry_key
+from ayvu.knowledge.cache.identity_values import CACHE_ENTRY_V2_LIMITS, CanonicalValue
+from ayvu.knowledge.cache.entries import exact_entry_key
 from ayvu.knowledge.cache.interchange import iter_records, validate_v2_entry
 from ayvu.knowledge.cache.repository import _digest, _entry_digest, SQLiteExactCache
 from ayvu.knowledge.cache.schema import V2_COLUMNS, participating_connection

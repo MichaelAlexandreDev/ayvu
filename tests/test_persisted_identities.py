@@ -32,7 +32,8 @@ import pytest
 
 from ayvu.providers import network as provider_network
 from ayvu.knowledge.memory.approved import service as approved_memory_service
-from ayvu.knowledge.cache import identity as cache_identity
+from ayvu.knowledge.cache import identity_values as cache_identity
+from ayvu.knowledge.cache.entries import source_content_digest
 from ayvu.projects.profiles import model as project_profiles
 from ayvu.content import model as content
 from ayvu.v1 import cache
@@ -40,7 +41,8 @@ from ayvu.translation.context import model as translation_context
 from ayvu.translation import document as translation_document
 from ayvu.translation import plan as translation_plan
 from ayvu.knowledge.memory.approved.store import _digest as memory_digest
-from ayvu.knowledge.cache.identity import CanonicalValue, SemanticOperationV2, SemanticRouteHop
+from ayvu.knowledge.cache.identity_values import CanonicalValue, SemanticRouteHop
+from ayvu.knowledge.cache.identity import SemanticOperationV2
 from ayvu.provenance.model import ProducerIdentity
 
 SOURCE = Path(__file__).resolve().parents[1] / "src" / "ayvu"
@@ -131,7 +133,7 @@ GOLDEN = {
         lambda: cache.text_hash(TEXT),
         "8d4642afb4cbbf6a2f242cab16bd32bc8c9a6a90954b17146c3fcb8ab92e9ec7"),
     "cache v2 source digest": (
-        lambda: cache_identity.source_content_digest(TEXT),
+        lambda: source_content_digest(TEXT),
         "sha256:8d4642afb4cbbf6a2f242cab16bd32bc8c9a6a90954b17146c3fcb8ab92e9ec7"),
     "cache v2 semantic fingerprint": (
         lambda: semantic_operation().fingerprint,
