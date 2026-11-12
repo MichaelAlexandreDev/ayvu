@@ -76,11 +76,15 @@ allows replacing an earlier reviewed output, not the source or machine output.
 
 ## Verification
 
-`tests/test_review_application.py` covers port orchestration, read-only
-validation, real transport tripwires, package changes after preview, fatal
-conflicts, v1 refusal, idempotency versus overwrite, cancellation safe points,
-redaction, and package-size limits. The real CLI review round trip and output
-preservation, replay of a removed or changed result, and cancellation against
-production repositories are covered in `tests/test_cli_translate_project.py` and
-`tests/test_workflow_characterization.py`; codec and placeholder attack cases
-remain in `tests/test_review_exchange.py`.
+`tests/review/test_review_application_export_validate.py` covers export and
+read-only validation, real transport tripwires, and cancellation.
+`tests/review/test_review_application_apply.py` covers package changes after
+preview, fatal conflicts, v1 refusal, idempotency versus overwrite, cancellation
+safe points, redaction, and package-size limits. The real CLI review round trip
+and output preservation, replay of a removed or changed result, and cancellation
+against production repositories are covered in `tests/test_cli_translate_project.py`
+and `tests/test_workflow_characterization.py`; codec and placeholder attack cases
+remain in `tests/review/test_review_exchange_codec.py` and
+`tests/review/test_review_exchange_mapping.py`. Legacy refusal and production
+EPUB reconstruction are covered in `tests/review/test_review_exchange_legacy.py`
+and `tests/review/test_review_exchange_epub_integration.py`.

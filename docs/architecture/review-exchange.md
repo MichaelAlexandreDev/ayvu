@@ -144,9 +144,12 @@ publication protocol are documented in
 
 ## Verification
 
-`tests/test_review_exchange.py` covers canonical bytes, encoding/version/null
-rules, formula round-trip, bounds, identities/fingerprints, duplicate/status
-failures, placeholder attacks, redaction, legacy refusal, production EPUB
+`tests/review/test_review_exchange_codec.py` covers canonical bytes,
+encoding/version/null rules, formula round-trip, bounds, and redaction.
+`tests/review/test_review_exchange_mapping.py` covers identities/fingerprints,
+duplicate/status failures, and placeholder attacks.
+`tests/review/test_review_exchange_legacy.py` covers legacy refusal.
+`tests/review/test_review_exchange_epub_integration.py` covers production EPUB
 extraction, namespaced and nested markup, and side-effect instrumentation. The
 tests stage structural reconstruction explicitly and do not publish an EPUB or
 call a provider.
