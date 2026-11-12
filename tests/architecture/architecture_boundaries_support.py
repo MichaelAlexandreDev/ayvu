@@ -42,6 +42,19 @@ def check_tree(root: Path, owners: dict[str, Owner],
                allowed_edges: set[tuple[str, str]] | None = None) -> None:
     exceptions = exceptions or {}
     allowed_edges = allowed_edges or set()
+    _check_declarations(owners, exceptions, allowed_edges)
+    modules = _read_modules(root, owners)
+    used, used_allowed, graph, effective_graph = _check_edges(modules, owners, exceptions, allowed_edges)
+    _check_cli_reachability(modules, owners, allowed_edges, effective_graph)
+    _check_cli_root(modules)
+    _check_acyclic(graph)
+    if set(exceptions) != used:
+        raise BoundaryError(f"unused exception: {sorted(set(exceptions) - used)}")
+    if allowed_edges != used_allowed:
+        raise BoundaryError(f"unused allowed edge: {sorted(allowed_edges - used_allowed)}")
+
+
+def _check_declarations(owners, exceptions, allowed_edges):
     for edge, exemption in exceptions.items():
         if (len(edge) != 2 or not all(edge) or any("*" in part for part in edge)
                 or not exemption.owner.strip() or exemption.removal_issue <= 0
@@ -51,6 +64,9 @@ def check_tree(root: Path, owners: dict[str, Owner],
         if (len(edge) != 2 or not all(edge) or any("*" in part for part in edge)
                 or edge[0] not in owners or edge[1] not in owners):
             raise BoundaryError(f"invalid allowed edge: {edge}")
+
+
+def _read_modules(root, owners):
     modules: dict[str, tuple[Path, bool, ast.Module]] = {}
 
     def unreadable(error: OSError) -> None:
@@ -87,6 +103,10 @@ def check_tree(root: Path, owners: dict[str, Owner],
     if "ayvu" not in modules or set(owners) != set(modules):
         raise BoundaryError("missing classified production module")
 
+    return modules
+
+
+def _check_edges(modules, owners, exceptions, allowed_edges):
     used: set[tuple[str, str]] = set()
     used_allowed: set[tuple[str, str]] = set()
     graph: dict[str, set[str]] = {}
@@ -106,6 +126,10 @@ def check_tree(root: Path, owners: dict[str, Owner],
                 used.add(edge)
             elif edge in allowed_edges:
                 used_allowed.add(edge)
+    return used, used_allowed, graph, effective_graph
+
+
+def _check_cli_reachability(modules, owners, allowed_edges, effective_graph):
     # Reuse the same owners, import resolver and external dependency rules over
     # effective reachability. A reviewed edge exception cannot launder an adapter
     # through an application module or a re-export into CLI presentation.
@@ -128,6 +152,9 @@ def check_tree(root: Path, owners: dict[str, Owner],
             elif forbidden(source, target, owners, allowed_edges):
                 raise BoundaryError(f"CLI transitive vendor: {source} -> {target}")
         check_cli_construction_imports(source, modules)
+
+
+def _check_cli_root(modules):
     if CLI_ROOT in modules:
         tree = modules[CLI_ROOT][2]
         for node in tree.body:
@@ -142,6 +169,9 @@ def check_tree(root: Path, owners: dict[str, Owner],
                 for part in ast.walk(default)
             )):
                 raise BoundaryError("cached or eager CLI construction")
+
+
+def _check_acyclic(graph):
     for source in graph:
         pending = list(graph[source])
         visited: set[str] = set()
@@ -152,10 +182,6 @@ def check_tree(root: Path, owners: dict[str, Owner],
             if target not in visited:
                 visited.add(target)
                 pending.extend(graph[target])
-    if set(exceptions) != used:
-        raise BoundaryError(f"unused exception: {sorted(set(exceptions) - used)}")
-    if allowed_edges != used_allowed:
-        raise BoundaryError(f"unused allowed edge: {sorted(allowed_edges - used_allowed)}")
 
 
 def check_cli_construction_imports(source, modules):

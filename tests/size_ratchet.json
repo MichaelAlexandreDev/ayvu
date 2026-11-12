@@ -37,7 +37,6 @@
     "src/ayvu/translation/context/model.py::TranslationContextBuilder._build": 87,
     "src/ayvu/v1/cache_admin_store.py::SQLiteLegacyStreamingStore.import_cache": 155,
     "src/ayvu/v1/epub.py::translate_epub": 130,
-    "src/ayvu/v1/html_translate.py::translate_html": 81,
-    "tests/architecture/architecture_boundaries_support.py::check_tree": 119
+    "src/ayvu/v1/html_translate.py::translate_html": 81
   }
 }
