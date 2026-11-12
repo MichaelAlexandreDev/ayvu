@@ -47,6 +47,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote K6: os testes de `TranslateProject` saem de um arquivo de 1.250 linhas para oito em
+  `tests/translation/` (gates do plano, destino, cancelamento, reconciliação, renovação do lease, portas,
+  diagnósticos e continuação), preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote K5: testes do preflight movidos para `tests/translation/`, divididos entre recursos locais e
   rotas do provedor, preservando os mesmos testes e invariantes core.
 
