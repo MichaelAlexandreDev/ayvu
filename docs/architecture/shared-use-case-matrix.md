@@ -367,7 +367,7 @@ or not implemented for one of them. Universal and root options carry their
 mappings explicitly. Any public Typer command, subcommand, or long option change
 must update the JSON snapshot and the corresponding stable mapping in the same
 change. The contract
-test in [`test_shared_use_case_matrix.py`](../../tests/test_shared_use_case_matrix.py)
+test in [`test_shared_use_case_matrix.py`](../../tests/architecture/test_shared_use_case_matrix.py)
 compares this snapshot with the effective Typer command tree and validates its
 local references. Guided-flow changes require a manual update to the guided table
 until those choices have a separately inspectable registry.

@@ -9,9 +9,9 @@ reais ou estender os comandos para aceitar paths, textos ou credenciais.
 Da raiz do checkout, sem instalar dependências e sem rede:
 
 ```bash
-timeout 120s .venv/bin/python -m pytest -q tests/test_local_worker_spike.py
+timeout 120s .venv/bin/python -m pytest -q tests/research/local_worker/
 timeout 120s .venv/bin/python spikes/local-worker/measure.py > worker-measurements.json
-.venv/bin/python -m pytest -q tests/test_documentation_links.py tests/test_architecture_boundaries.py
+.venv/bin/python -m pytest -q tests/architecture/test_documentation_links.py tests/architecture/test_architecture_import_resolution.py tests/architecture/test_architecture_tree_validation.py tests/architecture/test_architecture_cli_construction.py
 git diff --check
 ```
 
@@ -34,7 +34,7 @@ Alvo aceito interpretado da #124: Linux x86_64. Rodado em Python 3.12.12, kernel
 executados e não são apresentados como plataformas aprovadas. Em outro alvo,
 os testes são skipped e o coletor Linux não fornece validação nativa.
 
-| Requisito | Teste em `tests/test_local_worker_spike.py` |
+| Requisito | Teste em `tests/research/local_worker/` |
 | --- | --- |
 | Startup/sucesso e progresso #126 | `test_success_startup_and_canonical_progress`, ambos transportes |
 | Cancelamento e ack/outcome | `test_cooperative_cancel_uses_canonical_ack_and_outcome`, decoder/ordenador reais |

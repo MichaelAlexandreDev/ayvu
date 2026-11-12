@@ -7,7 +7,7 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import PROJECT_ROOT as ROOT
 DECISION = ROOT / "docs" / "architecture" / "decisions" / "package-structure.md"
 SOURCE = ROOT / "src" / "ayvu"
 ROW = re.compile(r"^\| `([^`]+\.py)` \| (?:`([^`]+)`|—) \| .* \|$")

@@ -22,8 +22,7 @@
     "src/ayvu/translation/engine.py": 418,
     "src/ayvu/v1/cache.py": 516,
     "src/ayvu/v1/epub.py": 691,
-    "src/ayvu/v1/resume.py": 442,
-    "tests/test_local_worker_spike.py": 499
+    "src/ayvu/v1/resume.py": 442
   },
   "functions": {
     "src/ayvu/content_use_cases.py::ExportVisibleContent.execute": 136,
@@ -38,7 +37,6 @@
     "src/ayvu/translation/context/model.py::TranslationContextBuilder._build": 87,
     "src/ayvu/v1/cache_admin_store.py::SQLiteLegacyStreamingStore.import_cache": 155,
     "src/ayvu/v1/epub.py::translate_epub": 130,
-    "src/ayvu/v1/html_translate.py::translate_html": 81,
-    "tests/architecture/architecture_boundaries_support.py::check_tree": 119
+    "src/ayvu/v1/html_translate.py::translate_html": 81
   }
 }

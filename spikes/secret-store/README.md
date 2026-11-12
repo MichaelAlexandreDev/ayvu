@@ -157,7 +157,7 @@ arquivos efetivamente redistribuídos.
 ## Verificação das ferramentas
 
 ```bash
-.venv/bin/python -m pytest -q tests/test_secret_store_research.py
+.venv/bin/python -m pytest -q tests/research/secret_store/test_secret_store_research.py
 git diff --check
 ```
 

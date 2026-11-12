@@ -520,7 +520,7 @@ Document acceptance checks:
    implementation issue yet.
 3. Walk the synthetic cases in both lenses; confirm document/tool/AI content
    never gains authority in the proposed design.
-4. Check repository links with `uv run pytest tests/test_documentation_links.py`,
+4. Check repository links with `uv run pytest tests/architecture/test_documentation_links.py`,
    inspect/render the Mermaid flow where tooling is available, and run
    `git diff --check`. Run `uv run pytest` for changes to the link test.
 5. Reassess after provider/interface/format/IPC changes, new stores or recipients,

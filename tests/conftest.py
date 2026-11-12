@@ -63,7 +63,7 @@ def minimal_epub_path(tmp_path: Path) -> Path:
 
 # Stage 3 of the test stages (docs/release-workflow.md): pull requests on GitHub run only the
 # tests marked `core`, to stay within the free Actions minutes. Each entry names an invariant
-# from AGENTS.md and the test files that protect it, as paths under tests/; tests/test_ci_stages.py checks the map.
+# from AGENTS.md and the test files that protect it, as paths under tests/; tests/ci/test_ci_stages.py checks the map.
 TESTS = Path(__file__).resolve().parent
 CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
     "original_epub_unchanged": (
@@ -117,8 +117,10 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "formats/epub/test_html_structure_transient.py",
     ),
     "chunk_order_and_spacing": ("translation/test_chunking.py",),
-    "persisted_identities": ("test_persisted_identities.py",),
-    "architecture_guardrails": ("test_size_ratchet.py", "test_import_contracts.py", "test_public_api.py"),
+    "persisted_identities": ("architecture/test_persisted_identities.py",),
+    "architecture_guardrails": (
+        "architecture/test_size_ratchet.py", "architecture/test_import_contracts.py", "architecture/test_public_api.py",
+    ),
     "cache_keys_and_scope": (
         "v1/test_cache.py",
         "knowledge/cache/test_cache_identity_atomic_entries.py",
@@ -176,9 +178,12 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "interfaces/cli/test_cli_translator.py",
     ),
     "local_only_network": ("network/test_network_policy.py",),
-    "module_boundaries": ("test_architecture_boundaries.py",),
-    "documentation_links": ("test_documentation_links.py",),
-    "ci_stages": ("test_ci_stages.py",),
+    "module_boundaries": (
+        "architecture/test_architecture_cli_construction.py", "architecture/test_architecture_import_resolution.py",
+        "architecture/test_architecture_tree_validation.py",
+    ),
+    "documentation_links": ("architecture/test_documentation_links.py",),
+    "ci_stages": ("ci/test_ci_stages.py",),
 }
 CORE_FILES = frozenset(name for names in CORE_TEST_FILES.values() for name in names)
 

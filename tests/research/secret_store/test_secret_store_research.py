@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlsplit
 import pytest
 
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import PROJECT_ROOT as ROOT
 SPIKE = ROOT / "spikes/secret-store"
 spec = importlib.util.spec_from_file_location("secret_store_research", SPIKE / "probe.py")
 probe = importlib.util.module_from_spec(spec)

@@ -47,6 +47,13 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284): `check_tree`, o verificador do teste de fronteiras antigo, sai de 119 linhas para um
+  coordenador de 15 que chama seis passos na mesma ordem. Com isso o ratchet não lista mais nenhum teste.
+
+- REF-16 (#284), lote L: os testes de arquitetura, documentação e decisões vão para `tests/architecture/`, os das
+  etapas de CI para `tests/ci/`, o empacotamento do desktop para `tests/interfaces/desktop/` e as pesquisas para
+  `tests/research/`. Nenhum arquivo de teste fica acima de 400 linhas, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote K6: os testes de `TranslateProject` saem de um arquivo de 1.250 linhas para oito em
   `tests/translation/` (gates do plano, destino, cancelamento, reconciliação, renovação do lease, portas,
   diagnósticos e continuação), preservando os mesmos testes e invariantes core.

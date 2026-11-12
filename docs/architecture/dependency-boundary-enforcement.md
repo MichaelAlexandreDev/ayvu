@@ -1,14 +1,14 @@
 # Static architectural dependency checks
 
 The [accepted modular-monolith ADR](modular-monolith-boundaries.md) is enforced
-by [the architecture tests](../../tests/test_architecture_boundaries.py), added
+by [the architecture tests](../../tests/architecture/test_architecture_tree_validation.py), added
 for [#133](https://github.com/DevStarrk1137/ayvu/issues/133). This enforcement
 does not accept other proposed decisions or change production behavior.
 
 Run the focused checks with:
 
 ```bash
-uv run pytest tests/test_architecture_boundaries.py
+uv run pytest tests/architecture/test_architecture_import_resolution.py tests/architecture/test_architecture_tree_validation.py tests/architecture/test_architecture_cli_construction.py
 uv run pytest
 git diff --check
 ```

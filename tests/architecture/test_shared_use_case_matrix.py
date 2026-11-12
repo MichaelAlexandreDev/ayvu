@@ -11,7 +11,7 @@ from typer.main import get_command
 
 from ayvu.interfaces.cli.app import app
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import PROJECT_ROOT as ROOT
 MATRIX_PATH = ROOT / "docs" / "architecture" / "shared-use-case-matrix.md"
 SNAPSHOT_PATTERN = re.compile(
     r"<!-- AYVU_CLI_SURFACE_SNAPSHOT_START -->\s*"
@@ -99,7 +99,7 @@ PUBLIC_LINK_TARGETS = {
     ROOT / 'tests/interfaces/cli/test_cli_project_translation.py', ROOT / 'tests/interfaces/cli/test_cli_project_review_application.py',
     ROOT / 'tests/interfaces/cli/test_cli_project_review_status.py', ROOT / 'tests/interfaces/cli/test_cli_project_review_races.py',
     ROOT / 'tests/interfaces/cli/test_cli_project_review_reconciliation.py',
-    ROOT / "tests" / "test_shared_use_case_matrix.py",
+    ROOT / "tests" / "architecture" / "test_shared_use_case_matrix.py",
     ROOT / "tests" / "providers" / "libretranslate" / "test_translator_http.py",
     ROOT / "tests" / "providers" / "libretranslate" / "test_translator_rate_limit.py",
     ROOT / "tests" / "providers" / "libretranslate" / "test_translator_languages.py",
