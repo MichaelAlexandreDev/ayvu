@@ -30,7 +30,7 @@ from ayvu.interfaces.cli.render import _TRANSLATION_FAILURES
 from ayvu.projects.schema import open_job_repository, open_provenance_repository
 from ayvu.translation.preflight import PreflightError
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.review import decode_review_package, encode_review_package
 from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState, JobTerminalSummary

@@ -77,7 +77,7 @@ staged reconstruction, and legacy v1 apply refusal.
 [language tests](../../../tests/providers/libretranslate/test_translator_languages.py),
 [route tests](../../../tests/providers/libretranslate/test_translator_routes.py),
 [cache tests](../../../tests/v1/test_cache.py),
-[resume tests](../../../tests/v1/test_resume.py),
+[resume tests](../../../tests/recovery/test_resume.py),
 [library tests](../../../tests/library/test_library.py) and
 [cli output plan tests](../../../tests/kernel/test_cli_output_plan.py),
 [cli translation options tests](../../../tests/kernel/test_cli_translation_options.py),

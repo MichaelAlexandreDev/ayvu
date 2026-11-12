@@ -69,7 +69,7 @@ def test_chunk_and_unit_order_with_approved_blank_and_provider_sources(env, tmp_
 
 
 def test_resume_serialization_preserves_only_explicit_new_policy_choices(tmp_path):
-    from ayvu.v1.resume import TranslationResumeState
+    from ayvu.recovery.checkpoint import TranslationResumeState
     for legacy, auto in ((False, False), (True, False), (False, True)):
         options = TranslationMemoryOptions(apply_threshold=0.98, conservative_auto_apply=auto,
                                           legacy_cache_compatibility=legacy)

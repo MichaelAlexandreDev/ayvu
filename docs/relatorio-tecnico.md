@@ -82,7 +82,7 @@ ayvu/
 │       ├── preflight.py
 │       ├── review_export.py
 │       ├── review_import.py
-│       ├── resume.py
+│       ├── recovery/checkpoint.py
 │       ├── translator.py
 │       └── validation.py
 ├── tests/
@@ -128,7 +128,7 @@ ayvu/
 │   ├── review/
 │   │   ├── test_review_export.py
 │   │   └── test_review_import.py
-│   ├── test_resume.py
+│   ├── recovery/test_resume.py
 │   ├── providers/
 │   │   └── libretranslate/
 │   │       ├── test_translator_http.py
@@ -296,7 +296,7 @@ regras explícitas `translate`, `preserve` e `forbidden`.
 
 `src/ayvu/translation/preflight.py` valida idioma, glossário, cache, EPUB e tradutor antes da tradução real.
 
-`src/ayvu/v1/resume.py` registra e lê estados locais de retomada em `~/Documentos/Livros/Processando`.
+`src/ayvu/recovery/checkpoint.py` stores and reads shared translation checkpoints in `~/Documentos/Livros/Processando`; bounded discovery lives in `src/ayvu/recovery/checkpoint_scan.py`.
 
 `src/ayvu/interfaces/cli/progress.py` adapta callbacks de tradução para `rich.Progress` e mantém contadores de textos.
 

@@ -3,7 +3,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from ayvu.v1.resume import (
+from ayvu.recovery.checkpoint import (
     COMPLETED_STATUS,
     RESUME_STATE_VERSION,
     RUNNING_STATUS,

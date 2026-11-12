@@ -131,7 +131,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "translation/test_translation_cache_v2_fuzzy.py",
         "translation/test_translation_cache_v2_identity.py",
     ),
-    "resume": ("v1/test_resume.py", "v1/test_legacy_resume.py", "translation/test_raw_results_resume.py"),
+    "resume": ("recovery/test_resume.py", "recovery/test_legacy_resume.py", "translation/test_raw_results_resume.py"),
     "glossary": (
         "knowledge/glossary/test_glossary.py",
         "knowledge/glossary/test_glossary_catalog_commands.py",

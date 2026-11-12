@@ -21,7 +21,7 @@ ALLOWED: dict[str, str] = {}
 ADAPTER_MODULES = frozenset({
     "network.http", "preferences.store", "preferences.config_facade", "provenance.store", "jobs.store",
     "artifacts.store", "artifacts.destination", "projects.store", "projects.schema", "projects.profiles.store",
-    "projects.profiles.glossary_store", "library.adapters", "recovery.store", "knowledge.cache.schema",
+    "projects.profiles.glossary_store", "library.adapters", "recovery.store", "recovery.checkpoint", "recovery.checkpoint_scan", "knowledge.cache.schema",
     "knowledge.cache.repository", "knowledge.cache.interchange", "knowledge.cache.admin_store",
     "knowledge.cache.admin_v2_queries", "knowledge.cache.admin_v2_files", "knowledge.cache.admin_v2_export",
     "knowledge.cache.admin_v2_records", "knowledge.cache.admin_v2_import",
@@ -35,7 +35,7 @@ ADAPTER_MODULES = frozenset({
 
 PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (
     "translation", "html_translate", "cache", "cache_check",
-    "resume", "resume_scan", "epub")} | ADAPTER_MODULES)
+    "epub")} | ADAPTER_MODULES)
 
 
 def packages(root: Path = SOURCE) -> set[str]:

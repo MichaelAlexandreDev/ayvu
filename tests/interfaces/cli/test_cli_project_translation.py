@@ -3,7 +3,7 @@ from zipfile import ZipFile
 from ayvu.composition.builders import translate_project as composition
 from ayvu.translation.preflight import PreflightError
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.jobs.model import JobState
 from ayvu.translation.project_contracts import TranslateObserver
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions

@@ -21,13 +21,13 @@ from .service import (
 from ..translation import ArtifactIntegrity, RecoveryReason, ResumeStage, StageEvidence
 from ..jobs import JobSnapshot
 from ..jobs.store import MAX_LIST_LIMIT, SqliteJobRepository
-from ..v1.resume_scan import LegacyStateEntry, scan_legacy_states
+from .checkpoint_scan import LegacyStateEntry, scan_legacy_states
 from ..projects import ProjectError, ProjectManifest, ProjectSourceError
 from ..projects.schema import project_migration_runner
 from ..projects.store import ConfigurationReferences, ProjectJsonRepository, canonical_source_path, configuration_references, file_digest, source_digest, translation_selections
 from ..provenance import ProvenanceError, ProducerIdentity
 from ..provenance.store import SqliteProvenanceRepository
-from ..v1.resume import RUNNING_STATUS, TranslationResumeState
+from .checkpoint import RUNNING_STATUS, TranslationResumeState
 from ..translation import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TranslateCommandError, TranslateProjectCommand, resolve_execution_plan
 from ..kernel import ChapterSelection, ChapterSelectionError, LanguagePair, OutputPlan, TranslationOptions, JobError, CancellationToken
 

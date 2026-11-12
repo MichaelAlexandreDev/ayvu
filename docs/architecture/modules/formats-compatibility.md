@@ -30,7 +30,7 @@ exists, and that jobs, retries and output paths are not assigned to a format.
 | visible text selection | `ayvu.v1.html_translate.extract_visible_text` for translation; `ayvu.formats.epub.html_structure.extract_body_visible_text` for Markdown export | `ayvu.formats.epub.html_structure` | #144 owns XHTML parsing and visibility selection; the Markdown writer does not parse markup |
 | html reconstruction | `ayvu.v1.html_translate.translate_html` | `ayvu.formats.epub.html_structure.reconstruct_html` | #144 delegates to it, with no second segmenter |
 | jobs | `ayvu.jobs.service.JobRepository` | `ayvu.jobs.service.JobRepository` | Not a format concern |
-| resume | `ayvu.v1.resume.ResumeStateStore` | [`ayvu.recovery.service`](recovery.md) | Not a format concern |
+| resume | `ayvu.recovery.checkpoint.ResumeStateStore` | [`ayvu.recovery.service`](recovery.md) | Not a format concern |
 | output path | `ayvu.kernel.OutputPlan` | #145 | Naming and overwrite rules stay with the application. `ayvu.formats.service.OutputGuard` only refuses the source |
 | translation | `ayvu.v1.epub.translate_epub` | `ayvu.translation.engine.TranslationEngine` | Orchestration leaves the format layer in #145. An adapter never calls a provider. `ayvu.translation.document.DocumentTranslator` takes over after #153 |
 

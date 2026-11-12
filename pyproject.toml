@@ -79,8 +79,6 @@ layers = [
   "kernel",
 ]
 ignore_imports = [
-  "ayvu.recovery.store -> ayvu.v1.resume",  # REF-18 (#286): recovery stops reading the v1 resume file when v1 is retired
-  "ayvu.recovery.store -> ayvu.v1.resume_scan",  # REF-18 (#286): recovery stops reading the v1 resume file when v1 is retired
 ]
 
 [[tool.importlinter.contracts]]

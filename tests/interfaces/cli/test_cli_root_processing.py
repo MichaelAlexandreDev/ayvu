@@ -1,7 +1,7 @@
 import json
 from ayvu.interfaces.cli.app import app
 from ayvu.translation.preflight import PreflightError
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from tests.support.cli_support import _resume_state, isolated_config, runner
 
 

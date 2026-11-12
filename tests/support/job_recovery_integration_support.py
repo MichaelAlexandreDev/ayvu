@@ -16,10 +16,10 @@ from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationP
 from ayvu.jobs.model import JobRequest, JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
 from ayvu.translation.resume_reuse import RecoveryReason, ResumeStage
-from ayvu.v1.resume_scan import MAX_LEGACY_STATE_BYTES, scan_legacy_states
+from ayvu.recovery.checkpoint_scan import MAX_LEGACY_STATE_BYTES, scan_legacy_states
 from ayvu.projects.schema import PROJECT_MIGRATIONS, open_job_repository
 from ayvu.projects.store import ProjectJsonRepository, build_project_request, translation_selections
-from ayvu.v1.resume import ResumeStateStore, TranslationResumeState
+from ayvu.recovery.checkpoint import ResumeStateStore, TranslationResumeState
 from ayvu.translation.project_contracts import (
     OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, ContinuationTicket, TranslateObserver, TranslateProjectCommand,
 )

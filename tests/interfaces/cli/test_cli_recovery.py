@@ -14,7 +14,7 @@ from typer.testing import CliRunner
 from ayvu.interfaces.cli.app import app
 from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
 from ayvu.jobs.model import JobState
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from tests.support.cli_translate_project_support import ENCRYPTED_DOCUMENT, Session, _args, _book, _jobs, _only_job
 from tests.support.job_recovery_concurrency_support import CHILD
 

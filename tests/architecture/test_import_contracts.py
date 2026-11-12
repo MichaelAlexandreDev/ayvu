@@ -37,13 +37,12 @@ def test_the_layers_contract_follows_the_decision_and_is_exhaustive():
 
 def test_every_ignored_import_names_the_issue_that_removes_it():
     lines = PYPROJECT.read_text(encoding="utf-8").splitlines()
-    inside, checked = False, 0
+    inside, found = False, False
     for line in lines:
         if line.startswith("ignore_imports = ["):
-            inside = True
+            inside = found = True
         elif inside and line.startswith("]"):
             inside = False
         elif inside:
             assert ISSUE.match(line), f"an ignored import must name its REF issue: {line.strip()}"
-            checked += 1
-    assert checked > 0
+    assert found  # REF-18 removed the last exception; any new one must still name its issue

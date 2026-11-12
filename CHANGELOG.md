@@ -59,6 +59,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), R2: checkpoint compartilhado e leitura limitada passam do v1 para Recovery,
+  preservando bytes, campos, defaults e retomadas dos dois runtimes; removidas as duas exceções de importação.
+
 - REF-17 (#285), PR D: root desktop com edição explícita e superfície projetada antes dos recursos;
   testes auditam receitas atuais de provedores e formatos, preservando a CLI e o launcher stub.
 

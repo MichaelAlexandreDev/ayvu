@@ -3,7 +3,7 @@ import hashlib
 import json
 from zipfile import ZIP_STORED, ZipFile
 from ayvu.interfaces.cli.app import app
-from ayvu.v1.resume import COMPLETED_STATUS, RUNNING_STATUS, ResumeStateStore
+from ayvu.recovery.checkpoint import COMPLETED_STATUS, RUNNING_STATUS, ResumeStateStore
 from tests.support.workflow_characterization_support import FakeLibreTranslateSession, _direct_languages, _install_cli_environment, _isolated_from_the_user
 from tests.support.workflow_characterization_support import _read_member, _translate_args
 from tests.support.workflow_characterization_support import _write_epub, _zip_metadata, runner

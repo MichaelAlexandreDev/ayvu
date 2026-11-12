@@ -14,7 +14,7 @@ from ayvu.v1.epub import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.v1.html_translate import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
-from ayvu.v1.resume import COMPLETED_STATUS, ResumeStateStore, TranslationResumeState
+from ayvu.recovery.checkpoint import COMPLETED_STATUS, ResumeStateStore, TranslationResumeState
 from ayvu.review.application import ReviewExportResult, ReviewOutcome, ReviewPackageIdentity
 from ayvu.review.csv_export import ReviewSegment, write_review_csv
 from ayvu.translation.engine import EngineResult

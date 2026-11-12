@@ -44,7 +44,7 @@ from ...provenance import ProvenanceError, declared_model
 from ...providers import ProviderRoute
 from ...providers import Capability, ProviderRequirements
 from ...providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
-from ...v1.resume import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
+from ...recovery.checkpoint import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
     ResumeStateError,
     ResumeStateStore,

@@ -14,7 +14,7 @@ import stat
 from dataclasses import dataclass
 from pathlib import Path
 
-from .resume import RESUME_STATE_VERSION, STATE_FILE_PATTERN, ResumeStateError, TranslationResumeState
+from .checkpoint import RESUME_STATE_VERSION, STATE_FILE_PATTERN, ResumeStateError, TranslationResumeState
 
 MAX_LEGACY_STATE_BYTES = 8 * 1024 * 1024
 MAX_LEGACY_STATES = 1024

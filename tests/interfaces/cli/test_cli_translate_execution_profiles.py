@@ -1,5 +1,5 @@
 from ayvu.interfaces.cli.app import app
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from tests.support.cli_support import _mock_translation_pipeline
 from tests.support.cli_support import isolated_config, runner
 

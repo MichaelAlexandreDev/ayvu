@@ -22,7 +22,7 @@ from ..library import LibraryService
 from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight
-from ..v1.resume import ResumeStateStore, TranslationResumeState
+from ..recovery.checkpoint import ResumeStateStore, TranslationResumeState
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
