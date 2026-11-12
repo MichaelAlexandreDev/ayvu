@@ -59,6 +59,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-17 (#285), PR D: root desktop com edição explícita e superfície projetada antes dos recursos;
+  testes auditam receitas atuais de provedores e formatos, preservando a CLI e o launcher stub.
+
 - REF-17 (#285), PR C: CLI e menu montados pela superfície projetada, preservando comandos, opções e ajuda do `ayvu` instalado.
 
 - Os adaptadores locais de revisão saem de `composition/builders/review_*.py` para `review/local_*.py`;

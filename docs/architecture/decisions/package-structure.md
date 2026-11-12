@@ -124,7 +124,12 @@ imports are layer rules instead of exceptions.
   acquire no resources. PR C adds `create_app(surface)` in the presenter: each call
   creates independent Typer registrations and includes the cache group only with
   selected children. The installed `app` consumes `installed_cli_surface()` at the
-  same entrypoint. Desktop/binding integration remains PR D.
+  same entrypoint. PR D adds `desktop_surface(edition_id)` and requires an explicit
+  edition ID in `start(factories, overrides, *, edition)`. The root validates desktop
+  applicability and projects action/recipe IDs before acquiring configuration. Provider
+  and application factories receive the same immutable `DesktopSurface`; overrides
+  remain directory, environment, clock and platform. Acquisition order, reverse rollback
+  and idempotent shutdown are unchanged.
 - The private `editions`, `feature_catalog` and `surface_rules` modules may only use
   their declared internal edges. They are not public APIs or root reexports. Interfaces
   receive immutable command paths, menu key/action pairs and effective recipe IDs,
@@ -154,6 +159,16 @@ imports are layer rules instead of exceptions.
   keys and their gaps. Registered command signatures and installed flows stay intact.
   Option/argument/preset enforcement and capability-based resume admission belong to the
   follow-up batch E; #285 is scoped to B, C and D. No continuation issue is created here.
+- PR D audits effective provider/input-format IDs against the real content, provider,
+  review and translation builders, including v1 preflight/executor and rich provider
+  acquisition/cleanup. Today's recipes are LibreTranslate, EPUB and the extraction
+  Markdown writer. This audit does not add selection enforcement to existing builders:
+  content still constructs its writer unconditionally, and v1/rich keep their existing
+  provider paths. Exclusion enforcement and additional recipes belong to batch E.
+- The desktop root rejects terminal-only editions before acquiring resources. Its actions
+  reuse shared command/menu binding IDs and describe a stub plan, not implemented widgets.
+  The installed `ayvu-desktop` bootstrap still does not call this root; its help and
+  diagnostics stay unchanged. A future launcher should select `free` inside composition.
 
 ### D7. The v1 runtime in quarantine
 - v1 is today's default when no model label is set. Its files move to `v1/`.

@@ -3,6 +3,8 @@
 from .architecture_cache_edges import CACHE_EDGES
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.composition.desktop", "ayvu.composition.editions"),
+    ("ayvu.composition.desktop", "ayvu.composition.surface_rules"),
     ("ayvu.interfaces.cli.guided.menu", "ayvu.composition.cli"),  # REF-17: surface data from the root.
     ("ayvu.composition.cli", "ayvu.composition.editions"),
     ("ayvu.composition.cli", "ayvu.composition.surface_rules"),
