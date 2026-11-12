@@ -4,30 +4,30 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ...artifacts import Artifact, ArtifactState
-from ...artifacts import ArtifactService
-from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
-from ...formats import AliasVerdict
-from ...formats.local import LocalFormatSource, LocalOutputGuard
-from ...formats import FormatService, FormatSource
-from ...jobs import JobState
-from ...jobs import JobRepository
-from ...jobs.store import SqliteJobRepository
-from ...projects import ProjectManifest
-from ...projects.schema import project_migration_runner
-from ...projects.store import ProjectJsonRepository
-from ...provenance import ProvenanceError, SourceKind, SubjectRef
-from ...provenance.store import SqliteProvenanceRepository
-from ...review import ReviewApplicationError, ReviewCounts, ReviewPackageExport, ReviewPackageIdentity, ReviewValidationMaterial
-from ...review import REVIEW_PACKAGE_SCHEMA_VERSION, ReviewExchangeError, ReviewPackage, decode_review_package, encode_review_package, export_review_package
-from ...review import ReviewImportError, read_review_csv_bytes
-from ...translation import TranslateProjectResult
-from ...translation import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
-from ...translation import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
-from ...kernel import CancellationToken
+from ..artifacts import Artifact, ArtifactState
+from ..artifacts import ArtifactService
+from ..artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
+from ..formats import AliasVerdict
+from ..formats.local import LocalFormatSource, LocalOutputGuard
+from ..formats import FormatService, FormatSource
+from ..jobs import JobState
+from ..jobs import JobRepository
+from ..jobs.store import SqliteJobRepository
+from ..projects import ProjectManifest
+from ..projects.schema import project_migration_runner
+from ..projects.store import ProjectJsonRepository
+from ..provenance import ProvenanceError, SourceKind, SubjectRef
+from ..provenance.store import SqliteProvenanceRepository
+from . import ReviewApplicationError, ReviewCounts, ReviewPackageExport, ReviewPackageIdentity, ReviewValidationMaterial
+from . import REVIEW_PACKAGE_SCHEMA_VERSION, ReviewExchangeError, ReviewPackage, decode_review_package, encode_review_package, export_review_package
+from . import ReviewImportError, read_review_csv_bytes
+from ..translation import TranslateProjectResult
+from ..translation import OUTPUT_ROLE, RECONSTRUCT_STAGE, RECONSTRUCT_STAGE_VERSION, TRANSLATE_COMMAND_TYPE
+from ..translation import STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED
+from ..kernel import CancellationToken
 
-from .review_files import _MAX_PACKAGE_BYTES, _fingerprint, _safe_code, destination_fingerprint
-from .review_context import _EPUB_MEDIA_TYPE, _MappedReview, _map_review_context
+from .local_files import _MAX_PACKAGE_BYTES, _fingerprint, _safe_code, destination_fingerprint
+from .local_context import _EPUB_MEDIA_TYPE, _MappedReview, _map_review_context
 
 
 _MACHINE_LINEAGE_KINDS = frozenset((SourceKind.PROVIDER, SourceKind.CACHE, SourceKind.TRANSLATION_MEMORY, SourceKind.PIPELINE))

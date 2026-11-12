@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 from threading import Event
 import pytest
 import ayvu.artifacts.destination as artifact_destination
-from ayvu.composition.builders import review as review_composition, review_files
-from ayvu.composition.builders.review_operations import LocalReviewOperations
+from ayvu.composition.builders import review as review_composition
+from ayvu.review import local_files as review_files
+from ayvu.review.local_operations import LocalReviewOperations
 from ayvu.interfaces.cli.app import app
 from ayvu.projects.schema import open_provenance_repository
 from ayvu.projects.store import ProjectJsonRepository

@@ -154,10 +154,13 @@ result values plus `ExportReviewPackage`, `ValidateReviewPackage`, and
 network, SQLite, or filesystem adapter. `ayvu.composition.builders.review` wires those
 ports to the v2 exchange codec/mapper, read-only project readers, the EPUB
 `FormatService`, job/provenance repositories, and the DESKTOP-106 artifact
-publication protocol. The sibling `review_files`, `review_context`,
-`review_packages`, `review_start`, and `review_operations` modules own file
+publication protocol. The public adapters `review.local_files`, `review.local_context`,
+`review.local_packages`, `review.local_start`, and `review.local_operations` own file
 boundaries, read-only context, package resolution, operation startup, and
-publication/settlement respectively. They remain internal composition modules.
+publication/settlement respectively. They moved from composition by the owner's
+decision of 2026-11-12. They are imported directly and are not re-exported by
+`review/__init__.py`, so importing review contracts loads no local I/O adapter
+and cannot create an adapter import cycle (D2).
 
 `translate --review-output` uses the exact successful `TranslateProjectResult`.
 The engine retains its extracted `ContentDocument`s, structural translations,

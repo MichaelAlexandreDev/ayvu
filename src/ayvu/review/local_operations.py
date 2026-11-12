@@ -8,24 +8,24 @@ from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
-from ...artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactState
-from ...formats import AliasVerdict, ReconstructionRequest
-from ...formats.local import LocalFormatSource, LocalOutputGuard
-from ...formats import FormatService
-from ...jobs import JobState, JobTerminalSummary, MAX_LEASE_DURATION
-from ...jobs import CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress
-from ...jobs import CancellationSource
-from ...projects.store import ProjectJsonRepository, file_digest
-from ...provenance import ActorKind, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef
-from ...review import REVIEW_APPLY_COMMAND_TYPE, REVIEW_EXPORT_COMMAND_TYPE, REVIEW_SAFE_POINTS, ReviewApplicationError, ReviewCounts, ReviewOperation, ReviewOperationResult, ReviewPackageIdentity, ReviewValidationMaterial
-from ...review import ReviewExchangeError, decode_review_package
-from ...translation import TRANSLATE_COMMAND_TYPE
-from ...kernel import JobFailure, JobFailureFamily, JobWarning, CancellationToken
+from ..artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactState
+from ..formats import AliasVerdict, ReconstructionRequest
+from ..formats.local import LocalFormatSource, LocalOutputGuard
+from ..formats import FormatService
+from ..jobs import JobState, JobTerminalSummary, MAX_LEASE_DURATION
+from ..jobs import CancellationAcknowledgement, CancellationRequest, JobCorrelation, JobEvent, JobOutcome, JobProgress
+from ..jobs import CancellationSource
+from ..projects.store import ProjectJsonRepository, file_digest
+from ..provenance import ActorKind, ProvenanceError, ProvenanceRequest, SourceKind, SubjectRef
+from . import REVIEW_APPLY_COMMAND_TYPE, REVIEW_EXPORT_COMMAND_TYPE, REVIEW_SAFE_POINTS, ReviewApplicationError, ReviewCounts, ReviewOperation, ReviewOperationResult, ReviewPackageIdentity, ReviewValidationMaterial
+from . import ReviewExchangeError, decode_review_package
+from ..translation import TRANSLATE_COMMAND_TYPE
+from ..kernel import JobFailure, JobFailureFamily, JobWarning, CancellationToken
 
-from .review_files import _safe_code, read_review_input
-from .review_context import _MappedReview
-from .review_packages import LocalReviewPackagePort
-from .review_start import _OperationState, _UNKNOWN_PRODUCER, _begin_review_operation, _operation_subject, _utc_now
+from .local_files import _safe_code, read_review_input
+from .local_context import _MappedReview
+from .local_packages import LocalReviewPackagePort
+from .local_start import _OperationState, _UNKNOWN_PRODUCER, _begin_review_operation, _operation_subject, _utc_now
 
 
 def _lineage_key(kind: str, *parts: str) -> str:

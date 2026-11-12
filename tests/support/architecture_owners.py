@@ -10,15 +10,6 @@ class Owner:
     capability: str
 
 
-REVIEW_BUILDERS = frozenset({
-    "ayvu.composition.builders.review",
-    "ayvu.composition.builders.review_files",
-    "ayvu.composition.builders.review_context",
-    "ayvu.composition.builders.review_packages",
-    "ayvu.composition.builders.review_start",
-    "ayvu.composition.builders.review_operations",
-})
-
 EDITION_DATA_MODULES = frozenset({
     "ayvu.composition.editions",
     "ayvu.composition.feature_catalog",
@@ -174,11 +165,11 @@ OWNERS = {
     "ayvu.review.exchange_files": Owner("infrastructure", "Review"),
     "ayvu.review.application": Owner("application", "Review"),
     "ayvu.composition.builders.review": Owner("composition", "Review"),
-    "ayvu.composition.builders.review_files": Owner("composition", "Review"),
-    "ayvu.composition.builders.review_context": Owner("composition", "Review"),
-    "ayvu.composition.builders.review_packages": Owner("composition", "Review"),
-    "ayvu.composition.builders.review_start": Owner("composition", "Review"),
-    "ayvu.composition.builders.review_operations": Owner("composition", "Review"),
+    "ayvu.review.local_files": Owner("infrastructure", "Review"),
+    "ayvu.review.local_context": Owner("infrastructure", "Review"),
+    "ayvu.review.local_packages": Owner("infrastructure", "Review"),
+    "ayvu.review.local_start": Owner("infrastructure", "Review"),
+    "ayvu.review.local_operations": Owner("infrastructure", "Review"),
     "ayvu.library.service": Owner("application", "Library"),
     "ayvu.library.adapters": Owner("infrastructure", "Library"),
     "ayvu.formats.use_cases": Owner("application", "Formats"),

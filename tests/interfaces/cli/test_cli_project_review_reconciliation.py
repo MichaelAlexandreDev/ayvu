@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from zipfile import ZipFile
 import ayvu.artifacts.destination as artifact_destination
 import ayvu.jobs.store as job_store
-from ayvu.composition.builders.review_operations import LocalReviewOperations
+from ayvu.review.local_operations import LocalReviewOperations
 from ayvu.interfaces.cli.app import app
 from ayvu.projects.schema import open_provenance_repository
 from ayvu.projects.store import ProjectJsonRepository

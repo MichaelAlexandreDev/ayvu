@@ -346,39 +346,39 @@ ALLOWED_INTERNAL_EDGES = {
     *(("ayvu.composition.cli", f"ayvu.{name}") for name in (
        "composition.builders.cache_admin", "composition.builders.content",
        "composition.builders.glossary", "composition.builders.providers", "composition.builders.review",
-       "composition.builders.review_files", "composition.builders.translate_batch",
+       "review.local_files", "composition.builders.translate_batch",
        "composition.builders.translate_project", "kernel.failures", "kernel.values", "library.adapters",
        "library.service", "preferences.config_facade", "projects.service", "projects.store",
        "translation.batch_output", "translation.engine", "translation.preflight",
        "translation.project_contracts", "v1.cache", "v1.cache_check", "v1.resume",)),
     *(("ayvu.composition.builders.review", f"ayvu.{name}") for name in (
-       "composition.builders.review_operations", "composition.builders.review_packages",
-       "composition.builders.review_start", "formats.epub.adapter", "formats.local", "formats.service",
+       "review.local_operations", "review.local_packages",
+       "review.local_start", "formats.epub.adapter", "formats.local", "formats.service",
        "jobs.execution", "review.application",)),
-    *(("ayvu.composition.builders.review_files", f"ayvu.{name}") for name in (
+    *(("ayvu.review.local_files", f"ayvu.{name}") for name in (
        "review.application",)),
-    *(("ayvu.composition.builders.review_context", f"ayvu.{name}") for name in (
-       "artifacts.model", "composition.builders.review_files", "content.model", "formats.contracts",
+    *(("ayvu.review.local_context", f"ayvu.{name}") for name in (
+       "artifacts.model", "review.local_files", "content.model", "formats.contracts",
        "formats.service", "jobs.model", "kernel.cancellation", "projects.model",
        "review.application", "review.exchange_mapping", "review.exchange_model",
        "translation.project_contracts",)),
-    *(("ayvu.composition.builders.review_packages", f"ayvu.{name}") for name in (
-       "artifacts.model", "artifacts.service", "artifacts.store", "composition.builders.review_context",
-       "composition.builders.review_files", "formats.contracts",
+    *(("ayvu.review.local_packages", f"ayvu.{name}") for name in (
+       "artifacts.model", "artifacts.service", "artifacts.store", "review.local_context",
+       "review.local_files", "formats.contracts",
        "formats.local", "formats.service", "jobs.model", "jobs.service", "jobs.store",
        "kernel.cancellation", "projects.model", "projects.schema", "projects.store", "provenance.model",
        "provenance.store", "review.application", "review.csv_import", "review.exchange",
        "review.exchange_codec", "review.exchange_model", "translation.engine",
        "translation.project_contracts",)),
-    *(("ayvu.composition.builders.review_start", f"ayvu.{name}") for name in (
+    *(("ayvu.review.local_start", f"ayvu.{name}") for name in (
        "artifacts.destination", "artifacts.model", "artifacts.service",
-       "composition.builders.review_context", "composition.builders.review_files", "formats.local",
+       "review.local_context", "review.local_files", "formats.local",
        "formats.service", "jobs.events", "jobs.execution", "jobs.model", "jobs.service",
        "projects.model", "projects.schema", "provenance.model", "provenance.store",
        "review.application",)),
-    *(("ayvu.composition.builders.review_operations", f"ayvu.{name}") for name in (
-       "artifacts.model", "composition.builders.review_context", "composition.builders.review_files",
-       "composition.builders.review_packages", "composition.builders.review_start", "formats.contracts",
+    *(("ayvu.review.local_operations", f"ayvu.{name}") for name in (
+       "artifacts.model", "review.local_context", "review.local_files",
+       "review.local_packages", "review.local_start", "formats.contracts",
        "formats.local", "formats.service", "jobs.events", "jobs.execution", "jobs.model",
        "kernel.cancellation", "kernel.failures", "projects.store", "provenance.model",
        "review.application", "review.exchange_codec", "review.exchange_model",

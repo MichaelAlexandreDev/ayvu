@@ -72,7 +72,8 @@ is package metadata, not a shared-capability bucket.
 - **Roots (D5):** each composition root is a public module; `composition/__init__.py` exports nothing.
   An interface imports only its own root. Only `composition/cli.py` imports builders from outside
   composition. Roots select/build adapters, hold no business rule and run no translation stage.
-  The review builder siblings retain only their declared internal edges pending the owner's decision.
+  The local review adapters moved to `review/local_*.py` by the owner's decision of 2026-11-12;
+  the review builder only wires them.
 - **Quarantine (D7):** only composition imports v1. Its modules are individually public while its
   `__init__.py` exports nothing. Existing lower-layer v1 imports have issue-owned, shrinking ignores;
   do not copy them. v1's broad dependency allowance does not override the other boundary contracts.

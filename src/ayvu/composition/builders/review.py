@@ -13,9 +13,9 @@ from ...formats import FormatService, FormatRegistry, FormatSource
 from ...jobs import CancellationSource
 from ...review import ReviewUseCasePorts, ExportReviewPackage, ValidateReviewPackage, ApplyReviewPackage
 
-from .review_packages import LocalReviewPackagePort
-from .review_start import _utc_now
-from .review_operations import LocalReviewOperations
+from ...review.local_packages import LocalReviewPackagePort
+from ...review.local_start import _utc_now
+from ...review.local_operations import LocalReviewOperations
 
 
 @dataclass(frozen=True, repr=False)

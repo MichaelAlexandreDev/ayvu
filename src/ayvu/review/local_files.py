@@ -7,7 +7,7 @@ import re
 import stat
 from pathlib import Path
 
-from ...review import ReviewApplicationError
+from . import ReviewApplicationError
 
 
 _MAX_PACKAGE_BYTES = 64 * 1024 * 1024

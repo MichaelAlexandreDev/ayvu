@@ -6,18 +6,18 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from collections.abc import Iterable
 
-from ...artifacts import Artifact, ArtifactCancelledError, ArtifactIntegrityError, ArtifactRequest, ArtifactState
-from ...content import ContentDocument
-from ...formats import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
-from ...formats import FormatPublication, FormatSource
-from ...jobs import JobState
-from ...projects import ProjectManifest
-from ...review import ReviewApplicationError, ReviewPackageIdentity
-from ...review import ReviewExchangeError, ReviewPackage, ReviewReconstructionPlan, map_review_package
-from ...translation import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE
-from ...kernel import CancellationToken
+from ..artifacts import Artifact, ArtifactCancelledError, ArtifactIntegrityError, ArtifactRequest, ArtifactState
+from ..content import ContentDocument
+from ..formats import AliasVerdict, ContentScope, ExtractionRequest, ReconstructionRequest
+from ..formats import FormatPublication, FormatSource
+from ..jobs import JobState
+from ..projects import ProjectManifest
+from . import ReviewApplicationError, ReviewPackageIdentity
+from . import ReviewExchangeError, ReviewPackage, ReviewReconstructionPlan, map_review_package
+from ..translation import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE
+from ..kernel import CancellationToken
 
-from .review_files import _safe_code
+from .local_files import _safe_code
 
 
 _EPUB_MEDIA_TYPE = "application/epub+zip"
