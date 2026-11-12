@@ -1,17 +1,43 @@
 # Retirement of the v1 translation runtime
 
-Status: Proposed
+Status: Accepted
 Decision-Date: `2026-11-12`
 Owners: the Ayvu repository owner and maintainer (inventory, compatibility and data-path acceptance); Composition and Translation (runtime selection and execution); Knowledge (cache and memory); Recovery (checkpoints and continuation); Formats (HTML/EPUB); Review (review exchange).
 Issue: [#286 — REF-18](https://github.com/MichaelAlexandreDev/ayvu/issues/286).
+
+## Acceptance record
+
+Accepted on 2026-11-12 by the repository owner, through explicit approval in the development session
+(translated quotation: "I accept all the rest", covering every recommendation of the REF-18 questions).
+The answers to the [questions](#questions-for-the-owner) are the recommendations as written:
+
+1. The inventory, the ten gaps G1–G10 and the shared extractions R1–R3 are accepted. The runtime stays
+   until every gap has a recorded implementation or intentional-change disposition.
+2. Old data takes path B: retranslate, keeping the verified v1 originals as immutable history. An
+   archive importer (A) is optional, with zero promoted exact entries and no migrated completion credit.
+3. Essential old offline/cache-only jobs finish with a frozen pre-retirement release first. Old files
+   are kept until the owner validates the replacement books and authorizes deletion in another task.
+4. With no model label after the switch, setup asks for a genuine owner-declared label and translation
+   fails clearly before any provider call. There is no v1 fallback and no invented model identity.
+5. Rich preview and dry run keep today's absence of project and job creation, through a transient
+   route whose cache effects are specified before implementation.
+6. Parallel workers and the high profile survive the switch. The effective worker count never changes
+   silently.
+7. Rich failure behavior and governed memory replace the old behavior: no partial EPUB on provider
+   failure, fuzzy suggestions by default, and an explicit conservative policy for approved reuse.
+8. JSON-v1 cache administration and CSV-v1 packages keep bounded inspection and export only during the
+   transition. Positional CSV-v1 edits are never applied, and legacy namespace data is never relabelled
+   as semantic v2.
+
+The implementation follows the [ordered plan](#ordered-implementation-after-approval) from step 1,
+one pull request at a time.
 
 ## Proposal and acceptance boundary
 
 Retire the v1 runtime as decided in [D7](package-structure.md#d7-the-v1-runtime-in-quarantine).
 This first delivery inventories the observable contract and proposes the old-data path. It changes
 no runtime, default, cache, checkpoint, schema, fingerprint or user command. **Nothing is removed.**
-The owner must approve both this inventory and the data path before implementation/removal starts.
-Acceptance of the retirement direction does not settle the numbered questions below.
+The owner approved both this inventory and the data path on 2026-11-12; see the acceptance record above.
 
 Evidence is the local REF-19 base `9e35382`, inspected without network access. No owner's cache,
 checkpoint or book was opened; their existence is owner-supplied information, not a measured count.
@@ -286,7 +312,7 @@ unless a separately approved versioned migration changes them.
 
 | Order / proposed issue or PR | Kind under D13 | Exit proof |
 | --- | --- | --- |
-| 0. Accept this inventory, G1–G10 dispositions and cache/state path | Documentation only | Recorded owner answers to the questions; no production/data change. This document stays Proposed until that acceptance is recorded. |
+| 0. Accept this inventory, G1–G10 dispositions and cache/state path | Documentation only | Recorded owner answers to the questions; no production/data change. Recorded on 2026-11-12 in the acceptance record. |
 | 1. Extract R1–R3 to Translation/Formats, Recovery and Knowledge, in sequential focused PRs | Mechanical, use `git mv` where applicable, no shims | Same reports, checkpoint bytes/defaults and cache schema/namespace; imports updated in the same PR. Remove matching ignores and prove the Knowledge/v1 cycle disappears. Preserve the rich checkpoint format as well as old readers. |
 | 2. Close G2/G3 preview/dry-run integration, G7 cache-only/missing outputs, G8 workers or approved sequential profile policy; one focused PR per behavior | Behavioral | CLI tests with and without configured labels before changing the default. Preview selection/validation, dry-run side effects, no DNS/session/provider in cache-only, ambiguous/corrupt identity, full-coverage no-output, missing originals and worker cancellation/order. G5/G6 readers must remain available pending data disposition. |
 | 3. Settle G1 model setup, G9 memory and G10 failure/publication differences; lock the approved compatibility matrix | Behavioral | Explicit acceptance and tests for each intended difference; preserve glossary-after-raw-cache invariant. No fabricated default identity or implicit v1 fuzzy promotion. Verify existing shared flags, extraction, review, reports and HTML/EPUB corpus against both current branches. |

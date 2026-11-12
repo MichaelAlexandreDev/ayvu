@@ -9,6 +9,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- REF-18 (#286): aposentadoria do v1 aceita pelo dono: retraduzir os dados antigos e guardar os
+  originais v1 como histórico; exigir modelo declarado; manter preview, dry run e workers.
+
 - REF-18 (#286): proposta de aposentadoria do v1 com inventário, lacunas do runtime rico,
   dependências e alternativas para caches e retomadas antigas; nada é removido nesta entrega.
 

@@ -4,8 +4,9 @@ Read this before adding code, whether you are a person or an AI agent. It summar
 [package-structure decision](../decisions/package-structure.md) (D1–D15); that decision remains authoritative.
 Use the [PR checklist](#pr-checklist) when preparing a change.
 
-The [v1 retirement proposal](../decisions/v1-retirement.md) inventories the remaining compatibility
-gaps and old-data choices for REF-18 (#286). It remains `Proposed`; no runtime or data removal is authorized.
+The [v1 retirement decision](../decisions/v1-retirement.md) inventories the remaining compatibility
+gaps and the old-data path for REF-18 (#286). It is `Accepted`: new code goes to the rich runtime's
+owners, never to `v1/`, which shrinks one planned pull request at a time.
 
 ## Choose the owner first
 
