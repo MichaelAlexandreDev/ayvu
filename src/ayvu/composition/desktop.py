@@ -13,6 +13,37 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Mapping
 
+from . import editions, surface_rules
+
+
+@dataclass(frozen=True)
+class DesktopSurface:
+    """Effective action and recipe IDs, without product identity or toolkit objects.
+
+    Actions reuse the shared command/menu binding IDs. They describe a plan;
+    the installed desktop launcher still has no presentation implementation.
+    """
+
+    actions: tuple[str, ...]
+    providers: tuple[str, ...]
+    input_formats: tuple[str, ...]
+    extraction_writers: tuple[str, ...]
+    report_writers: tuple[str, ...]
+    assistance_roles: tuple[str, ...]
+
+
+def desktop_surface(edition_id: str) -> DesktopSurface:
+    """Validate applicability and select recipes before any resource acquisition."""
+    edition = editions.get_edition(edition_id)
+    if "desktop" not in edition.interfaces:
+        raise ValueError("Product does not support the desktop interface")
+    selected = surface_rules.project_surface(edition.features,
+        execution_preset=edition.execution_preset, report_style=edition.report_style)
+    actions = tuple(dict.fromkeys((*('.'.join(path) for path in selected.commands),
+                                   *(action for _, action in selected.menu_actions))))
+    return DesktopSurface(actions, selected.providers, selected.input_formats,
+        selected.extraction_writers, selected.report_writers, selected.assistance_roles)
+
 
 @dataclass(frozen=True, repr=False)
 class DesktopOverrides:
@@ -37,9 +68,9 @@ class DesktopFactories:
 
     configuration: Callable[[DesktopOverrides], AbstractContextManager[object]]
     storage: Callable[[DesktopOverrides, object], AbstractContextManager[object]]
-    provider: Callable[[DesktopOverrides, object], AbstractContextManager[object]]
+    provider: Callable[[DesktopOverrides, object, DesktopSurface], AbstractContextManager[object]]
     jobs: Callable[[DesktopOverrides, object, object], AbstractContextManager[object]]
-    application: Callable[[DesktopOverrides, object, object, object, object], AbstractContextManager[object]]
+    application: Callable[[DesktopOverrides, object, object, object, object, DesktopSurface], AbstractContextManager[object]]
 
     def __repr__(self) -> str:
         return "DesktopFactories()"
@@ -86,8 +117,9 @@ class StartupResult:
         return f"StartupResult(diagnostic={self.diagnostic!r}, cleanup_diagnostic={self.cleanup_diagnostic!r})"
 
 
-def start(factories: DesktopFactories, overrides: DesktopOverrides) -> StartupResult:
+def start(factories: DesktopFactories, overrides: DesktopOverrides, *, edition: str) -> StartupResult:
     """Build a graph without widgets; failure contains only bounded diagnostic codes."""
+    surface = desktop_surface(edition)
     stack = ExitStack()
     stage = "configuration"
     try:
@@ -95,11 +127,11 @@ def start(factories: DesktopFactories, overrides: DesktopOverrides) -> StartupRe
         stage = "storage"
         storage = stack.enter_context(factories.storage(overrides, configuration))
         stage = "provider"
-        provider = stack.enter_context(factories.provider(overrides, configuration))
+        provider = stack.enter_context(factories.provider(overrides, configuration, surface))
         stage = "jobs"
         jobs = stack.enter_context(factories.jobs(overrides, storage, provider))
         stage = "application"
-        application = stack.enter_context(factories.application(overrides, configuration, storage, provider, jobs))
+        application = stack.enter_context(factories.application(overrides, configuration, storage, provider, jobs, surface))
     except Exception:
         cleanup_diagnostic = None
         try:

@@ -9,7 +9,7 @@ import sys
 
 import pytest
 
-from ayvu.composition.desktop import DesktopFactories, DesktopOverrides, start
+from ayvu.composition.desktop import DesktopFactories, DesktopOverrides, desktop_surface, start
 
 
 STAGES = ("configuration", "storage", "provider", "jobs", "application")
@@ -39,7 +39,7 @@ def test_start_injects_resources_and_closes_in_reverse_order(tmp_path: Path) -> 
     events = []
     factories, resources = setup_factories(events)
     overrides = DesktopOverrides(data_dir=tmp_path, environment={}, clock=lambda: 123, platform=object())
-    result = start(factories, overrides)
+    result = start(factories, overrides, edition="free")
 
     assert result.diagnostic is None
     graph = result.graph
@@ -49,9 +49,9 @@ def test_start_injects_resources_and_closes_in_reverse_order(tmp_path: Path) -> 
     assert events == [
         ("enter", "configuration", overrides),
         ("enter", "storage", overrides, resources["configuration"]),
-        ("enter", "provider", overrides, resources["configuration"]),
+        ("enter", "provider", overrides, resources["configuration"], desktop_surface("free")),
         ("enter", "jobs", overrides, resources["storage"], resources["provider"]),
-        ("enter", "application", overrides, resources["configuration"], resources["storage"], resources["provider"], resources["jobs"]),
+        ("enter", "application", overrides, resources["configuration"], resources["storage"], resources["provider"], resources["jobs"], desktop_surface("free")),
     ]
     graph.close()
     graph.close()
@@ -63,7 +63,7 @@ def test_failed_start_rolls_back_acquired_resources(tmp_path: Path, failed: str)
     events = []
     factories, _ = setup_factories(events, failed)
     overrides = DesktopOverrides(data_dir=tmp_path, environment={}, clock=lambda: 123, platform=object())
-    result = start(factories, overrides)
+    result = start(factories, overrides, edition="free")
 
     assert result.graph is None
     assert result.diagnostic is not None
@@ -80,7 +80,7 @@ def test_shutdown_continues_after_cleanup_failure(tmp_path: Path) -> None:
     events = []
     factories, _ = setup_factories(events, cleanup_fail="provider")
     overrides = DesktopOverrides(data_dir=tmp_path, environment={}, clock=lambda: 123, platform=object())
-    graph = start(factories, overrides).graph
+    graph = start(factories, overrides, edition="free").graph
     assert graph is not None
     diagnostic = graph.close()
     assert diagnostic is not None
@@ -95,7 +95,7 @@ def test_rollback_continues_after_cleanup_failure(tmp_path: Path) -> None:
     events = []
     factories, _ = setup_factories(events, fail="application", cleanup_fail="provider")
     overrides = DesktopOverrides(data_dir=tmp_path, environment={}, clock=lambda: 123, platform=object())
-    result = start(factories, overrides)
+    result = start(factories, overrides, edition="free")
     assert result.graph is None
     assert (result.diagnostic.stage, result.diagnostic.code) == ("application", "startup_failed")
     assert (result.cleanup_diagnostic.stage, result.cleanup_diagnostic.code) == ("shutdown", "shutdown_failed")
