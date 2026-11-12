@@ -72,7 +72,12 @@ entries fail, so a rename cannot silently discard protection.
 | `content.protection` | Domain | Protected terms, placeholders and their integrity checks |
 | `translation.plan` | Domain | Resolved plan, stage identities and fingerprints |
 | `translation.pipeline` | Application | Fixed linguistic stages, their ports and the legacy facade |
-| `translation.document` | Application | Rich document path: results, artifact, replay, events and provenance |
+| `translation.document` | Application | Document admission, active unit execution, events and publication |
+| `translation.document_contracts` | Application | Document contracts, safe points and protected content |
+| `translation.raw_results` | Application | Canonical raw results, reuse dimensions and payload validation |
+| `translation.document_replay` | Application | Proving and replaying current and ancestor raw results |
+| `translation.document_provenance` | Application | Document production and replay lineage |
+| `translation.document_bindings` | Application | Provider, cache and memory bindings for the current unit and plan |
 | `provider` | Domain | Provider request, result, features and allowlisted diagnostics |
 | `providers.capabilities` | Domain | Provider descriptors, capability snapshots, availability and negotiation |
 | `formats.contracts` | Domain | What a format claims, negotiation, and the values its operations exchange |

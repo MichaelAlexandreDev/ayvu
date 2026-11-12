@@ -1,6 +1,5 @@
 """Opt-in composition contracts. Storage integration is in test_cli_rich_runtime."""
 from __future__ import annotations
-
 import ast
 import json
 import logging
@@ -27,7 +26,8 @@ from ayvu.providers.ports import ProviderRoute
 from ayvu.providers.capabilities import Capability, ProviderRequirements
 from ayvu.providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LIBRETRANSLATE_SAFE_POINTS, libretranslate_snapshot
 from ayvu.translation.project_contracts import RuntimeContext
-from ayvu.translation.document import DocumentTranslator, PIPELINE_SAFE_POINTS, TranslationExecutionError
+from ayvu.translation.document import DocumentTranslator
+from ayvu.translation.document_contracts import PIPELINE_SAFE_POINTS, TranslationExecutionError
 from ayvu.translation.plan import ResolvedTranslationPlan, resolve_plan
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator
 from test_cache_repository_v2 import entry

@@ -4,7 +4,6 @@ from datetime import timedelta
 import hashlib
 from types import SimpleNamespace
 from uuid import UUID
-
 import pytest
 
 from ayvu.artifacts.model import Artifact, ArtifactState
@@ -17,7 +16,8 @@ from ayvu.providers.ports import Requirement
 from ayvu.providers.capabilities import Capability, ProviderRequirements, SupportState
 from ayvu.providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
 from ayvu.translation.context.model import ContextCandidate, ContextCategory, ContextError, ContextLimits, TranslationContextBuilder
-from ayvu.translation.document import DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource
+from ayvu.translation.document import DocumentTranslator
+from ayvu.translation.document_contracts import ExecutionContext, TranslationExecutionError, UnitSource
 from ayvu.translation.plan import resolve_plan
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator
 from provider_fakes import FakeSession, http_response

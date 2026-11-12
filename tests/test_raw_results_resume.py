@@ -15,10 +15,11 @@ import ayvu.composition.builders.translate_project as composition
 from ayvu.jobs.execution import InMemoryJobEventLog
 from ayvu.provenance.model import ProducerIdentity
 from ayvu.providers.ports import ProviderRoute
-from ayvu.translation.document import (
-    MAX_REUSABLE_JOBS, RAW_RESULTS_VERSION, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
-    reuse_dimensions,
+from ayvu.translation.document_contracts import (
+    MAX_REUSABLE_JOBS, ExecutionContext, TranslationExecutionError, UnitSource,
 )
+from ayvu.translation.raw_results import RAW_RESULTS_VERSION, reuse_dimensions
+from ayvu.translation.document import DocumentTranslator
 from ayvu.translation.resume_reuse import REUSE_DIMENSIONS
 from test_translation_document import Env, Provider, cue, document, plan, rewrite_payload, upper_glossary
 from ayvu.kernel import JobWarning

@@ -7,132 +7,44 @@ live inside the document's artifact.
 """
 from __future__ import annotations
 
-import hashlib
-import json
-import unicodedata
-from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime
-from enum import StrEnum
-from typing import Callable, Protocol
+from typing import Callable
 from uuid import uuid4
 
-from ..artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactIntegrityError, ArtifactPathError, ArtifactRequest
-from ..artifacts import ARTIFACT_SAFE_POINTS, ArtifactService
+from ..artifacts import Artifact, ArtifactCancelledError, ArtifactError, ArtifactRequest
+from ..artifacts import ArtifactService
 from ..knowledge.cache import (
-    MAX_CACHE_ONLY_CANDIDATES,
-    AuthorizedCacheScope,
-    CacheAuthorizationPolicy,
-    CacheCompatibilityIdentity,
-    CacheEligibility,
-    CacheIdentityError,
-    CacheIdentityResolutionState,
-    CacheLookupState,
-    CacheMissReason,
-    CacheOnlyMode,
-    CacheOnlyRequest,
-    CacheProvenanceMetadata,
-    CacheValueKind,
-    CacheIdentityConflict,
-    CompatibleMemoryCandidate,
-    CompatibleMemoryQuery,
-    ExactCacheEntry,
-    ExactCacheLookup,
-    ExactEntryKey,
-    PinnedExecutionIdentityReference,
-    PutIfAbsentResult,
-    PutIfAbsentState,
-    ResolvedCacheExecutionIdentity,
-    TRANSLATION_STAGE_AGGREGATE,
-    candidate_matches_query,
-    exact_entry_key,
-    resolve_compatible_identities,
+    AuthorizedCacheScope, CacheAuthorizationPolicy, CacheIdentityError, CacheOnlyMode, CacheOnlyRequest,
+    ResolvedCacheExecutionIdentity, TRANSLATION_STAGE_AGGREGATE, exact_entry_key,
 )
-from ..knowledge.memory.approved import MemoryError, MemoryQuery, MemoryScope, ScopeKind, RetrievalMode, ValueKind, PipelineStage
-from .stages import (
-    MemoryMatch, MemoryRetrieval, RetrievalDecision, RetrievalPolicy, RetrievalSource,
-    plan_memory_pin, structural_compatibility, snippet,
-)
+from ..knowledge.memory.approved import MemoryError, ValueKind, PipelineStage
+from .stages import MemoryMatch, MemoryRetrieval, RetrievalDecision, RetrievalPolicy, RetrievalSource, snippet
 from ..content import ContentDocument, TranslationUnit
 from .context.execution import ContextExecution, plan_with_context
 from .context.model import ContextError
 from ..jobs import JobState, TranslationJob
-from .resume_reuse import REUSE_DIMENSIONS, ArtifactIntegrity, ResumeStage, StageEvidence, select_resume_stage
-from ..jobs import (
-    CancellationAcknowledgement, JobCorrelation, JobEvent, JobProgress)
-from ..jobs import CancellationSource, JobEventSink
-from ..provenance import (
-    UNKNOWN, ActorKind, ConfigurationRef, ContextProvenance, ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef,
-)
+from ..jobs import CancellationAcknowledgement, JobCorrelation, JobEvent, JobProgress
+from ..jobs import JobEventSink
+from ..provenance import ConfigurationRef
 from ..provenance import ProvenanceRepository
-from ..providers import ProviderStatus, TranslationProviderRequest, UnitReference
-from ..providers import TranslationProvider, execute
-from ..knowledge.memory import TranslationMemoryMatch
+from ..providers import TranslationProvider
 from .pipeline import (
     GlossaryOutcome, LinguisticOutcome, LinguisticSource, LinguisticStages, ProtectedContentError,
 )
 from .plan import ResolvedTranslationPlan
-from ..content import TAG_TOKEN_PATTERN, TextParts, protected_content_is_intact
-from ..kernel import LanguagePair, JobValidationError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning
-
-# Version 2 records the producing dimensions, so a continuation can prove or name what changed.
-RAW_RESULTS_VERSION = 2
-_RAW_RESULTS_VERSIONS = frozenset({1, RAW_RESULTS_VERSION})
-# How far back a continuation looks for raw results. A chain this long is already unusual.
-MAX_REUSABLE_JOBS = 32
-_MAX_ANCESTOR_ARTIFACTS = 1024
-RAW_RESULTS_ROLE = "raw_results"
-RAW_RESULTS_STAGE = "raw_cache_write"
-RAW_RESULTS_MEDIA_TYPE = "application/json"
-PIPELINE_SAFE_POINTS = ("pipeline_before_unit", "pipeline_between_stages", "pipeline_between_chunks")
-SAFE_POINTS = (*PIPELINE_SAFE_POINTS, *ARTIFACT_SAFE_POINTS)
-_UNKNOWN_PRODUCER = ProducerIdentity(UNKNOWN, UNKNOWN, UNKNOWN, UNKNOWN)
-
-
-class TranslationExecutionError(ValueError):
-    """Carries a sanitized failure. Nothing was published as complete."""
-
-    def __init__(self, failure: JobFailure) -> None:
-        self.failure = failure
-        super().__init__(failure.code)
-
-
-class TranslationCancelled(TranslationExecutionError):
-    def __init__(self) -> None:
-        super().__init__(JobFailure(JobFailureFamily.CANCELLED, "translation_cancelled"))
-
-
-class _ProviderStopped(Exception):
-    def __init__(self, failure: JobFailure) -> None:
-        self.failure = failure
-        super().__init__(failure.code)
-
-
-class ExactCachePort(Protocol):
-    """V2 local repository; identity resolution and cache-only operations must never use transport."""
-
-    def resolve_pinned(self, reference: PinnedExecutionIdentityReference,
-                       scope: AuthorizedCacheScope) -> ResolvedCacheExecutionIdentity | None: ...
-    def lookup(self, key: ExactEntryKey) -> ExactCacheLookup: ...
-    def resolve_compatible(self, scope: AuthorizedCacheScope, value_kind: CacheValueKind,
-                           source_digest: str, *, limit: int) -> tuple[ExactEntryKey, ...]: ...
-    def put_if_absent(self, entry: ExactCacheEntry) -> PutIfAbsentResult: ...
-
-
-class MemoryPort(Protocol):
-    """Returns local candidates in the authorized compatible namespace; v1 memory cannot satisfy it."""
-
-    def lookup(self, query: CompatibleMemoryQuery) -> CompatibleMemoryCandidate | None: ...
-
-
-class UnitSource(StrEnum):
-    BLANK = "blank"
-    EXACT_CACHE = "exact_cache"
-    APPLIED_MEMORY = "applied_memory"
-    APPROVED_MEMORY = "approved_memory"
-    PROVIDER = "provider"
-    CACHE_ONLY_MISSING = "cache_only_missing"
-    DRY_RUN = "dry_run"
-    ARTIFACT_REPLAY = "artifact_replay"
+from ..content import TextParts
+from ..kernel import (
+    LanguagePair, JobValidationError, validate_job_identity, JobFailure, JobFailureFamily, JobWarning,
+)
+from .document_contracts import (
+    DocumentTranslationResult, ExactCachePort, ExecutionContext, MAX_REUSABLE_JOBS, MemoryPort,
+    TranslationCancelled, TranslationExecutionError, UnitSource, UnitTranslationResult, _ProviderStopped,
+    _expand, _template,
+)
+from .raw_results import _artifact_request, _decode_raw, _raw_payload
+from .document_replay import _chain_artifacts, _read_chain_payload, _replay, _replay_from_chain
+from .document_provenance import _idempotency_key, _record_production, _record_replay, _references
+from .document_bindings import _ContractProvider, _PlanBoundCache, _PlanBoundMemory, _approved
 
 
 _FROM_LINGUISTIC = {
@@ -144,187 +56,6 @@ _FROM_LINGUISTIC = {
     LinguisticSource.CACHE_ONLY_MISSING: UnitSource.CACHE_ONLY_MISSING,
     LinguisticSource.DRY_RUN: UnitSource.DRY_RUN,
 }
-_PROVENANCE_OPERATIONS = {
-    UnitSource.EXACT_CACHE: ("reuse_exact_cache", SourceKind.CACHE, ActorKind.SYSTEM),
-    UnitSource.APPROVED_MEMORY: ("reuse_approved_memory", SourceKind.TRANSLATION_MEMORY, ActorKind.SYSTEM),
-    UnitSource.APPLIED_MEMORY: ("reuse_legacy_cache", SourceKind.CACHE, ActorKind.SYSTEM),
-    UnitSource.PROVIDER: ("translate", SourceKind.PROVIDER, ActorKind.PROVIDER),
-}
-
-
-@dataclass(frozen=True, repr=False)
-class UnitTranslationResult:
-    unit_id: str
-    source: UnitSource
-    text: str
-    memory_suggested: bool = False
-    glossary_usage: object | None = None
-    # ``text`` with tokens instead of the markup they stand for. Only this form tells original
-    # markup from whatever a provider wrote, so reconstruction must use this one.
-    tokenized_text: str | None = None
-    cache_lookup_state: CacheLookupState | None = None
-    cache_miss_reason: CacheMissReason | None = None
-    retrieval_decision: RetrievalDecision | None = None
-    retrieval_suggestions: tuple[MemoryMatch, ...] = ()
-    value_kind: ValueKind | None = None
-    value_stage: PipelineStage | None = None
-
-    def __repr__(self) -> str:
-        return f"UnitTranslationResult(unit_id={self.unit_id!r}, source={self.source.value!r})"
-
-
-@dataclass(frozen=True, repr=False)
-class DocumentTranslationResult:
-    document_id: str
-    revision_id: str
-    units: tuple[UnitTranslationResult, ...]
-    artifact_id: str | None
-    next_sequence: int
-    cache_eligibility: CacheEligibility | None = None
-
-    def __repr__(self) -> str:
-        return f"DocumentTranslationResult(document_id={self.document_id!r}, units={len(self.units)})"
-
-    @property
-    def complete(self) -> bool:
-        return not any(item.source in (UnitSource.CACHE_ONLY_MISSING, UnitSource.DRY_RUN) for item in self.units)
-
-
-@dataclass(frozen=True, repr=False)
-class ExecutionContext:
-    """Real identity, required: there is no way to run this path without a project, job and owner."""
-
-    job: TranslationJob
-    owner_token: str
-    cancellation: CancellationSource | None = None
-    first_sequence: int = 1
-    # A phase cannot return, so a job translating several documents gives each its own.
-    progress_phase: str = "translate"
-    cache_scope: AuthorizedCacheScope | None = None
-    # Earlier jobs of the same continuation chain, nearest first, whose raw results this job may prove and reuse.
-    reusable_jobs: tuple[str, ...] = ()
-
-    def __repr__(self) -> str:
-        return f"ExecutionContext(job_id={self.job.job_id!r})"
-
-
-def _decision_metadata(decision: RetrievalDecision, source: UnitSource) -> dict:
-    key = decision.cache_identity
-    scope = decision.scope
-    return {
-        "source": decision.source.value, "auto_applied": decision.auto_applied,
-        "reason": decision.reason, "score": decision.score,
-        "entry_id": decision.entry_id, "revision_id": decision.revision_id,
-        "provenance_id": decision.provenance_id, "revision_number": decision.revision_number,
-        "cache_identity": None if key is None else {
-            "scope_kind": key.scope.scope.kind.value, "scope_id": key.scope.scope.scope_id,
-            "value_kind": key.value_kind.value, "semantic_fingerprint": key.semantic_fingerprint,
-            "source_content_digest": key.source_content_digest,
-        },
-        "lifecycle": decision.lifecycle.value, "reviewed": decision.reviewed, "dataset_eligible": False,
-        "value_stage": "linguistic_final" if source is UnitSource.APPROVED_MEMORY else "pre_glossary",
-        "output_kind": "linguistic_final" if source is UnitSource.APPROVED_MEMORY else "glossary_derived",
-        "output_stage": "linguistic_final" if source is UnitSource.APPROVED_MEMORY else "terminology_applied",
-        "approval_inherited_after_transformation": False,
-        "scope": (None if scope is None else [scope.kind.value, scope.owner_id] if isinstance(scope, MemoryScope)
-                  else [scope.scope.kind.value, scope.scope.scope_id]),
-    }
-
-
-def _canonical_value(value: object) -> object:
-    if isinstance(value, StrEnum):
-        return value.value
-    if is_dataclass(value) and not isinstance(value, type):
-        return {key: _canonical_value(item) for key, item in asdict(value).items()}
-    if isinstance(value, dict):
-        return {str(key): _canonical_value(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_canonical_value(item) for item in value]
-    return value
-
-
-def _dimension_digest(value: object) -> str:
-    data = json.dumps(_canonical_value(value), sort_keys=True, ensure_ascii=True, separators=(",", ":"))
-    return "sha256:" + hashlib.sha256(data.encode("ascii")).hexdigest()
-
-
-def reuse_dimensions(document: ContentDocument, plan: ResolvedTranslationPlan) -> dict[str, str]:
-    """One opaque digest per ``REUSE_DIMENSIONS`` name, from what produced raw text for this document."""
-    producer = plan.producer
-    raw_stages = [[item.stage_id, item.version] for item in plan.stages if item.stage_id != "post_processing"]
-    values = {
-        "input": [document.revision_id, document.source_fingerprint, document.source_locale],
-        "configuration": [plan.policy_ref, plan.configuration_revision, plan.glossary_ref if plan.glossary_native else None,
-                          plan.context_ref, plan.context_strategy, plan.context_revision, plan.prompt_strategy,
-                          plan.prompt_revision, plan.terminology_revision, plan.generation_parameters],
-        "provider": [producer.provider, producer.model, producer.adapter],
-        # Only the languages: each hop's producer and capabilities are already their own dimensions.
-        "route": [plan.route.source, plan.route.intermediate, plan.route.target,
-                  None if plan.route_hops is None else [[hop.source_locale, hop.target_locale] for hop in plan.route_hops]],
-        "capability": [plan.capabilities, plan.chunk_limit],
-        "format": [document.adapter, plan.format_constraints],
-        "locator": [document.project_id, document.document_id, document.logical_key,
-                    [unit.unit_id for unit in document.units]],
-        "pipeline": [producer.pipeline, plan.pipeline_revision, plan.segmentation_revision, plan.chunking_revision,
-                     plan.protection_revision, plan.normalization_revision, plan.schema_version],
-        "stage": raw_stages,
-    }
-    assert tuple(values) == REUSE_DIMENSIONS
-    return {name: _dimension_digest(value) for name, value in values.items()}
-
-
-def _raw_payload(document: ContentDocument, plan: ResolvedTranslationPlan,
-                 raw: list[tuple[str, UnitSource, str | None]], results=()) -> bytes:
-    decisions = {result.unit_id: result.retrieval_decision for result in results}
-    def entry(unit_id, source, text):
-        value = {"raw": text, "source": source.value, "unit_id": unit_id}
-        decision = decisions.get(unit_id)
-        if decision is not None:
-            value["decision"] = _decision_metadata(decision, source)
-        return value
-    return json.dumps({
-        "dimensions": reuse_dimensions(document, plan),
-        "document_id": document.document_id,
-        "raw_fingerprint": plan.raw_fingerprint,
-        "revision_id": document.revision_id,
-        "schema_version": RAW_RESULTS_VERSION,
-        "units": [entry(unit_id, source, text) for unit_id, source, text in raw],
-    }, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("ascii")
-
-
-def _json_object(payload: bytes | None) -> dict | None:
-    if payload is None:
-        return None
-    try:
-        data = json.loads(payload)
-    except (ValueError, RecursionError):
-        return None
-    return data if type(data) is dict else None
-
-
-def _template(unit: TranslationUnit) -> tuple[str, list[str]]:
-    """Protected spans become tag tokens, which the stages keep in order or refuse."""
-    text = unit.source_text
-    pieces: list[str] = []
-    originals: list[str] = []
-    cursor = 0
-    plain: list[str] = []
-    for part in unit.content.protected_parts:
-        plain.append(text[cursor:part.start])
-        pieces.append(plain[-1])
-        pieces.append(f"__AYVU_TAG_{len(originals)}__")
-        originals.append(text[part.start:part.end])
-        cursor = part.end
-    plain.append(text[cursor:])
-    pieces.append(plain[-1])
-    # Inside a protected part such text is safe: it is never read as a token.
-    if any(TAG_TOKEN_PATTERN.search(piece) for piece in plain):
-        raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "reserved_placeholder_in_source"))
-    return "".join(pieces), originals
-
-
-def _expand(text: str, originals: list[str]) -> str:
-    return TAG_TOKEN_PATTERN.sub(lambda match: originals[int(match.group(1))], text)
 
 
 class DocumentTranslator:
@@ -436,169 +167,22 @@ class DocumentTranslator:
 
     def _artifact_request(self, document: ContentDocument, job: TranslationJob,
                           execution_nonce: str | None = None) -> ArtifactRequest:
-        version = next(item.version for item in self._plan.stages if item.stage_id == RAW_RESULTS_STAGE)
-        semantic_fingerprint = self._plan.semantic_fingerprint
-        if semantic_fingerprint is None:
-            # An unidentified producer cannot reuse even a job-local raw artifact.
-            identity = json.dumps([document.document_id, document.revision_id, job.job_id, execution_nonce],
-                                  separators=(",", ":"))
-        else:
-            identity = json.dumps([document.document_id, document.revision_id, semantic_fingerprint], separators=(",", ":"))
-        if self._approved_memory is not None or self._retrieval_policy.legacy_cache_enabled or self._translation_context is not None:
-            # Never replay a final TM value as pre-glossary raw text, or bypass review withdrawal.
-            identity = json.dumps([identity, "retrieval_revalidated", execution_nonce], separators=(",", ":"))
-        return ArtifactRequest(document.project_id, job.job_id, RAW_RESULTS_ROLE, RAW_RESULTS_STAGE, version,
-                               f"sha256:{hashlib.sha256(identity.encode('ascii')).hexdigest()}", RAW_RESULTS_MEDIA_TYPE)
+        return _artifact_request(self, document, job, execution_nonce)
 
     def _replay(self, run: _DocumentRun) -> DocumentTranslationResult | None:
-        """Reuse raw results only when every identity and integrity check passes."""
-        if self._plan.semantic_fingerprint is None:
-            return None
-        request = self._artifact_request(run.document, run.context.job)
-        found = self._artifacts.find_reusable(request)
-        if found.artifact is None:
-            if found.reason != "artifact_not_found":
-                # A damaged ready record would block new work forever, so withdraw it. Its file stays.
-                self._artifacts.withdraw_corrupt(request)
-            return self._replay_from_chain(run)
-        artifact = found.artifact
-        try:
-            with self._artifacts.open_reusable(artifact.artifact_id, request) as stream:
-                payload = stream.read()
-        except (ArtifactIntegrityError, ArtifactPathError):
-            self._artifacts.retire_if_corrupt(artifact.artifact_id)
-            return self._replay_from_chain(run)
-        raw = self._decode_raw(payload, run.document, run.cache_scope)
-        results = []
-        for index, unit in enumerate(run.document.units):
-            run.checkpoint("pipeline_before_unit")
-            results.append(run.apply_raw(unit, raw[index]))
-            run.progress(index + 1)
-        self._record_replay(run, artifact)
-        return run.result(tuple(results), artifact.artifact_id)
+        return _replay(self, run)
 
     def _chain_artifacts(self, project_id: str, job_id: str) -> dict[str, Artifact]:
-        """The newest ready raw-results record of each document in one earlier job. Read only, once per job."""
-        known = self._ancestors.get(job_id)
-        if known is not None:
-            return known
-        found: dict[str, Artifact] = {}
-        try:
-            artifacts = self._artifacts.list_ready(job_id, limit=_MAX_ANCESTOR_ARTIFACTS)
-        except ArtifactError:
-            artifacts = ()
-        for artifact in artifacts:
-            request = artifact.request
-            if ((request.project_id, request.job_id, request.role, request.stage, request.media_type)
-                    != (project_id, job_id, RAW_RESULTS_ROLE, RAW_RESULTS_STAGE, RAW_RESULTS_MEDIA_TYPE)):
-                continue
-            payload = self._read_chain_payload(artifact)
-            data = _json_object(payload)
-            if data is not None and type(data.get("document_id")) is str:
-                found[data["document_id"]] = artifact  # Oldest first, so a redone document keeps its newest record.
-        self._ancestors[job_id] = found
-        return found
+        return _chain_artifacts(self, project_id, job_id)
 
     def _read_chain_payload(self, artifact: Artifact) -> bytes | None:
-        """Verified bytes of an earlier job's record, or None. That job is ended and its records are never changed."""
-        try:
-            with self._artifacts.open_reusable(artifact.artifact_id, artifact.request) as stream:
-                return stream.read()
-        except (ArtifactIntegrityError, ArtifactPathError, ArtifactError, OSError):
-            return None
+        return _read_chain_payload(self, artifact)
 
     def _replay_from_chain(self, run: _DocumentRun) -> DocumentTranslationResult | None:
-        """Reuse an earlier job's raw results only when ``select_resume_stage`` proves every dimension equal."""
-        reusable = run.context.reusable_jobs
-        if not reusable:
-            return None
-        document = run.document
-        for job_id in reusable:
-            artifact = self._chain_artifacts(document.project_id, job_id).get(document.document_id)
-            if artifact is None:
-                continue  # This job never finished this document; an earlier one may have.
-            payload = self._read_chain_payload(artifact)
-            data = _json_object(payload)
-            schema_valid = (data is not None and type(data.get("schema_version")) is int
-                            and data["schema_version"] in _RAW_RESULTS_VERSIONS and data.get("document_id") == document.document_id)
-            recorded = data.get("dimensions") if schema_valid else None
-            produced = (tuple((name, recorded.get(name)) for name in REUSE_DIMENSIONS)
-                        if type(recorded) is dict and all(type(value) is str for value in recorded.values()) else ())
-            evidence = (
-                StageEvidence(ResumeStage.TRANSLATE,
-                              ArtifactIntegrity.CORRUPT if payload is None else ArtifactIntegrity.VERIFIED,
-                              owned=artifact.request.job_id == job_id and artifact.request.project_id == document.project_id,
-                              schema_valid=schema_valid, expected=tuple(reuse_dimensions(document, self._plan).items()),
-                              produced=produced),
-                # The output is always built again from the replayed raw results.
-                StageEvidence(ResumeStage.RECONSTRUCT, ArtifactIntegrity.MISSING),
-            )
-            selection = select_resume_stage(evidence)
-            if selection.resume_from is not ResumeStage.RECONSTRUCT:
-                run.emit(JobWarning(f"raw_results_{selection.reason.value}"))
-                for name in selection.changed:
-                    run.emit(JobWarning(f"raw_results_changed_{name}"))
-                return None
-            try:
-                raw = self._decode_raw(payload, document, run.cache_scope)
-            except TranslationExecutionError:
-                # Every recorded dimension matched, so something unrecorded differs. Prove nothing and redo.
-                run.emit(JobWarning("raw_results_provenance_unproven"))
-                return None
-            results = []
-            for index, unit in enumerate(document.units):
-                run.checkpoint("pipeline_before_unit")
-                results.append(run.apply_raw(unit, raw[index]))
-                run.progress(index + 1)
-            self._record_replay(run, artifact)
-            return run.result(tuple(results), artifact.artifact_id)
-        return None
+        return _replay_from_chain(self, run)
 
     def _decode_raw(self, payload: bytes, document: ContentDocument, scope: AuthorizedCacheScope):
-        invalid = TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "invalid_raw_results"))
-        try:
-            data = json.loads(payload)
-            keys = {"document_id", "raw_fingerprint", "revision_id", "schema_version", "units"}
-            if (type(data) is not dict or data.get("schema_version") not in _RAW_RESULTS_VERSIONS
-                    or set(data) != (keys if data["schema_version"] == 1 else keys | {"dimensions"})
-                    or type(data["schema_version"]) is not int or data["document_id"] != document.document_id
-                    or data["revision_id"] != document.revision_id or data["raw_fingerprint"] != self._plan.raw_fingerprint
-                    or type(data["units"]) is not list or len(data["units"]) != len(document.units)):
-                raise invalid
-            decoded = []
-            for unit, entry in zip(document.units, data["units"]):
-                if (type(entry) is not dict or set(entry) not in ({"raw", "source", "unit_id"}, {"raw", "source", "unit_id", "decision"})
-                        or entry["unit_id"] != unit.unit_id):
-                    raise invalid
-                source, raw = UnitSource(entry["source"]), entry["raw"]
-                template, _ = _template(unit)
-                core = TextParts.from_text(template).core
-                if source is UnitSource.BLANK:
-                    if raw is not None or core:
-                        raise invalid
-                elif (source not in (UnitSource.EXACT_CACHE, UnitSource.PROVIDER) or not isinstance(raw, str)
-                        or not protected_content_is_intact(core, raw)):
-                    raise invalid
-                decision = None
-                if "decision" in entry:
-                    if source not in (UnitSource.EXACT_CACHE, UnitSource.PROVIDER):
-                        raise invalid
-                    cached = source is UnitSource.EXACT_CACHE
-                    fingerprint = self._plan.semantic_fingerprint
-                    if cached and fingerprint is None:
-                        raise invalid
-                    decision = RetrievalDecision(RetrievalSource.EXACT_CACHE if cached else RetrievalSource.PROVIDER,
-                        True, "eligible_exact_cache" if cached else "no_eligible_reuse", scope=scope if cached else None,
-                        cache_identity=exact_entry_key(scope, TRANSLATION_STAGE_AGGREGATE, fingerprint, unit.source_text)
-                                       if cached else None)
-                    if entry["decision"] != _decision_metadata(decision, source):
-                        raise invalid
-                decoded.append((source, raw, decision))
-            return decoded
-        except (ValueError, TypeError, RecursionError) as error:
-            if isinstance(error, TranslationExecutionError):
-                raise
-            raise invalid from None
+        return _decode_raw(self, payload, document, scope)
 
     def _execute(self, run: _DocumentRun, *, dry_run: bool,
                  cache_only: CacheOnlyRequest | None) -> DocumentTranslationResult:
@@ -619,218 +203,16 @@ class DocumentTranslator:
         return run.result(tuple(results), artifact.artifact_id)
 
     def _references(self) -> tuple[ConfigurationRef, ...]:
-        plan = self._plan
-        pairs = (("context", plan.context_ref), ("glossary", plan.glossary_ref), ("policy", plan.policy_ref))
-        return tuple(ConfigurationRef(kind, reference) for kind, reference in pairs if reference is not None)
+        return _references(self)
 
     def _idempotency_key(self, run: _DocumentRun, operation: str, extra: str = "") -> str:
-        identity = json.dumps([run.context.job.job_id, run.document.revision_id,
-                               self._plan.semantic_fingerprint or run.execution_nonce, operation, extra],
-                              separators=(",", ":"))
-        return hashlib.sha256(identity.encode("ascii")).hexdigest()
+        return _idempotency_key(self, run, operation, extra)
 
     def _record_production(self, run: _DocumentRun, artifact: Artifact, raw: list) -> None:
-        """One record per kind of origin in this document. Which unit came from where is in the artifact."""
-        document, job = run.document, run.context.job
-        for unit_id, context in run.contexts.items():
-            self._provenance.append(ProvenanceRequest(
-                document.project_id, job.job_id, 'build_translation_context', ActorKind.SYSTEM, SourceKind.PIPELINE,
-                self._plan.producer, subject=SubjectRef('translation_unit', 1, unit_id),
-                artifacts=(artifact.artifact_id,), context_metadata=ContextProvenance(context.policy.value,
-                    tuple((e.kind.value, e.revision) for e in context.selected),
-                    tuple((o.source.kind.value, o.reason.value) for o in context.omitted), context.disclosure.utf8_bytes),
-                idempotency_key=self._idempotency_key(run, 'build_translation_context', artifact.artifact_id + unit_id)))
-        subject = SubjectRef("content_revision", 1, document.revision_id)
-        parents = []
-        for source, (operation, source_kind, actor) in _PROVENANCE_OPERATIONS.items():
-            if not any(item[1] is source for item in raw):
-                continue
-            producer = _UNKNOWN_PRODUCER if source in (UnitSource.APPLIED_MEMORY, UnitSource.APPROVED_MEMORY) else self._plan.producer
-            parents.append(self._provenance.append(ProvenanceRequest(
-                document.project_id, job.job_id, operation, actor, source_kind, producer, subject=subject,
-                configuration_refs=self._references(),
-                idempotency_key=self._idempotency_key(run, operation, self._plan.post_processing_fingerprint))).record_id)
-        self._provenance.append(ProvenanceRequest(
-            document.project_id, job.job_id, "store_raw_results", ActorKind.SYSTEM, SourceKind.PIPELINE, self._plan.producer,
-            subject=subject, parents=tuple(parents), artifacts=(artifact.artifact_id,), configuration_refs=self._references(),
-            # A redone document stores a new artifact, which is a new fact.
-            idempotency_key=self._idempotency_key(run, "store_raw_results", artifact.artifact_id)))
+        return _record_production(self, run, artifact, raw)
 
     def _record_replay(self, run: _DocumentRun, artifact: Artifact) -> None:
-        document, job = run.document, run.context.job
-        # Only the record that stored it: earlier replays would make each identical retry look different.
-        producers = [node for node in self._provenance.list_by_artifact(artifact.artifact_id, limit=16).nodes
-                     if node.record.request.operation == "store_raw_results"]
-        self._provenance.append(ProvenanceRequest(
-            document.project_id, job.job_id, "replay_raw_results", ActorKind.SYSTEM, SourceKind.PIPELINE, self._plan.producer,
-            subject=SubjectRef("content_revision", 1, document.revision_id),
-            parents=tuple(node.record.record_id for node in producers), artifacts=(artifact.artifact_id,),
-            configuration_refs=self._references(),
-            idempotency_key=self._idempotency_key(run, "replay_raw_results",
-                                                  f"{artifact.artifact_id}:{self._plan.post_processing_fingerprint}")))
-
-
-class _ContractProvider:
-    """Presents the rich provider as text calls to the stages, checking each result against the plan."""
-
-    def __init__(self, translator: DocumentTranslator, run: _DocumentRun, unit: TranslationUnit, plan=None, context=None) -> None:
-        self._translator = translator
-        self._run = run
-        self._unit = unit
-        self._plan = plan or translator._plan
-        self._context = context
-
-    def translate(self, text: str, source: str, target: str) -> str:
-        self._run.checkpoint("pipeline_between_chunks")
-        plan = self._plan
-        document = self._run.document
-        if self._context is not None:
-            try:
-                execution = self._translator._translation_context
-                execution.for_unit(document, self._unit, self._translator._clock(), self._translator._plan)
-                execution.authorize(self._context, self._translator._clock())
-            except ContextError as error:
-                raise _ProviderStopped(JobFailure(JobFailureFamily.INPUT, error.code)) from None
-        request = TranslationProviderRequest(
-            self._translator._new_id(), text, source, target, route=plan.route,
-            unit=UnitReference(document.document_id, document.revision_id, self._unit.unit_id),
-            policy_ref=plan.policy_ref,
-            features=() if self._context is None or self._context.feature is None else (self._context.feature,))
-        result = execute(self._translator._provider, request)
-        for warning in result.warnings:
-            self._run.emit(warning)
-        if result.status is not ProviderStatus.SUCCEEDED:
-            raise _ProviderStopped(result.failure)
-        if result.producer != plan.producer or result.route != plan.route:
-            # What really ran differs from what was resolved, so a new plan is needed.
-            raise _ProviderStopped(JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "plan_invalidated"))
-        return result.text
-
-
-class _PlanBoundCache:
-    def __init__(self, cache: ExactCachePort | None, plan: ResolvedTranslationPlan, scope: AuthorizedCacheScope,
-                 cache_only: CacheOnlyRequest | None, resolved_pin: ResolvedCacheExecutionIdentity | None,
-                 source_text: str) -> None:
-        self._cache = cache
-        self._plan = plan
-        self._scope = scope
-        self._cache_only = cache_only
-        self._resolved_pin = resolved_pin
-        self._source_text = source_text
-        self._fingerprint = plan.semantic_fingerprint
-        self.eligibility = plan.cache_eligibility
-        self._value_kind = TRANSLATION_STAGE_AGGREGATE
-
-    def _miss(self, reason: CacheMissReason) -> ExactCacheLookup:
-        return ExactCacheLookup(CacheLookupState.MISS, reason=reason)
-
-    def get(self, text: str, language_pair: LanguagePair) -> ExactCacheLookup:
-        from ..knowledge.cache import CACHE_ENTRY_V2_LIMITS
-        if len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text:
-            return self._miss(CacheMissReason.CACHE_INELIGIBLE)
-        if self._fingerprint is None:
-            return self._miss(CacheMissReason.CACHE_INELIGIBLE)
-        if self._cache is None:
-            return self._miss(CacheMissReason.ENTRY_NOT_FOUND)
-        key = exact_entry_key(self._scope, self._value_kind, self._fingerprint, self._source_text)
-        if self._cache_only is not None and self._cache_only.mode is CacheOnlyMode.PINNED:
-            pin = self._resolved_pin
-            if pin is None:
-                return self._miss(CacheMissReason.ENTRY_NOT_FOUND)
-            if pin.value_kind != self._value_kind:
-                return self._miss(CacheMissReason.IDENTITY_MISMATCH)
-            if pin.semantic_fingerprint != self._fingerprint:
-                return self._miss(CacheMissReason.IDENTITY_MISMATCH)
-            key = exact_entry_key(pin.scope, pin.value_kind, pin.semantic_fingerprint, self._source_text)
-        elif self._cache_only is not None and self._cache_only.mode is CacheOnlyMode.RESOLVE_COMPATIBLE:
-            try:
-                candidates = self._cache.resolve_compatible(
-                    self._scope, self._value_kind, key.source_content_digest, limit=MAX_CACHE_ONLY_CANDIDATES,
-                )
-            except CacheIdentityError:
-                raise
-            except Exception:
-                raise CacheIdentityError("cache_repository_failed") from None
-            if type(candidates) is not tuple:
-                raise CacheIdentityError("invalid_identity_resolution")
-            resolution = resolve_compatible_identities(
-                candidates, scope=self._scope, value_kind=self._value_kind,
-                source_digest=key.source_content_digest,
-            )
-            if resolution.state is CacheIdentityResolutionState.MISS:
-                return self._miss(CacheMissReason.ENTRY_NOT_FOUND)
-            if resolution.state is CacheIdentityResolutionState.AMBIGUOUS:
-                return ExactCacheLookup(CacheLookupState.AMBIGUOUS, reason=CacheMissReason.AMBIGUOUS_CANDIDATES)
-            if resolution.state is CacheIdentityResolutionState.CORRUPT:
-                raise CacheIdentityError("duplicate_exact_key")
-            if resolution.key is None:
-                raise CacheIdentityError("invalid_identity_resolution")
-            if resolution.key.semantic_fingerprint != self._fingerprint:
-                return self._miss(CacheMissReason.IDENTITY_MISMATCH)
-            key = resolution.key
-        try:
-            result = self._cache.lookup(key)
-        except CacheIdentityError:
-            raise
-        except Exception:
-            raise CacheIdentityError("cache_repository_failed") from None
-        if type(result) is not ExactCacheLookup:
-            raise CacheIdentityError("invalid_cache_lookup")
-        if result.state is CacheLookupState.CORRUPT:
-            raise CacheIdentityError("duplicate_exact_key")
-        return result
-
-    def set(self, text: str, language_pair: LanguagePair, translated: str) -> None:
-        from ..knowledge.cache import CACHE_ENTRY_V2_LIMITS
-        if (len(self._source_text.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.source_text
-                or len(translated.encode("utf-8")) > CACHE_ENTRY_V2_LIMITS.value):
-            return
-        if self._cache is None or self._fingerprint is None or self._cache_only is not None:
-            return
-        key = exact_entry_key(self._scope, self._value_kind, self._fingerprint, self._source_text)
-        operation = self._plan.semantic_operation
-        if operation is None:
-            return
-        try:
-            result = self._cache.put_if_absent(ExactCacheEntry(
-                key, translated, CacheProvenanceMetadata("translate", self._plan.producer, operation.pipeline_revision),
-                source_text=self._source_text, canonical_identity=operation.canonical_payload(),
-            ))
-        except CacheIdentityError:
-            raise
-        except Exception:
-            raise CacheIdentityError("cache_repository_failed") from None
-        if type(result) is not PutIfAbsentResult:
-            raise CacheIdentityError("invalid_put_result")
-        if result.state is PutIfAbsentState.CONFLICT:
-            raise CacheIdentityConflict("cache_write_conflict")
-
-
-class _PlanBoundMemory:
-    def __init__(self, memory: MemoryPort, plan: ResolvedTranslationPlan, scope: AuthorizedCacheScope, limit=20) -> None:
-        self._memory = memory
-        self._limit = limit
-        self.last = None
-        self._plan = plan
-        self._scope = scope
-
-    def lookup(self, text: str, language_pair: LanguagePair) -> TranslationMemoryMatch | None:
-        fingerprint = self._plan.semantic_fingerprint
-        if fingerprint is None:
-            return None
-        query = CompatibleMemoryQuery(
-            self._scope, TRANSLATION_STAGE_AGGREGATE, fingerprint, text, self._limit,
-        )
-        try:
-            candidate = self._memory.lookup(query)
-        except CacheIdentityError:
-            raise
-        except Exception:
-            raise CacheIdentityError("memory_repository_failed") from None
-        if candidate is None or not candidate_matches_query(candidate, query):
-            return None
-        self.last = candidate
-        return TranslationMemoryMatch(candidate.original, candidate.translated, candidate.score, candidate.applied)
+        return _record_replay(self, run, artifact)
 
 
 class _DocumentRun:
@@ -946,39 +328,7 @@ class _DocumentRun:
                                          PipelineStage.TERMINOLOGY_APPLIED if decision is not None else None), outcome
 
     def _approved(self, unit: TranslationUnit, pair: LanguagePair) -> tuple[MemoryMatch, ...]:
-        memory = self.translator._approved_memory
-        if unit.content.protected_parts:
-            return ()
-        policy = self.translator._retrieval_policy
-        if max(len(unit.source_text.encode('utf-8')),
-               len(unicodedata.normalize('NFC', unit.source_text).encode('utf-8'))) > policy.limits.source_bytes:
-            return ()
-        options = dict(text=unit.source_text, languages=pair,
-            scopes=(MemoryScope(ScopeKind.PROJECT, self.document.project_id),),
-            pin=plan_memory_pin(self.translator._plan), limits=policy.limits)
-        def compatible(revision):
-            source = revision.value.source
-            if (self.translator._plan.semantic_fingerprint is None
-                    or (source.project_id, source.document_id, source.document_revision) !=
-                       (self.document.project_id, self.document.document_id, self.document.revision_id)):
-                return None  # Missing structural evidence: an unapproved review suggestion only.
-            return structural_compatibility(self.document, unit, revision)
-        exact = memory.query(MemoryQuery(**options), compatible=compatible)
-        if any(match.decision.auto_applied for match in exact):
-            return exact
-        fuzzy = memory.query(MemoryQuery(**options, mode=RetrievalMode.FUZZY), compatible=compatible)
-        # Exact suggestions remain visible; they never shadow a compatible fuzzy hit.
-        ids = {match.decision.revision_id for match in exact}
-        merged = list(exact) + [match for match in fuzzy if match.decision.revision_id not in ids]
-        merged.sort(key=lambda match: (not match.decision.auto_applied, -match.decision.score,
-                                       match.decision.entry_id, match.decision.revision_id))
-        bounded, used = [], 0
-        for match in merged:
-            size = len(match.source.encode('utf-8')) + len(match.target.encode('utf-8'))
-            if len(bounded) < policy.limits.candidates and used + size <= policy.limits.aggregate_bytes:
-                bounded.append(match)
-                used += size
-        return tuple(bounded)
+        return _approved(self, unit, pair)
 
     def apply_raw(self, unit: TranslationUnit, entry) -> UnitTranslationResult:
         """Only post-processing runs again: no cache lookup and no provider."""

@@ -769,6 +769,6 @@ def test_a_guard_that_cannot_be_read_clears_nobody(scene, tmp_path):
 
 def test_the_role_recovery_looks_for_is_the_one_the_rich_path_writes():
     from ayvu.recovery.store import RAW_RESULTS_ROLE as read
-    from ayvu.translation.document import RAW_RESULTS_ROLE as written
+    from ayvu.translation.raw_results import RAW_RESULTS_ROLE as written
     assert read == written
 

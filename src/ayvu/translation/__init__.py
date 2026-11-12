@@ -7,10 +7,9 @@ from .batch import (
     BatchCancellationCommand, BatchCancellationNotice, BatchCommand, BatchItem, BatchValidationError,
     ItemOutcome, ItemStatus, TranslateBatch,
 )
-from .document import (
-    DocumentTranslator, ExecutionContext, RAW_RESULTS_ROLE, SAFE_POINTS, TranslationExecutionError,
-    UnitSource,
-)
+from .document import DocumentTranslator
+from .document_contracts import ExecutionContext, SAFE_POINTS, TranslationExecutionError, UnitSource
+from .raw_results import RAW_RESULTS_ROLE
 from .engine import (
     ALT_TEXT_KIND, BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, METADATA_KIND,
     STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, TextStats,

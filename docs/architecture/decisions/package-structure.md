@@ -296,7 +296,7 @@ REF-15 break up by reason to change after they move.
 | `translation_plan.py` | `translation/plan.py` |  |
 | `translation_pipeline.py` | `translation/pipeline.py` |  |
 | `translation_engine.py` | `translation/engine.py` |  |
-| `translation_document.py` | `translation/document.py` | split |
+| `translation_document.py` | `translation/document.py`, `document_contracts.py`, `raw_results.py`, `document_replay.py`, `document_provenance.py`, `document_bindings.py` | split by document responsibility in REF-15 |
 | `chunking.py` | `translation/chunking.py` |  |
 | `preflight.py` | `translation/preflight.py` | in REF-11 the v1 cache check became `v1/cache_check.py`, passed in by composition as `cache_check` |
 | `resume_reuse.py` | `translation/resume_reuse.py` | added in REF-08, out of `job_recovery.py` |
