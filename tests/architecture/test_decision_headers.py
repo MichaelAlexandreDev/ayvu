@@ -15,9 +15,9 @@ STATUSES = {"Proposed", "Accepted", "Superseded", "Deprecated", "Rejected"}
 # Transitional inventory: keep root records here until their planned moves.
 # Values freeze the original status, record date (not acceptance date) and issue.
 RECORDS = {
-    "adr-desktop-stack.md": ("Accepted", "2026-10-02", "124"),
-    "adr-local-worker-isolation.md": ("Accepted", "2026-11-06", "167"),
-    "adr-secret-store-adapters.md": ("Proposed", "2026-11-06", "160"),
+    "decisions/adr-desktop-stack.md": ("Accepted", "2026-10-02", "124"),
+    "decisions/adr-local-worker-isolation.md": ("Accepted", "2026-11-06", "167"),
+    "decisions/adr-secret-store-adapters.md": ("Proposed", "2026-11-06", "160"),
     "decisions/content-model.md": ("Accepted", "2026-11-03", "140"),
     "decisions/ai-assistance-authority.md": ("Proposed", "2026-11-10", "166"),
     "decisions/package-structure.md": ("Accepted", "2026-11-10", "267"),
@@ -69,12 +69,29 @@ def parse_header(text: str) -> dict[str, str]:
     return fields
 
 
+# Companion records split from a decision (REF-20 C5): same header as their parent, not separate decisions.
+COMPANIONS = {
+    "decisions/ai-assistance-authority-transitions.md": "decisions/ai-assistance-authority.md",
+    "decisions/rights-purpose-grants.md": "decisions/rights-purpose-governance.md",
+    "decisions/rights-purpose-retention.md": "decisions/rights-purpose-governance.md",
+    "decisions/rights-purpose-examples.md": "decisions/rights-purpose-governance.md",
+}
+
+
+@pytest.mark.parametrize("companion, parent", COMPANIONS.items())
+def test_a_companion_record_carries_its_parent_header(companion: str, parent: str):
+    assert parse_header((ARCHITECTURE / companion).read_text(encoding="utf-8")) == parse_header(
+        (ARCHITECTURE / parent).read_text(encoding="utf-8"))
+    assert f"]({parent.split('/')[-1]})" in (ARCHITECTURE / companion).read_text(encoding="utf-8")
+
+
 def test_transitional_inventory_includes_every_decision():
     discovered = set(ARCHITECTURE.joinpath("decisions").rglob("*.md"))
     for path in ARCHITECTURE.glob("*.md"):
         prefix = re.split(r"^## ", path.read_text(encoding="utf-8"), maxsplit=1, flags=re.MULTILINE)[0]
         if prefix.startswith("# ADR:") or re.search(r"^Status:", prefix, re.MULTILINE):
             discovered.add(path)
+    discovered = {path for path in discovered if path.relative_to(ARCHITECTURE).as_posix() not in COMPANIONS}
     assert {path.relative_to(ARCHITECTURE).as_posix() for path in discovered} == set(RECORDS)
     actual = Counter(parse_header(path.read_text(encoding="utf-8"))["status"] for path in discovered)
     assert actual == {"Accepted": 17, "Proposed": 4}

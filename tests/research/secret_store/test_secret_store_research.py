@@ -251,7 +251,7 @@ def test_launcher_passes_isolated_environment_and_cwd_and_detects_fallback_file(
 
 
 def test_record_remains_proposed_and_no_platform_is_claimed_without_proof():
-    document = (ROOT / "docs/architecture/adr-secret-store-adapters.md").read_text()
+    document = (ROOT / "docs/architecture/decisions/adr-secret-store-adapters.md").read_text()
     assert "Status: Proposed" in document
     assert "Platforms with proven support in this review: **none**" in document
     results = json.loads((SPIKE / "results/sandbox-2026-11-06.json").read_text())
@@ -259,7 +259,7 @@ def test_record_remains_proposed_and_no_platform_is_claimed_without_proof():
     assert all(result.get("isolated_files") == 0 for result in results)
 
 
-@pytest.mark.parametrize("relative", ["docs/architecture/adr-secret-store-adapters.md",
+@pytest.mark.parametrize("relative", ["docs/architecture/decisions/adr-secret-store-adapters.md",
                                     "spikes/secret-store/README.md"])
 def test_research_local_links_resolve(relative):
     document = ROOT / relative

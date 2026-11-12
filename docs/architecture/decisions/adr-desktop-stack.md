@@ -155,19 +155,19 @@ Ratings and limitations:
 All three candidates can be kept outside the core if the future composition
 root constructs the chosen adapter and passes it presentation-neutral
 application services. That architectural fit is an inference from the accepted
-[modular-monolith boundaries](modular-monolith-boundaries.md), not a toolkit
+[modular-monolith boundaries](../modular-monolith-boundaries.md), not a toolkit
 feature.
 
 ## Disposable spike and measured evidence
 
 The spike sources and setup/measurement commands live in
-[`spikes/desktop-stack/`](../../spikes/desktop-stack/README.md). They use only a
+[`spikes/desktop-stack/`](../../../spikes/desktop-stack/README.md). They use only a
 synthetic progress task and do not intentionally open Ayvu content, user files,
 caches, glossaries, or network endpoints. Native toolkit startup may still read
 system fonts, plugin/configuration files, and graphical-session services. The
 spike-local lock was generated on 2026-10-05; its SHA-256 and the measured
 environment are recorded in
-[`host-2026-10-05.md`](../../spikes/desktop-stack/results/host-2026-10-05.md).
+[`host-2026-10-05.md`](../../../spikes/desktop-stack/results/host-2026-10-05.md).
 
 On that Arch Linux host, the Qt source app had a 0.123102459 s median from new
 process start to the toolkit readiness callback across seven runs. Its
@@ -178,7 +178,7 @@ once. wxPython had no compatible Linux wheel in the locked PyPI resolution;
 Tkinter could not import because `libtk8.6.so` was absent. Those candidates were
 not measured in that initial run.
 
-The later [comparative run](../../spikes/desktop-stack/results/host-2026-10-06.md)
+The later [comparative run](../../../spikes/desktop-stack/results/host-2026-10-06.md)
 used the same Python 3.14.7 host, pinned packager and fresh-process runner for
 Qt and Tk. Signed Tcl/Tk 8.6.16 packages were extracted into a private temporary
 directory without installing OS packages. The lock remained unchanged.
@@ -237,9 +237,9 @@ The manual checklist requires keyboard, screen-reader, and scaling results on
 every OS later claimed as supported. Linux-only observations cannot establish
 Windows or macOS accessibility. The original host snapshot and current
 measurements are recorded in
-[`results/host-2026-10-02.md`](../../spikes/desktop-stack/results/host-2026-10-02.md)
+[`results/host-2026-10-02.md`](../../../spikes/desktop-stack/results/host-2026-10-02.md)
 and
-[`results/host-2026-10-05.md`](../../spikes/desktop-stack/results/host-2026-10-05.md).
+[`results/host-2026-10-05.md`](../../../spikes/desktop-stack/results/host-2026-10-05.md).
 
 ## Proposed recommendation
 
@@ -257,7 +257,7 @@ product constraints, complete keyboard and screen-reader checks on the declared
 Linux target, and resolve Qt licensing and notices for the exact included-file
 inventory. The same-host comparison now supplies that second alternative. Both
 bundle scans found no `LICENSE`, `COPYING`, or `NOTICE` files; the
-[packaging review](../../spikes/desktop-stack/results/packaging-review-2026-10-06.md)
+[packaging review](../../../spikes/desktop-stack/results/packaging-review-2026-10-06.md)
 records the observed library families and a release gate for dependency
 notices, source references and license conditions. This is feasibility
 evidence, not distribution approval. If Windows or macOS are claimed, repeat

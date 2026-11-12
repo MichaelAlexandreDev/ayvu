@@ -1,7 +1,7 @@
 # Pesquisa isolada de secret-store — #160
 
 Esta pasta não é um adaptador Ayvu. Leia o
-[ADR Proposed](../../docs/architecture/adr-secret-store-adapters.md).
+[ADR Proposed](../../docs/architecture/decisions/adr-secret-store-adapters.md).
 Nenhum alvo tem suporte comprovado. O script importa diretamente um backend,
 sem discovery/config de keyring, e nunca importa Ayvu. Seus testes com fakes
 não são prova nativa.

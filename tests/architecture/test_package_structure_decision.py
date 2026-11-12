@@ -9,6 +9,7 @@ from pathlib import Path
 
 from tests.support.paths import PROJECT_ROOT as ROOT
 DECISION = ROOT / "docs" / "architecture" / "decisions" / "package-structure.md"
+FILE_MAP = ROOT / "docs" / "architecture" / "cross-cutting" / "refactoring-map.md"  # the decision's file map (REF-20)
 SOURCE = ROOT / "src" / "ayvu"
 ROW = re.compile(r"^\| `([^`]+\.py)` \| (?:`([^`]+)`|—) \| .* \|$")
 
@@ -18,7 +19,7 @@ def text() -> str:
 
 
 def mapping() -> dict[str, str | None]:
-    rows = [ROW.match(line) for line in text().splitlines()]
+    rows = [ROW.match(line) for line in FILE_MAP.read_text(encoding="utf-8").splitlines()]
     entries = [(match[1], match[2]) for match in rows if match]
     assert len({current for current, _ in entries}) == len(entries), "a file is mapped twice"
     return dict(entries)

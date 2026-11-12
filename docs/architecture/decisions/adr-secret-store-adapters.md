@@ -7,7 +7,7 @@ Issue: [#160](https://github.com/DevStarrk1137/ayvu/issues/160).
 
 Local evidence: 2026-11-06 (UTC).
 
-Mandatory dependency: [threat model #129](product-threat-model.md),
+Mandatory dependency: [threat model #129](../product-threat-model.md),
 `Accepted` on 2026-11-05, present in the `main` baseline
 `79bcc6ec45d603bcab1d74da58021f1edf0657ca`.
 The [desktop ADR](adr-desktop-stack.md) is also `Accepted`; it does not provide
@@ -40,13 +40,13 @@ artifact hash, resolution and execution identity before joining the matrix.
 
 ## Reproducible evidence and its provenance
 
-The [isolated spike](../../spikes/secret-store/README.md) contains a manifest,
+The [isolated spike](../../../spikes/secret-store/README.md) contains a manifest,
 executable proof and repeat commands. The
-[sanitized output](../../spikes/secret-store/results/sandbox-2026-11-06.json)
+[sanitized output](../../../spikes/secret-store/results/sandbox-2026-11-06.json)
 records timestamps, exit codes, installed inventory, licenses and metadata
-hashes. The [observed native inventory](../../spikes/secret-store/results/native-packages-2026-11-06.txt)
+hashes. The [observed native inventory](../../../spikes/secret-store/results/native-packages-2026-11-06.txt)
 is package manager metadata, not a complete redistribution audit.
-The [installed transitive closure](../../spikes/secret-store/results/native-closure-2026-11-06.json)
+The [installed transitive closure](../../../spikes/secret-store/results/native-closure-2026-11-06.json)
 records 190 packages, with declared versions/licenses, graphs and virtual provider
 resolution; all 190 queries returned zero. It is not the file inventory
 of a distributed executable.
@@ -67,8 +67,8 @@ The table above is execution inside the agent's sandbox. The reviewer repeated t
 proof outside it, on 2026-11-06, in the owner-authorized GNOME session, with
 `uv lock`/`uv sync --locked --no-build` in a temporary environment (network only for
 that environment; root `pyproject.toml` and `uv.lock` intact). The
-[reviewer's result](../../spikes/secret-store/results/reviewer-native-2026-11-06.json)
-records the hash of the [research `uv.lock`](../../spikes/secret-store/uv.lock).
+[reviewer's result](../../../spikes/secret-store/results/reviewer-native-2026-11-06.json)
+records the hash of the [research `uv.lock`](../../../spikes/secret-store/uv.lock).
 
 | Proof outside sandbox | Observed result | What it establishes |
 | --- | --- | --- |

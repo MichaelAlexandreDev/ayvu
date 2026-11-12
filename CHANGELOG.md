@@ -50,6 +50,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote C5: os ADRs de desktop, worker local e secret store vão para `decisions/`; o mapa de
+  arquivos da decisão de estrutura de pacotes vai para `cross-cutting/refactoring-map.md`; as decisões de assistência
+  e de direitos são divididas por assunto em registros companheiros com o mesmo cabeçalho, todos com até 400 linhas.
+
 - REF-20 (#288), lote C4: registro do pipeline separado dos contratos de tradução,
   projeto e contexto por módulo, com links e leitores preservados.
 
