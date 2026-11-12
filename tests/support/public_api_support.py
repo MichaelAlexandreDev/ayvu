@@ -28,7 +28,9 @@ ADAPTER_MODULES = frozenset({
     "knowledge.cache.admin_v2_store", "knowledge.memory.approved.store", "knowledge.glossary.catalog_store",
     "formats.local", "formats.epub.archive", "formats.epub.io", "formats.epub.adapter", "formats.epub.validation",
     "formats.markdown.writer", "providers.libretranslate.client", "providers.libretranslate.adapter",
-    "providers.session", "translation.preflight", "translation.batch_output", "review.exchange_files"})
+    "providers.session", "translation.preflight", "translation.batch_output", "review.exchange_files",
+    "review.local_files", "review.local_context", "review.local_packages", "review.local_start",
+    "review.local_operations"})
 
 
 PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (

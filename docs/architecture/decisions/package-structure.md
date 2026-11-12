@@ -116,9 +116,9 @@ imports are layer rules instead of exceptions.
 - Implemented in REF-05 (#273). Each root is a public module of its own, the one exception to D2: an
   interface imports only its root, so the desktop does not load the CLI wiring, and later an edition does
   not load another's. `composition/__init__.py` exports nothing. Only `composition/cli.py` imports
-  builders from outside composition. Review builder siblings use only their declared internal edges;
-  their location remains unchanged pending an owner decision. The layers contract keeps every other
-  module from importing `composition`.
+  builders from outside composition. The local review adapters moved to
+  `review/local_*.py` by the owner's decision of 2026-11-12; the review builder only wires them.
+  The layers contract keeps every other module from importing `composition`.
 - REF-17 PR B adds pure surface data to the CLI root: `CliSurface`,
   `project_cli_surface`, `cli_surface` and `installed_cli_surface`. These factories
   acquire no resources. The installed presenter still uses its existing registration;
@@ -236,7 +236,8 @@ src/ayvu/
   translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output;
                    stages/ (memory_retrieval); context/ (model, execution, source)
   review/          application, exchange, exchange_model, exchange_parts, exchange_mapping,
-                   exchange_codec, exchange_files, csv_export, csv_import
+                   exchange_codec, exchange_files, csv_export, csv_import;
+                   local_files, local_context, local_packages, local_start, local_operations
   recovery/        service, store
   v1/              translation, epub, html_translate, cache, cache_check, cache_format, cache_stream,
                    cache_admin_store, resume, resume_scan

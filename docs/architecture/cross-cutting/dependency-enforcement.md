@@ -67,7 +67,8 @@ entries fail, so a rename cannot silently discard protection.
 | `recovery.service` | Application | Listing, inspecting and resuming interrupted translations |
 | `recovery.store` | Infrastructure | The read-only evidence recovery decides from |
 | `composition.builders.translate_project` | Composition | The current language work and validator behind those ports |
-| `composition.builders.review`, `review_files`, `review_context`, `review_packages`, `review_start`, `review_operations` | Composition | Review wiring, file boundaries, context verification, packages, startup and publication/settlement |
+| `composition.builders.review` | Composition | Review use-case and adapter wiring |
+| `review.local_files`, `review.local_context`, `review.local_packages`, `review.local_start`, `review.local_operations` | Infrastructure | Review file boundaries, context verification, packages, startup and publication/settlement |
 | `artifacts.destination` | Infrastructure | Publishing a job's output to the file the user chose |
 | `providers.libretranslate.client` | Provider adapter with transitional embedded port | Providers |
 | `content.protection` | Domain | Protected terms, placeholders and their integrity checks |
@@ -111,9 +112,8 @@ The layer matrix is an upper bound: it cannot authorize an import without an
 exact module edge in `ALLOWED_INTERNAL_EDGES`. An allowed edge cannot override a
 forbidden layer direction.
 
-The six review builder modules may import one another only through exact declared
-edges. This narrowly scoped internal split preserves composition ownership and
-the CLI root boundary; other builders retain the existing direction rules.
+The review builder wires the public `review.local_*` adapters. Their imports use
+the same layer matrix and exact declared edges as other infrastructure modules.
 
 Since #158, the CLI interface may import named functions from
 `composition.cli`; this is the only boundary where transitive traversal from

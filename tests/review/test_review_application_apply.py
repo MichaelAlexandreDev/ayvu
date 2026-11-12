@@ -12,8 +12,8 @@ from ayvu.jobs.model import JobState
 from ayvu.jobs.events import JobCorrelation, JobEvent, JobOutcome
 from ayvu.jobs.execution import CancellationSource, InMemoryJobEventLog
 from ayvu.review.application import ApplyReviewPackage, ExportReviewPackage, MAX_REVIEW_PACKAGE_BYTES, ReviewApplicationError, ReviewCounts, ReviewExportCommand, ReviewOperation, ReviewOutcome, REVIEW_SAFE_POINTS, ReviewValidationCommand, ReviewValidationMaterial, ReviewUseCasePorts, ValidateReviewPackage
-from ayvu.composition.builders.review_operations import LocalReviewOperations
-from ayvu.composition.builders.review_start import _OperationState
+from ayvu.review.local_operations import LocalReviewOperations
+from ayvu.review.local_start import _OperationState
 
 from tests.review.review_application_support import DESTINATION, MACHINE_DIGEST, NOW, OPERATION_ID, OUTPUT_ARTIFACT_ID
 from tests.review.review_application_support import Operations, PACKAGE, PACKAGE_DIGEST, PROJECT_ID, PackagePort
