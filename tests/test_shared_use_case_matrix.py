@@ -11,7 +11,6 @@ from typer.main import get_command
 
 from ayvu.interfaces.cli.app import app
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX_PATH = ROOT / "docs" / "architecture" / "shared-use-case-matrix.md"
 SNAPSHOT_PATTERN = re.compile(
@@ -81,15 +80,22 @@ PUBLIC_LINK_TARGETS = {
     ROOT / "tests" / "test_cli.py",
     ROOT / "tests" / "test_cli_progress.py",
     ROOT / "tests" / "preferences" / "test_config.py",
-    ROOT / "tests" / "test_content_use_cases.py",
-    ROOT / "tests" / "test_epub_io.py",
-    ROOT / "tests" / "test_glossary.py",
-    ROOT / "tests" / "test_html_translate.py",
+    ROOT / "tests" / "content_use_cases" / "test_content_inspection.py",
+    ROOT / "tests" / "content_use_cases" / "test_content_export.py",
+    ROOT / "tests" / "formats" / "markdown" / "test_markdown_writer_guards.py",
+    ROOT / "tests" / "formats" / "markdown" / "test_markdown_writer_publication.py",
+    ROOT / "tests" / "formats" / "markdown" / "test_markdown_writer_filesystem.py",
+    ROOT / "tests" / "content_use_cases" / "test_content_redaction.py",
+    ROOT / "tests" / "knowledge" / "glossary" / "test_glossary.py",
     ROOT / "tests" / "library" / "test_library.py",
     ROOT / "tests" / "test_resume.py",
-    ROOT / "tests" / "test_review_import.py",
-    ROOT / "tests" / "test_review_exchange.py",
-    ROOT / "tests" / "test_review_application.py",
+    ROOT / "tests" / "review" / "test_review_import.py",
+    ROOT / "tests" / "review" / "test_review_exchange_codec.py",
+    ROOT / "tests" / "review" / "test_review_exchange_mapping.py",
+    ROOT / "tests" / "review" / "test_review_exchange_legacy.py",
+    ROOT / "tests" / "review" / "test_review_exchange_epub_integration.py",
+    ROOT / "tests" / "review" / "test_review_application_export_validate.py",
+    ROOT / "tests" / "review" / "test_review_application_apply.py",
     ROOT / "tests" / "test_cli_translate_project.py",
     ROOT / "tests" / "test_shared_use_case_matrix.py",
     ROOT / "tests" / "providers" / "libretranslate" / "test_translator_http.py",

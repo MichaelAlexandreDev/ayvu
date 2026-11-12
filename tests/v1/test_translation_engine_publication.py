@@ -1,86 +1,19 @@
-"""The translation engine against the current flow, which is the oracle until #145 retires it.
-
-Each parity scenario runs both and compares everything a user can observe: the bytes, the calls
-to the provider and their order, the cache, the report and the progress. Review export now belongs
-to the shared review application use case, which consumes the engine's stable documents and units.
-"""
 from __future__ import annotations
 
-import io
-import sqlite3
-import threading
-from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
+from zipfile import ZIP_DEFLATED, ZIP_STORED
 
 import pytest
 
 from ayvu.v1.cache import TranslationCache
-from ayvu.formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
-from ayvu.v1.epub import translate_epub
 from ayvu.formats.local import LocalFormatSource
-from ayvu.formats.service import FormatRegistry, FormatService
-from ayvu.knowledge.glossary.rules import load_glossary
 from ayvu.formats.contracts import MaterializationResult
 from ayvu.v1.translation import translate_book
-from tests.support.epub_fakes import NAV, OPF, TWO, XHTML, epub_bytes, members, zip_bytes
+from tests.support.epub_fakes import OPF, epub_bytes, members, zip_bytes
 from tests.support.format_contract_env import PROJECT, FormatEnv
-from ayvu.kernel import (ChapterSelection, ChapterSelectionError, LanguagePair, TranslationMemoryOptions,
-    TranslationOptions, JobFailure, JobFailureFamily)
+from ayvu.kernel import ChapterSelection, ChapterSelectionError, TranslationOptions, JobFailure, JobFailureFamily
 
-from tests.v1.translation_engine_support import HARD_CHAPTER, OPF_MEMBER, PAIR, PARITY, Prefix
-from tests.v1.translation_engine_support import book, compare, engine_only, failing_on, formats
-from tests.v1.translation_engine_support import run_current, run_engine
-
-
-@pytest.mark.parametrize("name", PARITY)
-def test_the_engine_matches_the_current_flow(name, tmp_path, formats):
-    scenario = dict(PARITY[name])
-    options = TranslationOptions(language_pair=PAIR, **scenario.pop("options"))
-    source = book(tmp_path)
-    current = run_current(source, tmp_path / "current", options, **scenario)
-    engine = run_engine(source, tmp_path / "engine", options, formats, **scenario)
-    for part in current:
-        assert engine[part] == current[part], part
-
-
-def test_the_engine_matches_the_current_flow_with_a_glossary(tmp_path, formats):
-    path = tmp_path / "glossary.json"
-    path.write_text('{"Hello": "Ola", "chapter": "capitulo"}', encoding="utf-8")
-    options = TranslationOptions(language_pair=PAIR, translate_metadata=True)
-    source = book(tmp_path)
-    current = run_current(source, tmp_path / "current", options, glossary=load_glossary(path))
-    engine = run_engine(source, tmp_path / "engine", options, formats, glossary=load_glossary(path))
-    assert engine == current
-
-
-def test_the_engine_matches_the_current_flow_with_a_glossary_in_workers(tmp_path, formats):
-    path = tmp_path / "glossary.json"
-    path.write_text('{"Hello": "Ola", "chapter": "capitulo"}', encoding="utf-8")
-    seen = compare(tmp_path, formats, book(tmp_path), TranslationOptions(language_pair=PAIR, workers=2), parallel=True, glossary=load_glossary(path))
-    assert seen["glossary"][0]
-
-
-def test_the_engine_reports_a_required_glossary_term_that_was_never_used(tmp_path, formats):
-    path = tmp_path / "glossary.json"
-    path.write_text('{"Absent term": {"rule": "translate", "translation": "Termo", "required": true}}', encoding="utf-8")
-    seen = compare(tmp_path, formats, book(tmp_path), TranslationOptions(language_pair=PAIR), glossary=load_glossary(path))
-    assert seen["glossary"][1]
-
-
-def test_the_engine_matches_the_current_flow_when_memory_applies_a_similar_text(tmp_path, formats):
-    source = book(tmp_path, chapter=XHTML.format("<p>The quick brown fox jumps over the lazy dog and runs</p>").encode())
-    with ZipFile(source) as archive:
-        items = {info.filename: archive.read(info) for info in archive.infolist()}
-    items["OEBPS/text/two words.xhtml"] = XHTML.format("<p>The quick brown fox jumps over the lazy dog and ran</p>").replace("Doc", "Second doc").encode()
-    source.write_bytes(epub_bytes(replace=items))
-    options = TranslationOptions(language_pair=PAIR, translation_memory=TranslationMemoryOptions(apply_threshold=0.9, suggest_threshold=0.5))
-    seen = compare(tmp_path, formats, source, options, seed=True)
-    assert seen["report"]["texts_from_memory"] == 1 and "memory" in seen["statuses"]
-
-
-def test_the_engine_matches_the_current_flow_on_a_missing_text_holding_a_carriage_return(tmp_path, formats):
-    source = book(tmp_path, chapter=XHTML.format("<p>Line one&#13;line two</p>").encode())
-    compare(tmp_path, formats, source, TranslationOptions(language_pair=PAIR, cache_only=True))
+from tests.v1.translation_engine_support import HARD_CHAPTER, OPF_MEMBER, PAIR, Prefix
+from tests.v1.translation_engine_support import book, engine_only, failing_on, formats
 
 
 def test_fail_fast_with_workers_stops_and_publishes_nothing(tmp_path, formats):
@@ -212,75 +145,3 @@ def test_fail_fast_stops_at_the_first_failed_text_and_publishes_nothing(tmp_path
         translate_book(source, tmp_path / "out.epub", translator, cache, TranslationOptions(language_pair=PAIR, fail_fast=True),
                        formats=formats, source=LocalFormatSource(source), publication=publication, project_id=PROJECT)
     assert not env.is_ready(publication)
-
-
-def test_workers_each_get_their_own_executor_and_results_stay_in_book_order(tmp_path, formats):
-    source = book(tmp_path)
-    created: list[Prefix] = []
-
-    def new_translator() -> Prefix:
-        created.append(Prefix())
-        return created[-1]
-
-    env = FormatEnv(tmp_path / "env")
-    starts: list[int] = []
-    with TranslationCache(tmp_path / "cache.sqlite") as cache:
-        _, result = translate_book(
-            source, tmp_path / "out.epub", Prefix(), cache, TranslationOptions(language_pair=PAIR, workers=2), formats=formats,
-            source=LocalFormatSource(source), publication=env.publication(), project_id=PROJECT,
-            on_chapter_start=lambda index, *_: starts.append(index), translator_factory=new_translator,
-            cache_factory=lambda: TranslationCache(tmp_path / "cache.sqlite"))
-    assert result.failure is None and starts == [1, 2] and len(created) == 2
-
-
-def test_a_worker_that_cannot_start_leaves_its_chapter_alone_and_is_reported(tmp_path, formats):
-    source = book(tmp_path)
-    env = FormatEnv(tmp_path / "env")
-    publication = env.publication()
-    created = []
-
-    def new_translator() -> Prefix:
-        created.append(1)
-        if len(created) == 1:
-            raise OSError("no session")
-        return Prefix()
-
-    with TranslationCache(tmp_path / "cache.sqlite") as cache:
-        report, result = translate_book(
-            source, tmp_path / "out.epub", Prefix(), cache, TranslationOptions(language_pair=PAIR, workers=1 + 1), formats=formats,
-            source=LocalFormatSource(source), publication=publication, project_id=PROJECT, translator_factory=new_translator,
-            cache_factory=lambda: TranslationCache(tmp_path / "cache.sqlite"))
-    assert result.failure is None and len(report.errors) == 1 and "no session" in report.errors[0]
-
-
-def test_no_chapter_finished_means_no_output(tmp_path, formats):
-    source = book(tmp_path)
-    env = FormatEnv(tmp_path / "env")
-    publication = env.publication()
-
-    def broken() -> Prefix:
-        raise OSError("no session")
-
-    with TranslationCache(tmp_path / "cache.sqlite") as cache:
-        report, result = translate_book(
-            source, tmp_path / "out.epub", Prefix(), cache, TranslationOptions(language_pair=PAIR, workers=2), formats=formats,
-            source=LocalFormatSource(source), publication=publication, project_id=PROJECT, translator_factory=broken,
-            cache_factory=lambda: TranslationCache(tmp_path / "cache.sqlite"))
-    assert (result.failure.family, result.failure.code) == (JobFailureFamily.INPUT, "nothing_to_materialize")
-    assert not report.output_written and not env.is_ready(publication)
-
-
-def test_memory_and_workers_are_refused_as_in_the_current_flow(tmp_path, formats):
-    source = book(tmp_path)
-    env = FormatEnv(tmp_path / "env")
-    options = TranslationOptions(language_pair=PAIR, workers=2, translation_memory=TranslationMemoryOptions())
-    with TranslationCache(tmp_path / "cache.sqlite") as cache, pytest.raises(ValueError, match="translation memory is not supported"):
-        translate_book(source, tmp_path / "out.epub", Prefix(), cache, options, formats=formats, source=LocalFormatSource(source),
-                       publication=env.publication(), project_id=PROJECT, translator_factory=Prefix,
-                       cache_factory=lambda: TranslationCache(tmp_path / "cache.sqlite"))
-
-
-def test_results_omit_book_text_from_their_repr(tmp_path, formats):
-    _, result, _, _ = engine_only(tmp_path, formats, epub_bytes(), translate_metadata=True)
-    shown = repr(result) + repr(result.stats)
-    assert "Title" not in shown and "Hello" not in shown

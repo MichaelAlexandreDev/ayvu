@@ -104,7 +104,7 @@ the cache. Cache-only and dry run never call the provider, and cache-only wins i
 Reused text still receives the glossary. The raw text is cached before the glossary changes it.
 Outer whitespace comes back last.
 
-`tests/test_translate_text_characterization.py` states these, and it was written and passing
+`tests/v1/test_translate_text_characterization.py` states these, and it was written and passing
 against the code before this extraction.
 
 ## The engine
@@ -122,8 +122,10 @@ back to the adapter. It parses no markup and calls no provider. A composição e
 path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
 extraction needs a real project.
 
-**The current flow is the oracle.** `tests/test_translation_engine.py` runs both over the same books and compares
+**The current flow is the oracle.** `tests/v1/test_translation_engine_parity.py` runs both over the same books and compares
 the bytes, the order of provider calls, the cache, the report, the progress and the review rows.
+`tests/v1/test_translation_engine_publication.py` and `tests/v1/test_translation_engine_workers.py`
+cover publication and worker behavior.
 [Format compatibility](format-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
 `texts_skipped` is left at zero: only the current report object holds it, and nothing shows it.
 

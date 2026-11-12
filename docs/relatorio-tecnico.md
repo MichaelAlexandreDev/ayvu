@@ -93,14 +93,29 @@ ayvu/
 │   ├── test_cli_progress.py
 │   ├── preferences/
 │   │   └── test_config.py
-│   ├── test_epub_io.py
-│   ├── test_glossary.py
-│   ├── test_html_translate.py
+│   ├── formats/epub/test_epub_io_paths.py
+│   ├── v1/test_epub_translation_values.py
+│   ├── v1/test_epub_translation_execution.py
+│   ├── v1/test_epub_translation_metadata.py
+│   ├── formats/epub/test_epub_io_language.py
+│   ├── v1/test_epub_translation_selection.py
+│   ├── formats/epub/test_epub_io_chapter_selection.py
+│   ├── kernel/test_epub_chapter_selection.py
+│   ├── v1/test_epub_review_legacy_refusal.py
+│   ├── v1/test_epub_translation_title.py
+│   ├── knowledge/glossary/test_glossary.py
+│   ├── v1/test_html_translate_markers.py
+│   ├── v1/test_html_translate_structure.py
+│   ├── v1/test_html_translate_cache_memory.py
+│   ├── v1/test_html_translate_terms_alt.py
+│   ├── v1/test_html_apply_reviewed.py
+│   ├── v1/test_html_translate_markup_literals.py
 │   ├── library/
 │   │   └── test_library.py
 │   ├── test_preflight.py
-│   ├── test_review_export.py
-│   ├── test_review_import.py
+│   ├── review/
+│   │   ├── test_review_export.py
+│   │   └── test_review_import.py
 │   ├── test_resume.py
 │   ├── providers/
 │   │   └── libretranslate/
@@ -108,7 +123,7 @@ ayvu/
 │   │       ├── test_translator_languages.py
 │   │       ├── test_translator_rate_limit.py
 │   │       └── test_translator_routes.py
-│   └── test_validation.py
+│   └── formats/epub/test_validation.py
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── LICENSE

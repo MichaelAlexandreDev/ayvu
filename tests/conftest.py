@@ -66,9 +66,42 @@ def minimal_epub_path(tmp_path: Path) -> Path:
 # from AGENTS.md and the test files that protect it, as paths under tests/; tests/test_ci_stages.py checks the map.
 TESTS = Path(__file__).resolve().parent
 CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
-    "original_epub_unchanged": ("test_workflow_characterization.py", "test_cli.py", "test_epub_io.py"),
-    "zip_structure_and_mimetype": ("test_epub_archive.py", "test_epub_format.py", "test_validation.py"),
-    "visible_text_and_tags": ("v1/test_html_translate.py", "test_html_structure.py"),
+    "original_epub_unchanged": (
+        "test_workflow_characterization.py",
+        "test_cli.py",
+        "formats/epub/test_epub_io_paths.py",
+        "v1/test_epub_translation_values.py",
+        "v1/test_epub_translation_execution.py",
+        "v1/test_epub_translation_metadata.py",
+        "formats/epub/test_epub_io_language.py",
+        "v1/test_epub_translation_selection.py",
+        "formats/epub/test_epub_io_chapter_selection.py",
+        "kernel/test_epub_chapter_selection.py",
+        "v1/test_epub_review_legacy_refusal.py",
+        "v1/test_epub_translation_title.py",
+    ),
+    "zip_structure_and_mimetype": (
+        "formats/epub/test_epub_archive_open.py",
+        "formats/epub/test_epub_archive_copy.py",
+        "formats/epub/test_epub_format_contract.py",
+        "formats/epub/test_epub_format_detection.py",
+        "formats/epub/test_epub_format_extraction.py",
+        "formats/epub/test_epub_format_reconstruction.py",
+        "formats/epub/test_epub_format_validation.py",
+        "formats/epub/test_epub_format_publication.py",
+        "formats/epub/test_validation.py",
+    ),
+    "visible_text_and_tags": (
+        "v1/test_html_translate_markers.py",
+        "v1/test_html_translate_structure.py",
+        "v1/test_html_translate_cache_memory.py",
+        "v1/test_html_translate_terms_alt.py",
+        "v1/test_html_apply_reviewed.py",
+        "v1/test_html_translate_markup_literals.py",
+        "formats/epub/test_html_structure_extraction.py",
+        "formats/epub/test_html_structure_reconstruction.py",
+        "formats/epub/test_html_structure_transient.py",
+    ),
     "chunk_order_and_spacing": ("test_chunking.py",),
     "persisted_identities": ("test_persisted_identities.py",),
     "architecture_guardrails": ("test_size_ratchet.py", "test_import_contracts.py", "test_public_api.py"),
@@ -81,7 +114,11 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "test_translation_cache_v2.py",
     ),
     "resume": ("v1/test_resume.py", "v1/test_legacy_resume.py", "test_raw_results_resume.py"),
-    "glossary": ("test_glossary.py", "test_glossary_catalog.py"),
+    "glossary": (
+        "knowledge/glossary/test_glossary.py",
+        "knowledge/glossary/test_glossary_catalog_commands.py",
+        "knowledge/glossary/test_glossary_catalog_publication.py",
+    ),
     # Keep the approved CLI family explicit as other CLI tests move into this package.
     "cli_entry_points": (
         "test_cli.py",

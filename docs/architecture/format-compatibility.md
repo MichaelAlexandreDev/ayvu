@@ -7,7 +7,7 @@ paths still use them.
 
 The production adapter is in `ayvu.formats.epub.adapter`, documented in [EPUB format](epub-format.md).
 
-`tests/test_format_adapter.py` checks that every behavior below is present, that every symbol
+`tests/formats/test_format_contract_architecture.py` checks that every behavior below is present, that every symbol
 exists, and that jobs, retries and output paths are not assigned to a format.
 
 | Behavior | Today | Owner | Note |
