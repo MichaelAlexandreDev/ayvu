@@ -23,7 +23,6 @@
     "src/ayvu/v1/cache.py": 516,
     "src/ayvu/v1/epub.py": 691,
     "src/ayvu/v1/resume.py": 442,
-    "tests/test_approved_memory.py": 726,
     "tests/test_cli.py": 1189,
     "tests/test_cli_translate_project.py": 994,
     "tests/test_content.py": 596,

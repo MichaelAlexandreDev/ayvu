@@ -94,7 +94,7 @@ ayvu/
 │   ├── preferences/
 │   │   └── test_config.py
 │   ├── test_epub_io.py
-│   ├── test_glossary.py
+│   ├── knowledge/glossary/test_glossary.py
 │   ├── test_html_translate.py
 │   ├── library/
 │   │   └── test_library.py

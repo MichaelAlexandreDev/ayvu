@@ -81,7 +81,11 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "test_translation_cache_v2.py",
     ),
     "resume": ("v1/test_resume.py", "v1/test_legacy_resume.py", "test_raw_results_resume.py"),
-    "glossary": ("test_glossary.py", "test_glossary_catalog.py"),
+    "glossary": (
+        "knowledge/glossary/test_glossary.py",
+        "knowledge/glossary/test_glossary_catalog_commands.py",
+        "knowledge/glossary/test_glossary_catalog_publication.py",
+    ),
     # Keep the approved CLI family explicit as other CLI tests move into this package.
     "cli_entry_points": (
         "test_cli.py",
