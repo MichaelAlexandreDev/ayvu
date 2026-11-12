@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote K3: testes de documentos e cache exato divididos
+  por responsabilidade, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote K2: testes de contexto e recuperação de memória divididos
   por responsabilidade, preservando os mesmos testes e invariantes core.
 
