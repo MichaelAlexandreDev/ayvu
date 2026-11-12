@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote K2: testes de contexto e recuperação de memória divididos
+  por responsabilidade, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote K1: testes de lote e contratos de tradução movidos
   para `tests/translation/`, preservando os mesmos testes e invariantes core.
 
