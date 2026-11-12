@@ -12,7 +12,7 @@ Decision: `DEC-003`
 ## Context
 
 The current CLI stores per-translation checkpoints in
-[`v1/resume.py`](../../../src/ayvu/v1/resume.py). These record execution options and
+[`recovery/checkpoint.py`](../../../src/ayvu/recovery/checkpoint.py). These record execution options and
 progress, but do not establish a durable project identity. Shared application
 workflows need a stable local reference that survives process restarts and
 interface changes.

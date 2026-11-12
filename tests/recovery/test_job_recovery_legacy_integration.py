@@ -11,7 +11,7 @@ import pytest
 from ayvu.jobs.model import JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeStatus
 from ayvu.translation.resume_reuse import RecoveryReason
-from ayvu.v1.resume_scan import MAX_LEGACY_STATE_BYTES
+from ayvu.recovery.checkpoint_scan import MAX_LEGACY_STATE_BYTES
 from tests.support.cli_translate_project_support import _book
 from tests.support.job_recovery_integration_support import CANARY_URL, Runner, Scene, _finished
 from tests.support.job_recovery_integration_support import _isolated_from_the_user, _v1, _write, no_network
@@ -141,7 +141,7 @@ def test_nothing_identifying_reaches_a_result_an_event_or_a_log(tmp_path, caplog
 
 
 def test_the_error_from_a_bad_file_quotes_nothing_from_it(tmp_path):
-    from ayvu.v1.resume_scan import LegacyResumeError, inspect_legacy_resume
+    from ayvu.recovery.checkpoint_scan import LegacyResumeError, inspect_legacy_resume
     path = _write(tmp_path, "x.ayvu-state.json", {"version": 1, "status": "Canary status"})
     with pytest.raises(LegacyResumeError) as caught:
         inspect_legacy_resume(path)

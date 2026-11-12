@@ -9,9 +9,16 @@ command and the guided offer run through them, with the prompts they always had.
 | --- | --- | --- |
 | `ayvu.recovery.service` | Application | The requests and results, the rules, and the three use cases |
 | `ayvu.recovery.store` | Infrastructure | Everything those rules read, without writing |
-| `ayvu.v1.resume_scan` | Infrastructure | Bounded reading of `*.ayvu-state.json` |
+| `ayvu.recovery.checkpoint` | Infrastructure | Shared checkpoint values, codec and filesystem store for both runtimes |
+| `ayvu.recovery.checkpoint_scan` | Infrastructure | Bounded reading of `*.ayvu-state.json` |
 
 `open_job_recovery` in `ayvu.composition.builders.translate_project` puts them together.
+
+REF-18 R2 moves the shared checkpoint adapters out of v1. Their names, persisted fields,
+version, defaults, filenames and written bytes stay unchanged, including rich
+`execution_revision=2` checkpoints. Under D2, `ayvu.recovery` keeps only its use-case API:
+checkpoint values remain with their intact filesystem adapter, and both adapters are public
+modules themselves. Re-exporting them would load filesystem code when importing the package.
 
 ## What a resume is today
 

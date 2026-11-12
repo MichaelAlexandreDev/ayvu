@@ -1,5 +1,5 @@
-"""Lists, inspects and resumes interrupted translations. The evidence read from the project files and the v1
-resume state is the adapter module recovery.store.
+"""Lists, inspects and resumes interrupted translations.
+Checkpoint filesystem adapters have separate public APIs; importing this package loads neither.
 """
 from __future__ import annotations
 

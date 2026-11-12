@@ -59,6 +59,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), R2: checkpoint compartilhado e leitura limitada passam do v1 para Recovery,
+  preservando bytes, campos, defaults e retomadas dos dois runtimes; removidas as duas exceções de importação.
+
 - REF-17 (#285), PR C: CLI e menu montados pela superfície projetada, preservando comandos, opções e ajuda do `ayvu` instalado.
 
 - Os adaptadores locais de revisão saem de `composition/builders/review_*.py` para `review/local_*.py`;

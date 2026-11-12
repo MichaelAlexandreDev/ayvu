@@ -129,7 +129,7 @@ def test_tm_approved_epub_workflow_and_cache_clear_isolation_real_stores(tmp_pat
 
 
 def test_tm_empty_repository_provider_failure_and_resume_use_real_boundaries(tmp_path, monkeypatch):
-    from ayvu.v1.resume import ResumeStateStore
+    from ayvu.recovery.checkpoint import ResumeStateStore
     config(tmp_path)
     source = _book(tmp_path / 'book.epub')
     first, transport = invoke(tmp_path, monkeypatch, source, '--translation-memory', session=Transport(failing='Goodbye reader.'))

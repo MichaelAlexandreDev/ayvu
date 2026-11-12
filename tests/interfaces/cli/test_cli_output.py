@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import FakeCache, _fake_translation, runner
 

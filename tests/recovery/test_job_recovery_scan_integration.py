@@ -13,7 +13,7 @@ from ayvu.jobs.model import JobState
 from ayvu.recovery.service import CompatibilityStatus
 from ayvu.translation.resume_reuse import RecoveryReason
 from ayvu.projects.schema import PROJECT_MIGRATIONS
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.composition.builders.translate_project import open_job_recovery
 from tests.support.cli_translate_project_support import _args, _book
 from ayvu.kernel.sqlite import SqliteMigrationRunner

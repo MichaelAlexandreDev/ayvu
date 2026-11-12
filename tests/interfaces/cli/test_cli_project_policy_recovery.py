@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from ayvu.composition.builders import translate_project as composition
 from ayvu.interfaces.cli.app import app
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from tests.support.cli_translate_project_support import CHILD, ENCRYPTED_DOCUMENT, Session, _args
 from tests.support.cli_translate_project_support import _book, _interrupt_on, _isolated_from_the_user, _jobs
 from tests.support.cli_translate_project_support import _leftovers, _only_job

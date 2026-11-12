@@ -309,7 +309,7 @@ def test_compatibility_facades_export_identical_contracts():
     from ayvu.translation import batch_output as batch_output_policy
     from ayvu.preferences import config_facade as config
     from ayvu.preferences import model as config_values
-    from ayvu.v1 import resume
+    from ayvu.recovery import checkpoint as resume
     from ayvu.composition.builders import providers as provider_composition
     from ayvu import providers, translation
     from ayvu.interfaces.cli import run as cli_run, run_support as cli_run_support, batch as cli_batch

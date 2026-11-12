@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
 from ayvu.translation.preflight import PreflightError
-from ayvu.v1.resume import ResumeStateStore
+from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import FakeCache, _fake_translation
 from tests.support.cli_support import isolated_config, runner

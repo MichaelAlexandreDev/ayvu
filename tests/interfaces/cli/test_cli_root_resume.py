@@ -3,7 +3,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
 from ayvu.v1.html_translate import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
-from ayvu.v1.resume import COMPLETED_STATUS, ResumeStateStore
+from ayvu.recovery.checkpoint import COMPLETED_STATUS, ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import FakeCache, _fake_translation
 from tests.support.cli_support import _resume_state, isolated_config, runner

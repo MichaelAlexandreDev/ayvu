@@ -14,7 +14,7 @@ from tests.support.rich_runtime_support import PAIR, runtime
 @pytest.mark.parametrize("revision", [1, 2])
 def test_checkpoint_stores_only_the_execution_revision_and_keeps_legacy_payload_unchanged(tmp_path, revision):
     from tests.support.job_recovery_integration_support import Scene
-    from ayvu.v1.resume import TranslationResumeState
+    from ayvu.recovery.checkpoint import TranslationResumeState
     scene = Scene(tmp_path)
     path = scene.save_state(execution_revision=revision)
     data = json.loads(path.read_text())

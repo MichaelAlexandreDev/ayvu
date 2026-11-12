@@ -242,8 +242,8 @@ src/ayvu/
   review/          application, exchange, exchange_model, exchange_parts, exchange_mapping,
                    exchange_codec, exchange_files, csv_export, csv_import;
                    local_files, local_context, local_packages, local_start, local_operations
-  recovery/        service, store
-  v1/              translation, epub, html_translate, cache, cache_check, resume, resume_scan
+  recovery/        service, store, checkpoint, checkpoint_scan
+  v1/              translation, epub, html_translate, cache, cache_check
   composition/     cli, desktop, editions (later); builders/
   interfaces/      cli/ (app, commands/, render, progress); desktop/; server/ (later)
 ```

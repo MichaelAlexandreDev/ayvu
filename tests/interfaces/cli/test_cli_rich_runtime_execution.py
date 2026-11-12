@@ -68,7 +68,7 @@ def test_rich_provider_failure_first_middle_last_is_resumable_without_partial_ep
     assert result.exit_code == 1 and "nenhum EPUB parcial" in " ".join(text(result).split())
     assert transport.posts == texts[:index + 1]
     assert not (tmp_path / "out.epub").exists()
-    from ayvu.v1.resume import ResumeStateStore
+    from ayvu.recovery.checkpoint import ResumeStateStore
     checkpoint = ResumeStateStore(tmp_path / "processing").scan().running[0]
     assert checkpoint.execution_revision == 2
     assert "local-model-2026" not in repr(checkpoint.to_dict())

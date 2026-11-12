@@ -41,7 +41,7 @@ entries fail, so a rename cannot silently discard protection.
 | `jobs.store` | Infrastructure | SQLite job adapter and job schema SQL |
 | `jobs.events` | Domain | Job events, outcomes, ordering rules and canonical serialization |
 | `jobs.execution` | Application | Event ports, bounded in-memory log and cooperative cancellation |
-| `v1.resume_scan` | Infrastructure | Read-only view of a legacy checkpoint |
+| `recovery.checkpoint_scan` | Infrastructure | Read-only view of a legacy checkpoint |
 | `artifact` | Domain | Artifact identity, lifecycle, derived locations and reuse predicate |
 | `artifacts.service` | Application | Artifact ports, publication order, reuse and reconciliation |
 | `artifacts.store` | Infrastructure | SQLite artifact records and contained local payload files |
@@ -100,7 +100,7 @@ entries fail, so a rename cannot silently discard protection.
 | `knowledge.cache.admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
 | `knowledge.cache.admin_v2_store`, `admin_v2_queries`, `admin_v2_files`, `admin_v2_export`, `admin_v2_records`, `admin_v2_import` | Knowledge adapter | Namespace administration, SQLite views, owned files, streaming exports, records and private import staging |
 | `composition.builders.cache_admin` | Composition | Local cache administration adapters |
-| `config`, `resume`, `review.csv_export`, `review.csv_import` | Infrastructure | Preferences, Jobs, Review |
+| `config`, `recovery.checkpoint`, `review.csv_export`, `review.csv_import` | Infrastructure | Preferences, Recovery, Review |
 
 Application imports domain/application contracts; domain imports domain APIs.
 The internal graph must be acyclic. Interface imports application/domain values

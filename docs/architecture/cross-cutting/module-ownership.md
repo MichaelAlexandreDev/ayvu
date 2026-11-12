@@ -32,7 +32,7 @@ issue.
 | `src/ayvu/knowledge/memory/approved/service.py` | Governed TM commands, queries, use cases and repository port | **Application/Approved translation memory**; no SQLite or pipeline bridge |
 | `src/ayvu/knowledge/memory/approved/store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](../modules/knowledge-memory.md) |
 | `src/ayvu/knowledge/glossary/rules.py` | Glossary rules, matching, validation, and JSON persistence | Glossary semantics belong to **Knowledge**; JSON/filesystem persistence implements an **Infrastructure** port |
-| `src/ayvu/v1/resume.py` | Legacy checkpoint schema, scanning, persistence, and translation options | Resume coordination moves to **Application** and lifecycle semantics to **Jobs**; JSON/filesystem checkpoint storage remains an **Infrastructure** adapter until migrated |
+| `src/ayvu/recovery/checkpoint.py`, `src/ayvu/recovery/checkpoint_scan.py` | Shared checkpoint schema, scanning, persistence, and translation options | **Recovery** owns the shared checkpoint adapters (REF-18 R2); coordination stays in its application API and lifecycle semantics in **Jobs** |
 | `src/ayvu/review/csv_export.py` | Review-segment representation and CSV writing | Review-unit semantics belong to **Review**; CSV serialization is an interchange **Infrastructure** adapter |
 | `src/ayvu/review/csv_import.py` | CSV parsing, validation, and imported review rows | Review validation and decisions belong to **Review**; CSV parsing is an interchange **Infrastructure** adapter |
 | `src/ayvu/review/exchange.py`, `exchange_model.py`, `exchange_parts.py`, `exchange_mapping.py`, `exchange_codec.py`, `exchange_files.py` | Deterministic v2 construction, contract validation, placeholders, reconstruction mapping, in-memory codec, and disk adapter | Review-package semantics belong to **Review**; EPUB structure remains in **Formats/EPUB**; only `exchange_files.py` accesses the filesystem; no application orchestration or publication |
@@ -188,6 +188,6 @@ the existing test suite provide evidence, not proof, of conformance.
 - [`src/ayvu/formats/epub/io.py`](../../../src/ayvu/formats/epub/io.py)
 - [`src/ayvu/v1/html_translate.py`](../../../src/ayvu/v1/html_translate.py)
 - [`src/ayvu/v1/cache.py`](../../../src/ayvu/v1/cache.py)
-- [`src/ayvu/v1/resume.py`](../../../src/ayvu/v1/resume.py)
+- [`src/ayvu/recovery/checkpoint.py`](../../../src/ayvu/recovery/checkpoint.py)
 - [`src/ayvu/providers/libretranslate/client.py`](../../../src/ayvu/providers/libretranslate/client.py)
 - [`test_workflow_translation_resume.py`](../../../tests/interfaces/cli/test_workflow_translation_resume.py), [`test_workflow_route_review.py`](../../../tests/interfaces/cli/test_workflow_route_review.py), [`test_workflow_translation_reporting.py`](../../../tests/interfaces/cli/test_workflow_translation_reporting.py), [`test_workflow_batch_preview.py`](../../../tests/interfaces/cli/test_workflow_batch_preview.py)
