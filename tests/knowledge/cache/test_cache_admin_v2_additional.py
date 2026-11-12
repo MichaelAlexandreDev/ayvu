@@ -6,7 +6,7 @@ from threading import Event
 
 import pytest
 
-from ayvu.v1.cache import SCHEMA
+from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
 from ayvu.knowledge.cache.admin import (
     CacheFilter, CacheInterchangeLimits, CacheNamespace, CacheRef, CacheScopeMapping, ExecuteCleanRequest,
     ExecuteImportRequest, ExportRequest, FileRef, ImportRequest, ImportScopeMap,

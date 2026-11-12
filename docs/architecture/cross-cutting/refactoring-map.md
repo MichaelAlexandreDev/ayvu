@@ -97,10 +97,10 @@ REF-15 break up by reason to change after they move.
 | `legacy_translation.py` | `v1/translation.py` |  |
 | `html_translate.py` | `v1/html_translate.py` |  |
 | `translator.py` | `providers/libretranslate/client.py` | changed in REF-11: it is the LibreTranslate HTTP client, and the rich adapter uses it too, so it is not v1-only |
-| `cache.py` | `v1/cache.py` |  |
-| `cache_legacy_format.py` | `v1/cache_format.py` |  |
-| `cache_legacy_stream.py` | `v1/cache_stream.py` |  |
-| `cache_admin_legacy_store.py` | `v1/cache_admin_store.py` |  |
+| `cache.py` | `v1/cache.py`; schema in `knowledge/cache/legacy_schema.py` | REF-18 R3 extracts the unchanged SQL; the runtime stays in v1 |
+| `cache_legacy_format.py` | `knowledge/cache/legacy_format.py` | moved from v1 in REF-18 R3 |
+| `cache_legacy_stream.py` | `knowledge/cache/legacy_stream.py` | moved from v1 in REF-18 R3 |
+| `cache_admin_legacy_store.py` | `knowledge/cache/legacy_admin_store.py` | moved from v1 in REF-18 R3 |
 | `resume.py` | `v1/resume.py` |  |
 | `legacy_resume.py` | `v1/resume_scan.py` |  |
 | `cli_contracts.py` | `interfaces/cli/contracts.py` | changed in REF-04: its errors went to `translation/errors.py` and `providers/errors.py`; the protocols only the CLI uses stay with the CLI. In REF-05 the `_Book*` request and outcome types went to `composition/cli.py`, the root that runs them |

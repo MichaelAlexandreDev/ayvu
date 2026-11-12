@@ -176,7 +176,7 @@ def test_broader_authorized_namespaces_roundtrip_real_repository(tmp_path, kind)
 
 
 def test_export_format_receipt_comes_from_the_pinned_snapshot(tmp_path):
-    from ayvu.v1.cache import SCHEMA
+    from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
     cache, output = tmp_path / 'v1.sqlite', tmp_path / 'data.json'
     with sqlite3.connect(cache) as conn:
         conn.execute(SCHEMA)

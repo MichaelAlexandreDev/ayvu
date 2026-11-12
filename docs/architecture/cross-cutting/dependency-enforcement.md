@@ -95,6 +95,8 @@ entries fail, so a rename cannot silently discard protection.
 | `composition.builders.providers` | Composition | Provider assembly adapter selected by `composition.cli` |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `knowledge.cache.admin` | Application | Typed cache administration use cases and ports |
+| `knowledge.cache.legacy_schema`, `knowledge.cache.legacy_format` | Domain | Original SQL value and bounded JSON-v1 validation |
+| `knowledge.cache.legacy_stream`, `knowledge.cache.legacy_admin_store` | Knowledge adapter | Bounded legacy reader and transactional SQLite streaming import |
 | `knowledge.cache.admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
 | `knowledge.cache.admin_v2_store`, `admin_v2_queries`, `admin_v2_files`, `admin_v2_export`, `admin_v2_records`, `admin_v2_import` | Knowledge adapter | Namespace administration, SQLite views, owned files, streaming exports, records and private import staging |
 | `composition.builders.cache_admin` | Composition | Local cache administration adapters |
@@ -146,6 +148,12 @@ existing ADR baseline. Current mixed modules use exact exceptions instead of a
 permissive legacy layer.
 
 ## Temporary exceptions
+
+REF-18 R3 removes the three import-linter exceptions from Knowledge to v1: the legacy schema,
+JSON-v1 codec and streaming administration adapters now belong to `knowledge/cache/`. The exact
+ownership and edge inventories follow the new paths. `legacy_admin_store` is a public adapter
+module; the pure `SCHEMA` value is exported by `knowledge.cache` without loading SQLite. The two
+`recovery.store` exceptions remain for R2. Architecture metrics report no Knowledge/v1 cycle.
 
 `EXCEPTIONS` is the authoritative reviewed list. Every entry identifies an exact
 source/destination module edge, capability owner, positive removal issue number,
