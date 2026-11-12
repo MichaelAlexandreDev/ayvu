@@ -88,7 +88,7 @@ ayvu/
 ├── tests/
 │   ├── conftest.py
 │   ├── test_cache.py
-│   ├── test_chunking.py
+│   ├── translation/test_chunking.py
 │   ├── kernel/test_cli_output_plan.py
 │   ├── kernel/test_cli_translation_options.py
 │   ├── interfaces/cli/test_cli_root_processing.py

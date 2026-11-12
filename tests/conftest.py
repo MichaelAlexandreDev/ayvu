@@ -116,7 +116,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "formats/epub/test_html_structure_reconstruction.py",
         "formats/epub/test_html_structure_transient.py",
     ),
-    "chunk_order_and_spacing": ("test_chunking.py",),
+    "chunk_order_and_spacing": ("translation/test_chunking.py",),
     "persisted_identities": ("test_persisted_identities.py",),
     "architecture_guardrails": ("test_size_ratchet.py", "test_import_contracts.py", "test_public_api.py"),
     "cache_keys_and_scope": (
@@ -127,7 +127,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "knowledge/cache/test_cache_repository_v2.py",
         "test_translation_cache_v2.py",
     ),
-    "resume": ("v1/test_resume.py", "v1/test_legacy_resume.py", "test_raw_results_resume.py"),
+    "resume": ("v1/test_resume.py", "v1/test_legacy_resume.py", "translation/test_raw_results_resume.py"),
     "glossary": (
         "knowledge/glossary/test_glossary.py",
         "knowledge/glossary/test_glossary_catalog_commands.py",
