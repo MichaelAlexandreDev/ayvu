@@ -89,8 +89,19 @@ ayvu/
 │   ├── conftest.py
 │   ├── test_cache.py
 │   ├── test_chunking.py
-│   ├── test_cli.py
-│   ├── test_cli_progress.py
+│   ├── kernel/test_cli_output_plan.py
+│   ├── kernel/test_cli_translation_options.py
+│   ├── interfaces/cli/test_cli_root_processing.py
+│   ├── interfaces/cli/test_cli_root_resume.py
+│   ├── interfaces/cli/test_cli_translate_output_configuration.py
+│   ├── interfaces/cli/test_cli_translate_review_export.py
+│   ├── interfaces/cli/test_cli_translate_markdown_reports.py
+│   ├── interfaces/cli/test_cli_translate_cache_controls.py
+│   ├── interfaces/cli/test_cli_translate_language.py
+│   ├── interfaces/cli/test_cli_translate_execution_profiles.py
+│   ├── interfaces/cli/test_cli_translate_target_profiles.py
+│   ├── interfaces/cli/test_cli_console_security.py
+│   ├── interfaces/cli/test_cli_progress.py
 │   ├── preferences/
 │   │   └── test_config.py
 │   ├── formats/epub/test_epub_io_paths.py

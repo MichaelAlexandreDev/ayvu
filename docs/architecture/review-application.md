@@ -82,8 +82,11 @@ read-only validation, real transport tripwires, and cancellation.
 preview, fatal conflicts, v1 refusal, idempotency versus overwrite, cancellation
 safe points, redaction, and package-size limits. The real CLI review round trip
 and output preservation, replay of a removed or changed result, and cancellation
-against production repositories are covered in `tests/test_cli_translate_project.py`
-and `tests/test_workflow_characterization.py`; codec and placeholder attack cases
+against production repositories are covered in `tests/interfaces/cli/test_cli_project_review_application.py`,
+`tests/interfaces/cli/test_cli_project_review_status.py`,
+`tests/interfaces/cli/test_cli_project_review_races.py`,
+`tests/interfaces/cli/test_cli_project_review_reconciliation.py`
+and `tests/interfaces/cli/test_workflow_route_review.py`; codec and placeholder attack cases
 remain in `tests/review/test_review_exchange_codec.py` and
 `tests/review/test_review_exchange_mapping.py`. Legacy refusal and production
 EPUB reconstruction are covered in `tests/review/test_review_exchange_legacy.py`

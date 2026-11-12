@@ -23,18 +23,13 @@
     "src/ayvu/v1/cache.py": 516,
     "src/ayvu/v1/epub.py": 691,
     "src/ayvu/v1/resume.py": 442,
-    "tests/test_cli.py": 1189,
-    "tests/test_cli_translate_project.py": 994,
     "tests/test_context_pipeline.py": 496,
     "tests/test_job_recovery_integration.py": 586,
     "tests/test_local_worker_spike.py": 499,
     "tests/test_memory_retrieval.py": 619,
-    "tests/test_rich_runtime.py": 540,
-    "tests/test_translate_batch_integration.py": 434,
     "tests/test_translate_project.py": 1250,
     "tests/test_translation_context.py": 550,
-    "tests/test_translation_document.py": 714,
-    "tests/test_workflow_characterization.py": 447
+    "tests/test_translation_document.py": 714
   },
   "functions": {
     "src/ayvu/content_use_cases.py::ExportVisibleContent.execute": 136,

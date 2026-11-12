@@ -551,4 +551,4 @@ its dependencies, and the compatibility baseline before changing code.
 - [`src/ayvu/v1/cache.py`](../../src/ayvu/v1/cache.py)
 - [`src/ayvu/v1/resume.py`](../../src/ayvu/v1/resume.py)
 - [`src/ayvu/providers/libretranslate/client.py`](../../src/ayvu/providers/libretranslate/client.py)
-- [`tests/test_workflow_characterization.py`](../../tests/test_workflow_characterization.py)
+- [`test_workflow_translation_resume.py`](../../tests/interfaces/cli/test_workflow_translation_resume.py), [`test_workflow_route_review.py`](../../tests/interfaces/cli/test_workflow_route_review.py), [`test_workflow_translation_reporting.py`](../../tests/interfaces/cli/test_workflow_translation_reporting.py), [`test_workflow_batch_preview.py`](../../tests/interfaces/cli/test_workflow_batch_preview.py)
