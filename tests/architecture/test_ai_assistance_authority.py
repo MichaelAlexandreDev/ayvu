@@ -29,18 +29,18 @@ def test_record_stays_proposed_with_its_identity_fields():
 
 
 def test_role_matrix_has_exactly_the_four_closed_roles():
-    matrix = _section(_text(), "## Matriz fechada de papéis e autoridade v1")
+    matrix = _section(_text(), "## Closed role and authority matrix v1")
     rows = [line for line in matrix.splitlines() if line.startswith("| `")]
     assert [re.match(r"\| `(\w+)`", row).group(1) for row in rows] == list(ROLES)
     for row in rows:
         cells = [cell.strip() for cell in row.strip("|").split("|")]
         assert len(cells) == 7 and all(cells)
-        assert "`candidate_only`" in cells[4] and "classe `none`" in cells[5] and "P1" in cells[6]
+        assert "`candidate_only`" in cells[4] and "class `none`" in cells[5] and "P1" in cells[6]
 
 
 def test_generic_abstractions_are_excluded_and_assigned_owners():
-    exclusions = _section(_text(), "## Vocabulário, nomes e compatibilidade")
-    for name in ("`TranslationAssistant`", "`ContextBuilder`", "`ModelRuntime`", "Transporte MCP"):
+    exclusions = _section(_text(), "## Vocabulary, names and compatibility")
+    for name in ("`TranslationAssistant`", "`ContextBuilder`", "`ModelRuntime`", "MCP transport"):
         assert name in exclusions
     assert "Wave I" in exclusions and "TranslationContextBuilder" in exclusions
 
@@ -56,8 +56,8 @@ def test_role_states_and_human_gate_are_explicit():
         assert f"| `{state}` |" in text
     for transition in ("T0", "T1", "T2", "T3", "D0"):
         assert f"| {transition} — " in text
-    gate = _section(text, "## Gate humano binário e checklist de aceitação")
-    assert "`Status: Proposed` por `Status: Accepted`" in gate
+    gate = _section(text, "## Binary human gate and acceptance checklist")
+    assert "`Status: Proposed` to `Status: Accepted`" in gate
     assert gate.count("- [ ] ") == 9 and "- [x]" not in gate
 
 

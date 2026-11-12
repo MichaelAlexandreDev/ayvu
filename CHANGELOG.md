@@ -50,6 +50,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote B2: propostas de assistência e governança de direitos/finalidades traduzidas
+  para inglês, com leitor documental ajustado; regras e estado Proposed preservados, sem mover ou dividir.
+
 - REF-20 (#288), lote B1: 16 documentos de módulos e fronteiras traduzidos para inglês, com links e
   leitor documental ajustados; decisões, contratos e exemplos preservados, sem mover ou fundir arquivos.
 
