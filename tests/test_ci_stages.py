@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from conftest import CORE_FILES, CORE_TEST_FILES
+from tests.conftest import CORE_FILES, CORE_TEST_FILES
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "tests.yml"

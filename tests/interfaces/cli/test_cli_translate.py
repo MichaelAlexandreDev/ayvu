@@ -1,8 +1,8 @@
 """Tests for the extracted translate command."""
 from ayvu.interfaces.cli.app import app
 from ayvu.translation.preflight import PreflightError
-from test_cli import runner
-from test_cli import isolated_config
+from tests.support.cli_support import runner
+from tests.support.cli_support import isolated_config
 
 
 def test_translate_command_has_clear_error_for_unknown_translator(tmp_path):

@@ -13,30 +13,11 @@ from ayvu.jobs.events import (
     CancellationRequest, JobCorrelation, JobEvent, JobEventAcceptance, JobEventKind, JobEventOrderError, JobOutcome, JobProgress, encode_event)
 from ayvu.jobs.execution import (
     CancellationSource, CancellationStatus, InMemoryJobEventLog)
-from job_contract_fakes import SAFE_POINTS, FakeOperation, OutcomeAudit, ProgressView
+from tests.support.job_contract_fakes import SAFE_POINTS, FakeOperation, OutcomeAudit, ProgressView
 from ayvu.kernel import JobEventError, JobFailure, JobFailureFamily, JobOperationError, JobWarning, JobCancellationError
 
-JOB = str(UUID(int=2))
-PROJECT = str(UUID(int=3))
-NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
-VALIDATED = JobOutcome(JobState.VALIDATED, JobTerminalSummary('validated'))
-CANCELLED = JobOutcome(JobState.CANCELLED, JobTerminalSummary('user_requested'))
-FAILED = JobOutcome(JobState.FAILED, JobTerminalSummary('timeout'), JobFailure(JobFailureFamily.PROVIDER_TRANSIENT, 'timeout'))
-
-
-def job():
-    return new_job(JobRequest(PROJECT, 'translate_epub', 1, 'sha256:' + 'a' * 64), JOB, NOW)
-
-
-def event(sequence, payload=None, event_id=None):
-    return JobEvent(event_id or str(UUID(int=1000 + sequence)), JOB, sequence, NOW, JobCorrelation(PROJECT),
-                    payload or JobWarning('w'))
-
-
-def harness(**options):
-    log = InMemoryJobEventLog(JOB)
-    source = CancellationSource(SAFE_POINTS)
-    return log, source, FakeOperation(job(), log, source, **options)
+from tests.jobs.job_execution_support import CANARIES, CANCELLED, FAILED, JOB, NOW
+from tests.jobs.job_execution_support import VALIDATED, event, harness
 
 
 def test_log_applies_rules_and_replays_from_any_position():
@@ -370,10 +351,6 @@ def test_failure_becomes_a_consistent_failed_outcome_with_a_normalized_error():
     outcome = operation.run()
     assert outcome.state is JobState.FAILED and outcome.failure is envelope and outcome.matches(operation.job)
     assert OutcomeAudit(log).failure() == envelope
-
-
-CANARIES = ('Call me Ishmael.', 'Me chame de Ishmael.', '/home/reader/private/book.epub',
-            'Translate this prompt', 'https://user:hunter2@example.test/translate', 'sk-secret-token')
 
 
 @pytest.mark.parametrize('canary', CANARIES)

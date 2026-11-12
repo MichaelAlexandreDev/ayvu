@@ -17,19 +17,8 @@ from ayvu.composition.builders.cache_admin import cache_admin_services
 from ayvu.interfaces.cli.app import app
 from ayvu.kernel import LanguagePair
 
-
-def key(text):
-    return CacheKey(text=text, language_pair=LanguagePair(source="en", target="pt"))
-
-
-def seed(path, *texts):
-    with TranslationCache(path) as cache:
-        for text in texts:
-            cache.set(key(text), "translated " + text)
-
-
-def inspect(services, path):
-    return services.inspect.execute(InspectRequest(CacheRef(str(path))))
+from tests.support.cache_admin_integration_support import CancelAt, _empty_sqlite_file, _export, _no_links, _sqlite_with_another_table
+from tests.support.cache_admin_integration_support import inspect, key, seed
 
 
 def test_absent_inspection_and_export_do_not_create_cache(tmp_path):
@@ -58,15 +47,6 @@ def test_clean_preview_stale_and_success(tmp_path):
     preview = services.preview.execute(PreviewCleanRequest(ref, CacheFilter(all_entries=True))).value
     assert services.clean.execute(ExecuteCleanRequest(preview)).value == 2
     assert inspect(services, path).value.count == 0
-
-
-class CancelAt:
-    def __init__(self, point):
-        self.point = point
-        self.seen = []
-    def checkpoint(self, point):
-        self.seen.append(point)
-        return object() if point == self.point else None
 
 
 def test_clean_cancel_before_commit_rolls_back(tmp_path):
@@ -289,19 +269,6 @@ def test_cli_rejects_cache_as_export_destination(tmp_path, monkeypatch):
     assert inspect(cache_admin_services(), cache).value.count == 1
 
 
-def _export(services, cache, destination, overwrite=False):
-    return services.export.execute(ExportRequest(CacheRef(str(cache)), FileRef(str(destination)), CacheFilter(), overwrite))
-
-
-def _empty_sqlite_file(path):
-    path.write_bytes(b"")
-
-
-def _sqlite_with_another_table(path):
-    with sqlite3.connect(path) as connection:
-        connection.execute("CREATE TABLE other (a)")
-
-
 @pytest.mark.parametrize("make", [_empty_sqlite_file, _sqlite_with_another_table], ids=["empty_file", "no_table"])
 def test_a_cache_without_the_table_is_empty_and_is_left_alone(tmp_path, make):
     services = cache_admin_services()
@@ -439,12 +406,6 @@ def test_replacing_an_export_keeps_what_the_old_file_allowed(tmp_path):
 
     assert out.stat().st_mode & 0o777 == 0o604
     assert out.read_text() != "old"
-
-
-def _no_links(code):
-    def link(*_args, **_kwargs):
-        raise OSError(code, "no hard links here")
-    return link
 
 
 @pytest.mark.parametrize("code", [errno.EPERM, errno.ENOTSUP])

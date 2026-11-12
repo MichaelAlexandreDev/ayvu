@@ -41,7 +41,7 @@ def test_v2_export_remap_and_conflict(tmp_path):
     from ayvu.knowledge.cache.admin import ExportRequest
     from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     source_cache, target_cache, payload = (tmp_path / n for n in ('source.sqlite', 'target.sqlite', 'data.json'))
     item = entry()
     SQLiteExactCache(source_cache).put_if_absent(item)
@@ -67,7 +67,7 @@ def test_v2_export_remap_and_conflict(tmp_path):
 def test_direct_adapter_export_satisfies_application_port(tmp_path, legacy):
     from ayvu.knowledge.cache.admin import ExportCache, ExportRequest
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     cache, output = tmp_path / 'cache.sqlite', tmp_path / 'data.json'
     item = entry()
     SQLiteExactCache(cache).put_if_absent(item)
@@ -198,7 +198,7 @@ def test_many_to_one_remapping_checks_complete_row(tmp_path, divergent, reverse,
     from ayvu.knowledge.cache.admin import ExportRequest
     from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     original = entry()
     second_scope = CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004322').resolve()
     destination = CacheNamespace.v2(CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004323').resolve())
@@ -303,7 +303,7 @@ def test_preview_binds_broader_scope_authority(tmp_path):
     from ayvu.knowledge.cache.admin import ExportRequest
     from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy, CacheScope, CacheScopeKind
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     scope = CacheScope(CacheScopeKind.WORK, 'shared')
     first = CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004321', (scope,)).resolve(scope)
     second = CacheAuthorizationPolicy('00000000-0000-0000-0000-000000004322', (scope,)).resolve(scope)

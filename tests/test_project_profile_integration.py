@@ -23,46 +23,7 @@ from ayvu.projects.profiles.model import (
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.kernel import LanguagePair
 
-
-def plan(target='fr', glossary=True):
-    return PlanFacts(ExecutionStage.TRANSLATE, GlossaryStage.POST_CACHE if glossary else GlossaryStage.NONE,
-                     ProviderRequestProjection(target, ProfileRevision('a' * 64)))
-
-
-@pytest.fixture
-def local(tmp_path, monkeypatch):
-    monkeypatch.setenv('HOME', str(tmp_path))
-    monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path / 'config'))
-    monkeypatch.chdir(tmp_path)
-    source = tmp_path / 'original.epub'
-    source.write_bytes(b'original-canary-never-modified')
-    processing = tmp_path / 'processing'
-    projects = ProjectJsonRepository(processing)
-    manifest = projects.create(build_project_request(source, source='en', target='pt'))
-    root = tmp_path / 'managed'
-    catalog = ManagedGlossaryRepository(root)
-    created = catalog.create(GlossaryReference('managed.json'), (Entry('book-canary', 'translate', 'livro'),))
-    assert created.failure is None
-    config = tmp_path / 'config.json'
-    config.write_text(json.dumps({'version': 1, 'profiles': {'name-canary': {
-        'target_language': 'fr', 'glossary': 'managed.json', 'style': 'literary'}}}))
-    prefs = JsonPreferencesRepository(config)
-    service = project_profile_service(processing, root)
-    project = ProjectReference(manifest.project_id)
-    destination = ProfileReference.new()
-    return source, projects, root, catalog, config, prefs, service, project, destination
-
-
-def migrate(local, expected=1, cancel=None):
-    _, _, _, _, _, prefs, service, project, destination = local
-    return service.migrate(prefs, 'name-canary', project, expected, destination, cancel)
-
-
-def set_glossary(local, value):
-    config = local[4]
-    data = json.loads(config.read_text())
-    data['profiles']['name-canary']['glossary'] = value
-    config.write_text(json.dumps(data))
+from tests.projects.profiles.project_profile_integration_support import local, migrate, plan, set_glossary
 
 
 def test_production_preferences_exact_binding_atomic_update_and_restart(local):
@@ -336,7 +297,7 @@ def test_migration_and_style_remain_inert_over_instrumented_libretranslate_trans
     from ayvu.interfaces.cli.translate_options import _resolve_target_language, _resolve_glossary_path
     from ayvu.translation.pipeline import LegacyTextPipelineFacade, LinguisticSource
     from ayvu.providers.libretranslate.client import LibreTranslateTranslator
-    from test_translation_pipeline import Cache, Glossed
+    from tests.support.translation_pipeline_support import Cache, Glossed
     sent = []
     def send(session, request, **kwargs):
         sent.append((request.method, request.url, json.loads(request.body), kwargs['timeout']))

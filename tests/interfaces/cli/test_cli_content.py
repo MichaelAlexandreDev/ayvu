@@ -1,11 +1,11 @@
 import hashlib
 import re
 from zipfile import ZIP_DEFLATED
-from epub_fakes import epub_bytes
+from tests.support.epub_fakes import epub_bytes
 from ayvu.interfaces.cli.app import app
 from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
 from ayvu.kernel import JobFailure, JobFailureFamily
-from test_cli import runner
+from tests.support.cli_support import runner
 
 
 def test_inspect_command_reports_invalid_epub_without_traceback(tmp_path):

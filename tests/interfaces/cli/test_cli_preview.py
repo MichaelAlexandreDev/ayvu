@@ -6,7 +6,7 @@ from ayvu.interfaces.cli.options import DEFAULT_PREVIEW_DOCUMENT_LIMIT
 from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
 from ayvu.formats.epub.validation import ValidationResult
-from test_cli import isolated_config, FakeCache, _fake_translation, runner
+from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 
 
 def test_preview_option_generates_preview_with_default_settings(tmp_path, monkeypatch):

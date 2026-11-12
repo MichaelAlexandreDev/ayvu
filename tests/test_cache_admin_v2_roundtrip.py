@@ -14,7 +14,7 @@ from ayvu.knowledge.cache.scope import CacheAuthorizationPolicy, CacheScope, Cac
 from ayvu.knowledge.cache.identity_values import CacheValueKind
 from ayvu.knowledge.cache.repository import SQLiteExactCache, _digest, _entry_digest
 from ayvu.knowledge.cache.schema import participating_connection, V2_COLUMNS
-from test_cache_repository_v2 import entry
+from tests.support.cache_repository_v2_support import entry
 
 
 def complete_rows(path):

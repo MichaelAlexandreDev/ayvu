@@ -16,56 +16,8 @@ from ayvu.translation.pipeline import (
 from ayvu.content.protection import protect_special_terms, protected_content_is_intact
 from ayvu.kernel import LanguagePair
 
-PAIR = LanguagePair(source='en', target='pt')
-ROOT = Path(__file__).parents[1] / 'src' / 'ayvu'
-
-
-@dataclass
-class Glossed:
-    text: str
-    usage: object = 'usage'
-
-
-class Provider:
-    def __init__(self, respond=None):
-        self.respond = respond or (lambda text: f'[{text}]')
-        self.calls = []
-
-    def translate(self, text, source, target):
-        self.calls.append((text, source, target))
-        return self.respond(text)
-
-
-class Cache:
-    def __init__(self, stored=None):
-        self.stored = dict(stored or {})
-
-    def get(self, text, language_pair):
-        return self.stored.get((text, language_pair.source, language_pair.target))
-
-    def set(self, text, language_pair, translated):
-        self.stored[(text, language_pair.source, language_pair.target)] = translated
-
-
-class Memory:
-    def __init__(self, found):
-        self.found = found
-
-    def lookup(self, text, language_pair):
-        return self.found
-
-
-def facade(provider=None, cache=None, **options):
-    stages = []
-    return LegacyTextPipelineFacade(provider or Provider(), cache or Cache(), options.pop('glossary', Glossed),
-                                    on_stage=stages.append, **options), stages
-
-
-def order(*names):
-    return [stage.stage_id for stage in LEGACY_TEXT_STAGES if stage.stage_id in names]
-
-
-ALL = [stage.stage_id for stage in LEGACY_TEXT_STAGES]
+from tests.support.translation_pipeline_support import ALL, CORRUPTIONS, Cache, Glossed, Memory
+from tests.support.translation_pipeline_support import PAIR, Provider, ROOT, facade, imported_roots
 
 
 def test_stage_identities_and_order_are_stable():
@@ -142,15 +94,6 @@ def test_a_suggestion_is_returned_with_the_provider_translation():
     assert outcome.source is LinguisticSource.PROVIDER and outcome.memory_suggestion == found
 
 
-CORRUPTIONS = {
-    'dropped': lambda text: text.replace('__AYVU_PROTECTED_0__', ''),
-    'duplicated': lambda text: text.replace('__AYVU_PROTECTED_0__', '__AYVU_PROTECTED_0__ __AYVU_PROTECTED_0__'),
-    'invented': lambda text: text + ' __AYVU_PROTECTED_9__',
-    'rewritten': lambda text: text.replace('__AYVU_PROTECTED_', 'AYVU PROTECTED ').replace('__', ''),
-    'renumbered': lambda text: text.replace('_0__', '_1__'),
-}
-
-
 @pytest.mark.parametrize('kind', CORRUPTIONS)
 def test_a_corrupted_placeholder_never_reaches_the_cache_and_never_reaches_the_provider_again(kind):
     def respond(text):
@@ -212,16 +155,6 @@ def test_chunks_join_in_the_order_they_were_sent():
     outcome = facade(provider)[0].run(text, PAIR, chunk_limit=25)
     assert ''.join(call[0] for call in provider.calls) == text and len(provider.calls) > 1
     assert outcome.text == ''.join(f'[{call[0]}]' for call in provider.calls)
-
-
-def imported_roots(name):
-    roots = set()
-    for node in ast.walk(ast.parse((ROOT / name).read_text())):
-        if isinstance(node, ast.Import):
-            roots.update(alias.name.split('.')[0] for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            roots.add(node.module.split('.')[0] if not node.level else f'.{node.module}')
-    return roots
 
 
 @pytest.mark.parametrize('name', ['translation/pipeline.py', 'content/protection.py'])

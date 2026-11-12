@@ -22,120 +22,9 @@ from ayvu.projects.schema import PROJECT_MIGRATIONS, open_artifact_service, open
 from ayvu.kernel import JobCancellationError
 from ayvu.kernel.sqlite import SqliteMigrationRunner
 
-PROJECT = str(UUID(int=1))
-OTHER_PROJECT = str(UUID(int=99))
-START = datetime(2026, 11, 3, 12, tzinfo=UTC)
-MINUTE = timedelta(minutes=1)
-PAYLOAD = (b'first chunk ', b'second chunk')
-DIGEST = 'sha256:' + hashlib.sha256(b''.join(PAYLOAD)).hexdigest()
-SIZE = len(b''.join(PAYLOAD))
-
-
-class SimulatedCrash(BaseException):
-    """Not an Exception: no recovery code may run, exactly as in a real process death."""
-
-
-class FaultOps(ArtifactFileOps):
-    """Fails at the named step, either before it takes effect or just after."""
-
-    def __init__(self, step=None, error=SimulatedCrash, *, after=False, occurrence=1):
-        self.step, self.error, self.after, self.remaining = step, error, after, occurrence
-        self.calls = []
-        self.observer = None
-
-    def _run(self, name, action):
-        self.calls.append(name)
-        if self.observer is not None:
-            self.observer(name)
-        hit = name == self.step
-        if hit:
-            self.remaining -= 1
-            hit = self.remaining == 0
-        if hit and not self.after:
-            raise self.error
-        result = action()
-        if hit:
-            raise self.error
-        return result
-
-    def open_new(self, path):
-        return self._run('open_new', lambda: super(FaultOps, self).open_new(path))
-
-    def write(self, stream, data):
-        return self._run('write', lambda: super(FaultOps, self).write(stream, data))
-
-    def sync(self, stream):
-        return self._run('sync', lambda: super(FaultOps, self).sync(stream))
-
-    def link(self, source, target):
-        return self._run('link', lambda: super(FaultOps, self).link(source, target))
-
-    def unlink(self, path):
-        return self._run('unlink', lambda: super(FaultOps, self).unlink(path))
-
-    def sync_directory(self, path):
-        return self._run(f'sync_directory:{path.name}', lambda: super(FaultOps, self).sync_directory(path))
-
-
-class Env:
-    def __init__(self, tmp_path):
-        self.tmp_path = tmp_path
-        self.database = tmp_path / 'project.sqlite'
-        self.backups = tmp_path / 'backups'
-        self.root = tmp_path / 'artifacts'
-        self.now = START
-        self.next_id = 500
-        self.jobs = open_job_repository(self.database, self.backups, PROJECT, clock=self.clock)
-        self.job = self.running_job()
-        self.token = self.jobs.acquire_lease(self.job.job_id, MINUTE).lease.owner_token
-
-    def clock(self):
-        return self.now
-
-    def new_id(self):
-        self.next_id += 1
-        return str(UUID(int=self.next_id))
-
-    def running_job(self):
-        job = self.jobs.create(JobRequest(PROJECT, 'translate_epub', 1, 'sha256:' + 'f' * 64))
-        for state in (JobState.PREFLIGHT, JobState.RUNNING):
-            job = self.jobs.transition(job.job_id, state, expected_revision=job.revision)
-        return job
-
-    def service(self, ops=None):
-        return open_artifact_service(self.database, self.backups, self.root, PROJECT, ops=ops, clock=self.clock,
-                                     new_id=self.new_id)
-
-    def request(self, **changes):
-        return ArtifactRequest(**{'project_id': PROJECT, 'job_id': self.job.job_id, 'role': 'translated_document',
-                                  'stage': 'translate', 'stage_version': 1, 'input_fingerprint': 'sha256:' + 'a' * 64,
-                                  'media_type': 'application/epub+zip', **changes})
-
-    def publish(self, service=None, chunks=PAYLOAD, **changes):
-        return (service or self.service()).publish(self.request(**changes), chunks, owner_token=self.token)
-
-    def expire_lease(self):
-        self.now += MINUTE
-
-    def rows(self):
-        with closing(sqlite3.connect(self.database)) as connection:
-            return connection.execute(
-                'SELECT artifact_id, state, reason_code, size, digest FROM job_artifacts ORDER BY created_at, artifact_id'
-            ).fetchall()
-
-    def staged_path(self, artifact_id):
-        return self.root / 'staging' / f'{artifact_id}.part'
-
-    def final_path(self, artifact_id):
-        return self.root / 'ready' / f'{artifact_id}.bin'
-
-    def files(self):
-        return sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*') if path.is_file())
-
-
-@pytest.fixture
-def env(tmp_path):
-    return Env(tmp_path)
+from tests.artifacts.artifact_service_support import CRASH_POINTS, CrashingRepository, DIGEST, FaultOps, MINUTE
+from tests.artifacts.artifact_service_support import OTHER_PROJECT, PAYLOAD, PROJECT, SIZE, START
+from tests.artifacts.artifact_service_support import SimulatedCrash, _tamper, env, repository_of
 
 
 def test_publication_ends_ready_with_a_verified_file_and_no_staging_name(env):
@@ -197,20 +86,6 @@ def test_nothing_is_ready_before_the_final_file_exists(env):
     assert set(states) == {'staging'} and env.rows()[-1][1] == 'ready'
 
 
-CRASH_POINTS = [
-    # step, after, expected state, reason, staged file retained, final file exists
-    ('open_new', False, 'abandoned', 'interrupted_before_digest', False, False),
-    ('write', False, 'abandoned', 'interrupted_before_digest', True, False),
-    ('sync', False, 'abandoned', 'interrupted_before_digest', True, False),
-    ('sync_directory:staging', False, 'abandoned', 'interrupted_before_digest', True, False),
-    ('link', False, 'abandoned', 'interrupted_before_publication', True, False),
-    ('link', True, 'ready', None, False, True),
-    ('sync_directory:ready', False, 'ready', None, False, True),
-    ('unlink', False, 'ready', None, False, True),
-    ('unlink', True, 'ready', None, False, True),
-]
-
-
 @pytest.mark.parametrize('step,after,state,reason,staged,final', CRASH_POINTS)
 def test_every_crash_boundary_reconciles_without_advertising_a_partial_file(env, step, after, state, reason, staged, final):
     ops = FaultOps(step, after=after)
@@ -245,23 +120,6 @@ def test_reuse_after_reconciliation_agrees_with_the_verified_state(env, step, af
     assert (result.artifact is not None) == (state == 'ready')
     if state == 'ready':
         assert result.artifact.digest == DIGEST
-
-
-class CrashingRepository:
-    def __init__(self, inner, method, error=SimulatedCrash):
-        self._inner, self._method, self._error = inner, method, error
-
-    def __getattr__(self, name):
-        if name == self._method:
-            def fail(*_, **__):
-                raise self._error
-            return fail
-        return getattr(self._inner, name)
-
-
-def repository_of(env):
-    return SqliteArtifactRepository(SqliteMigrationRunner(PROJECT_MIGRATIONS), env.database, PROJECT, clock=env.clock,
-                                    new_id=env.new_id)
 
 
 def test_crash_before_recording_the_digest_abandons_and_retains_the_temporary_file(env):
@@ -703,13 +561,6 @@ def test_fifo_at_the_final_path_does_not_block(env):
     final.unlink()
     os.mkfifo(final)
     assert env.service().find_reusable(env.request()).reason == 'not_a_regular_file'
-
-
-def _tamper(env, assignment):
-    with closing(sqlite3.connect(env.database)) as connection:
-        connection.execute('DROP TRIGGER job_artifacts_immutable')
-        connection.execute(f'UPDATE job_artifacts SET {assignment}')
-        connection.commit()
 
 
 @pytest.mark.parametrize('location', ['../../../etc/passwd', '/etc/passwd', 'artifacts/ready/other.bin', '', 'artifacts/ready/../../project.sqlite'])

@@ -13,23 +13,16 @@ from ayvu.knowledge.cache.entries import (
     CacheLookupState, CacheProvenanceMetadata, ExactCacheEntry, PutIfAbsentState, exact_entry_key,
 )
 from ayvu.knowledge.cache.repository import SQLiteExactCache
-from test_translation_cache_v2 import Env, PROJECT, make_plan
+from tests.support.translation_cache_v2_support import Env, PROJECT, make_plan
 from ayvu.kernel import LanguagePair, TranslationMemoryOptions
 
-
-def entry(source="source", value="translation", metadata=b"{}"):
-    plan = make_plan()
-    operation = plan.semantic_operation
-    key = exact_entry_key(CacheAuthorizationPolicy(PROJECT).resolve(), TRANSLATION_STAGE_AGGREGATE,
-                          operation.fingerprint, source)
-    return ExactCacheEntry(key, value, CacheProvenanceMetadata("translate", plan.producer, operation.pipeline_revision),
-                           source, operation.canonical_payload(), metadata)
+from tests.support.cache_repository_v2_support import entry
 
 
 def test_real_adapter_document_translation_and_local_lookup(tmp_path):
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     first = Env(cache=cache)
-    from test_translation_cache_v2 import document
+    from tests.support.translation_cache_v2_support import document
     first.translate(document("hello"))
     second = Env(cache=cache)
     result = second.translate(document("hello"))
@@ -122,7 +115,7 @@ def test_canonical_and_provenance_byte_limits_and_timestamp():
 
 
 def test_oversized_provider_result_is_returned_without_cache_write(tmp_path):
-    from test_translation_cache_v2 import document, Provider
+    from tests.support.translation_cache_v2_support import document, Provider
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     plan = make_plan()
     provider = Provider(plan, respond=lambda _: "x" * (LIMITS.value + 1))
@@ -209,7 +202,7 @@ def test_migrated_legacy_exact_and_fuzzy_are_isolated_from_v2_workers(tmp_path):
 def test_production_cache_only_never_discovers_or_opens_network(tmp_path, monkeypatch):
     import socket
     from ayvu.knowledge.cache.cache_only import CacheOnlyRequest, PinnedExecutionIdentityReference
-    from test_translation_cache_v2 import document
+    from tests.support.translation_cache_v2_support import document
     cache = SQLiteExactCache(tmp_path / "cache.sqlite")
     Env(cache=cache).translate(document("hello", key="fill.txt"))
     calls = []

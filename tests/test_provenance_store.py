@@ -13,48 +13,12 @@ from ayvu.provenance.model import (
 )
 from ayvu.projects.schema import PROJECT_MIGRATIONS
 from ayvu.provenance.store import MAX_LIST_LIMIT, MAX_TRAVERSAL_DEPTH, MAX_TRAVERSAL_RECORDS, SqliteProvenanceRepository
-from provenance_fakes import INPUT_FINGERPRINT, MACHINE, PROJECT, START, SyntheticLineage, subject
+from tests.support.provenance_fakes import INPUT_FINGERPRINT, MACHINE, PROJECT, START, SyntheticLineage, subject
 from ayvu.kernel.sqlite import SqliteMigrationRunner
 
-MISSING = str(UUID(int=98))
-OTHER_PROJECT = str(UUID(int=99))
-BIG = dict(max_depth=64, max_records=1024)
-
-
-@pytest.fixture
-def env(tmp_path):
-    return SyntheticLineage(tmp_path)
-
-
-def raw(env, sql, *parameters, foreign_keys=False):
-    with closing(sqlite3.connect(env.database)) as connection:
-        if foreign_keys:
-            connection.execute('PRAGMA foreign_keys=ON')
-        rows = connection.execute(sql, parameters).fetchall()
-        connection.commit()
-        return rows
-
-
-def counts(env):
-    return tuple(raw(env, f'SELECT COUNT(*) FROM {table}')[0][0]
-                 for table in ('provenance_records', 'provenance_parents', 'provenance_artifacts'))
-
-
-def foreign_record(env, record_id=MISSING):
-    """A row of another project, which only a damaged or tampered database can contain."""
-    record = ProvenanceRecord(record_id, START, env.request(project_id=OTHER_PROJECT))
-    raw(env, 'INSERT INTO provenance_records (record_id, schema_version, project_id, job_id, recorded_at, payload) '
-             'VALUES (?, 1, ?, ?, ?, ?)', record_id, OTHER_PROJECT, env.job.job_id, START.isoformat(), encode_record(record))
-    return record
-
-
-def insert_cyclic_pair(env):
-    first, second = str(UUID(int=71)), str(UUID(int=72))
-    for record_id, parent in ((first, second), (second, first)):
-        record = ProvenanceRecord(record_id, START, env.request(parents=(parent,)))
-        raw(env, 'INSERT INTO provenance_records (record_id, schema_version, project_id, job_id, recorded_at, payload) '
-                 'VALUES (?, 1, ?, ?, ?, ?)', record_id, PROJECT, env.job.job_id, START.isoformat(), encode_record(record))
-    return first
+from tests.provenance.provenance_store_support import BIG, CANARIES, MISSING, OTHER_PROJECT, _replace_payload
+from tests.provenance.provenance_store_support import chain, counts, env, foreign_record, insert_cyclic_pair
+from tests.provenance.provenance_store_support import raw
 
 
 def test_appended_record_survives_reopening_exactly(env):
@@ -310,13 +274,6 @@ def test_diamond_ancestry_is_not_mistaken_for_a_cycle(env):
     assert len(graph.nodes) == 4 and not graph.truncated
 
 
-def chain(env, length):
-    record = env.append('step')
-    for _ in range(length - 1):
-        record = env.append('step', parents=(record.record_id,))
-    return record
-
-
 def test_depth_bound_is_exact_and_reported(env):
     tip = chain(env, 4)
     assert not env.repository.lineage(tip.record_id, max_depth=3, max_records=100).truncated
@@ -527,13 +484,6 @@ def test_unmigrated_database_is_refused(tmp_path):
     assert not (tmp_path / 'absent').exists()
 
 
-def _replace_payload(env, record_id, payload):
-    with closing(sqlite3.connect(env.database)) as connection:
-        connection.execute('DROP TRIGGER provenance_records_no_update')
-        connection.execute('UPDATE provenance_records SET payload = ? WHERE record_id = ?', (payload, record_id))
-        connection.commit()
-
-
 @pytest.mark.parametrize('payload', ['private-canary-text', '{}'])
 def test_corrupt_payload_fails_closed_without_exposing_it(env, payload):
     record = env.append()
@@ -566,10 +516,6 @@ def test_invalid_arguments_are_rejected_before_any_write(env):
     with pytest.raises(ProvenanceValidationError, match='^invalid_identity$'):
         SqliteProvenanceRepository(SqliteMigrationRunner(PROJECT_MIGRATIONS), env.database, 'not-a-uuid')
     assert counts(env) == (0, 0, 0)
-
-
-CANARIES = ('Call me Ishmael.', 'Me chame de Ishmael.', '/home/reader/private/book.epub', 'Translate this prompt',
-            'https://user:hunter2@example.test/translate', 'whale => baleia')
 
 
 @pytest.mark.parametrize('canary', CANARIES)

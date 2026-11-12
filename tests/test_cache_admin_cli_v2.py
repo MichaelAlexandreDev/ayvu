@@ -56,8 +56,8 @@ def _options(project):
 def real_cache(tmp_path, monkeypatch):
     import socket
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
-    from test_translation_cache_v2 import PROJECT
+    from tests.support.cache_repository_v2_support import entry
+    from tests.support.translation_cache_v2_support import PROJECT
 
     def no_network(*args, **kwargs):
         raise AssertionError("cache administration must not use the network")
@@ -78,7 +78,7 @@ def real_cache(tmp_path, monkeypatch):
 
 def test_v2_inspect_export_and_roundtrip_with_conflict(real_cache):
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     source, destination, output, mapping, project = real_cache
     inspected = CliRunner().invoke(app, ["cache", "inspect", "--cache", str(source), *_options(project)])
     assert inspected.exit_code == 0, inspected.output
@@ -146,7 +146,7 @@ def test_stale_preview_reports_retry(real_cache, monkeypatch):
 
 def test_unmapped_source_fails_without_changing_destination(real_cache):
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     _, destination, output, mapping, _ = real_cache
     mapping.write_text(json.dumps([{"source": {"kind": "legacy-v1"}, "destination": {"kind": "legacy-v1"}}]))
     result = CliRunner().invoke(app, ["cache", "import", str(output), "--cache", str(destination), "--scope-map", str(mapping), "--yes"])
@@ -187,7 +187,7 @@ def test_cli_roundtrip_broader_scope_with_opaque_non_uuid_reference(tmp_path, ki
     from dataclasses import replace
     from ayvu.knowledge.cache.scope import CacheScope, CacheScopeKind, CacheAuthorizationPolicy
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     item = entry()
     scope = CacheScope(CacheScopeKind(kind), 'opaque-scope')
     authorized = CacheAuthorizationPolicy(item.key.scope.project_id, (scope,)).resolve(scope)
@@ -210,7 +210,7 @@ def test_cli_roundtrip_broader_scope_with_opaque_non_uuid_reference(tmp_path, ki
 def test_v2_cli_before_preserves_timestamp_microseconds(tmp_path):
     from datetime import UTC, datetime, timedelta
     from ayvu.knowledge.cache.repository import SQLiteExactCache
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     source = tmp_path / 'microseconds.sqlite'
     item = entry()
     project = item.key.scope.project_id

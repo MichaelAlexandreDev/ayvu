@@ -142,7 +142,7 @@ remain completed outcomes.
 
 ## Contract suite
 
-`tests/format_contract.py` is the suite #144 must pass. `tests/format_fakes.py` holds two invented formats, one
+`tests/support/format_contract.py` is the suite #144 must pass. `tests/support/format_fakes.py` holds two invented formats, one
 read-only and one that round-trips, and they pass the same tests with different descriptors. Which checks apply
 comes from the descriptor alone. Claiming less than an adapter can do is refused by the mismatch check, and
 claiming more fails the suite.

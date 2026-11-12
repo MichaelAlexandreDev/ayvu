@@ -17,16 +17,11 @@ from ayvu.knowledge.memory.approved.service import CreateCandidate, ReviewRevisi
 from ayvu.knowledge.memory.approved.store import MEMORY_MIGRATIONS, SqliteApprovedMemoryRepository, memory_migration_runner
 from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.provenance.model import ActorKind, ConfigurationRef
-from approved_memory_fixtures import (
-    IMPORT_SCOPE, NOW, PAIR, PIN, PROJECT, PROJECT_SCOPE, SCOPES, USER_SCOPE, WORK_SCOPE,
-    MemoryEnvironment, document, final, source,
-)
+from tests.support.approved_memory_fixtures import IMPORT_SCOPE, NOW, PAIR, PIN, PROJECT_SCOPE, SCOPES, USER_SCOPE, WORK_SCOPE, MemoryEnvironment, document, final, source
+from tests.support.content_fixtures import PROJECT
 from ayvu.kernel import LanguagePair
 
-
-@pytest.fixture
-def env(tmp_path):
-    return MemoryEnvironment(tmp_path)
+from tests.knowledge.memory.approved.approved_memory_support import env
 
 
 @pytest.mark.parametrize('previous', list(MemoryState))
@@ -504,7 +499,7 @@ def test_storage_failures_and_database_immutability_are_typed(env):
 def test_visible_source_omits_only_structural_markup_and_keeps_stable_content_reference():
     from ayvu.content.model import ProtectedPart
     from ayvu.formats.epub.html_structure import html_unit_template, review_text_from_template
-    from content_fixtures import epub_document, unit
+    from tests.support.content_fixtures import epub_document, unit
     text = 'Hello <em>world</em> __AYVU_TAG_0__'
     doc = epub_document(units=[unit('body', text, protected_parts=(
         ProtectedPart(6, 10, 'markup'), ProtectedPart(15, 20, 'markup'),
@@ -523,7 +518,7 @@ def test_visible_source_omits_only_structural_markup_and_keeps_stable_content_re
 def test_format_projection_preserves_breaks_and_omits_hidden_inline_content():
     from ayvu.content.model import ProtectedPart
     from ayvu.formats.epub.html_structure import html_unit_template, review_text_from_template
-    from content_fixtures import epub_document, unit
+    from tests.support.content_fixtures import epub_document, unit
     text = 'Hello<br/><script>UNRELATED SECRET</script>world'
     start = text.index('<script>')
     end = text.index('world')
@@ -588,7 +583,7 @@ def test_concurrent_idempotent_replay_creates_one_candidate_and_approval(env):
 def test_v2_cache_values_namespaces_clear_and_replacement_stay_independent(env):
     from ayvu.knowledge.cache.repository import SQLiteExactCache
     from ayvu.knowledge.cache.schema import participating_connection
-    from test_cache_repository_v2 import entry
+    from tests.support.cache_repository_v2_support import entry
     path = env.root / 'cache-v2.sqlite'
     cache = SQLiteExactCache(path)
     item = entry(source='Café  Hello', value='Olá')
@@ -625,7 +620,7 @@ def test_storage_size_failure_rolls_back_new_revision(env, monkeypatch):
 
 
 def test_only_selected_unit_text_is_persisted_with_references_not_document_paths(env):
-    from content_fixtures import epub_document, unit
+    from tests.support.content_fixtures import epub_document, unit
     doc = epub_document(logical_key='private/source/book.xhtml', units=[
         unit('private/source/book.xhtml#p1', 'SELECTED UNIT', order=(1,)),
         unit('private/source/book.xhtml#p2', 'UNRELATED SECRET DOCUMENT PAYLOAD', order=(2,))])
@@ -645,7 +640,7 @@ def test_cross_project_read_and_write_require_explicit_scope_and_provenance_mapp
     from ayvu.projects.schema import project_migration_runner
     from ayvu.provenance.model import ProducerIdentity, ProvenanceRequest, SourceKind, SubjectRef
     from ayvu.provenance.store import SqliteProvenanceRepository
-    from content_fixtures import ENGLISH, EPUB, unit
+    from tests.support.content_fixtures import ENGLISH, EPUB, unit
     other_id = str(UUID(int=555))
     other_scope = MemoryScope(ScopeKind.PROJECT, other_id)
     doc = build_document(other_id, 'chapter', EPUB, ENGLISH, [unit('body', env.source.canonical_text)])

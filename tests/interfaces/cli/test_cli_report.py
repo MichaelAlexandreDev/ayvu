@@ -1,4 +1,4 @@
-from test_cli import isolated_config
+from tests.support.cli_support import isolated_config
 import json
 from pathlib import Path
 from ayvu.interfaces.cli.report import _offer_markdown_report, _render_markdown_report, _save_markdown_report

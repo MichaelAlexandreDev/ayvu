@@ -1,5 +1,5 @@
-from test_cli import isolated_config
-from test_cli import _fake_http, _http
+from tests.support.cli_support import isolated_config
+from tests.support.cli_support import _fake_http, _http
 
 
 def test_guided_selection_warns_with_a_code_and_not_the_response(monkeypatch, capsys):

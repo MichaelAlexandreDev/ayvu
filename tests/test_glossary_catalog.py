@@ -15,13 +15,8 @@ from ayvu.knowledge.glossary.catalog import (
 )
 from ayvu.knowledge.glossary.catalog_store import ManagedGlossaryRepository
 
-
-def ref(name):
-    return GlossaryReference(name)
-
-
-def entry(term="wizard", translation="mago"):
-    return Entry(term, "translate", translation)
+from tests.knowledge.glossary.glossary_catalog_support import _create_alias_worker, _create_worker, _run_pair, _update_worker, entry
+from tests.knowledge.glossary.glossary_catalog_support import ref
 
 
 def test_create_read_update_and_unchanged(tmp_path):
@@ -114,33 +109,6 @@ def test_representations_hide_content_and_identifiers(tmp_path):
         rendered = repr(value)
         for sensitive in ("sensitive-name", "sensitive-term", "sensitive-translation", created.value.revision):
             assert sensitive not in rendered
-
-
-def _create_worker(root, barrier, queue):
-    repo = ManagedGlossaryRepository(root)
-    barrier.wait()
-    result = create_glossary(repo, ref("race.json"), (entry(),))
-    queue.put(result.failure)
-
-
-def _update_worker(root, revision, translation, barrier, queue):
-    repo = ManagedGlossaryRepository(root)
-    barrier.wait()
-    result = update_glossary(repo, ref("race.json"), (entry(translation=translation),), revision)
-    queue.put(result.failure)
-
-
-def _run_pair(worker, arguments):
-    context = multiprocessing.get_context("spawn")
-    barrier = context.Barrier(2)
-    queue = context.Queue()
-    processes = [context.Process(target=worker, args=(*args, barrier, queue)) for args in arguments]
-    for process in processes:
-        process.start()
-    for process in processes:
-        process.join(20)
-        assert process.exitcode == 0
-    return [queue.get(timeout=2) for _ in processes]
 
 
 def test_simultaneous_create_and_divergent_update(tmp_path):
@@ -287,13 +255,6 @@ def test_final_permissions_are_restricted(tmp_path):
     result = create_glossary(ManagedGlossaryRepository(tmp_path), ref("x.json"), (entry(),))
     assert result.failure is None
     assert (tmp_path / "x.json").stat().st_mode & 0o077 == 0
-
-
-def _create_alias_worker(root, name, barrier, queue):
-    repo = ManagedGlossaryRepository(root)
-    barrier.wait()
-    result = create_glossary(repo, ref(name), (entry(),))
-    queue.put(result.failure)
 
 
 def test_concurrent_unicode_alias_creates_share_collision_domain(tmp_path):

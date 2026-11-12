@@ -80,7 +80,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
     # The CLI tests follow the split of the CLI (REF-14), so every test module under interfaces/cli/ belongs here.
     "cli_entry_points": ("test_cli.py", "test_cli_translate_project.py", *sorted(
         path.relative_to(TESTS).as_posix() for path in (TESTS / "interfaces" / "cli").rglob("test_*.py"))),
-    "local_only_network": ("test_network_policy.py",),
+    "local_only_network": ("network/test_network_policy.py",),
     "module_boundaries": ("test_architecture_boundaries.py",),
     "documentation_links": ("test_documentation_links.py",),
     "ci_stages": ("test_ci_stages.py",),

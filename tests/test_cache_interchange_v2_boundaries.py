@@ -14,8 +14,8 @@ from ayvu.knowledge.cache.entries import exact_entry_key
 from ayvu.knowledge.cache.interchange import iter_records, validate_v2_entry
 from ayvu.knowledge.cache.repository import _digest, _entry_digest, SQLiteExactCache
 from ayvu.knowledge.cache.schema import V2_COLUMNS, participating_connection
-from test_cache_repository_v2 import entry
-from test_translation_cache_v2 import make_plan
+from tests.support.cache_repository_v2_support import entry
+from tests.support.translation_cache_v2_support import make_plan
 
 
 def test_nested_value_depth_eight_is_parsed_and_nine_hits_depth_limit():

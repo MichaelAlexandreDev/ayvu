@@ -5,7 +5,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
 from ayvu.v1.html_translate import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
-from test_cli import isolated_config, FakeCache, _fake_translation, runner
+from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 
 
 def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_path, tmp_path, monkeypatch):

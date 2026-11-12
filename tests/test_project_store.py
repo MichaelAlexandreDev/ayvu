@@ -20,14 +20,7 @@ from ayvu.projects.store import (
     file_digest, source_digest, translation_selections,
 )
 
-
-@pytest.fixture
-def project_input(tmp_path):
-    source = tmp_path / 'source.epub'
-    source.write_bytes(b'synthetic-original')
-    repository = ProjectJsonRepository(tmp_path / 'processing')
-    request = build_project_request(source, source='en', target='pt')
-    return source, repository, request
+from tests.projects.project_store_support import _guard, _resolve_in_process, project_input
 
 
 def test_create_reopen_reuse_and_new_language(project_input):
@@ -197,13 +190,6 @@ def test_incomplete_creation_is_explicit_recoverable_error(project_input):
     # Recovery is an explicit preservation/move decision, never automatic GC.
     (repository.root / '.staging-interrupted').rename(repository.root.parent / 'preserved-stage')
     assert repository.resolve(request).created
-
-
-def _resolve_in_process(processing, source, barrier, queue):
-    request = build_project_request(Path(source), source='en', target='pt')
-    barrier.wait(timeout=10)
-    result = ProjectJsonRepository(Path(processing)).resolve(request)
-    queue.put((result.project.project_id, result.created))
 
 
 def test_independent_processes_resolve_one_identity(project_input):
@@ -393,12 +379,6 @@ def test_artifact_root_rejects_a_file_a_symlink_and_an_unknown_project(project_i
         repository.resolve_artifact_root(project.project_id)
     with pytest.raises(ProjectError):
         repository.resolve_artifact_root(str(uuid4()))
-
-
-def _guard(project_input):
-    _, repository, request = project_input
-    project = repository.resolve(request).project
-    return repository, project, repository.run_guard(project.project_id)
 
 
 def test_run_guard_is_held_per_plan_and_released_at_the_end(project_input):

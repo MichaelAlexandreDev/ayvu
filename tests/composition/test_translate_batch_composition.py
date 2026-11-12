@@ -16,7 +16,7 @@ from ayvu.composition.builders.translate_batch import (
     BatchCancellationController, LocalBatchItem, LocalTranslateBatch, project_item_outcome,
 )
 from ayvu.translation.project_contracts import TranslateProjectResult
-from test_batch_output_policy import intent
+from tests.support.batch_output_policy_support import intent
 
 
 def _id(number):

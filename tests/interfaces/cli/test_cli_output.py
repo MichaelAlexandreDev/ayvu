@@ -1,11 +1,11 @@
-from test_cli import isolated_config
+from tests.support.cli_support import isolated_config
 from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
 from ayvu.v1.epub import TranslationReport
 from ayvu.v1.resume import ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
-from test_cli import FakeCache, _fake_translation, runner
+from tests.support.cli_support import FakeCache, _fake_translation, runner
 
 
 def test_translate_command_confirms_default_output_location(tmp_path, monkeypatch):

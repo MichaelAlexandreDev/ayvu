@@ -1,6 +1,6 @@
 import json
 from ayvu.interfaces.cli.app import app
-from test_cli import FakeNoLanguagesTranslator, isolated_config, runner
+from tests.support.cli_support import FakeNoLanguagesTranslator, isolated_config, runner
 
 
 def test_root_command_settings_keeps_language_when_not_changed(tmp_path, monkeypatch):
