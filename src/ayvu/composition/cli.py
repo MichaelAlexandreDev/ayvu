@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from . import editions, surface_rules
 from .builders import cache_admin, content, glossary, providers, review, translate_project
 from .builders import review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
@@ -328,3 +329,41 @@ def report_destination(directory: Path, stem: str, suffix: str = '.md') -> Path:
         path = automatic_output_candidate(directory, stem, suffix, index)
         index += 1
     return path
+
+
+@dataclass(frozen=True)
+class CliSurface:
+    """Presentation data only; command paths are binding keys, menu pairs are key/action."""
+
+    commands: tuple[tuple[str, ...], ...]
+    menu_actions: tuple[tuple[str, str], ...]
+    providers: tuple[str, ...]
+    input_formats: tuple[str, ...]
+    extraction_writers: tuple[str, ...]
+    report_writers: tuple[str, ...]
+    assistance_roles: tuple[str, ...]
+    preview: bool
+    execution_preset: str | None
+    report_style: str
+
+
+def project_cli_surface(features: frozenset[str], *, execution_preset=None, report_style=None) -> CliSurface:
+    """Pure capability projection, also usable without product applicability in tests."""
+    selected = surface_rules.project_surface(features, execution_preset=execution_preset, report_style=report_style)
+    return CliSurface(selected.commands, selected.menu_actions, selected.providers,
+        selected.input_formats, selected.extraction_writers, selected.report_writers,
+        selected.assistance_roles, selected.preview, selected.execution_preset, selected.report_style)
+
+
+def cli_surface(edition_id: str) -> CliSurface:
+    """Resolve a product for the terminal without acquiring workflow resources."""
+    edition = editions.get_edition(edition_id)
+    if "cli" not in edition.interfaces:
+        raise ValueError("Product does not support the CLI interface")
+    return project_cli_surface(edition.features, execution_preset=edition.execution_preset,
+        report_style=edition.report_style)
+
+
+def installed_cli_surface() -> CliSurface:
+    """Declare the installed selection; the presenter adopts this in a later PR."""
+    return cli_surface("cli_free")

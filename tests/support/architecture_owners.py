@@ -19,7 +19,14 @@ REVIEW_BUILDERS = frozenset({
     "ayvu.composition.builders.review_operations",
 })
 
+EDITION_DATA_MODULES = frozenset({
+    "ayvu.composition.editions",
+    "ayvu.composition.feature_catalog",
+    "ayvu.composition.surface_rules",
+})
+
 OWNERS = {
+    **{name: Owner("composition", "Edition definitions") for name in EDITION_DATA_MODULES},
     "ayvu": Owner("surface", "Package"),
     **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "report", "output", "plan", "translate_options", "run", "run_support", "run_messages", "batch", "preview", "commands",
       "guided", "guided.menu", "guided.translation", "guided.glossaries", "guided.library", "guided.preferences", "guided.language", "commands.resume", "commands.translate", "commands.cache", "commands.cache_output", "commands.content", "commands.review", "commands.translator")},

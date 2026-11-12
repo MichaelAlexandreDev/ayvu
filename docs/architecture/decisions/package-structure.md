@@ -119,11 +119,37 @@ imports are layer rules instead of exceptions.
   builders from outside composition. Review builder siblings use only their declared internal edges;
   their location remains unchanged pending an owner decision. The layers contract keeps every other
   module from importing `composition`.
+- REF-17 PR B adds pure surface data to the CLI root: `CliSurface`,
+  `project_cli_surface`, `cli_surface` and `installed_cli_surface`. These factories
+  acquire no resources. The installed presenter still uses its existing registration;
+  consuming the projection is PR C, desktop/binding integration is PR D.
+- The private `editions`, `feature_catalog` and `surface_rules` modules may only use
+  their declared internal edges. They are not public APIs or root reexports. Interfaces
+  receive immutable command paths, menu key/action pairs and effective recipe IDs,
+  without product identity. No composition module imports presentation implementations.
 
 ### D6. Editions in composition
-- `composition/editions.py` declares what each edition enables (Lite, Free, AI).
-- No module checks the edition. Paid plugins can live in separate closed packages.
-- Defining the editions depends on the owner and on #100 (REF-17).
+- REF-17 PR B declares five immutable manifests in `composition/editions.py`: Lite
+  (`lite`), Free (`free`) and AI (`ai`) target desktop; CLI Free (`cli_free`) and
+  CLI Pro (`cli_pro`) target the terminal. Applicability does not deliver a desktop UI.
+- The current `ayvu` selection is CLI Free, with the entire existing surface and no
+  quota. CLI Pro has the same effective capabilities today. No new launcher, environment
+  selector, license mechanism or persisted product field is introduced.
+- `feature_catalog.py` owns stable capability IDs, inventory traceability, requirements
+  and existing implementation seams. `surface_rules.py` projects effective capabilities
+  into commands (including cache children), existing menu keys, providers and formats.
+  Extraction Markdown and report Markdown are distinct bindings; EPUB and LibreTranslate
+  remain base recipes. Guarantees are not subtractable commercial capabilities.
+- Inventory 8.3/8.4 are only `planned_features` for AI and CLI Pro. They have no effective
+  bindings, roles, SDKs or commands. Unknown capabilities, missing dependencies/bindings
+  and inconsistent report/preset declarations are rejected rather than filtered out.
+- No module outside composition imports these three private modules or names/selects an
+  edition. Architecture tests cover imports, aliases/reexports, dynamic paths and product
+  identifiers. New distributions select their edition at packaging time inside composition.
+- Lite declares `low` and summary reporting. Simple glossary means one file per translation;
+  its interface is deferred. PR B describes these choices without changing installed flows.
+  Option/argument/preset enforcement and capability-based resume admission belong to the
+  follow-up batch E; #285 is scoped to B, C and D. No continuation issue is created here.
 
 ### D7. The v1 runtime in quarantine
 - v1 is today's default when no model label is set. Its files move to `v1/`.

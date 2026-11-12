@@ -3,6 +3,10 @@
 from .architecture_cache_edges import CACHE_EDGES
 
 ALLOWED_INTERNAL_EDGES = {
+    ("ayvu.composition.cli", "ayvu.composition.editions"),
+    ("ayvu.composition.cli", "ayvu.composition.surface_rules"),
+    ("ayvu.composition.editions", "ayvu.composition.feature_catalog"),
+    ("ayvu.composition.surface_rules", "ayvu.composition.feature_catalog"),
     *(('ayvu.interfaces.cli.guided.glossaries', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.render', 'interfaces.cli.report', 'interfaces.cli.translate_options', 'knowledge.glossary.catalog')), *(('ayvu.interfaces.cli.guided.language', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.commands.translator', 'interfaces.cli.options', 'interfaces.cli.render', 'network.policy', 'providers.discovery')),
     *(('ayvu.interfaces.cli.guided.library', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.render', 'library.service', 'preferences.model')), *(('ayvu.interfaces.cli.guided.menu', f"ayvu.{name}") for name in ('interfaces.cli.contracts', 'interfaces.cli.guided.glossaries', 'interfaces.cli.guided.language', 'interfaces.cli.guided.library', 'interfaces.cli.guided.preferences', 'interfaces.cli.guided.translation', 'interfaces.cli.options', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')),
     *(('ayvu.interfaces.cli.guided.preferences', f"ayvu.{name}") for name in ('interfaces.cli.contracts', 'interfaces.cli.guided.language', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')), *(('ayvu.interfaces.cli.guided.translation', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.guided.glossaries', 'interfaces.cli.guided.language', 'interfaces.cli.options', 'interfaces.cli.preview', 'interfaces.cli.render', 'interfaces.cli.run', 'interfaces.cli.translate_options', 'preferences.model')),
