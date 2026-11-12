@@ -1,4 +1,7 @@
-# The translate-project use case
+# Project translation
+
+The runtime restrictions in the #252 integration below describe that integration's
+scope. They are preserved alongside the later context and retrieval contracts.
 
 Related issue: [#145 — Extract the translate-project application use case](https://github.com/MichaelAlexandreDev/ayvu/issues/145)
 
@@ -6,7 +9,7 @@ Related issue: [#145 — Extract the translate-project application use case](htt
 framework, store, format or provider: it receives them as ports from a composition root.
 
 `translate` and the guided translation run through it, one book at a time, and so does each book of a batch, and a
-[resume](modules/recovery.md) of a job it left behind. Dry run, preview and a resume file that recomputes to no job have no
+[resume](recovery.md) of a job it left behind. Dry run, preview and a resume file that recomputes to no job have no
 project to run in, so they keep the current flow behind `translate_without_project`.
 
 ## Explicit runtime selection (#252)
@@ -56,7 +59,7 @@ Already completed segments remain in v2; retry uses these pre-glossary values.
 The runtime applies the glossary on each run, including on cache hits.
 Raw results are produced per document. A continuation receives the previous job chain
 in `RuntimeContext.reusable_jobs` and reuses only what it proves equal (#242,
-[recovery](modules/recovery.md#replay-through-a-continuation-242)). Publication, validation, reporting and review export follow
+[recovery](recovery.md#replay-through-a-continuation-242)). Publication, validation, reporting and review export follow
 the same ports as the legacy path, preserving the original EPUB.
 
 | Module | Layer | Responsibility |
@@ -157,7 +160,7 @@ lock between two processes.
 
 Two runs of one book on different plans, such as different outputs, can still run together.
 
-A run waits 50 ms for its guard, so that a reader [probing it](modules/recovery.md#when-a-run-is-alive) cannot make it refuse.
+A run waits 50 ms for its guard, so that a reader [probing it](recovery.md#when-a-run-is-alive) cannot make it refuse.
 A job left `queued` with no lease on this plan is settled here, because its creator died between creating it and taking
 the lease, under this same guard.
 
@@ -184,7 +187,7 @@ as it would have. A worker that commits to cancelling wins over a failure in ano
 - **It receives producer identity from composition.** Legacy lineage keeps `unknown` because v1 cannot identify its
   producer. Rich runs record the LibreTranslate adapter and the user-declared model; they do not probe the server.
 - **It does not decide what to resume.** A job that ended stays ended, and `execute` only links a new job to it when
-  given a ticket. [Job recovery](modules/recovery.md) decides. The resume file is still kept by the CLI, chapter by chapter,
+  given a ticket. [Job recovery](recovery.md) decides. The resume file is still kept by the CLI, chapter by chapter,
   around the use case, because it is the only record of the address, the cache and the output.
 - **It does not write the review package itself.** `translate --review-output`
   passes the exact result to `ExportReviewPackage`; the shared review use case
@@ -200,3 +203,24 @@ current preflight, with its current message.
 
 A provider's empty `translatedText` stays a success on the legacy path. Rich runs refuse it as `empty_result` and
 publish no partial EPUB.
+
+## Enforced contracts
+
+- Admission, ports and diagnostics: [plan gates](../../../tests/translation/test_translate_project_plan_gates.py),
+  [framework ports](../../../tests/translation/test_translate_project_framework_ports.py), and
+  [diagnostics](../../../tests/translation/test_translate_project_diagnostics.py).
+- Publication, continuation and run ownership: [destination](../../../tests/translation/test_translate_project_destination.py),
+  [continuation](../../../tests/translation/test_translate_project_continuation.py),
+  [cancellation](../../../tests/translation/test_translate_project_cancellation.py),
+  [lease renewal](../../../tests/translation/test_translate_project_lease_renewal.py), and
+  [reconciliation](../../../tests/translation/test_translate_project_reconciliation.py).
+- Explicit runtime integration: [selection](../../../tests/composition/test_rich_runtime_selection.py),
+  [preparation](../../../tests/composition/test_rich_runtime_preparation.py),
+  [execution](../../../tests/composition/test_rich_runtime_execution.py), and
+  [recovery](../../../tests/composition/test_rich_runtime_recovery.py).
+- Sequential batches and accepted outputs: [batch units](../../../tests/translation/test_translate_batch_unit.py),
+  [project contract](../../../tests/translation/test_translate_batch_project_contract.py),
+  [framework integration](../../../tests/translation/test_translate_batch_framework_integration.py),
+  [composition](../../../tests/composition/test_translate_batch_composition.py),
+  [output policy](../../../tests/translation/test_batch_output_policy.py), and
+  [publication races](../../../tests/translation/test_batch_publication_race.py).

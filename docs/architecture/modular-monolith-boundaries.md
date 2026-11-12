@@ -73,7 +73,7 @@ scoped acceptances live in their own ADRs: [project lifecycle](decisions/project
 [content model](decisions/content-model.md), [format adapter](decisions/format-adapter.md) and [EPUB format](decisions/epub-format.md) (`DEC-005`) and
 [provider contracts](decisions/provider-contracts.md) and
 [provider capabilities](decisions/provider-capabilities.md) (`DEC-008`) and
-[translation pipeline](translation-pipeline.md) (`DEC-007`).
+[translation pipeline](decisions/translation-pipeline.md) (`DEC-007`).
 
 The [local workers and IPC](adr-local-worker-isolation.md) decision (#167) was
 `Accepted` on 2026-11-10. There is still no production runner, and it does not change

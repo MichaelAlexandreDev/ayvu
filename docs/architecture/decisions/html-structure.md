@@ -16,7 +16,7 @@ imports no provider, cache, memory, glossary, chunker or interface.
 
 | Entry | For | Identity |
 | --- | --- | --- |
-| `extract_html_document`, `reconstruct_html` | The [rich path](../translation-pipeline.md) and [#144](https://github.com/MichaelAlexandreDev/ayvu/issues/144) | Durable: real project, document and revision |
+| `extract_html_document`, `reconstruct_html` | The [rich path](translation-pipeline.md) and [#144](https://github.com/MichaelAlexandreDev/ayvu/issues/144) | Durable: real project, document and revision |
 | `map_review_package` | The v2 review exchange | Durable units become validated `UnitTranslation` reconstruction inputs |
 | `extract_visible_text`, `translate_html` | The current translation, through `ayvu.v1.html_translate` | None |
 | `apply_reviewed_html` | Legacy positional helper | None; v1 apply is rejected before the helper is called |

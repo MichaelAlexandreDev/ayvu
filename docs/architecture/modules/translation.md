@@ -1,18 +1,10 @@
-# ADR: Translation pipeline
+# Translation pipeline
 
-Status: Accepted
-Decision-Date: `2026-11-03`
-Owners: Project maintainer (acceptance); Translation (contract ownership)
-Issue: [#142 — Extract a versioned TranslationUnit pipeline](https://github.com/MichaelAlexandreDev/ayvu/issues/142)
+The accepted scope and limits are recorded in the [decision](../decisions/translation-pipeline.md).
 
-Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
-
-Decision: `DEC-007`, scoped to extracting the linguistic sequence from the HTML module
-
-## Decision and scope
-
-The linguistic work on one text is a fixed sequence that knows nothing about documents.
-HTML traversal and markup reconstruction are in [`ayvu.formats.epub.html_structure`](decisions/html-structure.md).
+The contract preserves the implementation stages recorded in #142, #153, #252,
+#162 and #242. Historical restrictions describe their respective integration
+stages; later integrations do not revise those descriptions here.
 
 The CLI accepts at most 100 EPUBs in a sequential batch. Without an explicit
 source language it resolves each book's metadata independently. Each completed item saves
@@ -64,7 +56,7 @@ The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and enters identity as
 **Changing the server model without changing the label reuses old results.**
 There is no model discovery or new HTTP request. Without a label, `translate_text`
 retains signature, results, messages and v1 key; dry run and preview also stay on v1.
-See [runtime selection](translate-project.md#explicit-runtime-selection-252).
+See [runtime selection](translation-project.md#explicit-runtime-selection-252).
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -115,7 +107,7 @@ back to the adapter. It parses no markup and calls no provider. Composition choo
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
 | V2 cache in a separate sibling file, with full identity | Reuses existing v1 cache |
-| Resume reuses the previous job's proven raw results (#242) | [Resume](modules/recovery.md) re-executes on v1 |
+| Resume reuses the previous job's proven raw results (#242) | [Resume](recovery.md) re-executes on v1 |
 
 `ayvu.v1.translation` is the named compatibility
 path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
@@ -125,10 +117,10 @@ extraction needs a real project.
 the bytes, the order of provider calls, the cache, the report, the progress and the review rows.
 `tests/v1/test_translation_engine_publication.py` and `tests/v1/test_translation_engine_workers.py`
 cover publication and worker behavior.
-[Format compatibility](modules/formats-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
+[Format compatibility](formats-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
 `texts_skipped` is left at zero: only the current report object holds it, and nothing shows it.
 
-[`TranslateProject`](translate-project.md) wraps the engine in a durable job.
+[`TranslateProject`](translation-project.md) wraps the engine in a durable job.
 
 Production uses the engine inside `TranslateProject` in both runtimes. In rich,
 `TranslationResources.prepare_document` runs `DocumentTranslator` before the engine
@@ -143,7 +135,7 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.v1.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
 The standalone cache has a v2 boundary and repository; CLI runs without a declared model stay on the characterized v1 adapter.
-[`formats.epub.html_structure`](decisions/html-structure.md) has neither cache nor glossary.
+[`formats.epub.html_structure`](../decisions/html-structure.md) has neither cache nor glossary.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.v1.html_translate`, passed on each call.
 
@@ -241,7 +233,7 @@ runs; resume between different runtimes is refused and names `legacy/v1` and `ri
 The declaration stays in configuration and operational provenance/identity, outside repr,
 events, logs and checkpoints. A continuation reuses the previous job's proven raw results (#242).
 Migration outside this production selection preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
-[standalone cache v2](modules/knowledge-cache.md) for locking, recovery and limits.
+[standalone cache v2](knowledge-cache.md) for locking, recovery and limits.
 
 ## Replay
 
@@ -256,7 +248,7 @@ digest and size are checked, then its content is compared with the document unit
 | Valid digest but content that does not match | Fails closed with `invalid_raw_results` |
 
 Another job replays only when it is a continuation and every recorded dimension is proved equal; see
-[replay through a continuation](modules/recovery.md#replay-through-a-continuation-242). Payload version 2 records those
+[replay through a continuation](recovery.md#replay-through-a-continuation-242). Payload version 2 records those
 dimensions; a version 1 payload still replays in its own job but proves nothing to a continuation. A job's lease must
 be live.
 Because a phase cannot return in one event stream, a second run in the same stream needs its own
@@ -275,11 +267,25 @@ or `replay_raw_results` when replaying. Memory records state an unknown producer
 do not commit together, so a crash between them leaves an artifact without records, and a later replay
 records only itself.
 
-## Consequences and limits
+## Enforced contracts
 
-- User-facing messages raised by the legacy path stay in Portuguese, as they were. Application code
-  holding interface text is debt to settle with the rich path in
-  [#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153). The use case stores only a code.
-- `LinguisticOutcome.glossary_usage` is opaque to the pipeline, since the application layer cannot
-  import the glossary module.
-- The facade is built for each text, which adds a small allocation per call.
+- Stage order and resolved identity: [pipeline](../../../tests/translation/test_translation_pipeline.py),
+  [plan](../../../tests/translation/test_translation_plan.py), and
+  [legacy characterization](../../../tests/v1/test_translate_text_characterization.py).
+- Rich admission, execution and protected content:
+  [identity](../../../tests/translation/test_translation_document_identity.py),
+  [execution](../../../tests/translation/test_translation_document_execution.py),
+  [protection](../../../tests/translation/test_translation_document_protection.py),
+  [provider adapter](../../../tests/translation/test_translation_document_provider_adapter.py), and
+  [cache and memory](../../../tests/translation/test_translation_document_cache_memory.py).
+- Cache identity and offline reuse: [identity](../../../tests/translation/test_translation_cache_v2_identity.py),
+  [cache-only](../../../tests/translation/test_translation_cache_v2_cache_only.py), and
+  [fuzzy reuse](../../../tests/translation/test_translation_cache_v2_fuzzy.py).
+- Raw-result validation, replay and lineage: [document replay](../../../tests/translation/test_translation_document_replay.py)
+  and [continuations](../../../tests/translation/test_raw_results_resume.py).
+- Engine compatibility: [parity](../../../tests/v1/test_translation_engine_parity.py),
+  [publication](../../../tests/v1/test_translation_engine_publication.py), and
+  [workers](../../../tests/v1/test_translation_engine_workers.py).
+- Conservative retrieval: [policy](../../../tests/translation/stages/test_memory_retrieval_policy.py),
+  [queries](../../../tests/translation/stages/test_memory_retrieval_queries.py), and
+  [pipeline](../../../tests/translation/stages/test_memory_retrieval_pipeline.py).

@@ -1,4 +1,4 @@
-# Deterministic bounded translation context
+# Translation context
 
 Implementation of [#164 / DESKTOP-133](https://github.com/DevStarrk1137/ayvu/issues/164).
 #103, #129, #138, #140, #141, #142, #145, #153, #157 and #163 provide the consumed
@@ -177,3 +177,15 @@ choose project, source, file, tool, destination, secret, policy or
 authorization. Characters, facts, style, relationships or consent are not inferred.
 A future AI function will have another contract and explicit authority; it does not replace
 this deterministic policy or data egress checks.
+
+## Enforced contracts
+
+- Authorization, ceilings and fail-closed admission:
+  [authorization](../../../tests/translation/context/test_translation_context_authorization.py).
+- Deterministic snapshots, bounded sources and semantic projection:
+  [snapshots](../../../tests/translation/context/test_translation_context_snapshots.py),
+  [source](../../../tests/translation/context/test_translation_context_source.py), and
+  [projection](../../../tests/translation/context/test_translation_context_projection.py).
+- Cache binding, replay restrictions, egress, cancellation and metadata-only provenance:
+  [pipeline execution](../../../tests/translation/context/test_context_pipeline_execution.py) and
+  [composition binding](../../../tests/composition/test_context_pipeline_binding.py).

@@ -20,7 +20,7 @@ The project stores job-owned payloads as files and their metadata in the
 
 A checkpoint is an artifact with its own `role`; there is no separate table. A final
 output keeps this record and protocol but not this location:
-[`TranslateProject`](../translate-project.md#publishing-to-the-chosen-file) publishes it to
+[`TranslateProject`](../modules/translation-project.md#publishing-to-the-chosen-file) publishes it to
 the file the user chose. The CLI does not use that yet, and pipeline stages do not change. Provenance, content
 addressing, retention and cross-job reuse are not accepted here.
 

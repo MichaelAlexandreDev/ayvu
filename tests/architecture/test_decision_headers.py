@@ -35,7 +35,7 @@ RECORDS = {
     "decisions/provenance.md": ("Accepted", "2026-11-03", "138"),
     "decisions/provider-capabilities.md": ("Accepted", "2026-11-03", "103"),
     "decisions/provider-contracts.md": ("Accepted", "2026-11-03", "141"),
-    "translation-pipeline.md": ("Accepted", "2026-11-03", "142"),
+    "decisions/translation-pipeline.md": ("Accepted", "2026-11-03", "142"),
 }
 HEADER = re.compile(
     r"Status: (?P<status>\w+)\n"
