@@ -1,14 +1,13 @@
 # ADR: Job checkpoints and derived artifacts
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Artifacts (job-owned artifact contract)
+Issue: [#137 — Store versioned job checkpoints and derived artifacts](https://github.com/MichaelAlexandreDev/ayvu/issues/137)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: extends `DEC-012` and `DEC-004`, scoped to job-owned artifact metadata, payload layout and publication
-
-Related issue: [#137 — Store versioned job checkpoints and derived artifacts](https://github.com/MichaelAlexandreDev/ayvu/issues/137)
 
 ## Decision and scope
 

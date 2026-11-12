@@ -1,12 +1,11 @@
 # Product security, privacy, and data flows
 
-Status: `Accepted`
-
-Date: 2026-09-29
+Status: Accepted
+Decision-Date: `2026-09-29`
+Owners: Project maintainer (acceptance)
+Issue: [#129 — DESKTOP-008](https://github.com/MichaelAlexandreDev/ayvu/issues/129)
 
 Accepted: 2026-11-05 by the project maintainer, through explicit approval in the development session
-
-Related issue: [#129 — DESKTOP-008](https://github.com/MichaelAlexandreDev/ayvu/issues/129)
 
 Evidence baseline: `main` at `1a28b84` (PR #186). This is a source-based threat
 assessment, not a penetration test, security certification, or acceptance of

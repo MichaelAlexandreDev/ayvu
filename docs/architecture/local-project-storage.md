@@ -1,14 +1,13 @@
 # ADR: Local project SQLite storage and migration locations
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Projects (contract ownership); Kernel SQLite migration infrastructure
+Issue: [#135 — Safe local migrations, backup and recovery](https://github.com/MichaelAlexandreDev/ayvu/issues/135)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: `DEC-012`, scoped to project-database bootstrap and migrations
-
-Related issue: [#135 — Safe local migrations, backup and recovery](https://github.com/MichaelAlexandreDev/ayvu/issues/135)
 
 ## Decision and scope
 

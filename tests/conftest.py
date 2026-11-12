@@ -182,7 +182,10 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "architecture/test_architecture_cli_construction.py", "architecture/test_architecture_import_resolution.py",
         "architecture/test_architecture_tree_validation.py",
     ),
-    "documentation_links": ("architecture/test_documentation_links.py",),
+    "documentation_links": (
+        "architecture/test_documentation_links.py",
+        "architecture/test_decision_headers.py",
+    ),
     "ci_stages": ("ci/test_ci_stages.py",),
 }
 CORE_FILES = frozenset(name for names in CORE_TEST_FILES.values() for name in names)

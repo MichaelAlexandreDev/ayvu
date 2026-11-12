@@ -1,14 +1,13 @@
 # ADR: Provenance records and lineage
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Provenance (contract ownership)
+Issue: [#138 — Record segment and artifact provenance](https://github.com/MichaelAlexandreDev/ayvu/issues/138)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: `DEC-014`, scoped to the record model, repository and storage of provenance
-
-Related issue: [#138 — Record segment and artifact provenance](https://github.com/MichaelAlexandreDev/ayvu/issues/138)
 
 ## Decision and scope
 

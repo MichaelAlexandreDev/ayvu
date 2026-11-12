@@ -1,14 +1,13 @@
 # ADR: Content documents and translation units
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Content (contract ownership)
+Issue: [#140 — Define the minimal content document and translation unit model](https://github.com/MichaelAlexandreDev/ayvu/issues/140)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: `DEC-005`, scoped to the model, identity and serialization of content documents
-
-Related issue: [#140 — Define the minimal content document and translation unit model](https://github.com/MichaelAlexandreDev/ayvu/issues/140)
 
 ## Decision and scope
 

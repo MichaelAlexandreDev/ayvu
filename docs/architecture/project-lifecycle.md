@@ -1,14 +1,13 @@
 # ADR: Durable project identity and standalone CLI resolution
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Projects (contract ownership)
+Issue: [#134 — Versioned local project manifest](https://github.com/MichaelAlexandreDev/ayvu/issues/134)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: `DEC-003`
-
-Related issue: [#134 — Versioned local project manifest](https://github.com/MichaelAlexandreDev/ayvu/issues/134)
 
 ## Context
 

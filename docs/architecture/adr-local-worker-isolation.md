@@ -1,8 +1,10 @@
-# ADR: ciclo de vida e IPC de workers locais confiáveis — DESKTOP-136
+# ADR: Lifecycle and IPC of trusted local workers — DESKTOP-136
 
-Status: `Accepted`
+Status: Accepted
+Decision-Date: `2026-11-06`
+Owners: Project maintainer (acceptance)
+Issue: [#167](https://github.com/DevStarrk1137/ayvu/issues/167).
 
-Data: 2026-11-06. Issue: [#167](https://github.com/DevStarrk1137/ayvu/issues/167).
 Aceita em 2026-11-10 pelo mantenedor; ver o [registro de aceite](#registro-de-aceite).
 O aceite não habilita um runner em produção.
 

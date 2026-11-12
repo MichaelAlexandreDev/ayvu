@@ -1,14 +1,13 @@
 # ADR: Desktop technology evaluation
 
-Status: `Accepted`
-
-Date: 2026-10-02
+Status: Accepted
+Decision-Date: `2026-10-02`
+Owners: Project maintainer (acceptance)
+Issue: [#124 — DESKTOP-003](https://github.com/DevStarrk1137/ayvu/issues/124)
 
 Accepted: 2026-11-05 by the project maintainer, through explicit approval in the development session
 
 Evidence updated: 2026-10-06
-
-Related issue: [#124 — DESKTOP-003](https://github.com/DevStarrk1137/ayvu/issues/124)
 
 ## Implementation note (DESKTOP-009 and DESKTOP-010)
 

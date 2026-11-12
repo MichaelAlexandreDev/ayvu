@@ -252,7 +252,7 @@ def test_launcher_passes_isolated_environment_and_cwd_and_detects_fallback_file(
 
 def test_record_remains_proposed_and_no_platform_is_claimed_without_proof():
     document = (ROOT / "docs/architecture/adr-secret-store-adapters.md").read_text()
-    assert "Status: `Proposed`" in document
+    assert "Status: Proposed" in document
     assert "Plataformas com suporte comprovado nesta revisão: **nenhuma**" in document
     results = json.loads((SPIKE / "results/sandbox-2026-11-06.json").read_text())
     assert all(not result.get("native_evidence", False) for result in results)

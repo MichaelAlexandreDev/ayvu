@@ -1,14 +1,13 @@
 # ADR: HTML structure
 
-Status: `Accepted`
-
-Date: 2026-11-04
+Status: Accepted
+Decision-Date: `2026-11-04`
+Owners: Project maintainer (acceptance); Formats (contract ownership)
+Issue: [#143 — Isolate HTML segmentation and markup-safe reconstruction](https://github.com/MichaelAlexandreDev/ayvu/issues/143)
 
 Accepted: 2026-11-04 by the project maintainer, through explicit approval in the development session
 
 Decision: extends `DEC-005`, scoped to HTML units, their locators and reconstruction
-
-Related issue: [#143 — Isolate HTML segmentation and markup-safe reconstruction](https://github.com/MichaelAlexandreDev/ayvu/issues/143)
 
 ## Decision and scope
 

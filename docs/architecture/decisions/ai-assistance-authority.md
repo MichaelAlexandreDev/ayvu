@@ -1,20 +1,13 @@
-# Papéis limitados e autoridade da assistência opcional
+# Bounded roles and authority of optional assistance
 
 Status: Proposed
-
 Decision-Date: `2026-11-10`
+Owners: Ayvu repository owner and maintainer (human acceptance and product); Application + Policies (selection, authorization, classification and limits); Jobs (deadline, cancellation and outcome); Provenance (lineage); Knowledge (glossary); Profiles/Context (profile and deterministic selection); Formats (reconstruction/validation); Infrastructure (future execution and containment).
+Issue: [#166 — DESKTOP-135](https://github.com/DevStarrk1137/ayvu/issues/166).
 
 Contract-ID: `ayvu-assistance-authority-v1`
 
 Vocabulary-Version: `1`
-
-Owners: owner/mantenedor do repositório Ayvu (aceite humano e produto);
-Application + Policies (seleção, autorização, classificação e limites);
-Jobs (deadline, cancelamento e resultado); Provenance (linhagem);
-Knowledge (glossário); Profiles/Context (perfil e seleção determinística);
-Formats (reconstrução/validação); Infrastructure (futura execução e contenção).
-
-Issue: [#166 — DESKTOP-135](https://github.com/DevStarrk1137/ayvu/issues/166).
 
 ## Decisão proposta e alcance
 
