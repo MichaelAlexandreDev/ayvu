@@ -336,7 +336,7 @@ class ManagedGlossaryRepository:
                             os.fsync(fd)
                             # Same-object revalidation under the lock: a process ignoring the lock could
                             # still swap the file between that check and this rename, which POSIX cannot
-                            # make conditional. See docs/architecture/glossary-catalog.md.
+                            # make conditional. See docs/architecture/modules/knowledge-glossary.md.
                             os.replace(temp, reference.value, src_dir_fd=fd, dst_dir_fd=fd)
                             temp = None
                         try:

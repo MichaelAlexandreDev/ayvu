@@ -1,11 +1,15 @@
 # Managed glossary catalog
 
+## Ownership and authorization
+
 The guided glossary catalog is a local capability supplied by composition to
 `knowledge.glossary.catalog` through a repository. References identify catalog entries;
 they do not authorize a root or grant access to arbitrary paths. Presentation
 owns names, prompts, previews, confirmations and deliberate path display. The
 explicit advanced `--glossary` loader and profile paths remain separate from
 this catalog and keep their existing behavior.
+
+## Limits
 
 `GlossaryLimits` bounds the catalog to 1,000 JSON files and each UTF-8 input or
 canonical serialized output to 1 MiB. A glossary may contain at most 10,000
@@ -15,6 +19,8 @@ accepted. Unsupported fields and invalid content are rejected as a whole. A
 catalog above the file limit fails before parsing content. Entries that are
 invalid, oversized, symbolic links, or files with multiple hard links are
 represented as metadata statuses and cannot be read as content.
+
+## Revisions and publication
 
 The local adapter uses descriptor-relative operations and refuses links in the
 managed catalog. Creation uses an exclusive destination operation under a
@@ -41,8 +47,15 @@ Cancellation is checked before filesystem work and publication.
 NFC/case-folded names share a conservative collision domain; filesystems may have
 additional naming equivalences.
 
+## Privacy and compatibility
+
 Glossary content, names, paths, references, revisions, digests and file identity
 metadata are sensitive correlators. Results hide their values in default repr;
 normalized failures contain codes rather than the original filesystem or parser
 exception. Presentation may show local names and paths to the interactive user.
 These use cases perform no provider, cache, translation-memory or network work.
+
+## Enforced contracts
+
+- [`tests/knowledge/glossary/test_glossary_catalog_commands.py`](../../../tests/knowledge/glossary/test_glossary_catalog_commands.py)
+- [`tests/knowledge/glossary/test_glossary_catalog_publication.py`](../../../tests/knowledge/glossary/test_glossary_catalog_publication.py)

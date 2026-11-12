@@ -241,7 +241,7 @@ runs; resume between different runtimes is refused and names `legacy/v1` and `ri
 The declaration stays in configuration and operational provenance/identity, outside repr,
 events, logs and checkpoints. A continuation reuses the previous job's proven raw results (#242).
 Migration outside this production selection preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
-[standalone cache v2](standalone-cache-v2.md) for locking, recovery and limits.
+[standalone cache v2](modules/knowledge-cache.md) for locking, recovery and limits.
 
 ## Replay
 

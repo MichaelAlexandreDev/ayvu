@@ -1,24 +1,24 @@
-# Global preferences use cases and JSON v1 compatibility
+# Global preferences
 
 This contract implements [#152](https://github.com/MichaelAlexandreDev/ayvu/issues/152)
-within the [accepted modular boundaries](modular-monolith-boundaries.md).
+within the [accepted modular boundaries](../modular-monolith-boundaries.md).
 It does not accept a new architecture decision or change project storage.
 
 ## Ownership and consumers
 
-[`preferences/model.py`](../../src/ayvu/preferences/model.py) owns immutable preference values
-and validation. [`preferences/service.py`](../../src/ayvu/preferences/service.py)
+[`preferences/model.py`](../../../src/ayvu/preferences/model.py) owns immutable preference values
+and validation. [`preferences/service.py`](../../../src/ayvu/preferences/service.py)
 owns `GetPreferences`, `UpdatePreferences`, structured results and the repository
 port. Neither imports JSON, paths, filesystem clients or presentation libraries.
-[`preferences/store.py`](../../src/ayvu/preferences/store.py) implements the v1
-JSON adapter. [`preferences/config_facade.py`](../../src/ayvu/preferences/config_facade.py) preserves the legacy config
+[`preferences/store.py`](../../../src/ayvu/preferences/store.py) implements the v1
+JSON adapter. [`preferences/config_facade.py`](../../../src/ayvu/preferences/config_facade.py) preserves the legacy config
 objects, path derivation and compatibility facade for existing consumers.
 
-The [field classification](global-preferences-fields.json) is executable contract
+The [field classification](preferences-fields.json) is executable contract
 data: tests compare every serialized field, including all five folder names and
 all optional profile fields, with its owner, validation, sensitivity, default,
 compatibility rule and consumer. Legacy named profiles remain a separate category
-inside the same v1 file. [Project profiles](project-translation-profiles.md)
+inside the same v1 file. [Project profiles](projects-profiles.md)
 offer explicit migration into independent, versioned project snapshots; reading
 preferences never performs that migration.
 Project identity/settings, window state, provider connections, credentials and
@@ -128,3 +128,8 @@ must be trusted; pathname checks are not a sandbox against a hostile process
 running under the same OS user. Windows ACLs, junctions and native byte-lock
 behavior have not been validated by the Linux tests. Network filesystems are not
 a validated target for these locking/rename guarantees.
+
+## Enforced contracts
+
+- [`tests/preferences/test_preferences.py`](../../../tests/preferences/test_preferences.py)
+- [`tests/preferences/test_preferences_store.py`](../../../tests/preferences/test_preferences_store.py)

@@ -1,4 +1,4 @@
-# Versioned project translation profiles
+# Project translation profiles
 
 The #163 contract uses dependency owners #134 (manifest/CAS),
 #152 (v1 preferences), #153 (raw cache semantic identity) and #157
@@ -177,3 +177,10 @@ fingerprints. Canonical maps/bytes are private persistence/contract payload,
 not diagnostics or support bundles. Authorized presentation may deliberately show the
 legacy or local name; do not propagate them to default events or provenance.
 These use cases neither emit events nor make translation calls.
+
+## Enforced contracts
+
+- [`tests/projects/profiles/test_project_profiles_model.py`](../../../tests/projects/profiles/test_project_profiles_model.py)
+- [`tests/projects/profiles/test_project_profiles_service.py`](../../../tests/projects/profiles/test_project_profiles_service.py)
+- [`tests/projects/profiles/test_project_profile_owner_integration.py`](../../../tests/projects/profiles/test_project_profile_owner_integration.py)
+- [`tests/projects/profiles/test_project_profile_concurrency.py`](../../../tests/projects/profiles/test_project_profile_concurrency.py)

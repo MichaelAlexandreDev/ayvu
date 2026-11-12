@@ -2,13 +2,13 @@
 
 Opening formerly called `open_library_epub()` in `library.py` is now
 in `LibraryService.open_entry`/`ReaderLauncher.launch`. The reader is an
-independent process, explicitly outside the [offline HTTP guarantee](network-policy.md).
+independent process, explicitly outside the [offline HTTP guarantee](../network-policy.md).
 The CLI displays this limit before launching the process, including with
 `--network-policy none`; the opening result does not represent reader network
 containment. The policy is not passed to the child as an isolation promise.
 
-The guided Library flow composes [`LibraryService`](../../src/ayvu/library/service.py)
-with the local adapters in [`library/adapters.py`](../../src/ayvu/library/adapters.py).
+The guided Library flow composes [`LibraryService`](../../../src/ayvu/library/service.py)
+with the local adapters in [`library/adapters.py`](../../../src/ayvu/library/adapters.py).
 The service uses separate discovery, authorization and launcher protocols and does not import a UI, EPUB
 parser or process API. A consumer supplies adapters and must explicitly authorize
 external opening; discovery alone does not launch a reader.
@@ -56,3 +56,7 @@ before process creation and does not terminate a reader already started. The
 current system selection supports macOS `open` and Unix `xdg-open`, `gio open`,
 and `open` as fallbacks. Configured shell interpreters are rejected;
 without a configured reader, Windows returns unavailable.
+
+## Enforced contracts
+
+- [`tests/library/test_library_services.py`](../../../tests/library/test_library_services.py)

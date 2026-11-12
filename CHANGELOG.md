@@ -50,6 +50,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote C1: contratos de preferências, conhecimento, biblioteca, revisão e perfis
+  de projeto reunidos por módulo, com leitores e caminhos atualizados.
+
 - REF-20 (#288), lote B2: propostas de assistência e governança de direitos/finalidades traduzidas
   para inglês, com leitor documental ajustado; regras e estado Proposed preservados, sem mover ou dividir.
 
@@ -285,7 +288,7 @@ lancadas e secoes versionadas quando uma release for publicada.
   de aplicação agora exporta pacotes v2 de `TranslateProject`, valida sem efeitos
   colaterais e aplica pelo protocolo de publicação/reconciliação D106. `apply-review`
   aceita `--validate-only`; v1 continua exigindo reexportação. Veja
-  `docs/architecture/review-exchange.md` e `docs/architecture/review-application.md`.
+  `docs/architecture/modules/review.md` e `docs/architecture/modules/review.md`.
 - `translate`, a tradução guiada e cada livro de um lote agora rodam pelo caso de
   uso `TranslateProject`, como um job durável com um único resultado final. Prompts,
   relatórios, nomes de saída e códigos de saída não mudam, salvo o que está abaixo.

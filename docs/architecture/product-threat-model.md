@@ -333,7 +333,7 @@ still change the path after validation and before the reader opens it. A configu
 executable or inherited environment can read files or send data; parser exploits
 and external-reader options remain an external boundary. Launch outcomes are
 normalized and failure does not silently retry a different configured executable.
-See [library discovery](library-discovery.md) for the cancellation and platform
+See [library discovery](modules/library.md) for the cancellation and platform
 limits. #159 owns the limit on offline claims; OS isolation selection belongs to
 #167. A general-purpose reader is not contained by Ayvu.
 

@@ -65,7 +65,7 @@ the `artifacts/` directories were accepted in the scoped
 [job artifacts ADR](job-artifacts.md), and are schema version 3. Provenance was accepted
 in the scoped [provenance ADR](provenance.md), and is schema version 4.
 
-The [governed translation memory](approved-translation-memory.md) introduced by
+The [governed translation memory](modules/knowledge-memory.md) introduced by
 #161 uses a dedicated `approved-memory.sqlite` alongside `project.sqlite`, with
 its own migration ledger and `backups/approved-memory-schema/`. It does not change
 the project schema or migrate the operational cache.
