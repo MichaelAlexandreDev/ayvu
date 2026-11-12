@@ -179,7 +179,7 @@ imports are layer rules instead of exceptions.
 
 ### D14. Keeping the architecture over time
 - **CI checks:** the ratchet (D10), the import contracts (D11) and a public-API check (D2).
-- **A "where new code goes" guide** in `docs/architecture/` and AGENTS.md, read by people and AI agents.
+- **A ["where new code goes" guide](../where-code-goes.md)** in `docs/architecture/` and AGENTS.md, read by people and AI agents.
 - **A PR checklist** for what tools miss: a rule in the wrong module, duplication, splitting only to pass a limit.
 - **Changing a rule is allowed but visible:** this decision and the contract change in the same reviewed PR.
 - **`scripts/arch_metrics.py` in the release checklist**, to follow the trend.

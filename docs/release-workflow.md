@@ -184,9 +184,12 @@ Quando uma versao estiver pronta:
 
 1. Confira se a `main` local esta sincronizada com `origin/main`.
 2. Rode a suite de testes.
-3. Crie uma tag seguindo a versao planejada.
-4. Publique a tag no GitHub.
-5. Crie um GitHub Release com resumo das mudancas, validacao e avisos relevantes.
+3. Run `uv run --no-sync python scripts/arch_metrics.py` and record the results with the release validation;
+   compare size violations and dependency cycles with the previous release to track the trend (D14 of the
+   [package-structure decision](architecture/decisions/package-structure.md#d14-keeping-the-architecture-over-time)).
+4. Crie uma tag seguindo a versao planejada.
+5. Publique a tag no GitHub.
+6. Crie um GitHub Release com resumo das mudancas, validacao e avisos relevantes.
 
 Exemplo:
 
