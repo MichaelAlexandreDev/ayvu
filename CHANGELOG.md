@@ -9,6 +9,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- REF-18 (#286): proposta de aposentadoria do v1 com inventário, lacunas do runtime rico,
+  dependências e alternativas para caches e retomadas antigas; nada é removido nesta entrega.
+
 - Retomada rica reaproveita resultados brutos (#242): uma continuação usa os documentos que
   o job anterior concluiu, sem chamar tradutor nem cache, quando as nove dimensões
   registradas são iguais. Mudança em uma delas refaz o documento e avisa qual foi
