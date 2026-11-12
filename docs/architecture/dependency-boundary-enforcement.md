@@ -1,6 +1,6 @@
 # Static architectural dependency checks
 
-The [accepted modular-monolith ADR](modular-monolith-boundaries.md) is enforced
+The [accepted modular-monolith ADR](decisions/modular-monolith-boundaries.md) is enforced
 by [the architecture tests](../../tests/architecture/test_architecture_tree_validation.py), added
 for [#133](https://github.com/DevStarrk1137/ayvu/issues/133). This enforcement
 does not accept other proposed decisions or change production behavior.

@@ -155,7 +155,7 @@ Ratings and limitations:
 All three candidates can be kept outside the core if the future composition
 root constructs the chosen adapter and passes it presentation-neutral
 application services. That architectural fit is an inference from the accepted
-[modular-monolith boundaries](../modular-monolith-boundaries.md), not a toolkit
+[modular-monolith boundaries](modular-monolith-boundaries.md), not a toolkit
 feature.
 
 ## Disposable spike and measured evidence

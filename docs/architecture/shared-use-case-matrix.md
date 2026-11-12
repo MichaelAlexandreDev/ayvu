@@ -328,7 +328,7 @@ coverage is explicit:
    EPUB/HTML transformation, cache SQL, glossary rules, configuration storage,
    translation HTTP, checkpoint semantics, and output safety stay in reusable
    modules.
-3. #159 [HTTP policy](network-policy.md) is per run: `none` blocks
+3. #159 [HTTP policy](cross-cutting/network-policy.md) is per run: `none` blocks
    before DNS/socket/payload; `loopback` allows only validated loopback HTTP.
    It covers all current uses of GET `/languages` and POST `/translate`.
    External readers and the local server's network have independent authority.

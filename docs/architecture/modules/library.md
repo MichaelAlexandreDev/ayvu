@@ -2,7 +2,7 @@
 
 Opening formerly called `open_library_epub()` in `library.py` is now
 in `LibraryService.open_entry`/`ReaderLauncher.launch`. The reader is an
-independent process, explicitly outside the [offline HTTP guarantee](../network-policy.md).
+independent process, explicitly outside the [offline HTTP guarantee](../cross-cutting/network-policy.md).
 The CLI displays this limit before launching the process, including with
 `--network-policy none`; the opening result does not represent reader network
 containment. The policy is not passed to the child as an isolation promise.

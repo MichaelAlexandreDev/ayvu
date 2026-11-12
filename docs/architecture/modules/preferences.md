@@ -1,7 +1,7 @@
 # Global preferences
 
 This contract implements [#152](https://github.com/MichaelAlexandreDev/ayvu/issues/152)
-within the [accepted modular boundaries](../modular-monolith-boundaries.md).
+within the [accepted modular boundaries](../decisions/modular-monolith-boundaries.md).
 It does not accept a new architecture decision or change project storage.
 
 ## Ownership and consumers

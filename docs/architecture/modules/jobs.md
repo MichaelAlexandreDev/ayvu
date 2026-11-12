@@ -129,7 +129,7 @@ filesystems have not been validated, as for the migration runner.
 
 This contract implements [#126](https://github.com/MichaelAlexandreDev/ayvu/issues/126)
 under the shared application contracts of `DEC-017`, recorded in the
-[modular-monolith ADR](../modular-monolith-boundaries.md). It complements the
+[modular-monolith ADR](../decisions/modular-monolith-boundaries.md). It complements the
 [job lifecycle](#lifecycle) and does not redefine its state machine.
 
 Cache administration uses the failure and cooperative-cancellation contracts;

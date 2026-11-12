@@ -29,7 +29,7 @@ explícitas e destinos não loopback dependem de contratos futuros.
 O leitor EPUB aberto pela biblioteca é **outro processo, fora da garantia
 offline**, e recebe um aviso explícito antes de abrir. `none` não contém esse
 leitor; um servidor local também pode ter sua própria rede e retenção.
-Veja o [contrato da política HTTP](docs/architecture/network-policy.md).
+Veja o [contrato da política HTTP](docs/architecture/cross-cutting/network-policy.md).
 
 O EPUB original nunca é alterado. A saída é gravada em um novo arquivo `.epub`.
 
