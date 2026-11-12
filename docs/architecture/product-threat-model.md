@@ -461,7 +461,7 @@ well as books.
 
 ## Evidence, validation and acceptance limits
 
-The current [workflow tests](../../tests/test_workflow_characterization.py)
+The current [`test_workflow_translation_resume.py`](../../tests/interfaces/cli/test_workflow_translation_resume.py), [`test_workflow_route_review.py`](../../tests/interfaces/cli/test_workflow_route_review.py), [`test_workflow_translation_reporting.py`](../../tests/interfaces/cli/test_workflow_translation_reporting.py), [`test_workflow_batch_preview.py`](../../tests/interfaces/cli/test_workflow_batch_preview.py)
 exercise the real CLI through fake HTTP and temporary EPUB/cache/checkpoint
 files: normal source preservation, archive/visible-text filtering, cache then
 glossary, interrupted resume, intermediate routing, v2 review mapping with

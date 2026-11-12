@@ -67,7 +67,10 @@ def minimal_epub_path(tmp_path: Path) -> Path:
 TESTS = Path(__file__).resolve().parent
 CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
     "original_epub_unchanged": (
-        "test_workflow_characterization.py",
+        "interfaces/cli/test_workflow_translation_resume.py",
+        "interfaces/cli/test_workflow_route_review.py",
+        "interfaces/cli/test_workflow_translation_reporting.py",
+        "interfaces/cli/test_workflow_batch_preview.py",
         "kernel/test_cli_output_plan.py",
         "kernel/test_cli_translation_options.py",
         "interfaces/cli/test_cli_root_processing.py",

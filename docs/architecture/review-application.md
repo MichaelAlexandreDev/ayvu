@@ -86,7 +86,7 @@ against production repositories are covered in `tests/interfaces/cli/test_cli_pr
 `tests/interfaces/cli/test_cli_project_review_status.py`,
 `tests/interfaces/cli/test_cli_project_review_races.py`,
 `tests/interfaces/cli/test_cli_project_review_reconciliation.py`
-and `tests/test_workflow_characterization.py`; codec and placeholder attack cases
+and `tests/interfaces/cli/test_workflow_route_review.py`; codec and placeholder attack cases
 remain in `tests/review/test_review_exchange_codec.py` and
 `tests/review/test_review_exchange_mapping.py`. Legacy refusal and production
 EPUB reconstruction are covered in `tests/review/test_review_exchange_legacy.py`
