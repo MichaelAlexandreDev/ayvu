@@ -2,7 +2,7 @@ from tests.support.cli_support import isolated_config
 import json
 from pathlib import Path
 from ayvu.interfaces.cli.report import _offer_markdown_report, _render_markdown_report, _save_markdown_report
-from ayvu.v1.epub import TranslationReport
+from ayvu.translation import TranslationReport
 from ayvu.knowledge.glossary.rules import GlossaryUsage
 from ayvu.kernel import UserMode
 

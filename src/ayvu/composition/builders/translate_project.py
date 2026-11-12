@@ -23,20 +23,20 @@ from ...artifacts.destination import DestinationFileOps, DestinationPublications
 from ...knowledge.cache.repository import SQLiteExactCache
 from ...knowledge.cache.schema import CacheSchemaError, SchemaState, classify_cache
 from ...content import ContentDocument, TranslationUnit
-from ...translation.context import ContextExecution
-from ...translation.context import ContextError
+from ...translation.context import ContextExecution, ContextError
 from ...formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
 from ...formats.epub.io import SelectedChapter, detect_epub_language, resolve_chapter_selection
-from ...v1.epub import TranslationReport, _validate_worker_options, translate_epub  # noqa: F401 - the same door, for v1
+from ...v1.epub import _validate_worker_options, translate_epub  # noqa: F401 - the same door, for v1
 from ...formats.local import LocalFormatSource, LocalOutputGuard
-from ...formats import FormatPublication, FormatRegistry, FormatService
+from ...formats import BookFacts, FormatPublication, FormatRegistry, FormatService
 from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
 from ...formats.epub import html_unit_template, normalize_translated_text, without_xml_invalid
 from ...jobs import JobState
 from ...jobs import CancellationSource
 from ...recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from ...recovery.store import LocalRecoveryEvidence
-from ...v1.translation import LegacyExecutorPool, LegacyUnitExecutor, read_package, to_report
+from ...v1.translation import LegacyExecutorPool, LegacyUnitExecutor
+from ...formats.epub.reader import read_package
 from ...projects import ProjectError
 from ...projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ...projects.store import ProjectJsonRepository
@@ -61,11 +61,11 @@ from ...translation import (
     TranslateProjectPorts,
     TranslateProjectResult,
     TranslateCommandError,
-    TranslationRuntime,
+    TranslationRuntime, TranslationReport, to_report,
     RuntimeContext,
 )
 from ...translation import (
-    ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, BookFacts, TranslationResources, UnitExecution,
+    ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, TranslationResources, UnitExecution,
 )
 from ...translation import (
     SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,

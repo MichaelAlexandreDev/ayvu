@@ -4,7 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.options import DEFAULT_PREVIEW_DOCUMENT_LIMIT
 from ayvu.interfaces.cli.app import app
-from ayvu.v1.epub import TranslationReport
+from ayvu.translation import TranslationReport
 from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 

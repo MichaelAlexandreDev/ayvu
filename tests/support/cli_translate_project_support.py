@@ -32,7 +32,7 @@ from ayvu.translation.preflight import PreflightError
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.review import decode_review_package, encode_review_package
-from ayvu.v1.epub import TranslationReport
+from ayvu.translation import TranslationReport
 from ayvu.jobs.model import JobState, JobTerminalSummary
 from ayvu.jobs.events import JobOutcome
 from ayvu.provenance.model import SourceKind

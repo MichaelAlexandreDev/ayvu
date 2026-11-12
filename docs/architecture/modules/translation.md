@@ -42,6 +42,12 @@ checks. These checks and the final operation are separate: a concurrent change
 can occur between the last check and `os.replace` or exclusive auxiliary creation,
 including replacement of a directory. They do not provide an absolute guarantee.
 
+Both runtimes share the report values and conversions exported by `ayvu.translation`,
+implemented in `translation/report.py`: `TranslationReport`, `HtmlTranslationStats`,
+`TextTranslationResult`, `to_html_stats` and `to_report`. Book facts are read through
+the public I/O adapter `ayvu.formats.epub.reader` (`read_package`); the values `BookFacts` and
+`BookPackage` come from `ayvu.formats`. The report API loads no I/O adapter.
+
 There are two paths through the same stages:
 
 | Path | Entry | Identity | Durable state |

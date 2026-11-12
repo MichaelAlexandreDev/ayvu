@@ -330,6 +330,7 @@ def forbidden(
 
 
 EXCEPTIONS = {
+    ("ayvu.translation.report", "ayvu.knowledge.glossary.rules"): Exemption("Translation", 286, "shared report retains GlossaryUsage until glossary values are separated from I/O"),
     ("ayvu.v1.epub", "ayvu.v1.cache"): Exemption("Formats", 144, "EPUB adapter isolated from pipeline"),
     ("ayvu.v1.epub", "ayvu.knowledge.glossary.rules"): Exemption("Formats", 144, "glossary coordinated by pipeline"),
     ("ayvu.v1.epub", "ayvu.review.csv_export"): Exemption("Review", 158, "legacy EPUB review projection removed with the old facade"),

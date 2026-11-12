@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.interfaces.cli.app import app
 from ayvu.composition.cli import _BookOutcome
-from ayvu.v1.epub import TranslationReport
+from ayvu.translation import TranslationReport
 from ayvu.jobs.model import JobState
 from ayvu.review.application import ReviewExportResult, ReviewOutcome, ReviewPackageIdentity
 from ayvu.translation.engine import EngineResult

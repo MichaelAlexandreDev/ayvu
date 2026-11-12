@@ -12,7 +12,7 @@ from . import editions, surface_rules
 from .builders import cache_admin, content, glossary, providers, review, translate_project
 from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
-from .builders.translate_project import LegacyResources, ProjectTranslation, TranslationReport, selected_model
+from .builders.translate_project import LegacyResources, ProjectTranslation, selected_model
 from ..translation.batch_output import AcceptedItem, OutputIntent
 from ..v1.cache import TranslationCache
 from ..v1.cache_check import verify_cache_writable
@@ -24,7 +24,7 @@ from ..projects.store import ProjectJsonRepository, build_project_request, trans
 from ..translation.preflight import run_translation_preflight as _preflight
 from ..recovery.checkpoint import ResumeStateStore, TranslationResumeState
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
-from ..translation import EngineObserver
+from ..translation import EngineObserver, TranslationReport
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
 
 
