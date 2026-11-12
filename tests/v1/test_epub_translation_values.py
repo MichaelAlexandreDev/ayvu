@@ -1,7 +1,7 @@
 
 
 from ayvu.formats.epub.io import EpubDocument
-from ayvu.v1.epub import EpubReplacements, EpubStructureError, TranslationReport
+from ayvu.v1.epub import EpubReplacements, EpubStructureError
 
 from tests.support.epub_io_support import FakeZip
 
@@ -30,11 +30,3 @@ def test_epub_structure_error_formats_chapter_error_message():
     error = EpubStructureError.chapter_error(document, ValueError("bad html"))
 
     assert error.as_message() == "text/chapter.xhtml: bad html"
-
-
-def test_translation_report_records_preformatted_errors():
-    report = TranslationReport()
-
-    report.record_error("text/chapter.xhtml: bad html")
-
-    assert report.errors == ["text/chapter.xhtml: bad html"]

@@ -188,6 +188,8 @@ def test_protection_keeps_its_exact_placeholder_format():
 
 def test_the_html_module_keeps_its_public_names():
     from ayvu.v1 import html_translate
-    for name in ('translate_text', 'translate_html', 'extract_visible_text', 'apply_reviewed_html', 'TextTranslationResult',
+    from ayvu.translation import TextTranslationResult
+    assert TextTranslationResult.__module__ == 'ayvu.translation.report'
+    for name in ('translate_text', 'translate_html', 'extract_visible_text', 'apply_reviewed_html',
                  'MAX_PROTECTED_RECOVERY_CALLS', 'TAG_TOKEN_PATTERN'):
         assert hasattr(html_translate, name), name

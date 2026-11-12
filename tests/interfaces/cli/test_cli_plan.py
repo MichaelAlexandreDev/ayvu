@@ -52,7 +52,7 @@ def test_build_translation_memory_options_rejects_invalid_thresholds():
 
 
 def _mock_pipeline_with_route(monkeypatch, route):
-    from ayvu.v1.epub import TranslationReport as _Report
+    from ayvu.translation import TranslationReport as _Report
 
     def fake_preflight(**_kwargs: object) -> object:
         return SimpleNamespace(translator=object(), glossary=None, route=route)

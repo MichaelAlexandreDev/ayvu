@@ -6,7 +6,8 @@ import pytest
 from ebooklib import ITEM_DOCUMENT
 from ayvu.v1.cache import TranslationCache
 from ayvu.formats.epub.io import EpubDocument, _document_entries, _document_zip_path, _get_opf_archive_path, _navigation_document_entries, _opf_base_path, detect_epub_language, extract_markdown, inspect_epub, normalize_language_code, resolve_chapter_selection
-from ayvu.v1.epub import EpubReplacements, EpubStructureError, TranslationReport, apply_reviewed_epub, translate_epub
+from ayvu.translation import TranslationReport
+from ayvu.v1.epub import EpubReplacements, EpubStructureError, apply_reviewed_epub, translate_epub
 from ayvu.knowledge.glossary.rules import GLOSSARY_RULE_FORBIDDEN, GLOSSARY_RULE_PRESERVE, Glossary, GlossaryEntry
 from ayvu.review.csv_export import REVIEW_CSV_COLUMNS, write_review_csv
 from ayvu.review.csv_import import ReviewImportData, ReviewImportError, ReviewRow, read_review_csv

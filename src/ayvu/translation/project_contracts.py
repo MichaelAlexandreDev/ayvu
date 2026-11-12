@@ -17,7 +17,8 @@ from ..jobs import CancellationSource, JobEventSink
 from ..jobs import JobRepository
 from ..projects import ProjectManifest
 from ..provenance import ProducerIdentity, ProvenanceRequest
-from .engine import BookFacts, EngineObserver, EngineResult, TranslationResources
+from ..formats import BookFacts
+from .engine import EngineObserver, EngineResult, TranslationResources
 from ..kernel import OutputPlan, TranslationOptions, JobError, validate_job_identity, JobFailure
 
 

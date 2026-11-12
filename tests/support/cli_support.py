@@ -10,9 +10,9 @@ from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.interfaces.cli.app import app
 from ayvu.composition.cli import _BookOutcome
-from ayvu.v1.epub import TranslationReport
+from ayvu.translation import TranslationReport
 from ayvu.jobs.model import JobState
-from ayvu.v1.html_translate import HtmlTranslationStats
+from ayvu.translation import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
 from ayvu.recovery.checkpoint import COMPLETED_STATUS, ResumeStateStore, TranslationResumeState
 from ayvu.review.application import ReviewExportResult, ReviewOutcome, ReviewPackageIdentity

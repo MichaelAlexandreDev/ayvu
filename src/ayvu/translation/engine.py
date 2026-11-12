@@ -18,6 +18,7 @@ from ..artifacts import Artifact
 from ..content import ContentDocument, TranslationUnit
 from ..formats import ContentScope, ExtractionRequest, ReconstructionRequest, UnitTranslation
 from ..formats import FormatPublication, FormatService, FormatSource
+from ..formats import BookFacts
 from ..kernel import ChapterSelection, ChapterSelectionError, JobFailure, JobFailureFamily, CancellationToken
 
 ENGINE_BEFORE_CHAPTER = "engine_before_chapter"
@@ -68,17 +69,6 @@ class TranslationResources:
 
     def __repr__(self) -> str:
         return "TranslationResources()"
-
-
-@dataclass(frozen=True, repr=False)
-class BookFacts:
-    """What the application needs about a book that its documents do not say."""
-
-    document_names: tuple[tuple[str, str], ...] = ()
-    title_holds_other_nodes: bool = False
-
-    def __repr__(self) -> str:
-        return f"BookFacts(documents={len(self.document_names)})"
 
 
 @dataclass(frozen=True, repr=False)

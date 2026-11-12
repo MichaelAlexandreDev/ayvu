@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
-from ayvu.v1.epub import TranslationReport
+from ayvu.translation import TranslationReport
 from ayvu.translation.preflight import PreflightError
 from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult

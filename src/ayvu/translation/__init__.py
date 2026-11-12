@@ -11,7 +11,7 @@ from .document import DocumentTranslator
 from .document_contracts import ExecutionContext, SAFE_POINTS, TranslationExecutionError, UnitSource
 from .raw_results import RAW_RESULTS_ROLE
 from .engine import (
-    ALT_TEXT_KIND, BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, METADATA_KIND,
+    ALT_TEXT_KIND, EngineObserver, EngineRequest, EngineResult, ExecutorPool, METADATA_KIND,
     STATUS_CACHE, STATUS_ERROR, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, TextStats,
     TranslationEngine, TranslationResources, UnitExecution,
 )
@@ -29,6 +29,7 @@ from .project_contracts import (
     TranslateProjectCommand, TranslateProjectPorts, TranslateProjectResult, TranslationRuntime,
     resolve_execution_plan,
 )
+from .report import HtmlTranslationStats, TextTranslationResult, TranslationReport, to_html_stats, to_report
 from .resume_reuse import (
     ArtifactIntegrity, INTEGRITY_REASONS, REUSE_DIMENSIONS, RecoveryReason, ResumeStage, StageEvidence,
     StageSelection, select_resume_stage,
@@ -37,17 +38,18 @@ from .resume_reuse import (
 __all__ = [
     "ALT_TEXT_KIND", "AcceptedOutputPlan", "ArtifactIntegrity", "BatchCancellationCommand",
     "BatchCancellationNotice", "BatchCommand", "BatchItem", "BatchOutputError", "BatchValidationError",
-    "BookFacts", "BookRefused", "ContinuationTicket", "DocumentTranslator", "EngineObserver", "EngineRequest",
-    "EngineResult", "ExecutionContext", "ExecutorPool", "INTEGRITY_REASONS", "INTERRUPTED",
+    "BookRefused", "ContinuationTicket", "DocumentTranslator", "EngineObserver", "EngineRequest",
+    "EngineResult", "ExecutionContext", "ExecutorPool", "HtmlTranslationStats", "INTEGRITY_REASONS", "INTERRUPTED",
     "INTERRUPTED_AFTER_PUBLICATION", "ItemOutcome", "ItemStatus", "LegacyTextPipelineFacade",
     "LinguisticSource", "METADATA_KIND", "OUTPUT_ROLE", "OWN_JOB_STATES", "OutputValidation",
     "PUBLICATION_UNCOMMITTED", "PreflightError", "ProjectTranslationUnavailable", "RAW_RESULTS_ROLE",
     "RECONSTRUCT_STAGE", "RECONSTRUCT_STAGE_VERSION", "REUSE_DIMENSIONS", "RecoveryReason", "ResumeStage",
     "ResumeStateError", "RuntimeContext", "SAFE_POINTS", "STATUS_CACHE", "STATUS_ERROR", "STATUS_MEMORY",
     "STATUS_MISSING", "STATUS_TRANSLATED", "StageEvidence", "StageSelection", "TRANSLATE_COMMAND_TYPE",
-    "TextStats", "TranslateBatch", "TranslateCommandError", "TranslateObserver", "TranslateProject",
+    "TextStats", "TextTranslationResult", "TranslateBatch", "TranslateCommandError", "TranslateObserver", "TranslateProject",
     "TranslateProjectCommand", "TranslateProjectPorts", "TranslateProjectResult",
     "TranslationDryRunCancelled", "TranslationEngine", "TranslationExecutionError", "TranslationResources",
-    "TranslationRuntime", "UnitExecution", "UnitSource", "resolve_execution_plan", "resolve_plan",
+    "TranslationReport", "TranslationRuntime", "UnitExecution", "UnitSource", "resolve_execution_plan", "resolve_plan",
     "select_resume_stage",
+    "to_html_stats", "to_report",
 ]

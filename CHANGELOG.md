@@ -59,6 +59,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), R1: relatório compartilhado movido para Translation e leitura dos fatos EPUB
+  para Formats, preservando corpos, contadores e saídas dos dois runtimes.
+
 - REF-18 (#286), R2: checkpoint compartilhado e leitura limitada passam do v1 para Recovery,
   preservando bytes, campos, defaults e retomadas dos dois runtimes; removidas as duas exceções de importação.
 

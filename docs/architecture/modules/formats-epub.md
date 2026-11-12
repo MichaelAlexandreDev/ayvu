@@ -7,6 +7,11 @@ references to later integrations describe that stage, not their current delivery
 
 ## Reading
 
+`ayvu.formats.epub.reader` is the public I/O adapter for `read_package`,
+shared by both translation runtimes after REF-18 R1. Import it explicitly: `ayvu.formats.epub`
+exports the HTML structure API without loading the archive reader. The values it returns,
+`BookFacts` and `BookPackage`, live in the I/O-free `formats/book_facts.py` (exported by `ayvu.formats`).
+
 Every check below runs before any unbounded read, and each failure is a bounded code that quotes nothing.
 A defective `mimetype` is not among them: a copy writes it correct and first.
 

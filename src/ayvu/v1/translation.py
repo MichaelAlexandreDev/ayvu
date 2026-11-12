@@ -6,22 +6,21 @@ pipeline identity they do not have. #153 and #146 retire the parts they replace.
 """
 from __future__ import annotations
 
-import posixpath
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 
 from ..content import TranslationUnit
-from ..formats.epub.archive import EpubArchive, EpubArchiveError, package_title, parse_package_for_edit
-from .epub import TranslationReport, _validate_worker_options
+from ..formats.epub.reader import read_package
+from .epub import _validate_worker_options
 from ..formats import FormatPublication, FormatService, FormatSource
 from ..formats.epub import html_unit_template, normalize_translated_text, review_text_from_template, without_xml_invalid
-from .html_translate import HtmlTranslationStats, TextTranslationResult, translate_text
+from .html_translate import translate_text
 from ..knowledge.memory import TranslationMemory
 from ..translation import (
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED,
-    BookFacts, EngineObserver, EngineRequest, EngineResult, ExecutorPool, TextStats, TranslationEngine,
+    HtmlTranslationStats, TextTranslationResult, TranslationReport, to_html_stats, to_report,
+    EngineObserver, EngineRequest, EngineResult, ExecutorPool, TranslationEngine,
     UnitExecution,
 )
 from ..kernel import TranslationOptions
@@ -98,55 +97,6 @@ class LegacyExecutorPool:
         translator = self._translator_factory()
         with self._cache_factory() as cache:
             yield LegacyUnitExecutor(translator, cache, self._options, glossary=self._glossary)
-
-
-@dataclass(frozen=True, repr=False)
-class BookPackage:
-    facts: BookFacts
-    archive_path: str | None = None
-    language: str | None = None
-
-
-def read_package(path: Path) -> BookPackage:
-    """A book the adapter refuses has no facts here, and the engine reports the refusal itself."""
-    try:
-        with path.open("rb") as stream, EpubArchive(stream) as archive:
-            package = archive.package
-            title = package_title(parse_package_for_edit(archive.read(package.archive_path)))
-            names = tuple((item.archive_path, posixpath.relpath(item.archive_path, package.base or "."))
-                          for item in package.documents)
-            return BookPackage(BookFacts(names, title is not None and len(title) > 0), package.archive_path, package.language)
-    except (EpubArchiveError, OSError, ValueError):
-        return BookPackage(BookFacts())
-
-
-def to_html_stats(stats: TextStats) -> HtmlTranslationStats:
-    converted = HtmlTranslationStats(
-        translated=stats.translated, from_cache=stats.from_cache, from_memory=stats.from_memory,
-        memory_suggestions=stats.memory_suggestions, alt_translated=stats.alt_translated, missing=stats.missing,
-        errors=list(stats.errors), missing_texts=list(stats.missing_texts),
-        memory_suggestion_texts=list(stats.memory_suggestion_texts))
-    for usage in stats.glossary_usages:
-        converted.glossary_usage.merge(usage)
-    return converted
-
-
-def to_report(result: EngineResult, source_path: Path, destination_path: Path, package: BookPackage,
-               options: TranslationOptions, glossary: object | None) -> TranslationReport:
-    report = TranslationReport(
-        output_path=destination_path, input_path=source_path, detected_language=package.language, target_language=options.target,
-        glossary_terms_configured=len(glossary.entries) if glossary else 0, output_written=result.output_written,
-        chapters_processed=result.chapters_processed)
-    stats = to_html_stats(result.stats)
-    report.texts_translated, report.texts_from_cache = stats.translated, stats.from_cache
-    report.texts_from_memory, report.memory_suggestions = stats.from_memory, stats.memory_suggestions
-    report.texts_missing, report.alt_texts_translated = stats.missing, stats.alt_translated
-    report.errors, report.missing_texts = stats.errors, stats.missing_texts
-    report.memory_suggestion_texts = stats.memory_suggestion_texts
-    report.glossary_usage = stats.glossary_usage
-    if glossary and result.output_written:
-        report.glossary_usage.finalize_required_terms(glossary)
-    return report
 
 
 def translate_book(source_path: Path, destination_path: Path, translator: object, cache: object, options: TranslationOptions, *,

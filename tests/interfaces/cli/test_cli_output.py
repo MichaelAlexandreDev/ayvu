@@ -2,7 +2,7 @@ from tests.support.cli_support import isolated_config
 from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
-from ayvu.v1.epub import TranslationReport
+from ayvu.translation import TranslationReport
 from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import FakeCache, _fake_translation, runner

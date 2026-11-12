@@ -20,9 +20,9 @@
     "src/ayvu/recovery/service.py": 498,
     "src/ayvu/review/application.py": 701,
     "src/ayvu/translation/context/model.py": 516,
-    "src/ayvu/translation/engine.py": 418,
+    "src/ayvu/translation/engine.py": 408,
     "src/ayvu/v1/cache.py": 503,
-    "src/ayvu/v1/epub.py": 691
+    "src/ayvu/v1/epub.py": 637
   },
   "functions": {
     "src/ayvu/formats/use_cases.py::ExportVisibleContent.execute": 136,

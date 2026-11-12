@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .cache import CacheKey, TranslationCache
 from ..knowledge.glossary import Glossary, GlossaryUsage, apply_glossary_with_usage
@@ -14,8 +14,8 @@ from ..formats.epub import (
     has_translatable_text,
     review_text_from_template,
 )
-from ..knowledge.memory import TranslationMemory, TranslationMemoryMatch
-from ..translation import LegacyTextPipelineFacade, LinguisticSource
+from ..knowledge.memory import TranslationMemory
+from ..translation import HtmlTranslationStats, LegacyTextPipelineFacade, LinguisticSource, TextTranslationResult
 from ..content import TAG_TOKEN_PATTERN, protected_terms_are_intact as _protected_terms_are_intact
 from ..providers.libretranslate.client import Translator
 from ..kernel import LanguagePair
@@ -23,31 +23,6 @@ from ..kernel import LanguagePair
 
 MAX_PROTECTED_RECOVERY_CALLS = 64
 TextProgressCallback = Callable[[str], None]
-
-
-@dataclass
-class HtmlTranslationStats:
-    translated: int = 0
-    from_cache: int = 0
-    from_memory: int = 0
-    memory_suggestions: int = 0
-    skipped: int = 0
-    alt_translated: int = 0
-    missing: int = 0
-    errors: list[str] = field(default_factory=list)
-    missing_texts: list[str] = field(default_factory=list)
-    memory_suggestion_texts: list[str] = field(default_factory=list)
-    glossary_usage: GlossaryUsage = field(default_factory=GlossaryUsage)
-
-
-@dataclass(frozen=True)
-class TextTranslationResult:
-    text: str
-    from_cache: bool = False
-    from_memory: bool = False
-    missing: bool = False
-    glossary_usage: GlossaryUsage = field(default_factory=GlossaryUsage)
-    memory_suggestion: TranslationMemoryMatch | None = None
 
 
 @dataclass(frozen=True)

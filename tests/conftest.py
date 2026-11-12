@@ -84,7 +84,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "interfaces/cli/test_cli_translate_target_profiles.py",
         "interfaces/cli/test_cli_console_security.py",
         "formats/epub/test_epub_io_paths.py",
-        "v1/test_epub_translation_values.py",
+        "v1/test_epub_translation_values.py", "translation/test_report.py",
         "v1/test_epub_translation_execution.py",
         "v1/test_epub_translation_metadata.py",
         "formats/epub/test_epub_io_language.py",

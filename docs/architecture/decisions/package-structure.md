@@ -100,6 +100,11 @@ imports are layer rules instead of exceptions.
 
 `application/` holds only the truly cross-cutting contracts left over from `cli_contracts.py`.
 
+R1 of REF-18 (#286) moves the book values `BookFacts` and `BookPackage` to
+`formats/book_facts.py`, an I/O-free module exported by `ayvu.formats`, and the unchanged
+book-fact reader to `formats.epub.reader`, which is excluded from package exports. Translation
+imports the values downwards; no layer exception and no group cycle are added.
+
 ### D4. A deliberately small `kernel/`
 - It takes identifiers, UTC validation, cancellation, typed failures and warnings, the SQLite migration
   runner and the common domain values (languages).
@@ -246,13 +251,13 @@ src/ayvu/
   application/     contracts (cross-cutting only)
   jobs/            model, events, execution, service, store
   artifacts/       model, service, store, destination
-  formats/         contracts, service, local; epub/ (archive, adapter, io, html_structure, validation); markdown/
+  formats/         contracts, service, local; epub/ (archive, adapter, io, reader, html_structure, validation); markdown/
   knowledge/       cache/ (identity, schema, legacy_schema, legacy_format, legacy_stream, legacy_admin_store, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
                    memory/ (fuzzy; approved/ model, service, store); glossary/ (rules, catalog, catalog_store)
   providers/       ports, capabilities, discovery, service, network, session;
                    libretranslate/ (client, adapter)
   projects/        model, service, store, schema; profiles/ (model, service, store, glossary_store)
-  translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output;
+  translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output, report;
                    stages/ (memory_retrieval); context/ (model, execution, source)
   review/          application, exchange, exchange_model, exchange_parts, exchange_mapping,
                    exchange_codec, exchange_files, csv_export, csv_import;
@@ -280,7 +285,7 @@ The table of where each flat module was planned to go is in the [refactoring fil
 | interfaces ↔ translation | `preflight`, `batch_output_policy` and `translate_project_composition` use `cli_contracts` | REF-04 and REF-05 |
 | content ↔ formats | Resolved: inspection and export orchestration now lives in `formats/use_cases.py`; content does not import formats | REF-07, owner's decision of 2026-11-12 |
 | formats ↔ review | `epub_io` reads and writes the review CSV | REF-10 |
-| formats ↔ translation | `html_structure` and `html_translate` use `translation_protection` and the pipeline | REF-06 (`html_translate` to v1) and REF-07 (`content/protection`) |
+| formats ↔ translation | Resolved: Earlier HTML dependencies by REF-06/REF-07; R1 of REF-18 (#286) put `BookFacts`/`BookPackage` in `formats/book_facts.py`, so the EPUB reader imports nothing from Translation | REF-06, REF-07, REF-18 R1 |
 | knowledge ↔ translation | `memory_retrieval` (in knowledge) uses `translation_plan` and `translation_protection` | REF-07 and REF-09 (`memory_retrieval` to the pipeline) |
 | artifacts ↔ formats | `artifact_destination` calls `format_local` and `format_service` | REF-08 (a port) |
 | formats ↔ v1 | `epub_io` uses the v1 cache, translator and HTML translation; `validation` uses `extract_visible_text` | REF-10 |

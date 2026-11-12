@@ -2,8 +2,8 @@
 import json
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
-from ayvu.v1.epub import TranslationReport
-from ayvu.v1.html_translate import HtmlTranslationStats
+from ayvu.translation import TranslationReport
+from ayvu.translation import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
 from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 

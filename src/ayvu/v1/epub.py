@@ -13,8 +13,9 @@ from ebooklib import epub
 
 from .cache import TranslationCache
 from ..formats.epub.archive import package_title, parse_package_for_edit, serialize_package
-from ..knowledge.glossary import Glossary, GlossaryUsage
-from .html_translate import HtmlTranslatedSegment, HtmlTranslationStats, TextTranslationResult, translate_html, translate_text
+from ..knowledge.glossary import Glossary
+from .html_translate import HtmlTranslatedSegment, translate_html, translate_text
+from ..translation import HtmlTranslationStats, TextTranslationResult, TranslationReport
 from ..review import METADATA_CHAPTER_NAME, METADATA_SEGMENT_ID, METADATA_SEGMENT_KIND, ReviewSegment, format_segment_id
 from ..review import LegacyReviewInspection, ReviewImportError
 from ..knowledge.memory import TranslationMemory
@@ -68,61 +69,6 @@ class EpubStructureError:
 
     def as_message(self) -> str:
         return f"{self.document.name}: {self.detail}"
-
-
-@dataclass
-class TranslationReport:
-    chapters_processed: int = 0
-    texts_translated: int = 0
-    texts_from_cache: int = 0
-    texts_from_memory: int = 0
-    memory_suggestions: int = 0
-    texts_skipped: int = 0
-    texts_missing: int = 0
-    alt_texts_translated: int = 0
-    errors: list[str] = field(default_factory=list)
-    missing_texts: list[str] = field(default_factory=list)
-    memory_suggestion_texts: list[str] = field(default_factory=list)
-    glossary_terms_configured: int = 0
-    glossary_usage: GlossaryUsage = field(default_factory=GlossaryUsage)
-    output_path: Path | None = None
-    output_written: bool = True
-    review_output_path: Path | None = None
-    input_path: Path | None = None
-    detected_language: str | None = None
-    target_language: str | None = None
-
-    def record_error(self, message: str) -> None:
-        self.errors.append(message)
-
-    def record_chapter(self, stats: HtmlTranslationStats) -> None:
-        self.texts_translated += stats.translated
-        self.texts_from_cache += stats.from_cache
-        self.texts_from_memory += stats.from_memory
-        self.memory_suggestions += stats.memory_suggestions
-        self.texts_skipped += stats.skipped
-        self.texts_missing += stats.missing
-        self.alt_texts_translated += stats.alt_translated
-        self.errors.extend(stats.errors)
-        self.missing_texts.extend(stats.missing_texts)
-        self.memory_suggestion_texts.extend(stats.memory_suggestion_texts)
-        self.glossary_usage.merge(stats.glossary_usage)
-        self.chapters_processed += 1
-
-    def record_text(self, result: TextTranslationResult) -> None:
-        if result.memory_suggestion is not None:
-            self.memory_suggestions += 1
-            self.memory_suggestion_texts.append(result.memory_suggestion.original)
-        if result.from_memory:
-            self.texts_from_memory += 1
-        elif result.missing:
-            self.texts_missing += 1
-            self.missing_texts.append(result.text)
-        elif result.from_cache:
-            self.texts_from_cache += 1
-        else:
-            self.texts_translated += 1
-        self.glossary_usage.merge(result.glossary_usage)
 
 
 @dataclass
