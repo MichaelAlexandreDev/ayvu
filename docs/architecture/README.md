@@ -39,7 +39,7 @@ Every record opens with `Status`, `Decision-Date`, `Owners` and `Issue`. A compa
 | [Rights assertions, purpose grants and effective policy](decisions/rights-purpose-grants.md) | Proposed |
 | [Revocation, retention and tombstones](decisions/rights-purpose-retention.md) | Proposed |
 | [ADR: Translation pipeline](decisions/translation-pipeline.md) | Accepted |
-| [Retirement of the v1 translation runtime](decisions/v1-retirement.md) | Proposed |
+| [Retirement of the v1 translation runtime](decisions/v1-retirement.md) | Accepted |
 
 ## Modules
 
