@@ -15,21 +15,21 @@ command and the guided offer run through them, with the prompts they always had.
 
 ## What a resume is today
 
-A full re-execution under a new job linked to the old one. Sem rótulo, o runtime
-legado continua sobre o cache v1:
+A full re-execution under a new job linked to the old one. Without a label, the legacy
+runtime continues on v1 cache:
 
 - The v1 cache holds languages, a hash and two texts. Nothing says which provider, model or pipeline produced a text.
 - Legacy lineage records `unknown` for its producer.
 - A legacy run produces one artifact, `translated_output`.
 - The plan's fingerprint holds a digest of translator and address, and no model, route, capabilities or versions.
 
-No legado, um acerto evita uma chamada e não prova a origem: os motivos incluem
-`provenance_unproven`. Desde #252, o runtime rico opcional reexecuta sobre o arquivo
-v2 irmão de `--cache`, com produtor declarado e resultados brutos por documento.
-Os segmentos concluídos ficam em v2 após uma falha. Desde #242, uma continuação rica
-reaproveita os resultados brutos dos documentos que o job anterior concluiu, quando prova
-todas as dimensões iguais (veja abaixo). A inspeção continua dizendo
-`provider_calls_may_repeat`, porque sem rede não prova rota nem capacidades.
+In the legacy runtime, a hit avoids a call without proving origin: reasons include
+`provenance_unproven`. Since #252, the optional rich runtime re-executes on the
+v2 sibling of `--cache`, with a declared producer and per-document raw results.
+Completed segments stay in v2 after a failure. Since #242, a rich continuation
+reuses raw results of documents completed by the previous job when it proves
+all dimensions equal (see below). Inspection still says
+`provider_calls_may_repeat`, because without network it proves neither route nor capabilities.
 
 ## The three use cases
 
@@ -63,13 +63,13 @@ A file is a record of how a run was invoked, and it is never proof. It has to re
 
 A project with no job on that plan stays `legacy_only`. No project is created and no identity is made up to fit an old file.
 
-O checkpoint rico grava apenas a revisão genérica de execução `2`, sem rótulo de
-modelo. O arquivo legado omite esse campo e continua significando revisão `1`, com
-os mesmos bytes anteriores. Para revisão diferente de `1`, a associação confere as
-duas variantes de overwrite contra o job e seu produtor na proveniência, não contra
-a configuração atual. Também usa os `output_roles` reais daquele pedido. Sem evidência
-de produtor ou sem coincidência do fingerprint, a entrada é recusada; nunca volta
-silenciosamente ao fluxo sem projeto/v1.
+The rich checkpoint records only generic execution revision `2`, without a model
+label. The legacy file omits this field and still means revision `1`, with
+the same previous bytes. For a revision other than `1`, association checks both
+overwrite variants against the job and its producer in provenance, not against
+the current configuration. It also uses that request's real `output_roles`. Without producer
+evidence or a matching fingerprint, the entry is refused; it never silently returns
+to the project-free/v1 flow.
 
 **A legacy file that does not match loses the link and not the translation.** It runs on the current flow, as it does today, and
 the old job is settled by the next run of its plan or once its lease expires.
@@ -85,8 +85,8 @@ profile stays `legacy_only`.
    run would refuse itself. A resume differs from its parent in the overwrite flag, so its own guard says nothing about
    the parent's process. A plan held by a live process is refused as `job_in_progress`.
 2. **The ticket.** A revision that differs is `stale_revision`, and a job already continued is `continuation_exists`.
-   A revisão de execução do pedido também deve coincidir com a do pai; a recusa
-   `runtime_mismatch` nomeia `legacy/v1` e `rich/v2` na CLI, antes do provedor.
+   The request's execution revision must also match the parent's; refusal
+   `runtime_mismatch` names `legacy/v1` and `rich/v2` in the CLI, before the provider.
 3. **The parent's outcome.** It is settled as in [the use case](translate-project.md#crashes-and-interruptions), and a job
    that is still not terminal is `job_not_resumable`. A job that ended stays exactly as it ended.
 4. **The new job** is linked with `create_continuation`, which a unique constraint allows once per job.
@@ -186,9 +186,9 @@ book was done.
 
 ## What this does not prove
 
-- What produced a text in the legacy v1 cache. No modelo rico, `declared:<rótulo>`
-  é uma declaração do usuário, não uma identidade observada no servidor. Trocar o
-  modelo do servidor sem trocar o rótulo reutiliza resultados antigos.
+- What produced a text in the legacy v1 cache. In the rich model, `declared:<label>`
+  is a user declaration, not an identity observed on the server. Changing the
+  server model without changing the label reuses old results.
 - Whether a call interrupted by a crash reached the provider. It is made again.
 - That a `legacy_only` book is the one it was, when no project recorded it.
 - Native Windows and network filesystems, as for the guard itself.

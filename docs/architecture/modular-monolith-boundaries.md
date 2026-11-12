@@ -75,9 +75,9 @@ scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle
 [provider capabilities](provider-capabilities.md) (`DEC-008`) and
 [translation pipeline](translation-pipeline.md) (`DEC-007`).
 
-A decisão [workers locais e IPC](adr-local-worker-isolation.md) (#167) foi
-`Accepted` em 2026-11-10. Ainda não há runner em produção, e ela não altera
-estas fronteiras aceitas.
+The [local workers and IPC](adr-local-worker-isolation.md) decision (#167) was
+`Accepted` on 2026-11-10. There is still no production runner, and it does not change
+these accepted boundaries.
 
 ## Architecture dimensions
 
@@ -326,19 +326,19 @@ issue.
 | Current module | Current responsibility | Target owner and disposition |
 | --- | --- | --- |
 | `src/ayvu/__init__.py` | Package version metadata | Package public surface; keep minimal and independent of functional modules |
-| `src/ayvu/interfaces/cli/app.py` | Typer, fluxo guiado, confirmações, relatórios textuais e projeção de saídas | **Interfaces/CLI**; invoca contratos e funções nomeadas da composição consolidada por #158 |
-| `src/ayvu/composition/cli.py` | Construção tardia e explícita dos serviços/adaptadores selecionados | **Composition/CLI**; reutiliza composições por capacidade, sem registro ou singleton |
-| `src/ayvu/interfaces/cli/contracts.py` | Portas estruturais, resultados de compatibilidade e erros compartilhados | **Application**; sem infraestrutura ou framework de apresentação |
-| `src/ayvu/preferences/model.py` | Valores v1 e conversões de preferências | **Domain/Preferences**; `preferences/config_facade.py` preserva seus reexports de compatibilidade |
+| `src/ayvu/interfaces/cli/app.py` | Typer, guided flow, confirmations, textual reports and output projection | **Interfaces/CLI**; invokes contracts and named functions from composition consolidated by #158 |
+| `src/ayvu/composition/cli.py` | Deferred explicit construction of selected services/adapters | **Composition/CLI**; reuses per-capability composition, without registry or singleton |
+| `src/ayvu/interfaces/cli/contracts.py` | Structural ports, compatibility results and shared errors | **Application**; without infrastructure or presentation framework |
+| `src/ayvu/preferences/model.py` | V1 values and preference conversions | **Domain/Preferences**; `preferences/config_facade.py` preserves its compatibility reexports |
 | `src/ayvu/interfaces/cli/progress.py` | Rich progress adaptation and snapshots | **Interfaces/CLI** keeps Rich rendering; semantic progress DTOs and cancellation later belong to **Application/Jobs** |
 | `src/ayvu/kernel/values.py` (was `domain.py`, moved by REF-04) | Shared value objects and policies for languages, outputs, chapters, memory, and execution | Transitional domain collection; split only when a use case establishes ownership in **Domain**, **Translation**, **Jobs**, or **Policies** |
-| `src/ayvu/preferences/config_facade.py` | Fachada compatível sobre os casos de uso de preferências e repositório JSON | **Infrastructure**; construção escolhida em `composition.cli` e valores em `preferences.model` |
+| `src/ayvu/preferences/config_facade.py` | Compatible facade over preference use cases and JSON repository | **Infrastructure**; construction selected in `composition.cli` and values in `preferences.model` |
 | `src/ayvu/formats/epub/io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
 | `src/ayvu/v1/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
 | `src/ayvu/translation/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
 | `src/ayvu/providers/libretranslate/client.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
-| `src/ayvu/network/policy.py` | Vocabulário fechado none/loopback, classificação pura de destino e snapshot imutável por pedido (#159) | **Policies/Domain**; sem I/O ou dependência de interface; ver [contrato HTTP](network-policy.md) |
-| `src/ayvu/network/http.py` | Resolução injetável única e transporte Requests preso a sockaddrs loopback validados, sem ambiente ou redirects | **Providers/Infrastructure**; consome a decisão de Policies e não adiciona provedor nem entrada de interface |
+| `src/ayvu/network/policy.py` | Closed none/loopback vocabulary, pure destination classification and immutable per-request snapshot (#159) | **Policies/Domain**; without I/O or interface dependency; see [HTTP contract](network-policy.md) |
+| `src/ayvu/network/http.py` | Single injectable resolution and Requests transport pinned to validated loopback sockaddrs, without environment or redirects | **Providers/Infrastructure**; consumes the Policies decision and adds neither provider nor interface entry point |
 | `src/ayvu/translation/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
 | `src/ayvu/v1/cache.py` | Exact-cache identity, SQLite schema, querying, mutation, and JSON interchange | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
 | `src/ayvu/knowledge/memory/fuzzy.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
@@ -359,11 +359,11 @@ These traces keep the accepted boundaries anchored in production behavior.
 
 | Flow | Current path | Incremental target seam |
 | --- | --- | --- |
-| Translate EPUB / batch | `interfaces/cli/app.py` → `composition.cli` → `TranslateProject` / `TranslateBatch` e portas entregues | Serviços possuem execução, cancelamento e publicação; CLI projeta eventos e resultados |
-| Export review | `interfaces/cli/app.py` → composição → `ExportReviewPackage` com o resultado exato da tradução | Reconstrução e publicação pertencem a Review e aos adaptadores D106 |
-| Apply review | `interfaces/cli/app.py` → composição → `ValidateReviewPackage` / `ApplyReviewPackage` | Serviços validam revisões e publicam; v1 é recusado antes de inspecionar a origem |
-| Inspect, clean, export, or import cache | `interfaces/cli/app.py` → composição → `knowledge.cache.admin` | Consulta/mutação e autorização explícita nos serviços; SQLite/JSON nos adaptadores |
-| Resume interrupted translation | `interfaces/cli/app.py` → composição → `recovery.service` → mesmo `TranslateProject` | Inspeção somente leitura, decisões explícitas e continuidade durável; checkpoint legado preservado |
+| Translate EPUB / batch | `interfaces/cli/app.py` → `composition.cli` → `TranslateProject` / `TranslateBatch` and delivered ports | Services own execution, cancellation and publication; CLI projects events and results |
+| Export review | `interfaces/cli/app.py` → composition → `ExportReviewPackage` with the exact translation result | Reconstruction and publication belong to Review and D106 adapters |
+| Apply review | `interfaces/cli/app.py` → composition → `ValidateReviewPackage` / `ApplyReviewPackage` | Services validate revisions and publish; v1 is refused before source inspection |
+| Inspect, clean, export, or import cache | `interfaces/cli/app.py` → composition → `knowledge.cache.admin` | Query/mutation and explicit authorization in services; SQLite/JSON in adapters |
+| Resume interrupted translation | `interfaces/cli/app.py` → composition → `recovery.service` → same `TranslateProject` | Read-only inspection, explicit decisions and durable continuation; legacy checkpoint preserved |
 
 No target seam changes the current result, output naming, ordering, cache/glossary
 semantics, or source immutability unless a later issue explicitly revises the
@@ -379,18 +379,18 @@ conditionals that belong to owned modules.
 
 ### CLI composition root
 
-A entrada instalada `ayvu = ayvu.interfaces.cli.app:app` permanece a mesma. `interfaces/cli/app.py` converte
-argumentos e escolhas confirmadas em entradas dos serviços e apresenta seus
-resultados com Rich. `composition/cli.py` é a fronteira explícita que seleciona
-e constrói os adaptadores por fluxo; os módulos de composição das capacidades
-continuam reutilizáveis. A importação e `--help` não abrem stores nem constroem
-provedores. Cache-only não adquire provedor, segredo ou transporte; consultas
-abrem somente seus repositórios necessários. Não há service locator ou singleton.
+The installed entry point `ayvu = ayvu.interfaces.cli.app:app` stays the same. `interfaces/cli/app.py` converts
+arguments and confirmed choices to service inputs and presents their
+results with Rich. `composition/cli.py` is the explicit boundary that selects
+and constructs adapters per flow; capability composition modules
+remain reusable. Import and `--help` neither open stores nor construct
+providers. Cache-only acquires no provider, secret or transport; queries
+open only required repositories. There is no service locator or singleton.
 
-A [matriz compartilhada](shared-use-case-matrix.md) contém os donos finais,
-o inventário completo de helpers/fachadas, o SHA-base congelado e as regras de
-construção tardia. As [regras executáveis](dependency-boundary-enforcement.md)
-de #133 verificam também dependências transitivas e reexports da apresentação.
+The [shared matrix](shared-use-case-matrix.md) contains final owners,
+the full helper/facade inventory, frozen base SHA and deferred construction
+rules. #133 [executable rules](dependency-boundary-enforcement.md)
+also check transitive dependencies and presentation reexports.
 
 ### Desktop composition root
 

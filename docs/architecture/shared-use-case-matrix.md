@@ -2,10 +2,10 @@
 
 Implementation: Implementation matrix consolidated in #158; this does not change ADR status.
 
-Esta é a matriz compartilhada de #123, atualizada após as dependências de #158.
-Registra os serviços entregues e as decisões de apresentação da CLI. Desktop,
-API e MCP devem consumir esses contratos por suas próprias raízes de composição;
-a matriz não introduz uma interface nem aceita um ADR adicional.
+This is the #123 shared matrix, updated after #158 dependencies.
+It records delivered services and CLI presentation decisions. Desktop,
+API and MCP must consume these contracts through their own composition roots;
+the matrix neither introduces an interface nor accepts an additional ADR.
 
 The product boundary remains defined by [Product scope](../product-scope.md).
 Current command examples remain documented in the [README](../../README.md), and
@@ -37,12 +37,12 @@ the capability it exposes.
 | ID | Capability and invocations | Current owner and evidence | Inputs | Side effects and network | Progress, cancellation, errors, artifacts | Consumers |
 | --- | --- | --- | --- | --- | --- | --- |
 | `AYVU-UC-001` | Inspect EPUB metadata and inventory: `inspect` | [`content_use_cases.py`](../../src/ayvu/content_use_cases.py), [`composition/builders/content.py`](../../src/ayvu/composition/builders/content.py), [`formats/service.py`](../../src/ayvu/formats/service.py), [`formats/epub/adapter.py`](../../src/ayvu/formats/epub/adapter.py); [`test_content_inspection.py`](../../tests/content_use_cases/test_content_inspection.py), [`test_content_redaction.py`](../../tests/content_use_cases/test_content_redaction.py), [`test_cli_content.py`](../../tests/interfaces/cli/test_cli_content.py) | EPUB source reference; optional cancellation and progress ports | Reads local EPUB only; no network, cache, project, job, artifact or destination writes | Typed inventory, format capabilities, source revision, bounded warnings, progress, cancellation and normalized failures; CLI renders the existing six-field table | CLI and framework-free consumer now; Desktop/API/MCP after adapter work |
-| `AYVU-UC-002` | Teste explícito: `test-translator` | `providers.discovery.ProviderDiscoveryService.test_provider`, via `composition.cli.cli_provider_session`; `tests/providers/test_provider_discovery_operations.py`, `tests/providers/libretranslate/test_provider_discovery_libretranslate.py`, `tests/interfaces/cli/test_cli_translator.py` | Configuração explícita, par de idiomas e política de execução | Envia somente a amostra pública fixa; nenhum documento | Resultado tipado, diagnóstico limitado e saída legada | CLI e consumidor sem framework; futuras interfaces autorizam sua política |
-| `AYVU-UC-003` | Idiomas: `languages` e seleção guiada | `providers.discovery.ProviderDiscoveryService.languages`, via `composition.cli.cli_provider_session`; `tests/providers/test_provider_discovery_operations.py`, `tests/providers/libretranslate/test_provider_discovery_libretranslate.py`, `tests/translation/test_preflight_provider_routes.py`, `tests/interfaces/cli/test_cli_translator.py` | Configuração explícita e política de execução | Consulta explícita de idiomas; não realiza tradução de teste | Coleção tipada, falhas normalizadas e renderização CLI | CLI e consumidor sem framework |
+| `AYVU-UC-002` | Explicit test: `test-translator` | `providers.discovery.ProviderDiscoveryService.test_provider`, via `composition.cli.cli_provider_session`; `tests/providers/test_provider_discovery_operations.py`, `tests/providers/libretranslate/test_provider_discovery_libretranslate.py`, `tests/interfaces/cli/test_cli_translator.py` | Explicit configuration, language pair and execution policy | Sends only the fixed public sample; no document | Typed result, bounded diagnostics and legacy output | CLI and framework-free consumer; future interfaces authorize their policy |
+| `AYVU-UC-003` | Languages: `languages` and guided selection | `providers.discovery.ProviderDiscoveryService.languages`, via `composition.cli.cli_provider_session`; `tests/providers/test_provider_discovery_operations.py`, `tests/providers/libretranslate/test_provider_discovery_libretranslate.py`, `tests/translation/test_preflight_provider_routes.py`, `tests/interfaces/cli/test_cli_translator.py` | Explicit configuration and execution policy | Explicit language query; performs no test translation | Typed collection, normalized failures and CLI rendering | CLI and framework-free consumer |
 | `AYVU-UC-004` | Translate one EPUB: `translate <epub>`, guided Translate | [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py), [`translation/project.py`](../../src/ayvu/translation/project.py), [`review/application.py`](../../src/ayvu/review/application.py), [`composition/builders/review.py`](../../src/ayvu/composition/builders/review.py), `composition/builders/review_packages.py`, `composition/builders/review_operations.py`, [`v1/epub.py`](../../src/ayvu/v1/epub.py), [`v1/html_translate.py`](../../src/ayvu/v1/html_translate.py), [`v1/cache.py`](../../src/ayvu/v1/cache.py), [`translation/preflight.py`](../../src/ayvu/translation/preflight.py), [`providers/libretranslate/client.py`](../../src/ayvu/providers/libretranslate/client.py), [`v1/resume.py`](../../src/ayvu/v1/resume.py), [`knowledge/memory/fuzzy.py`](../../src/ayvu/knowledge/memory/fuzzy.py), [`formats/epub/validation.py`](../../src/ayvu/formats/epub/validation.py), [`preferences/config_facade.py`](../../src/ayvu/preferences/config_facade.py), [`interfaces/cli/progress.py`](../../src/ayvu/interfaces/cli/progress.py); [`test_workflow_translation_resume.py`](../../tests/interfaces/cli/test_workflow_translation_resume.py), [`test_workflow_route_review.py`](../../tests/interfaces/cli/test_workflow_route_review.py), [`test_workflow_translation_reporting.py`](../../tests/interfaces/cli/test_workflow_translation_reporting.py), [`test_cli_project_translation.py`](../../tests/interfaces/cli/test_cli_project_translation.py), [`test_cli_progress.py`](../../tests/interfaces/cli/test_cli_progress.py) | Input EPUB, language/profile, chapter selection, translator/cache/glossary/TM policies, execution controls, output/review policies | Reads the original without changing it; reads/writes SQLite cache and checkpoint; normally calls configured HTTP translator; `--cache-only` makes no translator request; may write translated EPUB, v2 review package, missing-text TXT, and Markdown reports | `TranslateProject` owns the durable translation result; review export consumes that exact result through a separate no-provider use case and D106 publication; cancellation and outcome contracts are shared | CLI now; framework-free application consumers now; Desktop/API/MCP after adapter work |
-| `AYVU-UC-005` | Lote: `translate <epub>...` | `translation.batch.TranslateBatch`, `composition.builders.translate_batch.LocalTranslateBatch`, via `composition.cli.translate_batch`; `tests/interfaces/cli/test_translate_batch_output_planning.py`, `tests/interfaces/cli/test_translate_batch_execution_integration.py`, `tests/interfaces/cli/test_batch_bounded_validation.py` | Ordem, destinos, políticas e confirmações resolvidas; mesmas restrições públicas | Plano completo e limitado antes da execução; executa o mesmo serviço por projeto; publicações e relatórios por item | Eventos e resultados por item; cancelamento, continuidade e falha rápida pertencem ao serviço; Rich apenas projeta | CLI e consumidor sem framework |
-| `AYVU-UC-006` | Preview: raiz `--preview` e fluxo guiado | `composition.cli._translate_without_project` conecta a fachada entregue `composition.builders.translate_project.translate_without_project`; `tests/interfaces/cli/test_workflow_batch_preview.py`, `tests/kernel/test_cli_output_plan.py`, `test_cli_composition.py` | EPUB, destino confirmado, idioma e seleção de preview | Lê original; usa somente cache/provedor necessários; publica preview sem criar projeto/checkpoint | Mantém os callbacks de compatibilidade e uma validação final; relatório e caminho visível deliberadamente | CLI; futura interface deve fornecer seu próprio presenter |
-| `AYVU-UC-007` | Retomada: `resume [epub]` e oferta guiada | `recovery.service.ListInterruptedJobs`, `InspectJobRecoverability`, `RequestJobResume`, via `composition.cli.open_job_recovery`; `tests/interfaces/cli/test_cli_recovery.py`, `tests/recovery/test_job_recovery_*_integration.py` | Referência opaca, decisões explícitas e configuração salva | Inspeção somente leitura; retomada autoriza continuação do mesmo `TranslateProject`; checkpoint legado continua compatível | Resultado de recuperabilidade, motivos limitados, cancelamento e cadeia durável; menu e confirmação pertencem à CLI | CLI e consumidor sem framework |
+| `AYVU-UC-005` | Batch: `translate <epub>...` | `translation.batch.TranslateBatch`, `composition.builders.translate_batch.LocalTranslateBatch`, via `composition.cli.translate_batch`; `tests/interfaces/cli/test_translate_batch_output_planning.py`, `tests/interfaces/cli/test_translate_batch_execution_integration.py`, `tests/interfaces/cli/test_batch_bounded_validation.py` | Resolved order, destinations, policies and confirmations; same public restrictions | Complete bounded plan before execution; runs the same service per project; per-item publications and reports | Per-item events and results; cancellation, continuation and fail-fast belong to the service; Rich only projects | CLI and framework-free consumer |
+| `AYVU-UC-006` | Preview: root `--preview` and guided flow | `composition.cli._translate_without_project` connects the delivered facade `composition.builders.translate_project.translate_without_project`; `tests/interfaces/cli/test_workflow_batch_preview.py`, `tests/kernel/test_cli_output_plan.py`, `test_cli_composition.py` | EPUB, confirmed destination, language and preview selection | Reads original; uses only required cache/provider; publishes preview without creating project/checkpoint | Retains compatibility callbacks and one final validation; report and path deliberately visible | CLI; a future interface must supply its own presenter |
+| `AYVU-UC-007` | Resume: `resume [epub]` and guided offer | `recovery.service.ListInterruptedJobs`, `InspectJobRecoverability`, `RequestJobResume`, via `composition.cli.open_job_recovery`; `tests/interfaces/cli/test_cli_recovery.py`, `tests/recovery/test_job_recovery_*_integration.py` | Opaque reference, explicit decisions and saved configuration | Read-only inspection; resume authorizes continuation of the same `TranslateProject`; legacy checkpoint remains compatible | Recoverability result, bounded reasons, cancellation and durable chain; menu and confirmation belong to CLI | CLI and framework-free consumer |
 | `AYVU-UC-008` | Extract reader-visible content: `extract` | [`content_use_cases.py`](../../src/ayvu/content_use_cases.py), [`composition/builders/content.py`](../../src/ayvu/composition/builders/content.py), [`formats/epub/adapter.py`](../../src/ayvu/formats/epub/adapter.py), [`formats/epub/html_structure.py`](../../src/ayvu/formats/epub/html_structure.py), [`formats/markdown/writer.py`](../../src/ayvu/formats/markdown/writer.py); [`test_content_export.py`](../../tests/content_use_cases/test_content_export.py), [`test_markdown_writer_guards.py`](../../tests/formats/markdown/test_markdown_writer_guards.py), [`test_markdown_writer_publication.py`](../../tests/formats/markdown/test_markdown_writer_publication.py), [`test_markdown_writer_filesystem.py`](../../tests/formats/markdown/test_markdown_writer_filesystem.py), [`test_content_redaction.py`](../../tests/content_use_cases/test_content_redaction.py), [`test_cli_content.py`](../../tests/interfaces/cli/test_cli_content.py) | EPUB source reference, authorized output directory and overwrite policy; optional expected revision, cancellation and progress ports | Reads EPUB and atomically publishes one Markdown file per document; no network or durable project/artifact record; unrelated output files are preserved | Full output plan is validated before publication; typed per-file completed/failed/not-started outcomes, progress, cancellation and normalized failures; partial publication is explicit and no directory transaction is claimed | CLI and framework-free consumer now; Desktop/API/MCP after adapter work |
 | `AYVU-UC-009` | Export, inspect, validate, and apply review packages: `translate --review-output`, `apply-review` | [`review/application.py`](../../src/ayvu/review/application.py), [`composition/builders/review.py`](../../src/ayvu/composition/builders/review.py), `composition/builders/review_packages.py`, `composition/builders/review_operations.py`, [`review/csv_import.py`](../../src/ayvu/review/csv_import.py), [`review/exchange.py`](../../src/ayvu/review/exchange.py), `review/exchange_codec.py`, `review/exchange_mapping.py`, [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py); [`test_review_application_export_validate.py`](../../tests/review/test_review_application_export_validate.py), [`test_review_application_apply.py`](../../tests/review/test_review_application_apply.py), [`test_review_exchange_codec.py`](../../tests/review/test_review_exchange_codec.py), [`test_review_exchange_mapping.py`](../../tests/review/test_review_exchange_mapping.py), [`test_review_exchange_legacy.py`](../../tests/review/test_review_exchange_legacy.py), [`test_review_exchange_epub_integration.py`](../../tests/review/test_review_exchange_epub_integration.py), [`test_cli_project_review_application.py`](../../tests/interfaces/cli/test_cli_project_review_application.py), [`test_cli_project_review_status.py`](../../tests/interfaces/cli/test_cli_project_review_status.py), [`test_cli_project_review_races.py`](../../tests/interfaces/cli/test_cli_project_review_races.py), [`test_cli_project_review_reconciliation.py`](../../tests/interfaces/cli/test_cli_project_review_reconciliation.py), [`test_cli_translate_review_export.py`](../../tests/interfaces/cli/test_cli_translate_review_export.py) | Exact `TranslateProjectResult` for export; bounded v1 inspection or v2 bytes plus source/project/machine/format context; output and overwrite policy for apply | V1 inspection and v2 validation are read-only; export/apply use no provider/network; export publishes the sensitive v2 package through D106; apply reconstructs, validates and publishes a new EPUB through D106 | Application commands/results are framework-neutral; validation evidence is a digest, not authorization; apply fully revalidates; v1 apply stops with `legacy_reexport_required`; job, progress, cancellation, errors, events and provenance carry bounded codes and opaque identities | CLI and framework-free application consumer now; future Desktop/API/MCP after adapter work |
 | `AYVU-UC-010` | Inspect cache | [`knowledge/cache/admin.py`](../../src/ayvu/knowledge/cache/admin.py), `composition/builders/cache_admin.py`, `knowledge/cache/admin_v2_store.py`, [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py) | Cache reference, authorized namespace or explicit all, filters | Reads SQLite without creating absent caches; no network | Bounded aggregate metadata, progress, cancellation, warnings and normalized failures; default legacy gate remains | CLI and framework-free consumers with appropriate authorization |
@@ -50,27 +50,27 @@ the capability it exposes.
 | `AYVU-UC-012` | Export cache | Same as UC-010 | Cache and destination references, authorized namespace or explicit all, filters and overwrite policy | Reads SQLite and atomically publishes sensitive JSON; no network | Count and actual JSON format version, progress, cancellation, warnings and normalized failures | CLI and framework-free consumers with appropriate authorization |
 | `AYVU-UC-013` | Import cache | Same as UC-010 | Cache and source references, caller-authorized external scope map, replace policy and revision-bound preview | Validates JSON and mapping before transactional SQLite mutation; no network; preview is discarded on refusal/failure or retained as audit after successful import | Counts, conflicts, duplicates, preview revision, progress, cancellation, warnings and normalized failures; sensitive audit artifact | CLI and framework-free consumers with appropriate authorization |
 | `AYVU-UC-014` | Discover, inspect, and open library books: guided Library | [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py), [`library/service.py`](../../src/ayvu/library/service.py), [`library/adapters.py`](../../src/ayvu/library/adapters.py) | Configured library root and folder names, opaque book/entry references, optional reader command | Discovery reads local directory metadata without opening EPUB contents; an explicit open can launch a local reader | Grouped entries, bounded warnings, cooperative cancellation and normalized open outcomes; a new scan invalidates prior references | Guided CLI and framework-free service consumers; other interfaces must authorize reader launch explicitly |
-| `AYVU-UC-015` | Preferências: primeiro uso, Settings e leitura de configuração | `preferences.service.get_preferences` / `update_preferences`, via `composition.cli.configuration_store`; fachada `config.ConfigStore`, valores `preferences.model`; `tests/preferences/test_preferences.py`, `tests/preferences/test_preferences_store.py`, `tests/preferences/test_config.py`, `tests/interfaces/cli/test_cli_root_processing.py` | Valores v1 e revisão esperada; prompts resolvidos | Repositório JSON selecionado; leitura não cria configuração; escrita valida revisão | Snapshot, avisos, recusa e resultado de persistência; apresentação conserva mensagens e menus | CLI e consumidor sem framework |
+| `AYVU-UC-015` | Preferences: first use, Settings and configuration reading | `preferences.service.get_preferences` / `update_preferences`, via `composition.cli.configuration_store`; facade `config.ConfigStore`, values `preferences.model`; `tests/preferences/test_preferences.py`, `tests/preferences/test_preferences_store.py`, `tests/preferences/test_config.py`, `tests/interfaces/cli/test_cli_root_processing.py` | V1 values and expected revision; resolved prompts | Selected JSON repository; reading creates no configuration; writing validates revision | Snapshot, warnings, refusal and persistence result; presentation retains messages and menus | CLI and framework-free consumer |
 | `AYVU-UC-016` | Create, edit, preview, and select managed glossaries | [`knowledge/glossary/catalog.py`](../../src/ayvu/knowledge/glossary/catalog.py), [`knowledge/glossary/catalog_store.py`](../../src/ayvu/knowledge/glossary/catalog_store.py), [`composition/builders/glossary.py`](../../src/ayvu/composition/builders/glossary.py), [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py) | Trusted managed root, opaque references, entries and revisions | Bounded local JSON catalog; no network | Normalized failures and cooperative cancellation; divergent updates are unavailable; presentation owns prompts and paths | Guided CLI and framework-free consumers with a supplied repository |
 
 ## Proposed target ownership
 
-O título desta seção permanece estável para os testes de #123. As antigas
-propostas abaixo agora apontam para os contratos efetivamente entregues.
+This section title remains stable for #123 tests. The former
+proposals below now point to actually delivered contracts.
 
-| Use-case IDs | Application owner entregue | Portas/adaptadores na composição |
+| Use-case IDs | Delivered application owner | Ports/adapters in composition |
 | --- | --- | --- |
-| `AYVU-UC-001`, `AYVU-UC-008` | `content_use_cases.InspectContent`, `ExportVisibleContent` | `composition.builders.content`: formatos e publicação Markdown |
-| `AYVU-UC-002`, `AYVU-UC-003` | `providers.discovery.ProviderDiscoveryService` | `composition.builders.providers`: descoberta, teste e preflight explícitos |
-| `AYVU-UC-004` | `translation.project.TranslateProject` | `composition.builders.translate_project`: execução, formato, cache, validação e publicação |
-| `AYVU-UC-005` | `translation.batch.TranslateBatch` | `composition.builders.translate_batch`: plano limitado e itens do mesmo serviço |
-| `AYVU-UC-006` | Fachada de compatibilidade de preview entregue por #145 | `composition.cli` conecta `translate_without_project`; não cria um segundo serviço |
-| `AYVU-UC-007` | `recovery.service` e o mesmo `TranslateProject` | Evidências somente leitura e checkpoint legado via composição |
+| `AYVU-UC-001`, `AYVU-UC-008` | `content_use_cases.InspectContent`, `ExportVisibleContent` | `composition.builders.content`: formats and Markdown publication |
+| `AYVU-UC-002`, `AYVU-UC-003` | `providers.discovery.ProviderDiscoveryService` | `composition.builders.providers`: explicit discovery, test and preflight |
+| `AYVU-UC-004` | `translation.project.TranslateProject` | `composition.builders.translate_project`: execution, format, cache, validation and publication |
+| `AYVU-UC-005` | `translation.batch.TranslateBatch` | `composition.builders.translate_batch`: bounded plan and items from the same service |
+| `AYVU-UC-006` | Preview compatibility facade delivered by #145 | `composition.cli` connects `translate_without_project`; creates no second service |
+| `AYVU-UC-007` | `recovery.service` and the same `TranslateProject` | Read-only evidence and legacy checkpoint through composition |
 | `AYVU-UC-009` | `review.application` | `composition.builders.review` wires `review_packages` for codec/context and `review_operations` for reconstruction and D106 publication |
-| `AYVU-UC-010`–`AYVU-UC-013` | `knowledge.cache.admin` | `composition.builders.cache_admin`: repositórios por namespace e intercâmbio |
-| `AYVU-UC-014` | `library.service.LibraryService` | `library.adapters`: leitura local e abertura explicitamente solicitada |
-| `AYVU-UC-015` | `preferences.service` | `config.ConfigStore` sobre `JsonPreferencesRepository`; valores em `preferences.model` |
-| `AYVU-UC-016` | `knowledge.glossary.catalog` | `composition.builders.glossary`: catálogo JSON gerenciado |
+| `AYVU-UC-010`–`AYVU-UC-013` | `knowledge.cache.admin` | `composition.builders.cache_admin`: per-namespace repositories and interchange |
+| `AYVU-UC-014` | `library.service.LibraryService` | `library.adapters`: local reading and explicitly requested opening |
+| `AYVU-UC-015` | `preferences.service` | `config.ConfigStore` over `JsonPreferencesRepository`; values in `preferences.model` |
+| `AYVU-UC-016` | `knowledge.glossary.catalog` | `composition.builders.glossary`: managed JSON catalog |
 
 ## Interface-only behavior
 
@@ -328,20 +328,20 @@ coverage is explicit:
    EPUB/HTML transformation, cache SQL, glossary rules, configuration storage,
    translation HTTP, checkpoint semantics, and output safety stay in reusable
    modules.
-3. A [política HTTP](network-policy.md) de #159 é por execução: `none` bloqueia
-   antes de DNS/socket/payload; `loopback` só permite HTTP loopback validado.
-   Ela cobre todos os usos atuais de GET `/languages` e POST `/translate`.
-   Leitores externos e a rede do servidor local têm autoridade independente.
-4. Jobs e casos de uso fornecem resultados e eventos estruturados. A tradução
-   mantém também os callbacks entregues de capítulo/texto/validação para o
-   progresso Rich legado; esses callbacks não inventam estado de job ou artefato.
-5. Cancelamento cooperativo e resultados terminais são dos serviços; a CLI
-   converte também a interrupção do processo para o significado de saída legado.
-6. O checkpoint legado permanece uma fachada viva, coordenada com a recuperação
-   durável por `recovery.service`; removê-lo quebraria arquivos de retomada existentes.
-7. Diagnósticos de provedor usam o mesmo `ProviderDiscoveryService` que consumidores
-   sem framework. Isso não cria um serviço universal de diagnóstico nem uma
-   nova política de rede.
+3. #159 [HTTP policy](network-policy.md) is per run: `none` blocks
+   before DNS/socket/payload; `loopback` allows only validated loopback HTTP.
+   It covers all current uses of GET `/languages` and POST `/translate`.
+   External readers and the local server's network have independent authority.
+4. Jobs and use cases provide structured results and events. Translation
+   also retains delivered chapter/text/validation callbacks for legacy
+   Rich progress; these callbacks invent no job or artifact state.
+5. Cooperative cancellation and terminal results belong to services; the CLI
+   also converts process interruption to legacy exit semantics.
+6. The legacy checkpoint remains a live facade, coordinated with durable
+   recovery through `recovery.service`; removing it would break existing resume files.
+7. Provider diagnostics use the same `ProviderDiscoveryService` as framework-free
+   consumers. This creates neither a universal diagnostic service nor a
+   new network policy.
 8. Any shared network boundary must require an explicit egress policy before API
    or MCP exposure: allowed schemes and hosts, redirect/proxy behavior, payload
    and response limits, and a denied/offline mode with zero transport. Credentials
@@ -372,55 +372,55 @@ compares this snapshot with the effective Typer command tree and validates its
 local references. Guided-flow changes require a manual update to the guided table
 until those choices have a separately inspectable registry.
 
-## Composição final da CLI (#158)
+## Final CLI composition (#158)
 
-A entrada instalada continua `ayvu = ayvu.interfaces.cli.app:app`. `interfaces/cli/app.py` e `interfaces/cli/progress.py`
-tratam Typer, modo comum/developer, perguntas, confirmações, Rich, caminhos
-selecionados, relatórios textuais e códigos de saída. Importam contratos/resultados
-e funções nomeadas de `composition/cli.py`; não importam os adaptadores concretos.
-`interfaces/cli/contracts.py` contém portas estruturais e erros compartilhados sem Typer/Rich.
-`preferences/model.py` separa valores de preferências da fachada persistente.
+The installed entry point remains `ayvu = ayvu.interfaces.cli.app:app`. `interfaces/cli/app.py` and `interfaces/cli/progress.py`
+handle Typer, common/developer mode, questions, confirmations, Rich, selected
+paths, textual reports and exit codes. They import contracts/results
+and named functions from `composition/cli.py`; they do not import concrete adapters.
+`interfaces/cli/contracts.py` contains structural ports and shared errors without Typer/Rich.
+`preferences/model.py` separates preference values from the persistent facade.
 
-`composition/cli.py` é a única fronteira de construção escolhida pela CLI.
-Suas funções nomeadas compõem somente o fluxo solicitado usando os módulos de
-composição predecessores. Não há registro de serviços, singleton, cache global
-de instâncias ou descoberta dinâmica. As dependências são passadas aos serviços
-por suas portas e configuração explícita; resultados, avisos e identidade do job
-são devolvidos sem fabricar sucesso. Desktop/API/MCP usam seus próprios roots
-e os mesmos serviços; não devem importar `interfaces/cli/app.py` ou reutilizar objetos Rich.
+`composition/cli.py` is the only construction boundary selected by CLI.
+Its named functions compose only the requested flow using predecessor
+composition modules. There is no service registry, singleton, global instance
+cache or dynamic discovery. Dependencies are passed to services
+through their ports and explicit configuration; results, warnings and job identity
+are returned without fabricating success. Desktop/API/MCP use their own roots
+and the same services; they must not import `interfaces/cli/app.py` or reuse Rich objects.
 
-Importar a CLI e pedir qualquer ajuda não abre repositórios nem cria sessão de
-provedor. Inspect abre somente a origem; a inspeção de cache usa as consultas
-somente leitura do adaptador existente. Configuração ausente não é criada pela
-leitura. Cache-only não constrói provedor/sessão, não resolve segredos e não faz
-DNS/socket/HTTP: a validação pura de configuração conserva as recusas anteriores.
-O cache selecionado e, numa tradução durável, o projeto selecionado continuam
-necessários; nenhum armazenamento alheio é aberto ou migrado. Um checkpoint
-novo permanece vazio até o ponto seguro de preflight de uma tradução online.
+Importing CLI and requesting any help neither opens repositories nor creates a provider
+session. Inspect opens only the source; cache inspection uses the existing
+adapter's read-only queries. Missing configuration is not created by
+reading. Cache-only constructs no provider/session, resolves no secrets and performs no
+DNS/socket/HTTP: pure configuration validation retains previous refusals.
+The selected cache and, in durable translation, the selected project remain
+necessary; no unrelated storage is opened or migrated. A new checkpoint
+stays empty until an online translation's preflight safe point.
 
-A composição agora recebe a seleção por pedido de #159 e compartilha seu
-snapshot com a autorização de transporte e os casos de uso de #128. O padrão
-ausente registra `loopback`, nunca autoridade remota. A remoção da sondagem de
-tradução oculta por #128 permanece. #159 adiciona somente as opções e mensagens
-documentadas em `network-policy.md`. Publicação segura, imutabilidade da origem e regras de cache/glossário
-continuam nos serviços/adaptadores entregues. Relatórios CLI conservam escrita,
-modo de arquivo e nomes anteriores, sem introduzir lock, hard link ou novo limite.
+Composition now receives #159 per-request selection and shares its
+snapshot with transport authorization and #128 use cases. An absent selection
+records default `loopback`, never remote authority. #128's removal of the hidden test
+translation remains. #159 adds only the options and messages
+documented in `network-policy.md`. Safe publication, source immutability and cache/glossary rules
+remain in delivered services/adapters. CLI reports retain previous writing,
+file mode and names, without introducing a lock, hard link or new limit.
 
-O contrato normalizado está congelado em `tests/fixtures/cli-post-predecessor.json`,
-capturado no SHA `3edd2c2813c592418189670dbef1866c3026780e` antes da refatoração.
-Inclui árvore, aliases, parâmetros, requiredness, defaults, tipos, ambiente e ajuda.
+The normalized contract is frozen in `tests/fixtures/cli-post-predecessor.json`,
+captured at SHA `3edd2c2813c592418189670dbef1866c3026780e` before refactoring.
+It includes tree, aliases, parameters, requiredness, defaults, types, environment and help.
 The #132 characterization remains intact in `tests/interfaces/cli/test_workflow_translation_resume.py`, `tests/interfaces/cli/test_workflow_route_review.py`, `tests/interfaces/cli/test_workflow_translation_reporting.py`, `tests/interfaces/cli/test_workflow_batch_preview.py`;
-os testes CLI antigos conservam suas asserções e apenas apontam canários para
-os novos donos. Alterar simultaneamente o comportamento e esse baseline exige
-decisão de compatibilidade documentada e revisão separada. O teste conserva o
-baseline de #158 e verifica separadamente as cinco adições `--network-policy`
-pedidas por #159; não regrava o fixture histórico. A #162 acrescenta explicitamente
-`--tm-conservative-auto-apply` e `--tm-legacy-cache-compatibility`, desligados por
-padrão, e esclarece os três textos de ajuda de TM. O teste verifica essas adições
-e os textos exatos antes de comparar todo o restante com o fixture congelado.
-No runtime rich/v2, `--translation-memory` seleciona `MemoryRetrieval` por projeto;
-os novos seletores apenas escolhem `RetrievalPolicy`. O runtime legado conserva
-os seletores anteriores. Não existe consumidor Desktop de recuperação hoje.
+old CLI tests retain their assertions and only point canaries to
+the new owners. Changing behavior and this baseline simultaneously requires
+a documented compatibility decision and separate review. The test retains the
+#158 baseline and separately checks the five `--network-policy` additions
+requested by #159; it does not rewrite the historical fixture. #162 explicitly adds
+`--tm-conservative-auto-apply` and `--tm-legacy-cache-compatibility`, off by
+default, and clarifies the three TM help texts. The test checks these additions
+and exact texts before comparing everything else with the frozen fixture.
+In rich/v2 runtime, `--translation-memory` selects `MemoryRetrieval` per project;
+the new selectors only choose `RetrievalPolicy`. Legacy runtime retains
+previous selectors. There is no Desktop retrieval consumer today.
 
 ## CLI helper and facade inventory
 
@@ -428,12 +428,12 @@ os seletores anteriores. Não existe consumidor Desktop de recuperação hoje.
 | --- | --- |
 | `AYVU-UC-002`, `AYVU-UC-003`, `AYVU-UC-004`, `AYVU-UC-005`, `AYVU-UC-006`, `AYVU-UC-007` | `_selected_network_policy`, `_print_network_selection` |
 
-Inventário de todos os símbolos definidos pela apresentação, verificado pelo
-mesmo teste da matriz de #123. Cada grupo abaixo referencia as linhas de serviço
-ou ação de apresentação acima. Funções que executam IO delegam à composição;
-renderizar e selecionar caminhos continua sendo responsabilidade da apresentação.
+Inventory of all symbols defined by presentation, checked by the
+same #123 matrix test. Each group below references the service
+or presentation action rows above. Functions performing IO delegate to composition;
+rendering and selecting paths remain presentation responsibilities.
 
-| Mapeamento | Símbolos atuais de `interfaces/cli/app.py` |
+| Mapping | Current symbols from `interfaces/cli/app.py` |
 | --- | --- |
 | `AYVU-UI-004` | `_RouteView`, `TranslationRunResult`, `BatchTranslationResult`, `_BatchItemExit`, `ExecutionControls` |
 | `AYVU-UI-004` | `main` |
@@ -475,11 +475,11 @@ renderizar e selecionar caminhos continua sendo responsabilidade da apresentaç�
 | `AYVU-UC-007` | `_checkpoint_action` |
 | `AYVU-UC-004`, `AYVU-UC-005` | `_report_stem_for`, `_missing_stem_for` |
 
-A única função removida, `_count_cache_entries`, não tinha chamadas, registros
-Typer ou consumidores de compatibilidade; o inventário de imports/chamadas e a
-suíte cobrem sua retirada. Os helpers de execução/checkpoint/publicação foram
-movidos, não descartados. As fachadas `config`, `resume`, `preflight`,
-`composition.builders.providers`, `translation.batch_output` e `composition.builders.translate_project`
-continuam reexportando os mesmos valores/erros para consumidores existentes.
-Os delegates privados `_translate_in_project` e `_translate_without_project`
-permanecem na CLI por seus consumidores de caracterização; não contêm negócios.
+The only removed function, `_count_cache_entries`, had no calls, Typer
+registrations or compatibility consumers; the import/call inventory and
+suite cover its removal. Execution/checkpoint/publication helpers were
+moved, not discarded. Facades `config`, `resume`, `preflight`,
+`composition.builders.providers`, `translation.batch_output` and `composition.builders.translate_project`
+continue reexporting the same values/errors for existing consumers.
+Private delegates `_translate_in_project` and `_translate_without_project`
+remain in CLI for their characterization consumers; they contain no business logic.

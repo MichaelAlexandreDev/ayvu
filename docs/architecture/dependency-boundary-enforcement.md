@@ -55,9 +55,9 @@ entries fail, so a rename cannot silently discard protection.
 | `library.adapters` | Infrastructure | Local library scanning and reader launch |
 | `preflight` | Composition | Translation |
 | `cli`, `interfaces.cli.progress` | Interface | CLI |
-| `composition.cli` | Composition | Fronteira única de construção escolhida pela CLI (#158) |
-| `interfaces.cli.contracts` | Application | Portas estruturais e erros compartilhados, sem framework |
-| `preferences.model` | Domain | Valores de preferências e conversões da fachada v1 |
+| `composition.cli` | Composition | Single construction boundary selected by the CLI (#158) |
+| `interfaces.cli.contracts` | Application | Structural ports and shared errors, without framework |
+| `preferences.model` | Domain | Preference values and v1 facade conversions |
 | `formats.epub.archive`, `formats.epub.adapter`, `formats.epub.io`, `formats.epub.html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation.engine` | Application | One book through a format adapter and a unit executor |
 | `translation.project` | Application | Project admission, reconciliation and provenance, from its ports |
@@ -91,7 +91,7 @@ entries fail, so a rename cannot silently discard protection.
 | `providers.service` | Application | Provider and factory ports, registry and strict result checking |
 | `providers.discovery` | Application | Shared use cases to list, describe, probe, route, test and preflight providers |
 | `providers.libretranslate.adapter` | Provider adapter | LibreTranslate compatibility adapter, factory, capability report and probe |
-| `composition.builders.providers` | Composition | Adaptador de montagem de provedor selecionado por `composition.cli` |
+| `composition.builders.providers` | Composition | Provider assembly adapter selected by `composition.cli` |
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `knowledge.cache.admin` | Application | Typed cache administration use cases and ports |
 | `knowledge.cache.admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
@@ -115,23 +115,23 @@ The six review builder modules may import one another only through exact declare
 edges. This narrowly scoped internal split preserves composition ownership and
 the CLI root boundary; other builders retain the existing direction rules.
 
-Desde #158, a interface CLI pode importar funções nomeadas de
-`composition.cli`; essa é a única fronteira em que a travessia transitiva da
-apresentação para a infraestrutura termina. Os módulos de composição anteriores
-continuam implementando a montagem por capacidade, chamados por essa fronteira.
-A regra reutiliza `OWNERS`, `ALLOWED_INTERNAL_EDGES`, o resolvedor de imports e
-as regras externas de #133. Não há uma segunda lista de permissões arquiteturais.
-Reexports e imports transitivos de adaptadores concretos, SQLite, HTTP ou
-bibliotecas EPUB/HTML são rejeitados mesmo quando uma aresta intermediária tem
-exceção. Typer/Rich continuam válidos na apresentação e proibidos em aplicação/domínio.
+Since #158, the CLI interface may import named functions from
+`composition.cli`; this is the only boundary where transitive traversal from
+presentation to infrastructure stops. Previous composition modules
+continue implementing assembly by capability, called through this boundary.
+The rule reuses `OWNERS`, `ALLOWED_INTERNAL_EDGES`, the import resolver and
+#133 external rules. There is no second list of architectural permissions.
+Reexports and transitive imports of concrete adapters, SQLite, HTTP or
+EPUB/HTML libraries are rejected even when an intermediate edge has an
+exception. Typer/Rich remain valid in presentation and forbidden in application/domain.
 
-A apresentação não pode importar classes reexportadas pela composição nem
-esconder construção através de um alias de módulo. A composição não pode manter
-instâncias/mapeamentos mutáveis globais, usar `global`/`nonlocal`, decorar
-factories para cachear instâncias ou construir recursos em argumentos padrão.
-Testes de execução instrumentam também importação limpa, ajuda, transporte
-HTTP/DNS/socket, sessões de provedor e repositórios para verificar construção
-tardia e escopo. Isso complementa a análise estática, não cria um sandbox.
+Presentation cannot import classes reexported by composition or
+hide construction behind a module alias. Composition cannot keep global mutable
+instances/mappings, use `global`/`nonlocal`, decorate
+factories to cache instances or construct resources in default arguments.
+Runtime tests also instrument clean import, help, HTTP/DNS/socket
+transport, provider sessions and repositories to check deferred
+construction and scope. This complements static analysis; it does not create a sandbox.
 
 External package roots are explicitly recognized without importing or requiring
 their installation. CLI presenters can import Typer/Rich; Desktop presenters
@@ -153,15 +153,15 @@ and observable expiry condition. Wildcards, incomplete entries, and exceptions
 that no longer waive a forbidden edge fail. Exceptions cannot waive unknown
 imports, syntax/read errors, cycles or missing ownership.
 
-As exceções de apresentação CLI para cache, projeto, configuração, formato,
-revisão, biblioteca, lote, glossário, provedor e composições por capacidade foram
-removidas em #158. A matriz compartilhada de #123 registra os serviços entregues
-pelas dependências, o inventário de helpers e a única fronteira de construção.
-`preflight` continua sendo composição: conecta os adaptadores entregues de
-formato, cache, glossário e provedor. Sua aresta para `composition.builders.providers`
-permanece uma exceção exata de composição entre capacidades, sem caminho direto
-da apresentação até esse módulo. A numeração #158 nessa exceção identifica a
-consolidação responsável, não uma autorização para duplicar serviços.
+CLI presentation exceptions for cache, project, configuration, format,
+review, library, batch, glossary, provider and per-capability composition were
+removed in #158. The #123 shared matrix records the services delivered
+by dependencies, the helper inventory and the single construction boundary.
+`preflight` remains composition: it connects delivered format,
+cache, glossary and provider adapters. Its edge to `composition.builders.providers`
+remains an exact cross-capability composition exception, without a direct path
+from presentation to that module. The #158 number on this exception identifies the
+responsible consolidation, not authorization to duplicate services.
 The coupling of the
 `v1.html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
 EPUB pipeline coupling expires in #144, after #141 separates the

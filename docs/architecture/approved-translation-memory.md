@@ -1,18 +1,18 @@
-# Memória de tradução aprovada e governada
+# Approved and governed translation memory
 
-Implementa [#161 / DESKTOP-130](https://github.com/DevStarrk1137/ayvu/issues/161).
-Os artefatos de #135, #138, #140 e #154 são utilizados sem alterar seus contratos
-ou migrações publicadas. A integração de recuperação no pipeline e na CLI é descrita abaixo (#162).
+Implements [#161 / DESKTOP-130](https://github.com/DevStarrk1137/ayvu/issues/161).
+Artifacts from #135, #138, #140 and #154 are used without changing their contracts
+or published migrations. Retrieval integration in the pipeline and CLI is described below (#162).
 
-## Contratos e armazenamento
+## Contracts and storage
 
-`knowledge/memory/approved/model.py` define valores e regras de domínio;
-`knowledge/memory/approved/service.py` define o port `ApprovedMemoryRepository`, comandos
-e os casos de uso `ApprovedMemory`. `knowledge/memory/approved/store.py` implementa o
-adaptador de produção `SqliteApprovedMemoryRepository` e seu bootstrap explícito.
-SQL e migrações permanecem na infraestrutura.
+`knowledge/memory/approved/model.py` defines domain values and rules;
+`knowledge/memory/approved/service.py` defines the `ApprovedMemoryRepository` port, commands
+and `ApprovedMemory` use cases. `knowledge/memory/approved/store.py` implements the
+production adapter `SqliteApprovedMemoryRepository` and its explicit bootstrap.
+SQL and migrations remain in infrastructure.
 
-A composição usa o diretório do projeto já validado por
+Composition uses the already validated project directory from
 `ProjectJsonRepository.resolve_database_paths(project_id).database.parent`:
 
 ```python
@@ -27,223 +27,223 @@ repository = open_approved_memory(
 memory = ApprovedMemory(repository)
 ```
 
-`authorized_scopes` vem da composição confiável, nunca do texto do documento.
-Cada repositório de proveniência fornecido implementa o port de #138 e resolve
-referências daquele projeto. Leituras entre projetos exigem referências de origem
-e escopos autorizados explícitos; não existe descoberta automática de outros bancos.
+`authorized_scopes` comes from trusted composition, never from document text.
+Each supplied provenance repository implements the #138 port and resolves
+references for that project. Cross-project reads require explicit source references
+and authorized scopes; there is no automatic discovery of other databases.
 
-O layout adicional é:
+The additional layout is:
 
-- `projects/<UUID>/approved-memory.sqlite`: dados linguísticos sensíveis;
-- `projects/<UUID>/backups/approved-memory-schema/`: snapshots de upgrade;
-- `.approved-memory.sqlite.migrate.lock`: lock do migrador no mesmo diretório.
+- `projects/<UUID>/approved-memory.sqlite`: sensitive linguistic data;
+- `projects/<UUID>/backups/approved-memory-schema/`: upgrade snapshots;
+- `.approved-memory.sqlite.migrate.lock`: migrator lock in the same directory.
 
-O registro `MEMORY_MIGRATIONS` é independente de `PROJECT_MIGRATIONS` e do cache:
-versão 1 contém apenas infraestrutura; versão 2 cria `tm_revisions`, `tm_events`,
-`tm_approvals` e `tm_operations`; a versão 3 acrescenta apenas índices de recuperação por
-escopo/idiomas/fonte e chave linguística, preservando os checksums publicados. O runner de #135 controla criação, verificação,
-permissões, backups, limites, lock e upgrades. O banco de projeto continua na
-versão 4. A tradução rich/v2 abre a memória somente com `--translation-memory` explícito.
+The `MEMORY_MIGRATIONS` registry is independent of `PROJECT_MIGRATIONS` and cache:
+version 1 contains only infrastructure; version 2 creates `tm_revisions`, `tm_events`,
+`tm_approvals` and `tm_operations`; version 3 adds only retrieval indexes by
+scope/languages/source and linguistic key, preserving published checksums. The #135 runner controls creation, verification,
+permissions, backups, limits, locking and upgrades. The project database remains at
+version 4. Rich/v2 translation opens memory only with explicit `--translation-memory`.
 
-Não há leitura, cópia, promoção ou migração de `translations` ou `cache_entries_v2`.
-Limpeza, expiração e substituição do cache não alcançam este arquivo. Depreciação
-de memória não toca no cache. Sua retenção é explícita: fatos históricos não são
-expurgados automaticamente e o port não fornece exclusão de revisões. Uma remoção
-administrativa do banco inteiro, com seus acessos parados, é independente do cache.
-Snapshots contêm dados sensíveis de TM e devem ser preservados privadamente junto
-das referências de proveniência do projeto. Não são exportações de cache ou de
-treinamento. Não há exportação de dataset, sinalizador de consentimento ou
-elegibilidade para compartilhamento inferida de aprovação.
+There is no reading, copying, promotion or migration of `translations` or `cache_entries_v2`.
+Cache cleanup, expiry and replacement do not reach this file. Memory deprecation
+does not touch cache. Its retention is explicit: historical facts are not
+purged automatically and the port provides no revision deletion. Administrative
+removal of the entire database, with access stopped, is independent of cache.
+Snapshots contain sensitive TM data and must be preserved privately alongside
+the project's provenance references. They are not cache or training exports.
+There is no dataset export, consent flag or sharing eligibility
+inferred from approval.
 
-## Identidade e valores
+## Identity and values
 
-Cada revisão guarda separadamente projeto de origem, documento e revisão
-estruturais, `unit_id` e `source_digest` de #140, texto fonte canônico visível,
-chave de busca, versões de normalização/busca, idiomas, alvo, kind, stage,
-revisões de pipeline/perfil/glossário, escopo e referências de proveniência.
-Não guarda documentos inteiros, caminhos, locators brutos ou blobs de proveniência.
+Each revision separately stores source project, structural document and revision,
+#140 `unit_id` and `source_digest`, canonical visible source text,
+search key, normalization/search versions, languages, target, kind, stage,
+pipeline/profile/glossary revisions, scope and provenance references.
+It stores neither entire documents, paths, raw locators nor provenance blobs.
 
-`MemorySource.from_document(document, unit_id)` seleciona uma unidade real.
-Unidades com spans `markup` exigem `visible_text=` fornecido pela projeção do
-adaptador de formato: remover tags no domínio perderia quebras de linha de `br`
-ou poderia incluir conteúdo oculto. Literais, identificadores e placeholders
-visíveis permanecem na projeção. Unidades sem markup usam seu texto original e
-recusam uma projeção divergente. A memória normaliza a fonte visível em NFC;
-a chave usa NFC, casefold e colapso de whitespace. Ambas as políticas guardam a
-versão do algoritmo e do Unicode. A identidade exata de conteúdo permanece a do
-modelo, mesmo quando duas formas Unicode produzem a mesma chave linguística.
-Texto e chaves não são identidade estrutural nem evidência de aprovação.
+`MemorySource.from_document(document, unit_id)` selects a real unit.
+Units with `markup` spans require `visible_text=` supplied by the format
+adapter's projection: stripping tags in the domain would lose `br` line breaks
+or could include hidden content. Visible literals, identifiers and placeholders
+remain in the projection. Units without markup use their original text and
+refuse a divergent projection. Memory normalizes visible source to NFC;
+the key uses NFC, casefold and whitespace collapse. Both policies store
+algorithm and Unicode versions. Exact content identity remains that of the
+model, even when two Unicode forms produce the same linguistic key.
+Text and keys are neither structural identity nor approval evidence.
 
-Fonte linguística e alvo aceitam no máximo 65.536 bytes UTF-8 cada; excesso é
-recusado, sem truncamento, inclusive antes da normalização da fonte visível.
-`repr`, logs e erros não exibem valores, chaves, hashes de conteúdo, credenciais
-ou caminhos. Resultados de leitura carregam os valores para o chamador autorizado.
+Linguistic source and target each accept at most 65,536 UTF-8 bytes; excess is
+refused, without truncation, including before visible source normalization.
+`repr`, logs and errors do not display values, keys, content hashes, credentials
+or paths. Read results carry values for the authorized caller.
 
-| Kind | Stage | Pode receber aprovação humana? |
+| Kind | Stage | Can receive human approval? |
 | --- | --- | --- |
-| `provider_response` | `provider` | Não |
-| `restored_visible` | `protected_restored` | Não |
-| `glossary_derived` | `terminology_applied` | Não |
-| `linguistic_final` | `linguistic_final` | Sim |
+| `provider_response` | `provider` | No |
+| `restored_visible` | `protected_restored` | No |
+| `glossary_derived` | `terminology_applied` | No |
+| `linguistic_final` | `linguistic_final` | Yes |
 
-`linguistic_final` é o texto visível após restauração de tokens protegidos e todas
-as transformações linguísticas determinísticas selecionadas, incluindo glossário
-efetivo aplicado após o cache, antes da reconstrução de formato. A composição
-deve fornecer este valor e evidência correspondente; o repositório não executa o
-pipeline nem converte um valor anterior em final. `PipelinePin` exige referências
-imutáveis `pipeline`, `profile` e `glossary`, inclusive uma revisão que represente
-explicitamente ausência de glossário. Igualdade de strings com o agregado
-operacional de #154 não une essas identidades.
+`linguistic_final` is the visible text after protected token restoration and all
+selected deterministic linguistic transformations, including the effective glossary
+applied after cache, before format reconstruction. Composition
+must supply this value and matching evidence; the repository does not execute the
+pipeline or convert an earlier value to final. `PipelinePin` requires immutable
+`pipeline`, `profile` and `glossary` references, including a revision that
+explicitly represents glossary absence. String equality with the #154
+operational aggregate does not merge these identities.
 
-## Histórico e revisão explícita
+## History and explicit review
 
-A tabela fechada `TRANSITIONS` autoriza exclusivamente:
+The closed `TRANSITIONS` table authorizes only:
 
-| Estado | Próximos estados |
+| State | Next states |
 | --- | --- |
 | `machine_candidate` | `human_edited`, `approved`, `rejected`, `deprecated` |
 | `human_edited` | `approved`, `rejected`, `deprecated` |
 | `approved` | `deprecated`, `superseded` |
-| `rejected`, `deprecated`, `superseded` | Nenhum |
+| `rejected`, `deprecated`, `superseded` | None |
 
-`create_candidate(CreateCandidate(...))` cria uma entrada e sua primeira revisão.
-`record_human_edit(...)` cria outra revisão da mesma entrada: registra a criação
-e a transição humana na mesma transação, sem reescrever a revisão anterior.
-`create_revision(DeriveRevision(...))` permite nova tentativa ou derivação de
-qualquer revisão histórica, sempre sem aprovação herdada. Isso permite editar
-um aprovado ou recomeçar após estado terminal sem transição ilegal no pai.
-O vínculo `parent_revision`, o número sequencial por entrada e os eventos
-preservam as ramificações concorrentes. Mudança de fonte/idiomas exige nova entrada;
-mudança de alvo, efeito de glossário, escopo ou kind/stage exige nova revisão.
+`create_candidate(CreateCandidate(...))` creates an entry and its first revision.
+`record_human_edit(...)` creates another revision of the same entry: it records creation
+and the human transition in the same transaction, without rewriting the previous revision.
+`create_revision(DeriveRevision(...))` allows a new attempt or derivation from
+any historical revision, always without inherited approval. This allows editing
+an approved value or restarting after a terminal state without an illegal parent transition.
+The `parent_revision` link, sequential number per entry and events
+preserve concurrent branches. Source/language changes require a new entry;
+target, glossary effect, scope or kind/stage changes require a new revision.
 
-Antes de cada comando, o chamador registra um evento de #138. A referência deve
-existir, estar atual, pertencer ao projeto/unidade, trazer `operation_id` do
-comando, as três referências de configuração e os pais exigidos. Operações são
-`tm_create`, `tm_derive`, `tm_edit`, `tm_approve`, `tm_reject` e `tm_deprecate`.
-Edição e revisão exigem `ActorKind.HUMAN`; preserva-se a decisão de privacidade
-de #138 de registrar a espécie de ator, sem identificar nominalmente a pessoa.
-Uma origem importada exige referência adicional a `tm_import`, ação humana
-explícita, incluída nos pais de cada novo evento da cadeia importada.
+Before each command, the caller records a #138 event. The reference must
+exist, be current, belong to the project/unit, carry the command's `operation_id`,
+the three configuration references and required parents. Operations are
+`tm_create`, `tm_derive`, `tm_edit`, `tm_approve`, `tm_reject` and `tm_deprecate`.
+Editing and review require `ActorKind.HUMAN`; the #138 privacy decision to
+record actor kind without naming the person is preserved.
+An imported source requires an additional reference to `tm_import`, an explicit human
+action, included in the parents of each new event in the imported chain.
 
-`approve(...)` exige o `TargetValue` exato revisado, o escopo, a versão atual de
-eventos da revisão e `expected_approval` (ID da aprovação corrente ou `None`).
-Inclusive `machine_candidate -> approved` exige essa ação humana, data e
-proveniência. Scores, armazenamento, reuso e políticas não aprovam entradas.
-`reject(...)` e `deprecate(...)` também exigem revisão explícita e versão esperada.
-`superseded` só pode ser produzido pela substituição transacional de aprovação.
+`approve(...)` requires the exact reviewed `TargetValue`, scope, current revision
+event version and `expected_approval` (current approval ID or `None`).
+Even `machine_candidate -> approved` requires that human action, date and
+provenance. Scores, storage, reuse and policies do not approve entries.
+`reject(...)` and `deprecate(...)` also require explicit review and expected version.
+`superseded` can only be produced by transactional approval replacement.
 
-Valores, eventos e operações possuem triggers contra UPDATE/DELETE. A única
-projeção mutável é o índice de aprovações atuais, único por escopo, origem
-estrutural/conteúdo, idiomas e stage. `BEGIN IMMEDIATE` verifica versões e troca
-esse índice junto com os eventos de aprovação/supersessão. Dois concorrentes
-divergentes com a mesma aprovação esperada produzem um vencedor e um
-`MemoryConflictError`, mantendo candidatos e suas proveniências. Se falhar após
-a supersessão, toda a transação de TM é revertida. Contenção que excede o limite
-de espera do escritor também retorna conflito tipado (`concurrent_write`), sem
-registrar uma operação parcial; o chamador pode repetir o comando exato.
+Values, events and operations have triggers against UPDATE/DELETE. The only
+mutable projection is the current approvals index, unique by scope, structural/content
+source, languages and stage. `BEGIN IMMEDIATE` checks versions and replaces
+this index together with approval/supersession events. Two divergent concurrent
+callers with the same expected approval produce one winner and one
+`MemoryConflictError`, retaining candidates and their provenance. If failure occurs after
+supersession, the entire TM transaction is rolled back. Contention exceeding the
+writer wait limit also returns a typed conflict (`concurrent_write`), without
+recording a partial operation; the caller may retry the exact command.
 
-O evento externo de #138 é registrado antes da transação de TM: uma recusa ou
-queda pode deixar um fato de tentativa sem aplicação em TM. Não há aprovação
-parcial nem duplicação do payload de #138 entre bancos. O ID da operação e o hash
-privado do comando permitem replay exato com o snapshot original; reutilização
-do ID com outros parâmetros é conflito, inclusive após transições posteriores.
+The external #138 event is recorded before the TM transaction: refusal or
+crash may leave an attempted-action fact without TM application. There is no partial
+approval or #138 payload duplication between databases. The operation ID and private
+command hash allow exact replay with the original snapshot; reusing
+the ID with different parameters is a conflict, including after later transitions.
 
-## Escopos, consultas e erros
+## Scopes, queries and errors
 
-`MemoryScope` exige tipo fechado (`project`, `work`, `user`, `import`) e UUID do
-proprietário. Escopo de projeto deve coincidir com o projeto fonte; obra, usuário
-e coleção importada são concessões explícitas, nunca inferidas da localização
-do cache ou de texto igual. A composição pode autorizar vários proprietários.
-Toda query exige tupla explícita de escopos contidos nessa autorização; acesso
-direto fora dela é `MemoryScopeError`. `current(...)` respeita a precedência na
-ordem exata dessa tupla e compara somente identidades estruturais/conteúdo e par
-de idiomas, sem fallback por chave ou texto.
+`MemoryScope` requires a closed kind (`project`, `work`, `user`, `import`) and owner
+UUID. Project scope must match the source project; work, user
+and imported collection are explicit grants, never inferred from cache location
+or identical text. Composition may authorize multiple owners.
+Every query requires an explicit tuple of scopes contained in that authorization; direct
+access outside it is `MemoryScopeError`. `current(...)` respects precedence in the
+exact order of that tuple and compares only structural/content identities and language
+pair, without key or text fallback.
 
-`get`, `current`, `history` e `list_entries` existem no serviço e no port.
-Listagem usa cursor de sequência crescente, até 256 revisões por página, filtro
-opcional de estado/entrada e cursor seguinte explícito. Histórico usa versão de
-evento como cursor, também com limite. Consultas de estado são resolvidas por SQL,
-sem carregar a memória inteira. Estados terminais permanecem auditáveis mas nunca
-são retornados por `current`. Erros tipados distinguem entrada ausente, conflito,
-transição inválida, escopo negado, kind/stage incompatível, proveniência inválida,
-validação e falha de armazenamento; mensagens contêm apenas códigos fixos.
+`get`, `current`, `history` and `list_entries` exist in the service and port.
+Listing uses an increasing sequence cursor, up to 256 revisions per page, optional
+state/entry filter and explicit next cursor. History uses event version as a cursor,
+also with a limit. State queries are resolved through SQL,
+without loading the entire memory. Terminal states remain auditable but are never
+returned by `current`. Typed errors distinguish missing entry, conflict,
+invalid transition, denied scope, incompatible kind/stage, invalid provenance,
+validation and storage failure; messages contain only fixed codes.
 
-## Recuperação conservadora (#162 / DESKTOP-131)
+## Conservative retrieval (#162 / DESKTOP-131)
 
-`MemoryQuery`, `RetrievalMode` e `RetrievalLimits` são contratos de domínio.
-`ApprovedMemoryRepository.retrieve` é a única fronteira de consultas do pipeline;
-`MemoryRetrieval` decide elegibilidade, similaridade, ranking e aplicação. O
-`DocumentTranslator` é o pipeline de segmentos de produção disponível nesta main
-(o nome histórico `SegmentTranslationPipeline` da issue não é uma classe existente).
-`RichTranslationRuntime` compõe os adaptadores reais; não há leitor SQL no pipeline
-nem consumidor Desktop alegado.
+`MemoryQuery`, `RetrievalMode` and `RetrievalLimits` are domain contracts.
+`ApprovedMemoryRepository.retrieve` is the pipeline's only query boundary;
+`MemoryRetrieval` decides eligibility, similarity, ranking and application.
+`DocumentTranslator` is the production segment pipeline available on this main
+(the issue's historical name `SegmentTranslationPipeline` is not an existing class).
+`RichTranslationRuntime` composes real adapters; there is no SQL reader in the pipeline
+or claimed Desktop consumer.
 
-A ordem fixa é cache exato v2 com identidade completa de #153/#154, memória aprovada
-exata, fuzzy aprovado, compatibilidade de cache opt-in, provedor. Cache-only permanece
-exclusivamente exato. `RetrievalPolicy` é compartilhada entre a aplicação e a CLI;
-os seletores da interface não calculam scores ou confiança.
+The fixed order is exact v2 cache with full #153/#154 identity, exact approved
+memory, approved fuzzy, opt-in cache compatibility, provider. Cache-only remains
+exclusively exact. `RetrievalPolicy` is shared between application and CLI;
+interface selectors do not calculate scores or confidence.
 
-Só ponteiros atuais de `tm_approvals`, com evento mais recente `approved`, idiomas,
-escopo autorizado, políticas de busca/normalização fixadas e
-`linguistic_final`/`linguistic_final` entram na recuperação aprovada. Exato significa
-igualdade NFC da fonte canônica inteira, incluindo espaços, e não igualdade de
-`unit_id`, digest de conteúdo ou chave casefold. Fuzzy usa a razão Indel Unicode
-determinística existente, sobre NFC/casefold/whitespace versionados. Concordância
-busca substring dessa chave no conjunto limitado e nunca aplica automaticamente.
+Only current `tm_approvals` pointers, with latest event `approved`, matching languages,
+authorized scope, pinned search/normalization policies and
+`linguistic_final`/`linguistic_final` enter approved retrieval. Exact means
+NFC equality of the entire canonical source, including spaces, not `unit_id`,
+content digest or casefold key equality. Fuzzy uses the existing deterministic Unicode
+Indel ratio, over versioned NFC/casefold/whitespace. Concordance
+searches for a substring of that key in the bounded set and never applies automatically.
 
-O adaptador usa índices por escopo/idiomas e fonte/chave de busca. A busca aproximada
-examina **no máximo 64 linhas atuais por faixa e pin**, na faixa do primeiro ponto
-Unicode da chave, ordenadas por chave/sequence; ordena esse conjunto por distância
-de comprimento, número da revisão decrescente e ID estável antes de materializar
-valores. Isso limita o recall: não é busca exaustiva de substring ou fuzzy em toda
-a memória. A aplicação ordena hits automáticos primeiro, escopos na precedência
-explícita do chamador, score decrescente, revisão decrescente e IDs estáveis. Pins
-compatíveis são consultados antes dos incompatíveis. O runtime autoriza apenas o
-escopo do projeto atual; a API aceita outros escopos explicitamente autorizados.
+The adapter uses indexes by scope/languages and source/search key. Approximate search
+examines **at most 64 current rows per range and pin**, in the range of the key's first
+Unicode code point, ordered by key/sequence; it sorts that set by length
+distance, descending revision number and stable ID before materializing
+values. This limits recall: it is not exhaustive substring or fuzzy search over all
+memory. The application ranks automatic hits first, scopes in the caller's explicit
+precedence, descending score, descending revision and stable IDs. Compatible
+pins are queried before incompatible ones. The runtime authorizes only the
+current project scope; the API accepts other explicitly authorized scopes.
 
-Cada consulta aceita 20 candidatos/256 KiB por padrão, no máximo 64/1 MiB, até
-64 KiB UTF-8 de fonte e alvo individualmente. O chamador só reduz esses tetos.
-`N+1` inválido falha na construção da consulta, antes do port. O SQL verifica
-comprimentos armazenados antes de `_load`; a aplicação também recusa ports que
-excedam contagem ou bytes. Snippets respeitam até 512 bytes UTF-8 por lado,
-sem cortar caracteres, e nunca substituem o valor integral na aplicação.
+Each query accepts 20 candidates/256 KiB by default, at most 64/1 MiB, up to
+64 KiB UTF-8 of source and target individually. The caller may only lower these ceilings.
+Invalid `N+1` fails during query construction, before the port. SQL checks
+stored lengths before `_load`; the application also refuses ports that
+exceed count or bytes. Snippets obey up to 512 UTF-8 bytes per side,
+without splitting characters, and never replace the full value during application.
 
-A política padrão permite exato aprovado e mantém fuzzy como sugestão. A política
-conservadora explícita permite fuzzy com limiar pelo menos 0.98 e estrutura exata.
-Como #161 não armazena assinatura estrutural portátil, a aplicação exige conferir
-a unidade de origem no documento carregado, inclusive texto/digest/revisão, kind,
-constraints, extensions, locale, contexto e termos protegidos. Unidades de outro
-documento e markup ficam sem aplicação automática. Não se infere estrutura a
-partir de uma fonte visível que pode ter perdido tags.
+Default policy allows exact approved matches and keeps fuzzy as a suggestion. Explicit
+conservative policy allows fuzzy with a threshold of at least 0.98 and exact structure.
+Since #161 does not store a portable structural signature, the application requires checking
+the source unit in the loaded document, including text/digest/revision, kind,
+constraints, extensions, locale, context and protected terms. Units from another
+document and markup receive no automatic application. Structure is not inferred from
+a visible source that may have lost tags.
 
-`plan_memory_pin(plan)` fixa pipeline (revisão e estágios), perfil (identidade
-semântica completa) e glossário (referência imutável das regras efetivas ordenadas,
-incluindo ausência explícita). Autores de revisões finais devem usar essas mesmas
-referências do plano real. Valor final compatível pula o glossário; qualquer pin
-divergente só produz sugestão `reviewed=False`, mantendo o estado original `approved`
-como informação de origem. Nada deriva ou aprova uma revisão automaticamente.
+`plan_memory_pin(plan)` pins pipeline (revision and stages), profile (full semantic
+identity) and glossary (immutable reference to ordered effective rules,
+including explicit absence). Authors of final revisions must use those same
+references from the real plan. A compatible final value skips the glossary; any divergent
+pin produces only a `reviewed=False` suggestion, keeping the original `approved` state
+as source information. Nothing derives or approves a revision automatically.
 
-`LegacyCacheCompatibility` é uma fonte separada, desligada por padrão. A opção
-`--tm-legacy-cache-compatibility` exige `--translation-memory` e runtime rico.
-A fonte usa somente linhas v2 com scope/kind/fingerprint e integridade completos;
-linhas v1 sem estágio são excluídas, mesmo com opt-in. O limiar legado de 0.95 pode
-ser utilizado nessa política explícita. Resultado de cache permanece
-`machine_candidate`/`reviewed=False`; score ou reaplicação não mudam isso. O adaptador
-não escreve no repositório governado. Sem rótulo de modelo, a CLI antiga continua
-com suas semânticas históricas; os novos seletores são recusados nesse runtime.
+`LegacyCacheCompatibility` is a separate source, off by default. The
+`--tm-legacy-cache-compatibility` option requires `--translation-memory` and rich runtime.
+The source uses only v2 rows with complete scope/kind/fingerprint and integrity;
+v1 rows without stage are excluded, even with opt-in. The legacy 0.95 threshold may
+be used under this explicit policy. A cache result remains
+`machine_candidate`/`reviewed=False`; score or reapplication does not change that. The adapter
+does not write to the governed repository. Without a model label, the old CLI retains
+its historical semantics; the new selectors are refused in that runtime.
 
-`RetrievalDecision` distingue cache exato, memória aprovada, cache legado e provedor,
-com chave completa de cache ou entrada/revisão, score, escopo, estado, confiança,
-motivo e referência de proveniência sanitizada. `dataset_eligible` é sempre falso.
-As decisões são entregues por unidade e persistidas no artefato de resultados,
-com estágio explícito. Valores raw de cache/provedor/legado recebem o glossário
-exatamente uma vez. Decisões desses valores continuam sem revisão após a derivação.
-Artefatos que incluam recuperação são auditáveis, mas não são reutilizados como
-raw: cada operação revalida aprovação/pins, inclusive após depreciação. O cache
-exato operacional continua tendo precedência, independentemente do estado da TM.
+`RetrievalDecision` distinguishes exact cache, approved memory, legacy cache and provider,
+with full cache key or entry/revision, score, scope, state, confidence,
+reason and sanitized provenance reference. `dataset_eligible` is always false.
+Decisions are delivered per unit and persisted in the results artifact,
+with explicit stage. Raw cache/provider/legacy values receive the glossary
+exactly once. Decisions for these values remain unreviewed after derivation.
+Artifacts including retrieval are auditable but are not reused as
+raw: each operation revalidates approval/pins, including after deprecation. The
+operational exact cache retains precedence regardless of TM state.
 
-Sugestões geram `memory_review_suggestions`, encaminhado ao CLI e contado no
-relatório existente. Logs/eventos rotineiros contêm códigos, não valores, caminhos
-ou segredos. A API autorizada devolve os valores completos e snippets para uma
-futura visão de concordância. Esta issue não acrescenta editor de revisão, dataset,
-consentimento ou migração de cache para memória aprovada.
+Suggestions generate `memory_review_suggestions`, forwarded to CLI and counted in the
+existing report. Routine logs/events contain codes, not values, paths
+or secrets. The authorized API returns full values and snippets for a
+future concordance view. This issue adds no review editor, dataset,
+consent or cache migration to approved memory.

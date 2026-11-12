@@ -57,14 +57,14 @@ There are two paths through the same stages:
 | Legacy | `translate_text`, through `LegacyTextPipelineFacade` | None | None beyond the v1 cache |
 | Rich | `DocumentTranslator` | Real project, job, document and unit | Artifact, provenance and events |
 
-**Produção seleciona o caminho rico explicitamente desde #252.** Adicione
-`"translator_models": {"libretranslate": "meu-modelo-2026-11"}` ao `config.json`
-existente. O rótulo aceita `[a-z0-9][a-z0-9_-]{0,47}` e entra na identidade como
-`declared:<rótulo>`, declarado pelo usuário; `unknown` continua inelegível.
-**Trocar o modelo do servidor sem trocar o rótulo reutiliza resultados antigos.**
-Não há descoberta de modelo nem novas requisições HTTP. Sem rótulo, `translate_text`
-mantém assinatura, resultados, mensagens e chave v1; dry run e preview também ficam no v1.
-Veja a [seleção do runtime](translate-project.md#seleção-explícita-do-runtime-252).
+**Production explicitly selects the rich path since #252.** Add
+`"translator_models": {"libretranslate": "meu-modelo-2026-11"}` to the existing `config.json`.
+The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and enters identity as
+`declared:<label>`, declared by the user; `unknown` remains ineligible.
+**Changing the server model without changing the label reuses old results.**
+There is no model discovery or new HTTP request. Without a label, `translate_text`
+retains signature, results, messages and v1 key; dry run and preview also stay on v1.
+See [runtime selection](translate-project.md#explicit-runtime-selection-252).
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |
@@ -109,13 +109,13 @@ against the code before this extraction.
 ## The engine
 
 `TranslationEngine` reads a book through the format adapter, hands each unit to an executor and gives the results
-back to the adapter. It parses no markup and calls no provider. A composição escolhe entre:
+back to the adapter. It parses no markup and calls no provider. Composition chooses between:
 
-| Runtime rico explícito | Runtime legado sem rótulo |
+| Explicit rich runtime | Legacy runtime without label |
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
-| Cache v2 em arquivo irmão separado, com identidade completa | Reutiliza o cache v1 existente |
-| Resume reaproveita os resultados brutos provados do job anterior (#242) | [Resume](job-recovery.md) reexecuta sobre o v1 |
+| V2 cache in a separate sibling file, with full identity | Reuses existing v1 cache |
+| Resume reuses the previous job's proven raw results (#242) | [Resume](job-recovery.md) re-executes on v1 |
 
 `ayvu.v1.translation` is the named compatibility
 path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
@@ -130,10 +130,10 @@ cover publication and worker behavior.
 
 [`TranslateProject`](translate-project.md) wraps the engine in a durable job.
 
-Produção usa o engine dentro de `TranslateProject` em ambos os runtimes. No rico,
-`TranslationResources.prepare_document` executa o `DocumentTranslator` antes do consumo
-das unidades pelo engine; uma falha ali interrompe o livro. Dry run e preview ficam no
-fluxo sem projeto, pois não têm identidade para fornecer ao adaptador.
+Production uses the engine inside `TranslateProject` in both runtimes. In rich,
+`TranslationResources.prepare_document` runs `DocumentTranslator` before the engine
+consumes units; a failure there stops the book. Dry run and preview stay in the
+project-free flow because they have no identity to supply to the adapter.
 
 ## The legacy facade
 
@@ -228,18 +228,18 @@ Zero candidates miss, one is checked against the current semantic identity and m
 identity is ambiguous. Duplicates for one exact key are corruption. Neither mode uses discovery or
 transport. A rich result reports incomplete units when misses are allowed; it publishes no raw-results
 artifact for an incomplete document. The CLI keeps its current partial EPUB and `--require-full-cache`
-behavior behind the legacy adapter. A integração rica de produção recusa `--cache-only`
-e `--require-full-cache`: a resolução offline atual não fixa sua identidade e rota com segurança.
+behavior behind the legacy adapter. The production rich integration refuses `--cache-only`
+and `--require-full-cache`: current offline resolution does not safely pin its identity and route.
 
 `SQLiteExactCache` implements the port for the rich path after `prepare_cache` runs before workers.
-No rico, a CLI prepara `<nome de --cache>.v2.sqlite` antes do provedor, sem abrir nem
-alterar v1. O primeiro uso rico traduz de novo textos disponíveis apenas no v1. Exige
-`--workers 1`, recusa `--translation-memory` até #162 e para na primeira falha de provedor
-sem publicar EPUB parcial. O job fica retomável e os segmentos concluídos continuam no cache.
-O glossário é aplicado sobre valores brutos de v2. Remover o rótulo volta ao legado em novas
-execuções; resume entre runtimes diferentes é recusado e nomeia `legacy/v1` e `rich/v2`.
-A declaração fica na configuração e na proveniência/identidade operacional, fora de repr,
-eventos, logs e checkpoints. Uma continuação reaproveita resultados brutos provados do job anterior (#242).
+In rich, the CLI prepares `<--cache name>.v2.sqlite` before the provider, without opening or
+changing v1. The first rich use retranslates texts available only in v1. It requires
+`--workers 1`, refuses `--translation-memory` until #162 and stops at the first provider failure
+without publishing a partial EPUB. The job remains resumable and completed segments stay in cache.
+The glossary is applied to raw v2 values. Removing the label returns to legacy on new
+runs; resume between different runtimes is refused and names `legacy/v1` and `rich/v2`.
+The declaration stays in configuration and operational provenance/identity, outside repr,
+events, logs and checkpoints. A continuation reuses the previous job's proven raw results (#242).
 Migration outside this production selection preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
 [standalone cache v2](standalone-cache-v2.md) for locking, recovery and limits.
 
