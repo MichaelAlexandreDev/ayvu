@@ -43,8 +43,6 @@
     "tests/test_job_store.py": 422,
     "tests/test_local_worker_spike.py": 499,
     "tests/test_memory_retrieval.py": 619,
-    "tests/test_project_profile_integration.py": 416,
-    "tests/test_project_store.py": 545,
     "tests/test_provenance_store.py": 573,
     "tests/test_review_application.py": 406,
     "tests/test_review_exchange.py": 664,

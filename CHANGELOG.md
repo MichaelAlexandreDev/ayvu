@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote D: testes de projetos e biblioteca movidos para seus pacotes,
+  com divisões de store e perfis e preservação dos testes e invariantes core.
+
 - REF-16 (#284), lote C: testes de provedores e rede movidos para seus pacotes,
   com divisões por contrato e preservação dos testes e invariantes core.
 

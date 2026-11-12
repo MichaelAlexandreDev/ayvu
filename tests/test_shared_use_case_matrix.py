@@ -82,7 +82,7 @@ PUBLIC_LINK_TARGETS = {
     ROOT / "tests" / "test_epub_io.py",
     ROOT / "tests" / "test_glossary.py",
     ROOT / "tests" / "test_html_translate.py",
-    ROOT / "tests" / "test_library.py",
+    ROOT / "tests" / "library" / "test_library.py",
     ROOT / "tests" / "test_resume.py",
     ROOT / "tests" / "test_review_import.py",
     ROOT / "tests" / "test_review_exchange.py",

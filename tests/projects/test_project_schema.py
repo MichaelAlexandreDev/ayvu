@@ -14,8 +14,9 @@ from ayvu.provenance.store import PROVENANCE_SCHEMA_STATEMENTS
 from ayvu.projects.schema import PROJECT_MIGRATIONS, open_job_repository, project_migration_runner
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.kernel.sqlite import APPLICATION_ID, SqliteMigrationRunner
+from tests.support.paths import PROJECT_ROOT, TESTS_ROOT
 
-FIXTURES = Path(__file__).parent / 'fixtures' / 'migrations'
+FIXTURES = TESTS_ROOT / 'fixtures' / 'migrations'
 PROJECT = str(UUID(int=1))
 V2_CHECKSUM = 'bb8de968c66ff715f48f6fd763be29a553fd4c6a49b14c702dc07b1dabe5e5d9'
 V3_CHECKSUM = '936a09b9b40fa9d20d8687672b2dec067844c991747363be9d78b2a233b8a008'
@@ -148,7 +149,7 @@ def test_real_project_boundary_preserves_manifest_source_and_cache(tmp_path):
 def test_documented_snapshot_verifier_accepts_the_current_schema(tmp_path):
     path = tmp_path / 'snapshot.sqlite'
     seeded(path, 4)
-    document = Path(__file__).parents[1] / 'docs' / 'architecture' / 'project-migrations.md'
+    document = PROJECT_ROOT / 'docs' / 'architecture' / 'project-migrations.md'
     script = document.read_text().split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
     result = subprocess.run([sys.executable, '-O', '-c', script, str(path)],
                             capture_output=True, text=True, timeout=10)
