@@ -16,9 +16,9 @@ artifacts are versioned in that commit:
 | Dependency | Artifact and required fact |
 | --- | --- |
 | #124 | [Desktop stack](adr-desktop-stack.md#acceptance-record): `Accepted`, maintainer approval on 2026-11-05; PySide6/Qt Widgets, Linux x86_64 as the first evaluation/product target; Windows/macOS deferred until native evidence |
-| #126 | [Events and cancellation](job-events-cancellation.md): schema 1, single producer, outcome, failures and safe points |
+| #126 | [Events and cancellation](modules/jobs.md): schema 1, single producer, outcome, failures and safe points |
 | #129 | [Threat model](product-threat-model.md): `Accepted`, approval on 2026-11-05; a subprocess is not a sandbox |
-| #137 | [Artifacts](job-artifacts.md): `Accepted`, staging/ready/abandoned, lease and reconciliation |
+| #137 | [Artifacts](decisions/job-artifacts.md): `Accepted`, staging/ready/abandoned, lease and reconciliation |
 | #159 | [HTTP policy](network-policy.md): `none`/`loopback`, denial before I/O and no ambient authority |
 
 #124 accepts the toolkit while retaining distribution/accessibility gates. No
@@ -234,7 +234,7 @@ matrix to hide this gap; recommend a scope review if required.
 The cooperative request is idempotent; only the safe point confirms the ack. Escalation
 kills the group even after the leader exits. Death by signal does not mean
 acknowledged `cancelled` or `validated`. The future supervisor applies the
-[job state machine](job-lifecycle.md) transitions through CAS. Without an ack, failure/timeout may become
+[job state machine](decisions/job-lifecycle.md) transitions through CAS. Without an ack, failure/timeout may become
 resource/internal `JobFailure` according to the cause; after an ack, never emit a contradictory
 outcome. If facts are missing for a conclusion, keep `requires_reconciliation`
 without fabricating an outcome. Lease expiry is neither success nor an outcome.
@@ -255,7 +255,7 @@ Real `ArtifactService` reconciliation, exercised with synthetic ports, kept the
 active lease intact and abandoned a missing digest or final file with the
 canonical reasons. Real SQLite and payload store remain under #137 tests;
 their integration did not pass in this sandbox due to `unsafe_path`. Do not attribute
-proof of that integration to synthetic ports. [Resume](job-recovery.md) is unchanged.
+proof of that integration to synthetic ports. [Resume](modules/recovery.md) is unchanged.
 
 ## Evidence, operation and follow-up
 

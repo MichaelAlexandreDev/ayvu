@@ -12,12 +12,12 @@ PRODUCT_SCOPE = PROJECT_ROOT / "docs" / "product-scope.md"
 PRODUCT_THREAT_MODEL = PROJECT_ROOT / "docs" / "architecture" / "product-threat-model.md"
 MODULE_BOUNDARIES = PROJECT_ROOT / "docs" / "architecture" / "modular-monolith-boundaries.md"
 GLOBAL_PREFERENCES = PROJECT_ROOT / "docs" / "architecture" / "modules" / "preferences.md"
-LOCAL_STORAGE = PROJECT_ROOT / "docs" / "architecture" / "local-project-storage.md"
-PROJECT_MIGRATIONS = PROJECT_ROOT / "docs" / "architecture" / "project-migrations.md"
-JOB_LIFECYCLE = PROJECT_ROOT / "docs" / "architecture" / "job-lifecycle.md"
-JOB_EVENTS = PROJECT_ROOT / "docs" / "architecture" / "job-events-cancellation.md"
-JOB_ARTIFACTS = PROJECT_ROOT / "docs" / "architecture" / "job-artifacts.md"
-PROVENANCE = PROJECT_ROOT / "docs" / "architecture" / "provenance.md"
+LOCAL_STORAGE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "local-project-storage.md"
+PROJECT_MIGRATIONS = PROJECT_ROOT / "docs" / "architecture" / "modules" / "projects-storage.md"
+JOB_LIFECYCLE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "job-lifecycle.md"
+JOB_EVENTS = PROJECT_ROOT / "docs" / "architecture" / "modules" / "jobs.md"
+JOB_ARTIFACTS = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "job-artifacts.md"
+PROVENANCE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "provenance.md"
 CONTENT_MODEL = PROJECT_ROOT / "docs" / "architecture" / "content-model.md"
 PROVIDER_CONTRACTS = PROJECT_ROOT / "docs" / "architecture" / "provider-contracts.md"
 PROVIDER_CAPABILITIES = PROJECT_ROOT / "docs" / "architecture" / "provider-capabilities.md"
@@ -44,6 +44,19 @@ C1_DOCUMENTS = tuple(
 )
 C1_ENTRY_DOCUMENTS = (PROJECT_ROOT / "README.md", PROJECT_ROOT / "docs" / "tutorial-modo-comum-e-dev.md")
 
+C2_DOCUMENTS = tuple(
+    PROJECT_ROOT / "docs" / "architecture" / directory / name
+    for directory, name in (
+        ("modules", "projects.md"),
+        ("modules", "projects-storage.md"),
+        ("modules", "jobs.md"),
+        ("modules", "artifacts.md"),
+        ("modules", "provenance.md"),
+        ("modules", "recovery.md"),
+        ("decisions", "project-lifecycle.md"),
+    )
+)
+
 
 def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
     target = target.strip()
@@ -59,8 +72,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY, HTML_STRUCTURE, EPUB_FORMAT, LOCAL_WORKER, WORKER_SPIKE, AI_ASSISTANCE, REFACTOR_BASELINE, PACKAGE_STRUCTURE, V1_RETIREMENT, WHERE_CODE_GOES, *C1_DOCUMENTS[1:], *C1_ENTRY_DOCUMENTS],
-    ids=["product-scope", "product-threat-model", "module-boundaries", "preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility", "html-structure", "epub-format", "local-worker", "worker-spike", "ai-assistance-authority", "refactor-baseline", "package-structure", "v1-retirement", "where-code-goes", *(path.stem for path in C1_DOCUMENTS[1:]), "readme", "tutorial"],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY, HTML_STRUCTURE, EPUB_FORMAT, LOCAL_WORKER, WORKER_SPIKE, AI_ASSISTANCE, REFACTOR_BASELINE, PACKAGE_STRUCTURE, V1_RETIREMENT, WHERE_CODE_GOES, *C1_DOCUMENTS[1:], *C1_ENTRY_DOCUMENTS, *C2_DOCUMENTS],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility", "html-structure", "epub-format", "local-worker", "worker-spike", "ai-assistance-authority", "refactor-baseline", "package-structure", "v1-retirement", "where-code-goes", *(path.stem for path in C1_DOCUMENTS[1:]), "readme", "tutorial", *(path.relative_to(PROJECT_ROOT).as_posix() for path in C2_DOCUMENTS)],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""
@@ -77,6 +90,11 @@ def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
 
 @pytest.mark.parametrize("document", (*C1_DOCUMENTS, GLOBAL_PREFERENCES.with_name("preferences-fields.json")))
 def test_c1_module_documents_fit_the_line_budget(document: Path) -> None:
+    assert len(document.read_text(encoding="utf-8").splitlines()) <= 400
+
+
+@pytest.mark.parametrize("document", C2_DOCUMENTS)
+def test_c2_module_documents_fit_the_line_budget(document: Path) -> None:
     assert len(document.read_text(encoding="utf-8").splitlines()) <= 400
 
 

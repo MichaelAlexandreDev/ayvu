@@ -213,7 +213,7 @@ crash-before/after-rename tests. Owners:
 [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134) for source/project
 identity, [#137](https://github.com/MichaelAlexandreDev/ayvu/issues/137) for artifact
 reconciliation and [#144](https://github.com/MichaelAlexandreDev/ayvu/issues/144)
-for adapter safety. [Job artifacts](job-artifacts.md) now cover contained no-clobber
+for adapter safety. [Job artifacts](decisions/job-artifacts.md) now cover contained no-clobber
 publication and reconciliation, but no current writer uses them yet.
 Legacy exposure remains until caller migrations
 [#145](https://github.com/MichaelAlexandreDev/ayvu/issues/145),
@@ -444,7 +444,7 @@ the threat register.
 | STRIDE: elevation of privilege | Book/tool asks to execute a reader command, resolve a secret or grant itself network access | No content authority in proposed design; T08/T09/T10, G01/G02 |
 | LINDDUN: linking | Stable text hash and language/timestamp pairs link copies across caches/exports | Hashes are not anonymous identifiers; T05/T11 |
 | LINDDUN: identifying | Author/title, source path or rare passage reveals person/work | Class C2 and content need minimization; T04/T11 |
-| LINDDUN: non-repudiation | Durable provenance could tie an operator to sensitive reading/editing history; [the current records](provenance.md) hold actor kinds and no person | Audit accountability and privacy conflict; minimize/limit access and retention; T07/T11 |
+| LINDDUN: non-repudiation | Durable provenance could tie an operator to sensitive reading/editing history; [the current records](decisions/provenance.md) hold actor kinds and no person | Audit accountability and privacy conflict; minimize/limit access and retention; T07/T11 |
 | LINDDUN: detecting | Cache summary, checkpoint names or diagnostics reveal that a book/project exists | Metadata exposure remains sensitive; T04/T11, G03 |
 | LINDDUN: data disclosure | Export, backup or provider retains cleartext after local cache deletion | Copy and recipient lifecycle is independent; T03/T11 |
 | LINDDUN: unawareness | Operator assumes localhost never forwards data or cache use permits training | Explicit recipient/purpose disclosure required; T03/T05/T11 |

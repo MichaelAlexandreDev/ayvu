@@ -688,17 +688,17 @@ nunca apaga automaticamente originais, saídas, cache ou glossários, mas perde
 a identidade e as referências necessárias ao futuro histórico/retomada por
 projeto. Links simbólicos e fontes com hardlinks são recusados nesse fluxo.
 Para schema, limites e recuperação de escrita interrompida, consulte o
-[contrato do manifesto local](docs/architecture/project-manifest.md).
+[contrato do manifesto local](docs/architecture/modules/projects.md).
 O repositório também oferece uma API explícita para resolver o banco local
 `projects/<UUID>/project.sqlite` e seus backups em `backups/schema/`.
 O bootstrap SQLite e as migrações são chamados pela composição quando necessários;
 a tradução com projeto cria esse banco no primeiro uso. O manifesto v1
 e o cache independente permanecem preservados. Consulte o
-[protocolo de migração e recuperação](docs/architecture/project-migrations.md)
+[protocolo de migração e recuperação](docs/architecture/modules/projects-storage.md)
 para backup verificado, conflitos, queda de processo e recuperação manual.
-Esse banco também tem o [registro durável de jobs](docs/architecture/job-lifecycle.md),
-o [registro de artefatos e checkpoints](docs/architecture/job-artifacts.md) e o
-[registro de proveniência](docs/architecture/provenance.md). Cada tradução com projeto
+Esse banco também tem o [registro durável de jobs](docs/architecture/modules/jobs.md),
+o [registro de artefatos e checkpoints](docs/architecture/modules/artifacts.md) e o
+[registro de proveniência](docs/architecture/modules/provenance.md). Cada tradução com projeto
 vira um job nesse banco, do começo ao resultado final, e o
 [caso de uso](docs/architecture/translate-project.md) explica o que acontece em cada caso.
 Dry-run e preview não têm projeto e não criam job.
@@ -734,7 +734,7 @@ ainda não tiver um resultado, e cria um novo ligado a ele. Ela é recusada se a
 tradução ainda estiver rodando em outro processo, se o livro tiver mudado desde o
 começo ou se o livro for recusado por política. Um arquivo de estado antigo, sem job
 correspondente, continua funcionando como sempre, sem criar projeto nem job. Veja
-[recuperação de traduções](docs/architecture/job-recovery.md).
+[recuperação de traduções](docs/architecture/modules/recovery.md).
 
 O tradutor pode ser chamado de novo para um trecho que estava em andamento quando a
 execução foi interrompida. O cache evita repetir o que já foi concluído, mas ainda não

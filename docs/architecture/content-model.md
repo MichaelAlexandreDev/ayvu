@@ -85,7 +85,7 @@ unknown fields all raise `invalid_document`. Test fixtures pin the bytes, so a c
 the identity algorithm or format fails visibly and must become a new version.
 
 **The encoded form holds the book's text.** It is a private project artifact and belongs
-in the [artifact store](job-artifacts.md), never in logs or diagnostics.
+in the [artifact store](decisions/job-artifacts.md), never in logs or diagnostics.
 
 ## Privacy
 

@@ -1,12 +1,80 @@
-# Project SQLite bootstrap, upgrades and recovery
+# Project storage and migrations
+
+The accepted scope is recorded in the [decision](../decisions/local-project-storage.md).
+
+The scope and consequences below preserve the bootstrap stage accepted in #135.
+The later migration history is recorded under Bootstrap, upgrades and recovery.
+
+## Decision and scope
+
+Use Python's standard-library SQLite adapter for the initial relational project
+store, alongside the existing filesystem and version-1 JSON manifest. No server
+or new Python dependency is required.
+
+The managed project repository owns these locations under its configured
+processing root:
+
+- `projects/<project UUID>/project.json`: existing canonical manifest, unchanged.
+- `projects/<project UUID>/project.sqlite`: relational database.
+- `projects/<project UUID>/backups/schema/`: retained schema-upgrade snapshots.
+
+The Projects adapter resolves and validates database/backup locations from the
+canonical project UUID and trusted workspace. This is an explicit additive
+extension to the repository delivered by #134, not an assertion that its original
+port already exposed a database path. The migration runner receives resolved
+paths; it does not select a project layout or reinterpret document content.
+
+The first production database contains only migration-owned infrastructure and
+its schema-version ledger. Future domain tables retain their owning modules.
+The JSON manifest schema does not change and does not become a database locator.
+
+## Required safety properties
+
+- Validate integrity and schema compatibility before mutating an existing database.
+- Publish and verify a consistent pre-upgrade backup before applying schema SQL.
+- Bound lock contention and expensive verification/backup work.
+- Commit schema and version information atomically; rollback failed work.
+- Preserve verified snapshots on failure, with explicit recovery outcomes.
+- Never automatically restore over a database or prune retained backups.
+- Exclude source text, translated text, secrets, raw paths and SQL from diagnostics.
+
+SQLite crash recovery and restoring a backup are distinct operations. A database
+that needs native journal recovery must be identified as recoverable rather than
+silently treated as corrupt. The runner's protocol and tests must make any
+recovery prerequisite explicit before a later migration can begin.
+
+## Consequences and limits
+
+Projects gain local database and retained-backup disk usage. Directory ownership,
+alias prevention, concurrent writers, transaction boundaries and failed publication
+are part of the storage contract. A verified backup is recovery evidence, not
+permission to overwrite another artifact.
+
+This acceptance is limited to SQLite/filesystem persistence for #135's bootstrap
+and migrations. It does not accept jobs (`DEC-004`), cache/TM/corpus design
+(`DEC-013`), provenance or any other proposed decision. It does not migrate the
+standalone translation cache, create domain tables, replace the manifest, or
+change the existing translation CLI. Backup retention is manual until separately
+reviewed lifecycle work exists. Jobs were later accepted separately, in the scoped
+[job lifecycle ADR](../decisions/job-lifecycle.md), and are schema version 2. Artifact metadata and
+the `artifacts/` directories were accepted in the scoped
+[job artifacts ADR](../decisions/job-artifacts.md), and are schema version 3. Provenance was accepted
+in the scoped [provenance ADR](../decisions/provenance.md), and is schema version 4.
+
+The [governed translation memory](knowledge-memory.md) introduced by
+#161 uses a dedicated `approved-memory.sqlite` alongside `project.sqlite`, with
+its own migration ledger and `backups/approved-memory-schema/`. It does not change
+the project schema or migrate the operational cache.
+
+## Bootstrap, upgrades and recovery (#135)
 
 This contract implements [#135](https://github.com/MichaelAlexandreDev/ayvu/issues/135)
-under the [accepted, scoped DEC-012](local-project-storage.md). The runner itself
+under the [accepted, scoped DEC-012](../decisions/local-project-storage.md). The runner itself
 owns no domain tables. Schema version 2 adds the job tables of the
-[job lifecycle](job-lifecycle.md) and version 3 the [job artifact](job-artifacts.md)
-metadata, and version 4 the [provenance](provenance.md) tables. This project
+[job lifecycle](../decisions/job-lifecycle.md) and version 3 the [job artifact](../decisions/job-artifacts.md)
+metadata, and version 4 the [provenance](../decisions/provenance.md) tables. This project
 database contains no cache or review tables. The [governed approved translation
-memory](modules/knowledge-memory.md) uses the same runner with its own file,
+memory](knowledge-memory.md) uses the same runner with its own file,
 registry and backup directory; its versions do not extend `PROJECT_MIGRATIONS`.
 
 ## Composition boundary and current schema
@@ -221,3 +289,15 @@ Keep the failed original and its sidecars together at a separate preserved
 location before deliberately promoting the verified candidate to `project.sqlite`.
 No runner API performs this replacement or deletes the preserved files. Keep all
 verified backups until a separate retention decision is reviewed.
+
+## Enforced contracts
+
+- [test_migration_contracts](../../../tests/kernel/sqlite/test_migration_contracts.py).
+- [test_sqlite_migrations_transactions](../../../tests/kernel/sqlite/test_sqlite_migrations_transactions.py).
+- [test_sqlite_migrations_publication](../../../tests/kernel/sqlite/test_sqlite_migrations_publication.py).
+- [test_project_schema](../../../tests/projects/test_project_schema.py).
+
+The documented snapshot verifier is executed with Python optimization by
+`test_documented_snapshot_verifier_checks_registry_with_python_optimization`
+(valid version 1, invalid identity and checksum) and
+`test_documented_snapshot_verifier_accepts_the_current_schema` (version 4).

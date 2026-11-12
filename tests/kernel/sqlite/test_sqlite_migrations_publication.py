@@ -172,7 +172,7 @@ def test_documented_snapshot_verifier_checks_registry_with_python_optimization(t
             connection.execute("UPDATE ayvu_schema_migrations SET checksum='invalid'")
         connection.commit()
     before = path.read_bytes()
-    document = PROJECT_ROOT / 'docs' / 'architecture' / 'project-migrations.md'
+    document = PROJECT_ROOT / 'docs' / 'architecture' / 'modules' / 'projects-storage.md'
     script = document.read_text().split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
     result = subprocess.run([sys.executable, '-O', '-c', script, str(path)],
                             capture_output=True, text=True, timeout=10)

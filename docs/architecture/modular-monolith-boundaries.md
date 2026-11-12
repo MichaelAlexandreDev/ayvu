@@ -66,10 +66,10 @@ This decision is driven by the following constraints:
 This acceptance records the modular-monolith, inward-dependency, and shared
 application-contract decisions represented by `DEC-001`, `DEC-002`, and
 `DEC-017`. It does not accept any other proposed architecture decision. Later
-scoped acceptances live in their own ADRs: [project lifecycle](project-lifecycle.md)
-(`DEC-003`), [local storage](local-project-storage.md) (`DEC-012`) and
-[job lifecycle](job-lifecycle.md) (`DEC-004`) and [job artifacts](job-artifacts.md)
-(extending `DEC-004` and `DEC-012`), [provenance](provenance.md) (`DEC-014`) and
+scoped acceptances live in their own ADRs: [project lifecycle](decisions/project-lifecycle.md)
+(`DEC-003`), [local storage](decisions/local-project-storage.md) (`DEC-012`) and
+[job lifecycle](decisions/job-lifecycle.md) (`DEC-004`) and [job artifacts](decisions/job-artifacts.md)
+(extending `DEC-004` and `DEC-012`), [provenance](decisions/provenance.md) (`DEC-014`) and
 [content model](content-model.md), [format adapter](format-adapter.md) and [EPUB format](epub-format.md) (`DEC-005`) and
 [provider contracts](provider-contracts.md) and
 [provider capabilities](provider-capabilities.md) (`DEC-008`) and
@@ -313,7 +313,7 @@ private paths, and secrets in URLs must not leak through results or observabilit
 Semantic progress and cooperative cancellation belong to application/job
 contracts. Rich progress rendering belongs to the CLI, and future Qt signals
 belong to the Desktop adapter. The reusable contract is defined in
-[job events and cancellation](job-events-cancellation.md). No use case has adopted
+[job events and cancellation](modules/jobs.md). No use case has adopted
 it yet, so current `KeyboardInterrupt` handling remains the compatibility baseline.
 
 ## Current module ownership and disposition

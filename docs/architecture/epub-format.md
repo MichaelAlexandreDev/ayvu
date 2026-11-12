@@ -112,7 +112,7 @@ document, not byte for byte.
 ## Publication
 
 Files and the database cannot commit together, so a failure between them is reported truthfully and resolved by
-[artifact reconciliation](job-artifacts.md).
+[artifact reconciliation](decisions/job-artifacts.md).
 
 | Failure | Result | After the job's lease ends and reconciliation runs |
 | --- | --- | --- |

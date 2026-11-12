@@ -1,19 +1,15 @@
-# ADR: Provenance records and lineage
+# Provenance
 
-Status: Accepted
-Decision-Date: `2026-11-03`
-Owners: Project maintainer (acceptance); Provenance (contract ownership)
-Issue: [#138 — Record segment and artifact provenance](https://github.com/MichaelAlexandreDev/ayvu/issues/138)
+The accepted scope is recorded in the [decision](../decisions/provenance.md).
 
-Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
-
-Decision: `DEC-014`, scoped to the record model, repository and storage of provenance
+The scope and consequences below preserve the implementation stage recorded in #138;
+statements about later integrations describe that stage, not their current delivery status.
 
 ## Decision and scope
 
 A project keeps an append-only graph answering how an output was produced, stored in
-the [project database](local-project-storage.md) as schema version 4. It records jobs,
-operations, source kinds, producers and [artifacts](job-artifacts.md), and not the
+the [project database](../decisions/local-project-storage.md) as schema version 4. It records jobs,
+operations, source kinds, producers and [artifacts](../decisions/job-artifacts.md), and not the
 content they processed.
 
 `DocumentTranslator` writes provenance for provider, exact-cache and fuzzy-memory outcomes
@@ -124,3 +120,10 @@ references and idempotency keys.
   test of the model.
 - Released migrations cannot be edited, so a schema correction has to be a new version.
 - Native Windows behavior and network filesystems have not been validated.
+
+## Enforced contracts
+
+- [test_provenance](../../../tests/provenance/test_provenance.py).
+- [test_provenance_store_append](../../../tests/provenance/test_provenance_store_append.py).
+- [test_provenance_store_integrity](../../../tests/provenance/test_provenance_store_integrity.py).
+- [test_provenance_store_traversal](../../../tests/provenance/test_provenance_store_traversal.py).

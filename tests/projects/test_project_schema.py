@@ -149,7 +149,7 @@ def test_real_project_boundary_preserves_manifest_source_and_cache(tmp_path):
 def test_documented_snapshot_verifier_accepts_the_current_schema(tmp_path):
     path = tmp_path / 'snapshot.sqlite'
     seeded(path, 4)
-    document = PROJECT_ROOT / 'docs' / 'architecture' / 'project-migrations.md'
+    document = PROJECT_ROOT / 'docs' / 'architecture' / 'modules' / 'projects-storage.md'
     script = document.read_text().split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
     result = subprocess.run([sys.executable, '-O', '-c', script, str(path)],
                             capture_output=True, text=True, timeout=10)
