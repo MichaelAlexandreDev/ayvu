@@ -90,7 +90,7 @@ ayvu/
 │   ├── test_cache.py
 │   ├── test_chunking.py
 │   ├── test_cli.py
-│   ├── test_cli_progress.py
+│   ├── interfaces/cli/test_cli_progress.py
 │   ├── preferences/
 │   │   └── test_config.py
 │   ├── formats/epub/test_epub_io_paths.py

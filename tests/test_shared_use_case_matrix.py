@@ -78,7 +78,7 @@ PUBLIC_LINK_TARGETS = {
     ROOT / "tests" / "knowledge" / "cache" / "test_cache_admin_legacy_storage.py",
     ROOT / "tests" / "knowledge" / "cache" / "test_cache_admin_file_publication.py",
     ROOT / "tests" / "test_cli.py",
-    ROOT / "tests" / "test_cli_progress.py",
+    ROOT / "tests" / "interfaces" / "cli" / "test_cli_progress.py",
     ROOT / "tests" / "preferences" / "test_config.py",
     ROOT / "tests" / "content_use_cases" / "test_content_inspection.py",
     ROOT / "tests" / "content_use_cases" / "test_content_export.py",

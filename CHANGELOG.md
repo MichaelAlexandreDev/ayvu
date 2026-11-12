@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote J1: cinco módulos restantes de testes da CLI movidos para
+  `tests/interfaces/cli/`, preservando os 57 testes e a seleção core.
+
 - REF-16 (#284), lote I: testes da tradução legada movidos para seus pacotes,
   com divisões por responsabilidade e preservação dos testes e invariantes core.
 
