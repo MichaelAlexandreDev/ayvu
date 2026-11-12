@@ -41,7 +41,7 @@ def test_failed_update_keeps_intent_and_reports_persistence_separately():
 def test_field_classification_is_complete_executable_contract():
     from ayvu.preferences.model import NamedPreferenceProfile, preferences_to_mapping
     contract = json.loads((PROJECT_ROOT /
-        'docs/architecture/global-preferences-fields.json').read_text())
+        'docs/architecture/modules/preferences-fields.json').read_text())
     fields = {entry['path']: entry for entry in contract['fields']}
     preferences = replace(GlobalPreferences(), profiles=(('test', NamedPreferenceProfile('pt', 'terms.json', 'technical')),))
     payload = preferences_to_mapping(preferences)

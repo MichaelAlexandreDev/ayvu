@@ -1,4 +1,4 @@
-# Approved and governed translation memory
+# Approved translation memory
 
 Implements [#161 / DESKTOP-130](https://github.com/DevStarrk1137/ayvu/issues/161).
 Artifacts from #135, #138, #140 and #154 are used without changing their contracts
@@ -247,3 +247,12 @@ existing report. Routine logs/events contain codes, not values, paths
 or secrets. The authorized API returns full values and snippets for a
 future concordance view. This issue adds no review editor, dataset,
 consent or cache migration to approved memory.
+
+## Enforced contracts
+
+- [`tests/knowledge/memory/approved/test_approved_memory_lifecycle.py`](../../../tests/knowledge/memory/approved/test_approved_memory_lifecycle.py)
+- [`tests/knowledge/memory/approved/test_approved_memory_scopes.py`](../../../tests/knowledge/memory/approved/test_approved_memory_scopes.py)
+- [`tests/knowledge/memory/approved/test_approved_memory_provenance.py`](../../../tests/knowledge/memory/approved/test_approved_memory_provenance.py)
+- [`tests/translation/stages/test_memory_retrieval_queries.py`](../../../tests/translation/stages/test_memory_retrieval_queries.py)
+- [`tests/translation/stages/test_memory_retrieval_policy.py`](../../../tests/translation/stages/test_memory_retrieval_policy.py)
+- [`tests/translation/stages/test_memory_retrieval_pipeline.py`](../../../tests/translation/stages/test_memory_retrieval_pipeline.py)

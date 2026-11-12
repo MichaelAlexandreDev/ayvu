@@ -346,8 +346,7 @@ uv run ayvu apply-review livro.epub livro-review.csv
 
 O mapeamento v2 aceita texto simples e placeholders emitidos para o próprio
 pacote/unidade; o adaptador estrutural restaura os nós originais do EPUB. Veja
-[`docs/architecture/review-exchange.md`](docs/architecture/review-exchange.md)
-e [`docs/architecture/review-application.md`](docs/architecture/review-application.md).
+[`docs/architecture/modules/review.md`](docs/architecture/modules/review.md).
 
 Gerar um preview traduzido:
 
@@ -631,7 +630,7 @@ Trechos já traduzidos serão reaproveitados automaticamente.
 O checkpoint de retomada preserva as opções de execução do tradutor, como
 timeout, workers, retries, limite de requisições por segundo e backoff.
 
-A tradução pela CLI usa o cache legado v1; o caminho rico dispõe de cache v2 independente. A migração preserva os dados v1 sem transformá-los em acertos exatos v2. A administração aceita namespaces explícitos; sem seleção, mantém o comportamento legado. Veja [cache standalone v2](docs/architecture/standalone-cache-v2.md).
+A tradução pela CLI usa o cache legado v1; o caminho rico dispõe de cache v2 independente. A migração preserva os dados v1 sem transformá-los em acertos exatos v2. A administração aceita namespaces explícitos; sem seleção, mantém o comportamento legado. Veja [cache standalone v2](docs/architecture/modules/knowledge-cache.md).
 
 O cache pode ser inspecionado, limpo, exportado e importado separadamente dos
 comandos de tradução:
@@ -660,7 +659,7 @@ O destino da exportação deve ser um arquivo diferente do próprio cache SQLite
 No formato legado v1, exportação e importação têm limite de 512 MiB e 1.000.000
 de entradas; acima disso, exporte em partes com `--source`, `--target` ou
 `--before`. O formato v2 tem limites e filtros próprios descritos em
-[administração de cache](docs/architecture/cache-administration.md).
+[administração de cache](docs/architecture/modules/knowledge-cache.md).
 
 O arquivo exportado inclui texto original e texto traduzido. Trate esse JSON
 como conteúdo privado do livro, da mesma forma que o EPUB e o cache SQLite.
@@ -671,7 +670,7 @@ apaga esse arquivo. Se o processo for morto à força ou o computador desligar n
 meio, o cache fica como estava, mas o arquivo temporário sobra: ele contém
 textos do livro e pode ser apagado quando nenhum import estiver rodando.
 
-A administração de cache v2 aceita seleção explícita de namespace e importação com mapa externo e previsão. Veja [administração de cache](docs/architecture/cache-administration.md) para exemplos, autorização de escopos e limites. Arquivos de exportação e recuperação podem conter textos sensíveis.
+A administração de cache v2 aceita seleção explícita de namespace e importação com mapa externo e previsão. Veja [administração de cache](docs/architecture/modules/knowledge-cache.md) para exemplos, autorização de escopos e limites. Arquivos de exportação e recuperação podem conter textos sensíveis.
 
 Traduções diretas, guiadas e em lote criam ou reutilizam automaticamente um
 projeto local em `<pasta de processamento>/projects/<UUID>/project.json`.
@@ -931,7 +930,7 @@ O CLI informa `memory_review_suggestions` e conta sugestões e textos de memóri
 relatório existente. A consulta de concordância é uma API de aplicação para chamadores
 autorizados; não há editor ou consumidor Desktop novo. Para criar/aprovar revisões,
 use os casos de uso explícitos de #161, documentados em
-[Memória aprovada](docs/architecture/approved-translation-memory.md); o CLI de tradução
+[Memória aprovada](docs/architecture/modules/knowledge-memory.md); o CLI de tradução
 não cria essas revisões. Limpar o cache não apaga a memória aprovada.
 
 Uma falha do provedor para o runtime rico na primeira ocorrência e não publica EPUB parcial.
@@ -1002,7 +1001,7 @@ Perfis podem ser adicionados manualmente em `profiles`:
 aceita `neutral`, `technical`, `literary` ou `academic`, mas no backend LibreTranslate atual
 serve apenas como metadado do perfil; ele não muda o prompt nem o comportamento do tradutor.
 
-O contrato de [perfis versionados do projeto](docs/architecture/project-translation-profiles.md)
+O contrato de [perfis versionados do projeto](docs/architecture/modules/projects-profiles.md)
 permite migração explícita por chamadores da aplicação. A CLI continua usando os perfis
 globais v1 nesta janela de compatibilidade; não existe comando novo de migração nem
 migração automática. A migração exige glossário do catálogo gerenciado e preserva o perfil global.
@@ -1029,7 +1028,7 @@ Se uma gravação falhar, o menu informa que os valores valem apenas para a sess
 atual. Em conflito de revisão, recarregue a configuração antes de tentar salvar
 novamente. Comandos do leitor com opções de credenciais, como `--token` ou
 `--password`, são recusados; a configuração não é um armazenamento de segredos.
-Consulte o [contrato de preferências](docs/architecture/global-preferences.md)
+Consulte o [contrato de preferências](docs/architecture/modules/preferences.md)
 para limites, resultados de erro, compatibilidade e permissões.
 Arquivos inválidos, futuros ou acima dos limites são preservados: guardar uma
 cópia privada e corrigir explicitamente o arquivo é necessário antes de salvar

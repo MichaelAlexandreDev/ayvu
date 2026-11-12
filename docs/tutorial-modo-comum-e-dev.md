@@ -284,13 +284,13 @@ perfil. O campo `style` aceita `neutral`, `technical`, `literary` ou `academic`,
 LibreTranslate ele ainda é apenas informativo.
 
 A CLI mantém esses perfis globais v1 durante a janela de compatibilidade. A
-[migração para perfis versionados de projeto](architecture/project-translation-profiles.md)
+[migração para perfis versionados de projeto](architecture/modules/projects-profiles.md)
 é uma API explícita da aplicação, sem comando de terminal nesta versão. Ela exige
 um glossário gerenciado, preserva o perfil global e mantém `style` inerte.
 
 ### Usar cache de forma consistente
 
-A tradução pela CLI usa o cache legado v1. A administração também aceita namespaces v2 explícitos. A migração não transforma entradas legadas em acertos exatos v2. Veja [cache standalone v2](architecture/standalone-cache-v2.md).
+A tradução pela CLI usa o cache legado v1. A administração também aceita namespaces v2 explícitos. A migração não transforma entradas legadas em acertos exatos v2. Veja [cache standalone v2](architecture/modules/knowledge-cache.md).
 
 Para retomar com segurança, repita o mesmo cache entre execuções:
 
@@ -341,9 +341,9 @@ Escolha para a exportação um arquivo diferente do cache SQLite; detalhes de
 erros usam códigos curtos sem o conteúdo das entradas.
 No formato legado v1, exportação e importação têm limite de 512 MiB e 1.000.000
 de entradas; acima disso, exporte em partes com `--source`, `--target` ou
-`--before`. Para os limites e filtros v2, veja a [administração de cache](architecture/cache-administration.md).
+`--before`. Para os limites e filtros v2, veja a [administração de cache](architecture/modules/knowledge-cache.md).
 
-Para administrar um escopo v2, especifique o projeto e o escopo, por exemplo `ayvu cache inspect --namespace v2 --scope-kind project --scope-id 00000000-0000-0000-0000-000000004321 --project-id 00000000-0000-0000-0000-000000004321`. Use `ayvu cache import arquivo.json --scope-map mapa.json --dry-run` para prever uma importação mapeada. O formato do mapa, a confirmação e os limites estão na [documentação de administração](architecture/cache-administration.md). Exportações e arquivos de recuperação podem conter textos sensíveis.
+Para administrar um escopo v2, especifique o projeto e o escopo, por exemplo `ayvu cache inspect --namespace v2 --scope-kind project --scope-id 00000000-0000-0000-0000-000000004321 --project-id 00000000-0000-0000-0000-000000004321`. Use `ayvu cache import arquivo.json --scope-map mapa.json --dry-run` para prever uma importação mapeada. O formato do mapa, a confirmação e os limites estão na [documentação de administração](architecture/modules/knowledge-cache.md). Exportações e arquivos de recuperação podem conter textos sensíveis.
 
 ### Reaproveitar trechos parecidos com a memória de tradução
 
@@ -440,7 +440,7 @@ por projeto com `--translation-memory`. O cache exato v2 vem primeiro. Em seguid
 somente revisões atuais aprovadas são consultadas; sem resultado aplicável, o tradutor
 continua normalmente. A memória começa vazia e o comando não aprova traduções.
 A criação e revisão humanas usam os casos de uso de #161 descritos em
-[Memória aprovada](architecture/approved-translation-memory.md).
+[Memória aprovada](architecture/modules/knowledge-memory.md).
 
 No rich, fuzzy é sugestão por padrão: `--tm-apply-threshold 0.95` sozinho não autoriza
 reutilização aproximada. Para autorizar a política conservadora, use:
@@ -640,8 +640,7 @@ apagado ou alterado, a aplicação roda de novo e segue as mesmas regras de dest
 Arquivos CSV v1 ainda podem ser inspecionados por ferramentas compatíveis, mas
 `apply-review` informa `legacy_reexport_required` e orienta gerar um pacote v2.
 O adaptador estrutural restaura markup usando placeholders emitidos para cada
-unidade e pacote. Veja [`architecture/review-exchange.md`](architecture/review-exchange.md)
-e [`architecture/review-application.md`](architecture/review-application.md).
+unidade e pacote. Veja [`architecture/modules/review.md`](architecture/modules/review.md).
 
 ### Sobrescrever saída existente
 
