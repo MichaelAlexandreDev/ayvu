@@ -50,6 +50,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote C3: registros de conteúdo, formatos e providers separados dos contratos
+  por módulo, com tabela de compatibilidade, links e leitores preservados.
+
 - REF-20 (#288), lote C2: registros de projetos, jobs e proveniência separados dos contratos
   operacionais por módulo, com links e leitores preservados.
 

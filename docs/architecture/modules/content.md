@@ -1,31 +1,9 @@
-# ADR: Content documents and translation units
+# Content
 
-Status: Accepted
-Decision-Date: `2026-11-03`
-Owners: Project maintainer (acceptance); Content (contract ownership)
-Issue: [#140 — Define the minimal content document and translation unit model](https://github.com/MichaelAlexandreDev/ayvu/issues/140)
+The accepted scope and limits are recorded in the [decision](../decisions/content-model.md).
 
-Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
-
-Decision: `DEC-005`, scoped to the model, identity and serialization of content documents
-
-## Decision and scope
-
-`ayvu.content` defines immutable `ContentDocument` and `TranslationUnit` values that a
-format adapter produces and a pipeline consumes. The core knows identity, order,
-context, protected parts and constraints. It does not know what a DOM node, a subtitle
-cue or a page region is: format detail stays in an opaque locator only the adapter
-can interpret.
-
-The v2 review exchange exposed by `ayvu.review` is the first caller of durable
-units: it binds them to a project/source/artifact revision and returns
-`UnitTranslation` values for structural reconstruction. It does not persist
-content or replace the legacy v1 `c####-s####` export used by the CLI. The
-production CLI translation path and cache key remain unchanged. Format
-extraction/reconstruction adoption is described in [#143](https://github.com/MichaelAlexandreDev/ayvu/issues/143).
-
-A universal document tree, target locale and translation or review state are not part
-of a source unit, and are not accepted here.
+The contract below preserves the implementation stage recorded in #140;
+references to later integrations describe that stage, not their current delivery status.
 
 ## Identity
 
@@ -85,7 +63,7 @@ unknown fields all raise `invalid_document`. Test fixtures pin the bytes, so a c
 the identity algorithm or format fails visibly and must become a new version.
 
 **The encoded form holds the book's text.** It is a private project artifact and belongs
-in the [artifact store](decisions/job-artifacts.md), never in logs or diagnostics.
+in the [artifact store](../decisions/job-artifacts.md), never in logs or diagnostics.
 
 ## Privacy
 
@@ -99,7 +77,7 @@ refuse absolute paths, URLs and control characters.
   in two projects does not correlate. The project has no secret key, so someone who knows
   the UUID, the logical key and the locator could confirm a guess about a very short
   document. IDs must leave a project only after remapping, as the
-  [threat model](product-threat-model.md) already requires for diagnostics. A per-project
+  [threat model](../product-threat-model.md) already requires for diagnostics. A per-project
   key would close this, but needs a manifest change and is left to a separate decision.
 - **The source digest is not a public ID** and no proof that content is safe to log. It is
   for divergence and integrity checks only.
@@ -108,9 +86,10 @@ refuse absolute paths, URLs and control characters.
   locale. Adapters must build them from structure, which remains a review rule. Locale
   values are visible in `repr`, unlike the others.
 
-## Limits
+## Enforced contracts
 
-- At most 262144 units per document, 1 MiB of characters per unit, 256 MiB per encoded
-  document, 64 entries per list and 64 KiB per extension.
-- The v2 review exchange is the model's first real caller and first integration
-  test; the CLI's v1 exporter and apply command are still separate legacy paths.
+- [test_content_identity](../../../tests/content/test_content_identity.py).
+- [test_content_codec](../../../tests/content/test_content_codec.py).
+- [test_content_validation](../../../tests/content/test_content_validation.py).
+- [test_content_boundaries](../../../tests/content/test_content_boundaries.py).
+- [test_persisted_identities](../../../tests/architecture/test_persisted_identities.py).

@@ -140,7 +140,7 @@ CONTRACT_MODULES = ("formats/contracts", "formats/service")
 
 # The compatibility map
 
-MAP = ROOT / "docs" / "architecture" / "format-compatibility.md"
+MAP = ROOT / "docs" / "architecture" / "modules" / "formats-compatibility.md"
 
 
 REQUIRED_ROWS = ("inspect", "language detection", "extract", "preview", "chapter selection", "metadata", "navigation", "image alt text", "review export", "review apply",

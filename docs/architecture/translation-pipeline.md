@@ -12,7 +12,7 @@ Decision: `DEC-007`, scoped to extracting the linguistic sequence from the HTML 
 ## Decision and scope
 
 The linguistic work on one text is a fixed sequence that knows nothing about documents.
-HTML traversal and markup reconstruction are in [`ayvu.formats.epub.html_structure`](html-structure.md).
+HTML traversal and markup reconstruction are in [`ayvu.formats.epub.html_structure`](decisions/html-structure.md).
 
 The CLI accepts at most 100 EPUBs in a sequential batch. Without an explicit
 source language it resolves each book's metadata independently. Each completed item saves
@@ -125,7 +125,7 @@ extraction needs a real project.
 the bytes, the order of provider calls, the cache, the report, the progress and the review rows.
 `tests/v1/test_translation_engine_publication.py` and `tests/v1/test_translation_engine_workers.py`
 cover publication and worker behavior.
-[Format compatibility](format-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
+[Format compatibility](modules/formats-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
 `texts_skipped` is left at zero: only the current report object holds it, and nothing shows it.
 
 [`TranslateProject`](translate-project.md) wraps the engine in a durable job.
@@ -143,7 +143,7 @@ artifact, provenance record or replay key, and it never derives an ID from text 
 The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
 `ayvu.v1.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
 The standalone cache has a v2 boundary and repository; CLI runs without a declared model stay on the characterized v1 adapter.
-[`formats.epub.html_structure`](html-structure.md) has neither cache nor glossary.
+[`formats.epub.html_structure`](decisions/html-structure.md) has neither cache nor glossary.
 
 `MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.v1.html_translate`, passed on each call.
 

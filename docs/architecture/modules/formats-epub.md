@@ -1,36 +1,9 @@
-# ADR: EPUB format adapter
+# EPUB format
 
-Status: Accepted
-Decision-Date: `2026-11-04`
-Owners: Project maintainer (acceptance); Formats (contract ownership)
-Issue: [#144 — Implement the production EPUB FormatAdapter](https://github.com/MichaelAlexandreDev/ayvu/issues/144)
+The accepted scope and limits are recorded in the [decision](../decisions/epub-format.md).
 
-Accepted: 2026-11-04 by the project maintainer, through explicit approval in the development session
-
-Decision: extends `DEC-005`, scoped to the production EPUB adapter and its archive limits
-
-## Decision and scope
-
-EPUB is the first real format behind the [format contract](format-adapter.md). **`translate` and the guided
-translation use it**, through [the use case](translate-project.md). Dry run, preview and a resume with no job keep `translate_epub`.
-`inspect` and `extract` now use the shared read-only
-[content use cases](content-inspect-export.md), and `apply_reviewed_epub` rejects
-legacy v1 review data before EPUB access; v2 apply is orchestrated by the shared
-review use case and delegates reconstruction and validation to this adapter.
-
-| Module | Responsibility |
-| --- | --- |
-| `ayvu.formats.epub.archive` | Reads the container against limits, copies an EPUB changing only what it is told to, and holds the OPF title edit the current flow also uses |
-| `ayvu.formats.epub.adapter` | The descriptor and ports of the format contract |
-| `ayvu.formats.epub.html_structure` | Every XHTML document, so there is [no second segmenter](html-structure.md) |
-
-It imports no provider, cache, glossary or interface, even indirectly, and a test imports it alone to prove that.
-
-For visible-content export, the adapter returns one record per XHTML item in the current manifest order. It derives
-the output stem from the internal item name and delegates reader-visible body text selection to
-`formats.epub.html_structure.extract_body_visible_text`; the Markdown writer does not parse EPUB or HTML. The CLI keeps the
-existing `NNN-stem.md` names and text formatting. The old `formats.epub.io.extract_markdown` helper remains as a legacy
-facade, but `inspect` and `extract` no longer call it.
+The contract below preserves the implementation stage recorded in #144;
+references to later integrations describe that stage, not their current delivery status.
 
 ## Reading
 
@@ -70,7 +43,7 @@ available. A legitimate book above them is refused, so they may need to change.
 
 ## Detection
 
-The signature is `mimetype` as the first member with its exact content, within the [bounded window](format-adapter.md).
+The signature is `mimetype` as the first member with its exact content, within the [bounded window](../decisions/format-adapter.md).
 A file with the extension and without the signature is `no_match` with `signature_conflict`.
 `inspect` and `extract` still try that one candidate, because a defective `mimetype` does not stop a translation
 either: the adapter opens the book or reports why it cannot.
@@ -106,13 +79,13 @@ book in plain text until it is closed.
 
 **What is preserved.** Untouched members keep their uncompressed bytes, name, order, timestamp, attributes and
 compression, and the archive keeps its comment. Compressed bytes can differ, because members are compressed again.
-Fidelity is `preserved` in the sense of [HTML structure](html-structure.md): as the parser reads a translated
+Fidelity is `preserved` in the sense of [HTML structure](../decisions/html-structure.md): as the parser reads a translated
 document, not byte for byte.
 
 ## Publication
 
 Files and the database cannot commit together, so a failure between them is reported truthfully and resolved by
-[artifact reconciliation](decisions/job-artifacts.md).
+[artifact reconciliation](../decisions/job-artifacts.md).
 
 | Failure | Result | After the job's lease ends and reconciliation runs |
 | --- | --- | --- |
@@ -136,9 +109,14 @@ An existing destination and whether to overwrite stay with the caller. `LocalOut
 Findings are counted and name no file, so the report says less than `validate_output_epub`. Links are unescaped first,
 so `two%20words.xhtml` finds its member, unlike the current check, which reports it as broken.
 
-## Consequences and limits
+## Enforced contracts
 
-- The adapter is stricter than the current flow, and [the compatibility map](format-compatibility.md) lists what #145 has to settle.
-- A document is parsed in memory, so the limit on one document is also the limit on one chapter.
-- Extraction returns all documents at once. This has been tested on small books only.
-- Nothing in `ayvu.formats.epub.adapter` limits how long a single member takes to read, because a safe point cannot interrupt a read.
+- [test_epub_archive_copy](../../../tests/formats/epub/test_epub_archive_copy.py).
+- [test_epub_archive_open](../../../tests/formats/epub/test_epub_archive_open.py).
+- [test_epub_format_contract](../../../tests/formats/epub/test_epub_format_contract.py).
+- [test_epub_format_detection](../../../tests/formats/epub/test_epub_format_detection.py).
+- [test_epub_format_extraction](../../../tests/formats/epub/test_epub_format_extraction.py).
+- [test_epub_format_publication](../../../tests/formats/epub/test_epub_format_publication.py).
+- [test_epub_format_reconstruction](../../../tests/formats/epub/test_epub_format_reconstruction.py).
+- [test_epub_format_validation](../../../tests/formats/epub/test_epub_format_validation.py).
+- [test_epub_io_paths](../../../tests/formats/epub/test_epub_io_paths.py).
