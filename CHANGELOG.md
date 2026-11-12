@@ -47,6 +47,25 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote K6: os testes de `TranslateProject` saem de um arquivo de 1.250 linhas para oito em
+  `tests/translation/` (gates do plano, destino, cancelamento, reconciliação, renovação do lease, portas,
+  diagnósticos e continuação), preservando os mesmos testes e invariantes core.
+
+- REF-16 (#284), lote K5: testes do preflight movidos para `tests/translation/`, divididos entre recursos locais e
+  rotas do provedor, preservando os mesmos testes e invariantes core.
+
+- REF-16 (#284), lote K4: testes de recuperação movidos para `tests/recovery/` (e a escolha do estágio de retomada para
+  `tests/translation/`), divididos pelo código que cobrem, preservando os mesmos testes e invariantes core.
+
+- REF-16 (#284), lote K3: testes de documentos e cache exato divididos
+  por responsabilidade, preservando os mesmos testes e invariantes core.
+
+- REF-16 (#284), lote K2: testes de contexto e recuperação de memória divididos
+  por responsabilidade, preservando os mesmos testes e invariantes core.
+
+- REF-16 (#284), lote K1: testes de lote e contratos de tradução movidos
+  para `tests/translation/`, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote J5: testes de workflow e integração de lote divididos
   por responsabilidade, preservando os mesmos testes e invariantes core.
 
