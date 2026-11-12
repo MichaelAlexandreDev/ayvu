@@ -216,7 +216,7 @@ rendering and selecting paths remain presentation responsibilities.
 | Mapping | Current symbols from `interfaces/cli/app.py` |
 | --- | --- |
 | `AYVU-UI-004` | `_RouteView`, `TranslationRunResult`, `BatchTranslationResult`, `_BatchItemExit`, `ExecutionControls` |
-| `AYVU-UI-004` | `main` |
+| `AYVU-UI-004` | `main`, `create_app` |
 | `AYVU-UC-001` | `inspect` |
 | `AYVU-UC-002` | `test_translator` |
 | `AYVU-UC-003` | `languages` |
@@ -235,7 +235,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UC-007` | `_print_interrupted_translation`, `_partial_chapter_value`, `_interrupted_output_message`, `_print_processing_translation_states` |
 | `AYVU-UI-004` | `_run_guided_main_flow` |
 | `AYVU-UC-015` | `_load_or_init_config`, `_load_existing_config_or_default`, `_refuse_invalid_translator_models`, `_init_default_language_config`, `_choose_initial_folder_names`, `_print_feature_folder_paths`, `_save_config` |
-| `AYVU-UI-004` | `_print_guided_main_menu`, `_handle_guided_main_choice` |
+| `AYVU-UI-004` | `_GuidedAction`, `_guided_main_actions`, `_print_guided_main_menu`, `_handle_guided_main_choice` |
 | `AYVU-UC-004` | `_run_guided_translation` |
 | `AYVU-UC-006` | `_run_guided_preview` |
 | `AYVU-UC-004` | `_choose_guided_translation_profile`, `_print_translation_profiles`, `_choose_guided_profile_glossary` |

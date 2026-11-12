@@ -121,8 +121,10 @@ imports are layer rules instead of exceptions.
   The layers contract keeps every other module from importing `composition`.
 - REF-17 PR B adds pure surface data to the CLI root: `CliSurface`,
   `project_cli_surface`, `cli_surface` and `installed_cli_surface`. These factories
-  acquire no resources. The installed presenter still uses its existing registration;
-  consuming the projection is PR C, desktop/binding integration is PR D.
+  acquire no resources. PR C adds `create_app(surface)` in the presenter: each call
+  creates independent Typer registrations and includes the cache group only with
+  selected children. The installed `app` consumes `installed_cli_surface()` at the
+  same entrypoint. Desktop/binding integration remains PR D.
 - The private `editions`, `feature_catalog` and `surface_rules` modules may only use
   their declared internal edges. They are not public APIs or root reexports. Interfaces
   receive immutable command paths, menu key/action pairs and effective recipe IDs,
@@ -147,7 +149,9 @@ imports are layer rules instead of exceptions.
   edition. Architecture tests cover imports, aliases/reexports, dynamic paths and product
   identifiers. New distributions select their edition at packaging time inside composition.
 - Lite declares `low` and summary reporting. Simple glossary means one file per translation;
-  its interface is deferred. PR B describes these choices without changing installed flows.
+  its interface is deferred. PR C registers only projected commands and uses one
+  selected action collection for guided menu display and dispatch, preserving existing
+  keys and their gaps. Registered command signatures and installed flows stay intact.
   Option/argument/preset enforcement and capability-based resume admission belong to the
   follow-up batch E; #285 is scoped to B, C and D. No continuation issue is created here.
 

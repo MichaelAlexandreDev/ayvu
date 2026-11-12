@@ -53,6 +53,8 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-17 (#285), PR C: CLI e menu montados pela superfície projetada, preservando comandos, opções e ajuda do `ayvu` instalado.
+
 - Os adaptadores locais de revisão saem de `composition/builders/review_*.py` para `review/local_*.py`;
   o builder de revisão só os conecta (D5, decisão do dono de 2026-11-12).
 
