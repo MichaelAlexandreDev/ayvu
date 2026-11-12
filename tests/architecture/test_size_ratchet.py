@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import PROJECT_ROOT as ROOT
 
 
 def load_script():

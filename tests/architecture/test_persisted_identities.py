@@ -45,7 +45,8 @@ from ayvu.knowledge.cache.identity_values import CanonicalValue, SemanticRouteHo
 from ayvu.knowledge.cache.identity import SemanticOperationV2
 from ayvu.provenance.model import ProducerIdentity
 
-SOURCE = Path(__file__).resolve().parents[1] / "src" / "ayvu"
+from tests.support.paths import PROJECT_ROOT
+SOURCE = PROJECT_ROOT / "src" / "ayvu"
 TEXT = "Olá, leitor — café."
 
 # Each literal tag frames a digest. Moving code must not change the literal.

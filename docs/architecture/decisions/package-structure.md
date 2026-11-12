@@ -69,7 +69,7 @@ The owner's answers on 2026-11-10:
   `jobs/store.py`, `artifacts/destination.py`, `projects/schema.py` or `network/http.py`. The package's
   `__init__.py` exports only the model and the use cases. So code that needs a job's state or an artifact
   record does not load SQLite, HTTP or the filesystem code, the same reason `ayvu.kernel.sqlite` has its own
-  API. `tests/test_public_api.py` lists the adapter modules and checks that no package import loads them.
+  API. `tests/architecture/test_public_api.py` lists the adapter modules and checks that no package import loads them.
 - A package whose parts are independent exports nothing itself and leaves the API to its subpackages, as
   `knowledge` does with `knowledge.cache`, `knowledge.memory` and `knowledge.glossary` (REF-09).
 
@@ -144,23 +144,23 @@ imports are layer rules instead of exceptions.
 - Rationale: the repository is private, not on PyPI, and nobody outside imports Ayvu.
 
 ### D9. Frozen persisted identities
-- `tests/test_persisted_identities.py` (REF-01) freezes the domain tags, versions and digests.
+- `tests/architecture/test_persisted_identities.py` (REF-01) freezes the domain tags, versions and digests.
 - No class that enters a fingerprint is renamed (`CreateCandidate`, `DeriveRevision`, `ReviewRevision`).
 - Changing an identity needs a migration, a version bump and an explicit decision in the PR.
 
 ### D10. Single responsibility with a size ratchet
 - New files: at most 400 lines, tests included. New functions: at most 80 lines.
 - Today's larger files and functions are listed with their current size and may only shrink.
-- Enforced by `tests/test_size_ratchet.py` with the ledger `tests/size_ratchet.json`; `scripts/size_ratchet.py --update` lowers entries after a file or function shrinks (REF-03).
+- Enforced by `tests/architecture/test_size_ratchet.py` with the ledger `tests/size_ratchet.json`; `scripts/size_ratchet.py --update` lowers entries after a file or function shrinks (REF-03).
 - Size is the alarm. The criterion is "does this file have one reason to change?".
 
 ### D11. Boundaries checked by `import-linter`
 - A development dependency only. A layers contract mirrors D3, and independence contracts separate the
   modules of one layer.
 - Today's violations are listed as exceptions that may only shrink.
-- The contracts live in `[tool.importlinter]` in `pyproject.toml` and run in `tests/test_import_contracts.py`. Every ignored import names its REF issue, and an ignore that stops matching fails the check (REF-03).
-- D2 is enforced by `tests/test_public_api.py`.
-- `test_architecture_boundaries.py` is absorbed over time.
+- The contracts live in `[tool.importlinter]` in `pyproject.toml` and run in `tests/architecture/test_import_contracts.py`. Every ignored import names its REF issue, and an ignore that stops matching fails the check (REF-03).
+- D2 is enforced by `tests/architecture/test_public_api.py`.
+- The old boundary test (`tests/architecture/test_architecture_*.py`) is absorbed over time.
 
 ### D12. Tests mirror the packages
 - `tests/<module>/test_*.py`; shared fakes and fixtures in `tests/support/`.

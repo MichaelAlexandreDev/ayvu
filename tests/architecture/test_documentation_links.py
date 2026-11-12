@@ -7,7 +7,7 @@ from urllib.parse import unquote, urlsplit
 import pytest
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import PROJECT_ROOT
 PRODUCT_SCOPE = PROJECT_ROOT / "docs" / "product-scope.md"
 PRODUCT_THREAT_MODEL = PROJECT_ROOT / "docs" / "architecture" / "product-threat-model.md"
 MODULE_BOUNDARIES = PROJECT_ROOT / "docs" / "architecture" / "modular-monolith-boundaries.md"

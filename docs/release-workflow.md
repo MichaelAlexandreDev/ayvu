@@ -132,7 +132,7 @@ documentacao, identidades persistidas, travas de arquitetura e as proprias etapa
 The CLI entry is an explicit tuple of approved test files. Moving another test into
 `tests/interfaces/cli/` does not add it to core; approved families keep their membership when split.
 Para rodar o mesmo conjunto localmente, use `uv run --no-sync pytest -m core`.
-`tests/test_ci_stages.py` confere o mapa, os jobs de cada evento, o
+`tests/ci/test_ci_stages.py` confere o mapa, os jobs de cada evento, o
 `.dockerignore` e este documento. Se a selecao `core` ficar vazia, o pytest sai
 com erro e o gate falha.
 
@@ -151,14 +151,14 @@ no CI.
 
 Tres checagens fazem parte do conjunto `core` (REF-03, #271):
 
-- `tests/test_size_ratchet.py`: arquivos ate 400 linhas e funcoes ate 80, testes
+- `tests/architecture/test_size_ratchet.py`: arquivos ate 400 linhas e funcoes ate 80, testes
   incluidos. Os maiores de hoje ficam em `tests/size_ratchet.json` e so podem
   diminuir. Depois de diminuir um deles, rode `scripts/size_ratchet.py --update`.
-- `tests/test_import_contracts.py`: roda `lint-imports` com os contratos de
+- `tests/architecture/test_import_contracts.py`: roda `lint-imports` com os contratos de
   `pyproject.toml` (`[tool.importlinter]`), que seguem as camadas da decisao de
   estrutura de pacotes. Cada import ignorado nomeia a issue que o remove, e um
   ignore que deixou de existir faz a checagem falhar.
-- `tests/test_public_api.py`: um pacote so usa outro pelo que o `__init__.py`
+- `tests/architecture/test_public_api.py`: um pacote so usa outro pelo que o `__init__.py`
   dele exporta.
 
 ### Main sem protecao remota

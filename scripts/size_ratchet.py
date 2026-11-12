@@ -3,7 +3,7 @@
 
 Files may have at most 400 lines and functions at most 80, tests included. Files and functions that were
 larger when the ratchet started are listed in tests/size_ratchet.json with their size. A listed entry may
-only shrink: tests/test_size_ratchet.py fails when it grows, and also when it shrinks without the entry
+only shrink: tests/architecture/test_size_ratchet.py fails when it grows, and also when it shrinks without the entry
 being lowered, so the list always matches the code.
 
 Usage:

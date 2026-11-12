@@ -47,6 +47,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote L: os testes de arquitetura, documentação e decisões vão para `tests/architecture/`, os das
+  etapas de CI para `tests/ci/`, o empacotamento do desktop para `tests/interfaces/desktop/` e as pesquisas para
+  `tests/research/`. Nenhum arquivo de teste fica acima de 400 linhas, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote K6: os testes de `TranslateProject` saem de um arquivo de 1.250 linhas para oito em
   `tests/translation/` (gates do plano, destino, cancelamento, reconciliação, renovação do lease, portas,
   diagnósticos e continuação), preservando os mesmos testes e invariantes core.

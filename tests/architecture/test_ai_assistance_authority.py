@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import PROJECT_ROOT as ROOT
 DECISION = ROOT / "docs" / "architecture" / "decisions" / "ai-assistance-authority.md"
 ROLES = ("TerminologyCandidateGenerator", "QualityFindingAssistant", "StyleSuggestionAssistant",
          "LayoutSuggestionAssistant")

@@ -22,8 +22,7 @@
     "src/ayvu/translation/engine.py": 418,
     "src/ayvu/v1/cache.py": 516,
     "src/ayvu/v1/epub.py": 691,
-    "src/ayvu/v1/resume.py": 442,
-    "tests/test_local_worker_spike.py": 499
+    "src/ayvu/v1/resume.py": 442
   },
   "functions": {
     "src/ayvu/content_use_cases.py::ExportVisibleContent.execute": 136,

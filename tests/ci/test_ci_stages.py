@@ -12,7 +12,7 @@ import yaml
 
 from tests.conftest import CORE_FILES, CORE_TEST_FILES
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import PROJECT_ROOT as ROOT
 WORKFLOW = ROOT / ".github" / "workflows" / "tests.yml"
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 DOCKERIGNORE = ROOT / ".dockerignore"
