@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from test_public_api import exported_names as package_exports
-from support.architecture_owners import OWNERS, Owner
+from support.architecture_owners import OWNERS, Owner, REVIEW_BUILDERS
 from support.architecture_edges import ALLOWED_INTERNAL_EDGES
 
 
@@ -30,7 +30,7 @@ class Exemption:
     expiry: str
 
 
-CLI_ROOT = "ayvu.composition.cli"  # the only composition module that may import another, by a declared edge
+CLI_ROOT = "ayvu.composition.cli"  # the CLI construction root; review siblings also declare internal edges
 
 # The synthetic fixtures still name the flat layout of #133, so their modules keep their owners here.
 TEST_OWNERS = {**OWNERS, "ayvu.application": Owner("application", "Translation"),
@@ -268,7 +268,7 @@ def forbidden(
             if (source, target) not in allowed_edges:
                 return "undeclared internal edge"
             return None
-        if source == CLI_ROOT and destination.layer == "composition":
+        if destination.layer == "composition" and (source == CLI_ROOT or {source, target} <= REVIEW_BUILDERS):
             return None if (source, target) in allowed_edges else "undeclared internal edge"
         if source != "ayvu" and target.startswith(source + "."):
             return None  # D2: a package's __init__.py re-exports its own submodules

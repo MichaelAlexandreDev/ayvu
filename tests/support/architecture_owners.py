@@ -10,6 +10,15 @@ class Owner:
     capability: str
 
 
+REVIEW_BUILDERS = frozenset({
+    "ayvu.composition.builders.review",
+    "ayvu.composition.builders.review_files",
+    "ayvu.composition.builders.review_context",
+    "ayvu.composition.builders.review_packages",
+    "ayvu.composition.builders.review_start",
+    "ayvu.composition.builders.review_operations",
+})
+
 OWNERS = {
     "ayvu": Owner("surface", "Package"),
     **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "report", "output", "plan", "translate_options", "run", "run_support", "run_messages", "batch", "preview", "commands",
@@ -158,6 +167,11 @@ OWNERS = {
     "ayvu.review.exchange_files": Owner("infrastructure", "Review"),
     "ayvu.review.application": Owner("application", "Review"),
     "ayvu.composition.builders.review": Owner("composition", "Review"),
+    "ayvu.composition.builders.review_files": Owner("composition", "Review"),
+    "ayvu.composition.builders.review_context": Owner("composition", "Review"),
+    "ayvu.composition.builders.review_packages": Owner("composition", "Review"),
+    "ayvu.composition.builders.review_start": Owner("composition", "Review"),
+    "ayvu.composition.builders.review_operations": Owner("composition", "Review"),
     "ayvu.library.service": Owner("application", "Library"),
     "ayvu.library.adapters": Owner("infrastructure", "Library"),
     "ayvu.content_use_cases": Owner("application", "Formats"),

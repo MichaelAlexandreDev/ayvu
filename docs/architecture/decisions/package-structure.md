@@ -120,7 +120,9 @@ imports are layer rules instead of exceptions.
 - Implemented in REF-05 (#273). Each root is a public module of its own, the one exception to D2: an
   interface imports only its root, so the desktop does not load the CLI wiring, and later an edition does
   not load another's. `composition/__init__.py` exports nothing. Only `composition/cli.py` imports
-  builders. The layers contract keeps every other module from importing `composition`.
+  builders from outside composition. Review builder siblings use only their declared internal edges;
+  their location remains unchanged pending an owner decision. The layers contract keeps every other
+  module from importing `composition`.
 
 ### D6. Editions in composition
 - `composition/editions.py` declares what each edition enables (Lite, Free, AI).
@@ -330,7 +332,7 @@ REF-15 break up by reason to change after they move.
 | `glossary_catalog_composition.py` | `composition/builders/glossary.py` |  |
 | `project_profile_composition.py` | `composition/builders/profiles.py` |  |
 | `provider_composition.py` | `composition/builders/providers.py` | changed in REF-05: `CliProviderSession` went to `provider_session.py`, because `preflight` uses it; only the factory is composition |
-| `review_composition.py` | `composition/builders/review.py` | split; it holds use cases |
+| `review_composition.py` | `composition/builders/review.py` and sibling `review_files.py`, `review_context.py`, `review_packages.py`, `review_start.py`, `review_operations.py` | split in REF-15; the builder wires use cases, siblings own local execution |
 | `translate_batch_composition.py` | `composition/builders/translate_batch.py` |  |
 | `translate_project_composition.py` | `composition/builders/translate_project.py` |  |
 | `cli.py` | `interfaces/cli/app.py` | split into `interfaces/cli/commands/` and `render.py` (REF-14) |

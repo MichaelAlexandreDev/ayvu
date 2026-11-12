@@ -309,6 +309,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 - `knowledge/cache/admin_v2_store.py` dividido (REF-15, #283, quinta família): consultas SQLite,
   arquivos, exportação, registros e importação passam a módulos próprios; os três coordenadores
   longos delegam passos contíguos, preservando formatos, checkpoints e transações.
+- `composition/builders/review.py` dividido (REF-15, #283, sexta família): arquivos, contexto,
+  pacotes, início e operações passam a módulos irmãos; os dois coordenadores longos delegam
+  passos contíguos, preservando validação, publicação, jobs e proveniência.
 - Interfaces em `ayvu.interfaces` (REF-13, #281): o CLI vai para `interfaces.cli` (`app`, `progress`,
   `contracts`) e o desktop para `interfaces.desktop`, com `bootstrap` como entrada. Os comandos `ayvu` e
   `ayvu-desktop` continuam os mesmos e passam a apontar para `ayvu.interfaces.cli.app:app` e

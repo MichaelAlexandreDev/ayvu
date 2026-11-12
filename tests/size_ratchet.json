@@ -2,7 +2,6 @@
   "_comment": "D10 size ratchet (REF-03, #271). Entries may only shrink; see scripts/size_ratchet.py.",
   "files": {
     "src/ayvu/artifacts/store.py": 520,
-    "src/ayvu/composition/builders/review.py": 1066,
     "src/ayvu/composition/builders/translate_project.py": 590,
     "src/ayvu/content/model.py": 639,
     "src/ayvu/content_use_cases.py": 586,
@@ -75,8 +74,6 @@
     "tests/v1/test_translator.py": 440
   },
   "functions": {
-    "src/ayvu/composition/builders/review.py::LocalReviewOperations.begin": 125,
-    "src/ayvu/composition/builders/review.py::LocalReviewPackagePort._map_context": 97,
     "src/ayvu/content_use_cases.py::ExportVisibleContent.execute": 136,
     "src/ayvu/interfaces/cli/batch.py::_run_batch_translation": 156,
     "src/ayvu/interfaces/cli/commands/translate.py::translate": 272,
