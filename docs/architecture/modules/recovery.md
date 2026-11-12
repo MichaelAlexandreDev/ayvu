@@ -1,4 +1,4 @@
-# Recovering interrupted translations
+# Recovery
 
 Related issue: [#146 — Migrate interrupted-job recovery to application use cases](https://github.com/MichaelAlexandreDev/ayvu/issues/146)
 
@@ -87,7 +87,7 @@ profile stays `legacy_only`.
 2. **The ticket.** A revision that differs is `stale_revision`, and a job already continued is `continuation_exists`.
    The request's execution revision must also match the parent's; refusal
    `runtime_mismatch` names `legacy/v1` and `rich/v2` in the CLI, before the provider.
-3. **The parent's outcome.** It is settled as in [the use case](translate-project.md#crashes-and-interruptions), and a job
+3. **The parent's outcome.** It is settled as in [the use case](../translate-project.md#crashes-and-interruptions), and a job
    that is still not terminal is `job_not_resumable`. A job that ended stays exactly as it ended.
 4. **The new job** is linked with `create_continuation`, which a unique constraint allows once per job.
 
@@ -103,7 +103,7 @@ creator may be between those two steps.
 
 ## When a run is alive
 
-A lease cannot tell, so a reader probes [the run guard](translate-project.md#the-run-guard) with `held`, which opens the
+A lease cannot tell, so a reader probes [the run guard](../translate-project.md#the-run-guard) with `held`, which opens the
 lock file read-only and takes a shared lock for an instant. It creates and writes nothing. A run starting in that instant
 waits 50 ms for its guard instead of being refused.
 
@@ -192,3 +192,15 @@ book was done.
 - Whether a call interrupted by a crash reached the provider. It is made again.
 - That a `legacy_only` book is the one it was, when no project recorded it.
 - Native Windows and network filesystems, as for the guard itself.
+
+## Enforced contracts
+
+- [test_job_recovery_concurrency](../../../tests/recovery/test_job_recovery_concurrency.py).
+- [test_job_recovery_inspection](../../../tests/recovery/test_job_recovery_inspection.py).
+- [test_job_recovery_legacy_integration](../../../tests/recovery/test_job_recovery_legacy_integration.py).
+- [test_job_recovery_listing](../../../tests/recovery/test_job_recovery_listing.py).
+- [test_job_recovery_resume](../../../tests/recovery/test_job_recovery_resume.py).
+- [test_job_recovery_resume_integration](../../../tests/recovery/test_job_recovery_resume_integration.py).
+- [test_job_recovery_scan_integration](../../../tests/recovery/test_job_recovery_scan_integration.py).
+- [test_resume_stage_selection](../../../tests/translation/test_resume_stage_selection.py).
+- [test_raw_results_resume](../../../tests/translation/test_raw_results_resume.py).

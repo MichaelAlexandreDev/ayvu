@@ -1,18 +1,14 @@
-# ADR: Job checkpoints and derived artifacts
+# Artifacts
 
-Status: Accepted
-Decision-Date: `2026-11-03`
-Owners: Project maintainer (acceptance); Artifacts (job-owned artifact contract)
-Issue: [#137 — Store versioned job checkpoints and derived artifacts](https://github.com/MichaelAlexandreDev/ayvu/issues/137)
+The accepted scope is recorded in the [decision](../decisions/job-artifacts.md).
 
-Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
-
-Decision: extends `DEC-012` and `DEC-004`, scoped to job-owned artifact metadata, payload layout and publication
+The scope and consequences below preserve the implementation stage recorded in #137;
+statements about later integrations describe that stage, not their current delivery status.
 
 ## Decision and scope
 
 The project stores job-owned payloads as files and their metadata in the
-[project database](local-project-storage.md), as schema version 3:
+[project database](../decisions/local-project-storage.md), as schema version 3:
 
 - `projects/<project UUID>/artifacts/staging/<artifact UUID>.part`: payload being written.
 - `projects/<project UUID>/artifacts/ready/<artifact UUID>.bin`: published payload.
@@ -20,7 +16,7 @@ The project stores job-owned payloads as files and their metadata in the
 
 A checkpoint is an artifact with its own `role`; there is no separate table. A final
 output keeps this record and protocol but not this location:
-[`TranslateProject`](translate-project.md#publishing-to-the-chosen-file) publishes it to
+[`TranslateProject`](../translate-project.md#publishing-to-the-chosen-file) publishes it to
 the file the user chose. The CLI does not use that yet, and pipeline stages do not change. Provenance, content
 addressing, retention and cross-job reuse are not accepted here.
 
@@ -126,7 +122,7 @@ status, languages and chapter counts. Paths, chapter names and the translator UR
 omitted, because they can identify a book or carry credentials. Errors are bounded
 codes that quote nothing from the file.
 
-Nothing is imported. [Job recovery](job-recovery.md) reads the same files through
+Nothing is imported. [Job recovery](recovery.md) reads the same files through
 `scan_legacy_states` to decide what to offer. A checkpoint is not a verified artifact, so
 it is never reusable as one.
 
@@ -139,3 +135,11 @@ it is never reusable as one.
 - Released migrations cannot be edited, so a schema correction has to be a new version.
 - Native Windows behavior, network filesystems and filesystems without hard links have
   not been validated.
+
+## Enforced contracts
+
+- [test_artifact](../../../tests/artifacts/test_artifact.py).
+- [test_artifact_service_integrity](../../../tests/artifacts/test_artifact_service_integrity.py).
+- [test_artifact_service_publication](../../../tests/artifacts/test_artifact_service_publication.py).
+- [test_artifact_service_reconciliation](../../../tests/artifacts/test_artifact_service_reconciliation.py).
+- [test_artifact_service_repository](../../../tests/artifacts/test_artifact_service_repository.py).

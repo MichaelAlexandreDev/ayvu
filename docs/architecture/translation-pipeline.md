@@ -115,7 +115,7 @@ back to the adapter. It parses no markup and calls no provider. Composition choo
 | --- | --- |
 | Stops the document at the first failure | A failed text stays in the source language and the run goes on |
 | V2 cache in a separate sibling file, with full identity | Reuses existing v1 cache |
-| Resume reuses the previous job's proven raw results (#242) | [Resume](job-recovery.md) re-executes on v1 |
+| Resume reuses the previous job's proven raw results (#242) | [Resume](modules/recovery.md) re-executes on v1 |
 
 `ayvu.v1.translation` is the named compatibility
 path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
@@ -256,7 +256,7 @@ digest and size are checked, then its content is compared with the document unit
 | Valid digest but content that does not match | Fails closed with `invalid_raw_results` |
 
 Another job replays only when it is a continuation and every recorded dimension is proved equal; see
-[replay through a continuation](job-recovery.md#replay-through-a-continuation-242). Payload version 2 records those
+[replay through a continuation](modules/recovery.md#replay-through-a-continuation-242). Payload version 2 records those
 dimensions; a version 1 payload still replays in its own job but proves nothing to a continuation. A job's lease must
 be live.
 Because a phase cannot return in one event stream, a second run in the same stream needs its own

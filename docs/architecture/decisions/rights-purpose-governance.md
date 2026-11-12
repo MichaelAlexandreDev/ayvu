@@ -47,9 +47,9 @@ Local verification without network: the three mandatory artifacts are in `main`
 | Dependency / evidence | What this record consumes and does not presume |
 | --- | --- |
 | [#129](https://github.com/MichaelAlexandreDev/ayvu/issues/129), [threat model](../product-threat-model.md) | Accepted on 2026-11-05; T03 (destinations), T05 (cache/corpus), T09 (AI/MCP), T11 (retention/revocation), F06 and G04. That acceptance does not accept this policy. |
-| [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134), [manifest](../project-manifest.md) | `project_id`, revision and exact source/configuration identity. Path, title and isolated hash are neither scope nor authority. `policy_ref` is not a grant. |
-| [#138](https://github.com/MichaelAlexandreDev/ayvu/issues/138), [DEC-014/provenance](../provenance.md) | Opaque references, revisions and lineage; actors are types, without people's names. An opaque subject does not prove identity or rights; copied history does not authorize. |
-| [Module boundaries](../modular-monolith-boundaries.md), [artifacts](../job-artifacts.md), [official product scope](../../product-scope.md) | Policies decides; cache, TM and corpus are independent. An existing artifact does not prove permission. Content for corpus/training is not automatic contribution. |
+| [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134), [manifest](../modules/projects.md) | `project_id`, revision and exact source/configuration identity. Path, title and isolated hash are neither scope nor authority. `policy_ref` is not a grant. |
+| [#138](https://github.com/MichaelAlexandreDev/ayvu/issues/138), [DEC-014/provenance](provenance.md) | Opaque references, revisions and lineage; actors are types, without people's names. An opaque subject does not prove identity or rights; copied history does not authorize. |
+| [Module boundaries](../modular-monolith-boundaries.md), [artifacts](job-artifacts.md), [official product scope](../../product-scope.md) | Policies decides; cache, TM and corpus are independent. An existing artifact does not prove permission. Content for corpus/training is not automatic contribution. |
 | [Provider contracts](../provider-contracts.md), [discovery](../provider-discovery.md) | Configuration/discovery are neither network nor purpose authorization. |
 
 GitHub references are traceability evidence; they were not consulted

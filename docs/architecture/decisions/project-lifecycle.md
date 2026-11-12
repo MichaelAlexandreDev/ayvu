@@ -12,14 +12,14 @@ Decision: `DEC-003`
 ## Context
 
 The current CLI stores per-translation checkpoints in
-[`v1/resume.py`](../../src/ayvu/v1/resume.py). These record execution options and
+[`v1/resume.py`](../../../src/ayvu/v1/resume.py). These record execution options and
 progress, but do not establish a durable project identity. Shared application
 workflows need a stable local reference that survives process restarts and
 interface changes.
 
-The [accepted modular boundaries](modular-monolith-boundaries.md) assign project
+The [accepted modular boundaries](../modular-monolith-boundaries.md) assign project
 contracts to the core and concrete storage to adapters. The
-[product threat model](product-threat-model.md) identifies filesystem, content,
+[product threat model](../product-threat-model.md) identifies filesystem, content,
 and credential boundaries; it remains `Proposed`.
 
 ## Decision
@@ -94,3 +94,9 @@ behavior and show no provider call during project resolution.
 This ADR records a decision, not delivered functionality. Code changes, branch
 creation, commits, publication, and issue completion retain their normal review
 and approval requirements.
+
+## Operational contract
+
+The [module contract](../modules/projects.md) contains the operational rules and
+enforcement evidence. Historical implementation descriptions in this record refer to
+the accepted #134 scope; later integrations do not expand this acceptance.

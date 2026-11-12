@@ -32,21 +32,6 @@ The first production database contains only migration-owned infrastructure and
 its schema-version ledger. Future domain tables retain their owning modules.
 The JSON manifest schema does not change and does not become a database locator.
 
-## Required safety properties
-
-- Validate integrity and schema compatibility before mutating an existing database.
-- Publish and verify a consistent pre-upgrade backup before applying schema SQL.
-- Bound lock contention and expensive verification/backup work.
-- Commit schema and version information atomically; rollback failed work.
-- Preserve verified snapshots on failure, with explicit recovery outcomes.
-- Never automatically restore over a database or prune retained backups.
-- Exclude source text, translated text, secrets, raw paths and SQL from diagnostics.
-
-SQLite crash recovery and restoring a backup are distinct operations. A database
-that needs native journal recovery must be identified as recoverable rather than
-silently treated as corrupt. The runner's protocol and tests must make any
-recovery prerequisite explicit before a later migration can begin.
-
 ## Consequences and limits
 
 Projects gain local database and retained-backup disk usage. Directory ownership,
@@ -65,10 +50,16 @@ the `artifacts/` directories were accepted in the scoped
 [job artifacts ADR](job-artifacts.md), and are schema version 3. Provenance was accepted
 in the scoped [provenance ADR](provenance.md), and is schema version 4.
 
-The [governed translation memory](modules/knowledge-memory.md) introduced by
+The [governed translation memory](../modules/knowledge-memory.md) introduced by
 #161 uses a dedicated `approved-memory.sqlite` alongside `project.sqlite`, with
 its own migration ledger and `backups/approved-memory-schema/`. It does not change
 the project schema or migrate the operational cache.
 
 This ADR records the accepted direction. Concrete migration behavior, validation
 evidence and platform limitations belong to the implementation contract.
+
+## Operational contract
+
+The [module contract](../modules/projects-storage.md) contains the operational rules and
+enforcement evidence. Historical implementation descriptions in this record refer to
+the accepted #135 scope; later integrations do not expand this acceptance.

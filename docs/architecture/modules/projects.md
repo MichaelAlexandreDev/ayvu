@@ -1,6 +1,74 @@
-# Local project manifest v1
+# Projects
 
-The [accepted project decision](project-lifecycle.md) is implemented by
+The accepted scope is recorded in the [decision](../decisions/project-lifecycle.md).
+
+## Accepted project scope (#134)
+
+The decision, compatibility amendment and consequences below describe the #134
+acceptance; the manifest implementation contract follows them.
+
+## Decision
+
+Adopt `Project` as a durable unit of work. The first implementation is bounded
+to the existing local EPUB workflow and the contract of #134:
+
+- Allocate and persist an opaque project UUID in a versioned manifest. A path,
+  content digest, or command invocation is not the project ID.
+- Reference the original EPUB in its existing location and record its content
+  fingerprint. Open it read-only; creating project state does not copy, move,
+  or modify the original.
+- Store managed project state beneath the configured local processing root.
+  Derive that workspace from trusted Ayvu configuration, never document content
+  or provider output.
+- Resolve or create a compatible stored project automatically for
+  `ayvu translate`, including the corresponding guided translation flow, without
+  adding a project-selection prompt or changing output names and locations.
+- Reuse the same compatible project for repeated requests. Concurrent lookup
+  and creation must not allocate duplicate compatible projects. Changed or
+  missing sources, incompatible requests, and ambiguous matches have explicit
+  outcomes rather than silently selecting a project.
+- Keep manifest data bounded to metadata and opaque references. Full source or
+  translated text, resolved credentials, provider payloads, and UI objects do
+  not belong in it. Treat paths and fingerprints as sensitive metadata.
+- Publish validated manifest updates atomically with expected-revision checks.
+  Interrupted writes and concurrent updates must preserve the prior valid
+  state. Persistence failure stops dependent work rather than inventing an
+  ephemeral project identity.
+- Removing managed state must never automatically remove an original, output
+  EPUB, cache, glossary, or unrelated project.
+
+## Compatibility amendment
+
+For this first project implementation, automatic project resolution replaces
+the earlier proposed opt-in rollout for persistent projects. Local project-state
+creation and reuse are accepted new side effects and must be documented before
+the implementation is delivered. Existing translation prompts, provider intent,
+output naming, and original immutability remain compatibility requirements.
+
+This amendment concerns projects only. It does not change the separate proposed
+rollout of additional translation providers.
+
+## Consequences and limits
+
+Translation will require local storage for bounded project metadata. Disk or
+permission failures, stale source references, concurrent writers, and schema
+incompatibility become explicit failure cases. Source fingerprinting adds local
+I/O. Managed state must have a documented location and recovery behavior.
+
+The exact manifest schema, filenames, locking mechanism, size limits, and Python
+module layout are implementation details to review in #134. This decision does
+not select SQLite for project storage or approve a general storage layout.
+The later, separately accepted [DEC-012](../decisions/local-project-storage.md) adds the
+database/backup locations for #135 without expanding this DEC-003 acceptance.
+
+Durable jobs, event storage, artifact payloads, provenance records, migrations,
+legacy-checkpoint conversion, cleanup, Desktop, network-policy enforcement, and
+credential-store adapters remain separate work. No other `DEC-*` status changes
+through this acceptance.
+
+## Local project manifest v1
+
+The [accepted project decision](../decisions/project-lifecycle.md) is implemented by
 [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134).
 This contract covers local EPUB project metadata, not durable jobs or migrations.
 
@@ -14,7 +82,7 @@ The UUID is randomly allocated once, stored in the manifest, and survives restar
 
 Direct, guided and batch translations resolve projects before translator
 preflight. Cache-only reconstruction also resolves a project. Dry-run and the
-separate preview path do not create project state. [`resume`](job-recovery.md) uses a
+separate preview path do not create project state. [`resume`](recovery.md) uses a
 project only if its checkpoint recomputes to a job in one, and never creates one. A project created before a failed preflight remains
 available for a retry.
 
@@ -93,12 +161,12 @@ and selection identity and creation time, validates owned locations, increments
 the revision and updates the timestamp. Two writers with one expected revision
 cannot both succeed. The CLI run result carries the resolved `project_id`.
 
-The additive [DEC-012 storage contract](local-project-storage.md) is exposed at
+The additive [DEC-012 storage contract](../decisions/local-project-storage.md) is exposed at
 the privileged composition boundary by the concrete adapter's
 `resolve_database_paths(project_id)`. It returns validated database/backup Paths
 with a redacted repr and creates neither file. Those Paths are not added to the
 framework-neutral application port or serialized into the v1 manifest. The
-[migration protocol](project-migrations.md) consumes them explicitly.
+[migration protocol](projects-storage.md) consumes them explicitly.
 
 ## Atomicity, recovery and platform limits
 
@@ -137,3 +205,11 @@ paths. They do not sandbox a hostile process running as the same OS user and
 swapping ancestor directories concurrently. The workspace must be trusted and
 privately controlled. Process tests validate Linux locking and atomicity;
 Windows paths have no native execution evidence in this change.
+
+## Enforced contracts
+
+- [test_project](../../../tests/projects/test_project.py).
+- [test_project_store_catalog](../../../tests/projects/test_project_store_catalog.py).
+- [test_project_store_resolution](../../../tests/projects/test_project_store_resolution.py).
+- [test_project_store_guard](../../../tests/projects/test_project_store_guard.py).
+- [test_project_store_paths](../../../tests/projects/test_project_store_paths.py).
