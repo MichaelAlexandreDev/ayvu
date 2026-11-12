@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote K5: testes do preflight movidos para `tests/translation/`, divididos entre recursos locais e
+  rotas do provedor, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote K4: testes de recuperação movidos para `tests/recovery/` (e a escolha do estágio de retomada para
   `tests/translation/`), divididos pelo código que cobrem, preservando os mesmos testes e invariantes core.
 
