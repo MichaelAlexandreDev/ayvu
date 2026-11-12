@@ -9,154 +9,154 @@ Policy-ID: `ayvu-rights-purpose-v1`
 
 Vocabulary-Version: `1`
 
-## Recomendação e limite desta decisão
+## Recommendation and limits of this decision
 
-Recomenda-se adotar os contratos e tabelas abaixo, com negação por padrão.
-São recomendações de produto para revisão humana, não análise jurídica,
-validação de titularidade ou licença para redistribuir conteúdo protegido.
-Possuir uma obra não comprova direitos. O Ayvu apenas registra uma afirmação
-local e uma escolha humana delimitada; não pode conceder direitos de terceiros.
+Adopting the contracts and tables below, with denial by default, is recommended.
+These are product recommendations for human review, not legal analysis,
+ownership validation or a license to redistribute protected content.
+Possessing a work does not prove rights. Ayvu only records a local assertion
+and a bounded human choice; it cannot grant third-party rights.
 
-Este registro permanece **Proposed**. Nenhum registry de direitos/finalidades
-pode começar enquanto ele estiver Proposed. Não há registry, esquema de banco,
-migração, CLI, UI, exportador, uploader, worker de exclusão, pipeline de treino
-ou mecanismo de unlearning nesta entrega. As tabelas descrevem o contrato de
-uma implementação futura, condicionado ao aceite e às issues de execução.
-Não alteram comandos, mensagens, retenção nem permissões da CLI atual.
+This record remains **Proposed**. No rights/purpose registry
+may begin while it is Proposed. There is no registry, database schema,
+migration, CLI, UI, exporter, uploader, deletion worker, training pipeline
+or unlearning mechanism in this delivery. The tables describe the contract of
+a future implementation, conditional on acceptance and execution issues.
+They do not change current CLI commands, messages, retention or permissions.
 
-`RightsAssertion` registra que um ator local identificado afirmou uma base de
-direitos para um escopo. Não valida a afirmação nem autoriza uma finalidade.
-`PurposeGrant` é o **único registro canônico de autorização** para as finalidades
-governadas, inclusive a recusa explícita. Exige uma afirmação de direitos
-efetiva separada. Nenhum dos dois, sozinho, representa permissão universal.
+`RightsAssertion` records that an identified local actor asserted a rights
+basis for a scope. It does not validate the assertion or authorize a purpose.
+`PurposeGrant` is the **sole canonical authorization record** for governed
+purposes, including explicit refusal. It requires a separate effective
+rights assertion. Neither alone represents universal permission.
 
-“Consentimento” e o termo de produto “consent” descrevem somente o ato humano
-explícito que pode criar um `PurposeGrant`. Não são terceiro objeto de domínio,
-tipo serializado, alias de `PurposeGrant`, base de direitos, estado ou fonte
-independente de autoridade. Campos como `consent`, `consent_id` e
-`consent=true` são desconhecidos no contrato canônico e invalidam sua entrada;
-não se convertem automaticamente em concessão.
+“Consent” and the product term “consent” describe only the explicit human
+act that may create a `PurposeGrant`. They are not a third domain object,
+serialized type, alias of `PurposeGrant`, rights basis, state or independent
+source of authority. Fields such as `consent`, `consent_id` and
+`consent=true` are unknown in the canonical contract and invalidate its input;
+they do not automatically convert into a grant.
 
-## Evidência e dependências presentes
+## Evidence and present dependencies
 
-Verificação local sem rede: os três artefatos obrigatórios estão em `main`
-`bca1ccf1b035dbab8542475368265e58b4e9853c`. O checkout analisado é
-`aaca5668781996c9fa53497d48343cac6a537c7d`, que contém essa base. Presença em
-`main` é o pré-requisito, não fechamento de issue nem aceite de outra proposta.
+Local verification without network: the three mandatory artifacts are in `main`
+`bca1ccf1b035dbab8542475368265e58b4e9853c`. The analyzed checkout is
+`aaca5668781996c9fa53497d48343cac6a537c7d`, which contains that base. Presence in
+`main` is the prerequisite, not issue closure or acceptance of another proposal.
 
-| Dependência / evidência | O que este registro consome e o que não presume |
+| Dependency / evidence | What this record consumes and does not presume |
 | --- | --- |
-| [#129](https://github.com/MichaelAlexandreDev/ayvu/issues/129), [modelo de ameaças](../product-threat-model.md) | Accepted em 2026-11-05; T03 (destinos), T05 (cache/corpus), T09 (AI/MCP), T11 (retenção/revogação), F06 e G04. Esse aceite não aceita esta política. |
-| [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134), [manifesto](../project-manifest.md) | `project_id`, revisão e identidade exata da fonte/configuração. Caminho, título e hash isolado não são escopo nem autoridade. `policy_ref` não é uma concessão. |
-| [#138](https://github.com/MichaelAlexandreDev/ayvu/issues/138), [DEC-014/proveniência](../provenance.md) | Referências opacas, revisões e linhagem; atores são tipos, sem nomes de pessoas. Sujeito opaco não prova identidade nem direitos; histórico copiado não autoriza. |
-| [Limites de módulos](../modular-monolith-boundaries.md), [artefatos](../job-artifacts.md), [escopo oficial do produto](../../product-scope.md) | Policies decide; cache, TM e corpus são independentes. Um artefato existente não prova permissão. Conteúdo para corpus/treino não é contribuição automática. |
-| [Contratos de providers](../provider-contracts.md), [descoberta](../provider-discovery.md) | Configuração/descoberta não são autorização de rede ou de finalidade. |
+| [#129](https://github.com/MichaelAlexandreDev/ayvu/issues/129), [threat model](../product-threat-model.md) | Accepted on 2026-11-05; T03 (destinations), T05 (cache/corpus), T09 (AI/MCP), T11 (retention/revocation), F06 and G04. That acceptance does not accept this policy. |
+| [#134](https://github.com/MichaelAlexandreDev/ayvu/issues/134), [manifest](../project-manifest.md) | `project_id`, revision and exact source/configuration identity. Path, title and isolated hash are neither scope nor authority. `policy_ref` is not a grant. |
+| [#138](https://github.com/MichaelAlexandreDev/ayvu/issues/138), [DEC-014/provenance](../provenance.md) | Opaque references, revisions and lineage; actors are types, without people's names. An opaque subject does not prove identity or rights; copied history does not authorize. |
+| [Module boundaries](../modular-monolith-boundaries.md), [artifacts](../job-artifacts.md), [official product scope](../../product-scope.md) | Policies decides; cache, TM and corpus are independent. An existing artifact does not prove permission. Content for corpus/training is not automatic contribution. |
+| [Provider contracts](../provider-contracts.md), [discovery](../provider-discovery.md) | Configuration/discovery are neither network nor purpose authorization. |
 
-As referências GitHub são evidência de rastreabilidade, não foram consultadas
-online nesta revisão. Nenhuma norma externa ou documento jurídico é pressuposto
-por esta proposta. Futuras regras de rede de
-[#159](https://github.com/MichaelAlexandreDev/ayvu/issues/159), memória aprovada de
-[#161](https://github.com/MichaelAlexandreDev/ayvu/issues/161) e gates G03/G04 do modelo
-continuam necessários. A proveniência atual não oferece consulta de descendentes
-nem exclusão individual, e a CLI não grava toda a linhagem. Sem inventário
-completo, o uso governado futuro deve negar; esta proposta não preenche essas
-lacunas com uma suposta garantia de exclusão.
+GitHub references are traceability evidence; they were not consulted
+online in this review. No external standard or legal document is assumed
+by this proposal. Future network rules from
+[#159](https://github.com/MichaelAlexandreDev/ayvu/issues/159), approved memory from
+[#161](https://github.com/MichaelAlexandreDev/ayvu/issues/161) and the model's G03/G04 gates
+remain necessary. Current provenance does not offer descendant queries
+or individual deletion, and the CLI does not record all lineage. Without a complete
+inventory, future governed use must deny; this proposal does not fill those
+gaps with a supposed deletion guarantee.
 
-## Convenções fechadas e versionamento
+## Closed conventions and versioning
 
-Todos os identificadores das tabelas são literais, sensíveis a maiúsculas e
-versionados juntos por Policy-ID e Vocabulary-Version. Não há `other`, `all`,
-curinga, propósito livre, extensão `x-`, valor inferido ou desconhecido aceito.
-As palavras explicativas e IDs de cenários não são valores de política.
-Listas são conjuntos finitos não vazios, sem duplicatas, em ordem lexical,
-exceto as listas cujo mínimo zero é explicitado abaixo;
-lista vazia fora dessas exceções, tipo errado, chave extra, chave duplicada e campo ausente são
-inválidos. `null` só existe onde a tabela permite explicitamente.
+All identifiers in the tables are case-sensitive literals and
+jointly versioned by Policy-ID and Vocabulary-Version. There is no `other`, `all`,
+wildcard, free purpose, `x-` extension, inferred or accepted unknown value.
+Explanatory words and scenario IDs are not policy values.
+Lists are nonempty finite sets, without duplicates, in lexical order,
+except lists whose zero minimum is explicitly stated below;
+an empty list outside those exceptions, wrong type, extra key, duplicate key and missing field are
+invalid. `null` exists only where the table explicitly allows it.
 
-Referências locais novas (`record_id`, `actor_ref`, `preview_ref`, `support_ref`,
+New local references (`record_id`, `actor_ref`, `preview_ref`, `support_ref`,
 `destination_ref`, `work_ref`, `segment_ref`, `snapshot_ref`, `obligation_ref`)
-são UUID4 canônicos minúsculos, gerados aleatoriamente pela aplicação local.
-Não são texto, URI, caminho, hash de conteúdo, nome de usuário ou documento.
-O `project_id` existente é o UUID canônico do manifesto, sem exigir retroativamente
-UUID4 a manifestos válidos. Referência opaca não é evidência por si só: deve
-resolver univocamente no contexto local autorizado, sem resolução de rede.
-IDs de exemplo abaixo são símbolos de revisão, não entradas serializáveis.
+are canonical lowercase UUID4s, randomly generated by the local application.
+They are not text, URI, path, content hash, username or document.
+The existing `project_id` is the manifest's canonical UUID, without retroactively requiring
+UUID4 for valid manifests. An opaque reference is not evidence by itself: it must
+resolve uniquely in the authorized local context, without network resolution.
+Example IDs below are review symbols, not serializable inputs.
 
-Tempos são UTC canônico `YYYY-MM-DDTHH:MM:SS.ffffffZ`; calendário válido,
-precisão de microssegundos, sem arredondamento. Durações são segundos inteiros
-positivos; um dia é exatamente 86.400 segundos. Booleanos não são inteiros.
-Há um relógio autoritativo injetado pela aplicação, fora do payload/modelo.
-Relógio indisponível ou retrocedendo em relação à última decisão local nega
-novos efeitos até reconciliação local. O tempo da importação não é autoridade.
+Times are canonical UTC `YYYY-MM-DDTHH:MM:SS.ffffffZ`; valid calendar,
+microsecond precision, without rounding. Durations are positive integer
+seconds; one day is exactly 86,400 seconds. Booleans are not integers.
+There is an authoritative clock injected by the application, outside the payload/model.
+A clock unavailable or going backward relative to the last local decision denies
+new effects until local reconciliation. Import time is not authority.
 
-| Valor de versão / mudança | Transição e efeito obrigatório |
+| Version value / change | Mandatory transition and effect |
 | --- | --- |
-| `ayvu-rights-purpose-v1`, vocabulário `1` | Único par entendido por este registro; ainda bloqueado por Proposed. |
-| Qualquer par diferente, ausente ou parcialmente reconhecido | `deny_version`; não mapear por similaridade, migrar automaticamente ou aceitar a parte conhecida. |
-| Correção editorial sem mudar semântica | Mesmo par; revisão comum verifica que nenhum conjunto, prazo, consequência ou precedência mudou. |
-| Adicionar/remover valor, mudar escopo, prazo, autoridade, consequência ou regra | Novo Policy-ID e nova Vocabulary-Version; novo registro Proposed e novo aceite humano. |
-| Ativar nova versão aceita | Todas as afirmações e concessões anteriores ficam incompatíveis imediatamente. Não há migração em v1, nem substituição entre versões. Projetos com registros de outra versão ficam bloqueados; eventual migração exige outra decisão de governança aceita com regras explícitas, nunca um import ou novo grant que ignore o passado. |
+| `ayvu-rights-purpose-v1`, vocabulary `1` | Only pair understood by this record; still blocked by Proposed. |
+| Any different, missing or partially recognized pair | `deny_version`; do not map by similarity, automatically migrate or accept the known part. |
+| Editorial correction without semantic change | Same pair; ordinary review verifies that no set, deadline, consequence or precedence changed. |
+| Add/remove value, change scope, deadline, authority, consequence or rule | New Policy-ID and new Vocabulary-Version; new Proposed record and new human acceptance. |
+| Activate new accepted version | All previous assertions and grants become immediately incompatible. There is no migration in v1, or replacement across versions. Projects with records from another version are blocked; any migration requires another accepted governance decision with explicit rules, never an import or new grant that ignores the past. |
 
-Status do registro de governança tem conjunto fechado `Proposed`, `Accepted`,
-`Superseded`. Só `Proposed -> Accepted` pelo gate final; só
-`Accepted -> Superseded` ao registrar substituição aceita. Os demais movimentos
-são inválidos. Uma nova versão começa em Proposed. Versão desconhecida de
-impedimento não pode ser descartada por um leitor novo: projeto com registros
-de outra versão resulta em `deny_version`. O par Policy-ID/Vocabulary-Version
-é tratado em P06, não como valor desconhecido de um vocabulário em P01.
+Governance record status has the closed set `Proposed`, `Accepted`,
+`Superseded`. Only `Proposed -> Accepted` through the final gate; only
+`Accepted -> Superseded` upon recording an accepted replacement. Other movements
+are invalid. A new version starts in Proposed. An unknown version of a
+restriction cannot be discarded by a new reader: a project with records
+from another version results in `deny_version`. The Policy-ID/Vocabulary-Version pair
+is handled in P06, not as an unknown vocabulary value in P01.
 
-## Vocabulários de finalidade, dados e destino
+## Purpose, data and destination vocabularies
 
-| Finalidade exata | Significado e consequência a mostrar no preview |
+| Exact purpose | Meaning and consequence to show in the preview |
 | --- | --- |
-| `corpus_build` | Selecionar/copiar conteúdo para corpus ou dataset governado local. Cria cópia independente; não permite exportar, treinar ou compartilhar. |
-| `dataset_export` | Produzir um pacote de dataset para um destino exato. Cria cópia que pode escapar do controle local; não autoriza o destinatário a treinar ou publicar. |
-| `model_training` | Usar dados para ajustar parâmetros, inclusive fine-tuning. O modelo pode reter informação; revogar não desfaz instantaneamente o aprendizado. |
-| `model_evaluation` | Usar dados como entradas, referências ou benchmarks de avaliação. Resultados/logs também precisam de inventário e prazo; não permite treino. |
-| `research` | Analisar conteúdo em uma atividade de pesquisa delimitada pelo snapshot/preview. Não permite exportar, treinar, avaliar modelos ou publicar por inferência. |
-| `contribution` | Entregar dados a um destinatário privado para um acervo ou iniciativa identificada. Não é renúncia de direitos nem licença irrestrita. |
-| `redistribution` | Disponibilizar cópia de dados ou artefato de modelo ao destinatário aprovado, inclusive publicação pública. Pode ser impossível recolher cópias; a afirmação local não licencia obra de terceiros. |
+| `corpus_build` | Select/copy content into a local governed corpus or dataset. Creates an independent copy; does not allow export, training or sharing. |
+| `dataset_export` | Produce a dataset package for an exact destination. Creates a copy that may escape local control; does not authorize the recipient to train or publish. |
+| `model_training` | Use data to adjust parameters, including fine-tuning. The model may retain information; revocation does not instantly undo learning. |
+| `model_evaluation` | Use data as evaluation inputs, references or benchmarks. Results/logs also need inventory and deadline; does not allow training. |
+| `research` | Analyze content in a research activity bounded by snapshot/preview. Does not allow export, training, model evaluation or publication by inference. |
+| `contribution` | Deliver data to a private recipient for an identified collection or initiative. Not a waiver of rights or unrestricted license. |
+| `redistribution` | Make a copy of data or model artifact available to the approved recipient, including public publication. Recalling copies may be impossible; the local assertion does not license third-party work. |
 
-Finalidade não implica outra: avaliar durante treino exige as duas; exportar
-para contribuir exige `dataset_export` e `contribution`; publicar o pacote exige
-também `redistribution`; montar corpus para treinar exige `corpus_build` e
-`model_training`. A requisição declara o conjunto completo da operação, e
-nenhum campo de payload escolhe a classificação. Um uso ainda não classificado
-nega. Não há finalidade “tradução” nesta lista: o fluxo operacional está na
-tabela de operações, sem ser uma concessão para corpus.
+One purpose does not imply another: evaluation during training requires both; export
+for contribution requires `dataset_export` and `contribution`; publishing the package also
+requires `redistribution`; building corpus for training requires `corpus_build` and
+`model_training`. The request declares the operation's complete set, and
+no payload field chooses classification. A still unclassified use
+denies. There is no “translation” purpose in this list: the operational flow is in the
+operations table, without being a corpus grant.
 
-| Classe de dados exata | Unidade e limite |
+| Exact data class | Unit and limit |
 | --- | --- |
-| `source_text` | Texto visível da fonte; nada de assets/DRM, metadados ocultos ou código. |
-| `translation_text` | Texto traduzido isolado, ainda potencialmente protegido e identificável. |
-| `aligned_pair` | Par fonte/tradução alinhado, tratado como unidade distinta; não se infere dos dois grants isolados. |
-| `review_annotation` | Anotação humana de revisão, sem incorporar automaticamente texto do livro. Se incorpora, declarar também a classe de conteúdo correspondente. |
-| `provenance_metadata` | Apenas referências e códigos allowlisted de linhagem, sem identidade pessoal ou caminho. Metadados continuam sensíveis. |
-| `model_artifact` | Artefato de modelo derivado, com ancestralidade completa; não se presume anônimo nem livre de conteúdo memorizado. |
+| `source_text` | Visible source text; no assets/DRM, hidden metadata or code. |
+| `translation_text` | Isolated translated text, still potentially protected and identifiable. |
+| `aligned_pair` | Aligned source/translation pair, treated as a distinct unit; not inferred from the two isolated grants. |
+| `review_annotation` | Human review annotation, without automatically incorporating book text. If it incorporates it, also declare the corresponding content class. |
+| `provenance_metadata` | Only allowlisted lineage references and codes, without personal identity or path. Metadata remains sensitive. |
+| `model_artifact` | Derived model artifact, with complete ancestry; not presumed anonymous or free of memorized content. |
 
-Par dividido ou dado transformado é nova requisição com suas classes exatas;
-não existe autorização por conversão, anonimização alegada ou extensão de arquivo.
-O snapshot de um par identifica separadamente ambos os componentes para checar
-direitos. Dados não enumerados, incluindo assets, prompts genéricos, credenciais
-e documentos de suporte, não são exportáveis por esta política.
+A split pair or transformed data is a new request with its exact classes;
+there is no authorization through conversion, claimed anonymization or file extension.
+A pair's snapshot identifies both components separately to check
+rights. Unlisted data, including assets, generic prompts, credentials
+and supporting documents, is not exportable under this policy.
 
-| Classe de destino exata | Binding e limite |
+| Exact destination class | Binding and limit |
 | --- | --- |
-| `local_managed` | Um armazenamento/runner gerido pelo Ayvu neste contexto local; não um arquivo externo arbitrário nem processo que encaminha dados. |
-| `private_recipient` | Um destinatário não público específico e previamente registrado localmente; mesmo em loopback, se externo ao controle Ayvu. |
-| `public_release` | Um canal público específico previamente registrado; acesso futuro e cópias são incontroláveis. |
+| `local_managed` | Storage/runner managed by Ayvu in this local context; not an arbitrary external file or process that forwards data. |
+| `private_recipient` | A specific nonpublic recipient previously registered locally; even on loopback, if outside Ayvu control. |
+| `public_release` | A specific previously registered public channel; future access and copies are uncontrollable. |
 
-Cada concessão tem exatamente uma classe e um `destination_ref` que resolve
-para um descritor imutável de catálogo **local**, revisado por humano. Catálogo
-e seu runtime são futuros; até existirem, a resolução falha e o uso nega.
-O descritor vincula receptor, armazenamento/runner e versão de configuração;
-não recebe URL, classe ou receptor de documento, manifesto importado, AI/MCP
-ou requisição como fonte de autoridade. Mudar receptor/configuração ou
-redirecionar exige nova referência e novo preview. Mesma classe com referência
-diferente é destino diferente. A aplicação de rede verifica seus próprios
-endpoints, redirects, proxies e modo offline; a concessão não os alarga.
+Each grant has exactly one class and a `destination_ref` resolving
+to an immutable **local** catalog descriptor reviewed by a human. Catalog
+and its runtime are future; until they exist, resolution fails and use denies.
+The descriptor binds recipient, storage/runner and configuration version;
+it does not receive URL, class or recipient from a document, imported manifest, AI/MCP
+or request as a source of authority. Changing recipient/configuration or
+redirecting requires a new reference and new preview. Same class with a different
+reference is a different destination. Network enforcement checks its own
+endpoints, redirects, proxies and offline mode; the grant does not expand them.
 
-| Finalidade | Classes de dados válidas | Classes de destino válidas |
+| Purpose | Valid data classes | Valid destination classes |
 | --- | --- | --- |
 | `corpus_build` | `source_text`, `translation_text`, `aligned_pair`, `review_annotation`, `provenance_metadata` | `local_managed` |
 | `dataset_export` | `source_text`, `translation_text`, `aligned_pair`, `review_annotation`, `provenance_metadata` | `local_managed`, `private_recipient` |
@@ -166,698 +166,698 @@ endpoints, redirects, proxies e modo offline; a concessão não os alarga.
 | `contribution` | `source_text`, `translation_text`, `aligned_pair`, `review_annotation`, `provenance_metadata` | `private_recipient` |
 | `redistribution` | `source_text`, `translation_text`, `aligned_pair`, `review_annotation`, `provenance_metadata`, `model_artifact` | `private_recipient`, `public_release` |
 
-A tabela é exaustiva: o produto cartesiano finalidade × dados × destino do
-registro/requisição precisa ser subconjunto das células válidas. Qualquer
-outra combinação inteira é inválida, sem aproveitar apenas a parte válida.
-Uma operação com efeitos locais e externos se divide em requisições com destino
-único; todas devem autorizar antes de cada efeito, sem aprovação parcial tácita.
+The table is exhaustive: the purpose × data × destination Cartesian product of
+the record/request must be a subset of the valid cells. Any
+other whole combination is invalid, without using only the valid part.
+An operation with local and external effects splits into requests with a single
+destination; all must authorize before each effect, without tacit partial approval.
 
-## Escopos finitos e identidade
+## Finite scopes and identity
 
-Todos os escopos incluem `project_id`, `manifest_revision` (inteiro positivo
-exato) e `snapshot_ref`. O snapshot é imutável, localmente revisado, de 1 a
-4.096 sujeitos atômicos; contém somente referências, versões e relações, nunca
-texto. Nenhum escopo abrange sujeitos ou revisões futuros. Outro projeto,
-clone/importação ou nova revisão do manifesto não herda autoridade. Até uma
-revisão que apenas muda uma localização exige nova revisão explícita de escopo;
-esta é a opção conservadora enquanto não existir contrato mais específico.
+All scopes include `project_id`, `manifest_revision` (exact positive
+integer) and `snapshot_ref`. The snapshot is immutable, locally reviewed, with 1 to
+4,096 atomic subjects; it contains only references, versions and relations, never
+text. No scope covers future subjects or revisions. Another project,
+clone/import or new manifest revision does not inherit authority. Even a
+revision that only changes a location requires a new explicit scope review;
+this is the conservative option until a more specific contract exists.
 
-| `scope_kind` | Seleção adicional obrigatória | Cobertura exata |
+| `scope_kind` | Mandatory additional selection | Exact coverage |
 | --- | --- | --- |
-| `project` | `work_ref=null`, `segment_ref=null`, `subject_ref=null` | Conjunto finito do snapshot daquele projeto/revisão. |
-| `work` | `work_ref`; `segment_ref=null`, `subject_ref=null` | Sujeitos do snapshot vinculados àquela obra/versionamento local. Não abrange outra tradução por semelhança. |
-| `segment` | `work_ref`, `segment_ref`; `subject_ref=null` | Sujeitos do snapshot daquele segmento/revisão. Índice posicional de revisão não é identidade. |
-| `subject` | `work_ref`, `subject_ref`; `segment_ref` conforme o mapping imutável (null apenas para sujeito sem segmento) | Um sujeito exato do snapshot, podendo representar um artefato com ancestralidade registrada. |
+| `project` | `work_ref=null`, `segment_ref=null`, `subject_ref=null` | Finite set from that project/revision's snapshot. |
+| `work` | `work_ref`; `segment_ref=null`, `subject_ref=null` | Snapshot subjects bound to that work/local versioning. Does not cover another translation by similarity. |
+| `segment` | `work_ref`, `segment_ref`; `subject_ref=null` | Snapshot subjects from that segment/revision. Review positional index is not identity. |
+| `subject` | `work_ref`, `subject_ref`; `segment_ref` according to the immutable mapping (null only for a subject without segment) | One exact snapshot subject, possibly representing an artifact with recorded ancestry. |
 
-Para este contrato, `subject_ref` usa namespace fechado
-`ayvu-rights-subject`, versão inteira `1`, valor UUID4 aleatório. É um mapping
-local proposto para o `SubjectRef` opaco de DEC-014, não novo significado
-retroativo para seus namespaces livres. O mapping referencia obra, segmento
-quando houver, versão da identidade e linhagem; colisão, resolução múltipla,
-linhagem truncada, identidade desconhecida ou ausência desse mapping negam.
-`work_ref` e `segment_ref` identificam bindings imutáveis nesse snapshot, sem
-inventar um ID universal de obra ausente em #134. O fingerprint permanece no
-manifesto existente; não se copia seu hash para registro de política/tombstone.
+For this contract, `subject_ref` uses the closed namespace
+`ayvu-rights-subject`, integer version `1`, random UUID4 value. It is a proposed local
+mapping for DEC-014's opaque `SubjectRef`, not a new retroactive meaning
+for its free namespaces. The mapping references work, segment
+when present, identity version and lineage; collision, multiple resolution,
+truncated lineage, unknown identity or absence of this mapping deny.
+`work_ref` and `segment_ref` identify immutable bindings in that snapshot, without
+inventing a universal work ID absent from #134. The fingerprint remains in the
+existing manifest; its hash is not copied into a policy record/tombstone.
 
-Relação amplo/específico é inclusão real dos conjuntos resolvidos, e não ordem
-de nomes nem contagem de campos. Dois escopos podem se sobrepor sem conter um
-ao outro. Todas as interseções são calculadas antes da decisão. Uma requisição
-com 4.097 sujeitos é inválida e precisa ser dividida, preservando checagem
-completa e obrigações de cada parte. Não há truncamento que permita uso.
+Broad/specific relation is actual inclusion of resolved sets, not name
+order or field count. Two scopes may overlap without containing one
+another. All intersections are calculated before the decision. A request
+with 4,097 subjects is invalid and must be split, preserving complete
+checking and obligations for each part. No truncation allows use.
 
-## Atores, origem e autoridade
+## Actors, origin and authority
 
-| `actor_kind` / origem | Pode afirmar direitos? | Pode criar/reativar/ampliar grant? | Outras transições permitidas |
+| `actor_kind` / origin | May assert rights? | May create/reactivate/expand grant? | Other permitted transitions |
 | --- | --- | --- | --- |
-| `local_human` | Sim, por operação explícita e preview | Criar novo, inclusive substituição explícita; nunca reativar ID terminal | Recusar, retirar/contestar afirmação e revogar conforme tabelas. |
-| `policy_engine` | Não | Não | Invalidar uso, calcular expiração e revogar por risco/mudança conforme razões; jamais conceder. |
-| `project_import` | Não | Não | Somente dado candidato não autoritativo. |
-| `document` | Não | Não | Somente conteúdo não autoritativo. |
-| `ai_mcp` | Não | Não | Somente sugestão/saída não autoritativa. |
-| `provider` | Não | Não | Somente metadado/resposta não autoritativa. |
-| `copied_history` | Não | Não | Somente histórico não autoritativo. |
+| `local_human` | Yes, through explicit operation and preview | Create new, including explicit replacement; never reactivate terminal ID | Refuse, withdraw/dispute assertion and revoke according to tables. |
+| `policy_engine` | No | No | Invalidate use, calculate expiry and revoke for risk/change according to reasons; never grant. |
+| `project_import` | No | No | Only nonauthoritative candidate data. |
+| `document` | No | No | Only nonauthoritative content. |
+| `ai_mcp` | No | No | Only nonauthoritative suggestion/output. |
+| `provider` | No | No | Only nonauthoritative metadata/response. |
+| `copied_history` | No | No | Only nonauthoritative history. |
 
-O `actor_ref` de `local_human` é pseudônimo aleatório deste contexto/projeto,
-resolvido pela sessão local autenticada, não nome, e-mail, conta global ou valor
-importado. A aplicação vincula uma operação explícita a uma sessão humana
-presente; não basta receber `actor_kind=local_human`. Atores de proveniência
-`human`/`system` não se convertem nesses poderes. O motor não é representante
-legal do humano. Ausência de ator local verificável nega.
+The `actor_ref` of `local_human` is a random pseudonym for this context/project,
+resolved by the authenticated local session, not a name, email, global account or
+imported value. The application binds an explicit operation to a present human
+session; receiving `actor_kind=local_human` is not enough. Provenance actors
+`human`/`system` do not convert into these powers. The engine is not the human's legal
+representative. Absence of a verifiable local actor denies.
 
-O preview humano obrigatório é imutável e vincula Policy-ID, vocabulário,
-escopo/snapshot, bases declaradas, finalidades, classes, destino/receptor,
-prazo de uso/retenção, impedimentos substituídos e todas as consequências e
-limitações deste registro. O humano confirma cada dimensão sem seleção prévia
-de novas finalidades. Mudança entre preview e efeito invalida a operação.
-Um preview aceito para direitos não é aceite para finalidade: são operações
-distintas, referências e evidências distintas, mesmo se a futura UI as agrupar.
-Somente o serviço local de aplicação poderá emitir os IDs após confirmação;
-campos serializados, replay de preview, histórico copiado e saída AI/MCP não
-podem criar, reativar, ampliar ou personificar um registro local. Na ausência
-de futura proteção de integridade/origem local, negar, sem confiar em um UUID.
+The mandatory human preview is immutable and binds Policy-ID, vocabulary,
+scope/snapshot, declared bases, purposes, classes, destination/recipient,
+use/retention deadline, replaced restrictions and all consequences and
+limitations of this record. The human confirms each dimension without preselection
+of new purposes. A change between preview and effect invalidates the operation.
+An accepted preview for rights is not acceptance for purpose: they are distinct
+operations, references and evidence, even if the future UI groups them.
+Only the local application service may issue IDs after confirmation;
+serialized fields, preview replay, copied history and AI/MCP output cannot
+create, reactivate, expand or impersonate a local record. Without future
+local integrity/origin protection, deny, without trusting a UUID.
 
-## RightsAssertion: evidência, campos e ciclo de vida
+## RightsAssertion: evidence, fields and lifecycle
 
-| `basis` fechado | O que o ator afirma | `support_ref` |
+| Closed `basis` | What the actor asserts | `support_ref` |
 | --- | --- | --- |
-| `creator_asserted` | Criou o material selecionado e afirma deter os direitos relevantes. Não resolve direitos de terceiros incorporados. | null ou referência opaca |
-| `permission_asserted` | Recebeu permissão/licença aplicável ao material selecionado. Ayvu não verifica termos nem documento. | Referência opaca obrigatória |
-| `public_domain_asserted` | Afirma que o material selecionado é domínio público no contexto relevante. Não é certificação jurídica. | null ou referência opaca |
+| `creator_asserted` | Created the selected material and asserts holding the relevant rights. Does not resolve incorporated third-party rights. | null or opaque reference |
+| `permission_asserted` | Received permission/license applicable to the selected material. Ayvu does not verify terms or document. | Mandatory opaque reference |
+| `public_domain_asserted` | Asserts that the selected material is public domain in the relevant context. Not legal certification. | null or opaque reference |
 
-Não se deduz base de compra, cache, aprovação de TM, importação, termos do
-produto ou envio a provider. Exceção legal não está representada em v1; não
-inventar `other` ou converter incerteza em domínio público. Uma futura base
-exige nova versão e revisão humana/jurídica apropriada.
+No basis is deduced from purchase, cache, TM approval, import, product
+terms or submission to provider. Legal exception is not represented in v1; do not
+invent `other` or turn uncertainty into public domain. A future basis
+requires a new version and appropriate human/legal review.
 
-Campos exatos de `RightsAssertion`: `record_id`, `policy_id`,
+Exact `RightsAssertion` fields: `record_id`, `policy_id`,
 `vocabulary_version`, `scope`, `data_classes`, `basis`, `actor_kind`, `actor_ref`,
 `asserted_at`, `expires_at`, `expiry_kind`, `support_ref`, `preview_ref`,
-`state`, `replaces`, `terminal_at`, `terminal_reason`. `scope` segue a tabela;
-`data_classes` tem 1 a 6 valores e não autoriza finalidade. `actor_kind` deve
-ser `local_human`. `replaces` tem 0 a 64 IDs locais distintos. O mesmo limite
-aplica ao grant; além disso, reconciliação explícita em etapas mantendo negação.
+`state`, `replaces`, `terminal_at`, `terminal_reason`. `scope` follows the table;
+`data_classes` has 1 to 6 values and does not authorize purpose. `actor_kind` must
+be `local_human`. `replaces` has 0 to 64 distinct local IDs. The same limit
+applies to the grant; beyond that, explicit staged reconciliation maintaining denial.
 
-`expiry_kind` só aceita `fixed_utc`. Vale
-`asserted_at < expires_at <= asserted_at + 31.536.000 s` (365 dias).
-`terminal_at` e `terminal_reason` são null em `asserted`; nos estados terminais
-são obrigatórios, com tempo não anterior à afirmação. Não se alteram base,
-escopo, classes, ator, evidência ou validade de um ID existente.
+`expiry_kind` accepts only `fixed_utc`. The rule is
+`asserted_at < expires_at <= asserted_at + 31.536.000 s` (365 days).
+`terminal_at` and `terminal_reason` are null in `asserted`; in terminal states
+they are mandatory, with time not before the assertion. An existing ID's basis,
+scope, classes, actor, evidence or validity are not changed.
 
-| Estado armazenável | Transição permitida | Efeito |
+| Storable state | Permitted transition | Effect |
 | --- | --- | --- |
-| `asserted` | Criação local; pode ir para `withdrawn` ou `disputed` | Candidata, nunca grant. Só efetiva dentro do prazo e versão. |
-| `withdrawn` | De `asserted`, humano, razão `human_withdrawal` | Terminal, bloqueia o escopo/classes e revoga grants dependentes. |
-| `disputed` | De `asserted`, humano ou motor, razão `rights_disputed` ou `identity_ambiguous` | Terminal, bloqueia; controvérsia não se resolve escolhendo outra base. |
+| `asserted` | Local creation; may move to `withdrawn` or `disputed` | Candidate, never grant. Effective only within deadline and version. |
+| `withdrawn` | From `asserted`, human, reason `human_withdrawal` | Terminal, blocks scope/classes and revokes dependent grants. |
+| `disputed` | From `asserted`, human or engine, reason `rights_disputed` or `identity_ambiguous` | Terminal, blocks; dispute is not resolved by choosing another basis. |
 
-Estados efetivos calculados adicionais, nunca gravados como estado de entrada:
-`expired` quando `now >= expires_at`; `version_incompatible` quando o par de
-versões difere. Também bloqueiam. Não há renovação nem reativação de ID
-terminal. Nova afirmação com novo preview e novo ID só substitui IDs nomeados
-de binding **idêntico** (escopo/snapshot e classes), sem apagar evidência de
-retirada/controvérsia. O preview exige que o humano reconheça cada impedimento.
-Substituição e criação são atômicas; falha mantém o bloqueio. Nenhuma das bases
-tem precedência sobre outra. Mais de uma afirmação efetiva aplicável ao mesmo
-sujeito/classe é `deny_ambiguous`, salvo repetição idempotente do mesmo ID e
-mesmo conteúdo. Conteúdo diferente com mesmo ID é corrupção (`deny_invalid`).
+Additional calculated effective states, never written as input state:
+`expired` when `now >= expires_at`; `version_incompatible` when the version
+pair differs. They also block. No renewal or reactivation of terminal
+ID. A new assertion with new preview and new ID replaces only named IDs
+with **identical** binding (scope/snapshot and classes), without erasing withdrawal/
+dispute evidence. The preview requires the human to acknowledge each restriction.
+Replacement and creation are atomic; failure maintains the block. No basis
+has precedence over another. More than one effective assertion applicable to the same
+subject/class is `deny_ambiguous`, except idempotent repetition of the same ID and
+same content. Different content with the same ID is corruption (`deny_invalid`).
 
-Cada sujeito/classe da requisição exige exatamente uma afirmação válida que o
-cubra; para `aligned_pair`, exige também cobertura dos componentes
-`source_text` e `translation_text`; para `model_artifact`, cobertura do artefato
-e de todos os ancestrais com conteúdo, segundo suas classes. Ancestral
-desconhecido, truncado ou sem direitos nega. Afirmações podem ser de atores
-locais distintos, mas nenhum substitui o ator humano da concessão.
+Each request subject/class requires exactly one valid assertion covering
+it; `aligned_pair` also requires coverage of the `source_text` and
+`translation_text` components; `model_artifact` requires coverage of the artifact
+and all ancestors with content, according to their classes. Unknown,
+truncated or rights-lacking ancestor denies. Assertions may come from distinct
+local actors, but none replaces the grant's human actor.
 
-## PurposeGrant: evidência, campos e ciclo de vida
+## PurposeGrant: evidence, fields and lifecycle
 
-Campos exatos de `PurposeGrant`: `record_id`, `policy_id`,
+Exact `PurposeGrant` fields: `record_id`, `policy_id`,
 `vocabulary_version`, `scope`, `purposes`, `data_classes`, `destination_class`,
 `destination_ref`, `rights_assertion_refs`, `actor_kind`, `actor_ref`,
 `created_at`, `granted_at`, `expires_at`, `expiry_kind`, `retention_class`, `preview_ref`,
 `state`, `replaces`, `terminal_at`, `terminal_reason`.
 
-`purposes` contém 1 a 7 valores exatos; `data_classes` de 1 a 6.
-`rights_assertion_refs` contém de 1 a 64 IDs locais de afirmações para um
-`active`; não resolve importadas. Em `draft` ou `denied`, pode ser vazio,
-pois negar não exige provar direitos. `actor_kind` é sempre `local_human`
-na criação; ator/tempo de revogação ficam na evidência terminal separada.
-Um grant nunca contém documentos jurídicos ou texto da fonte.
+`purposes` contains 1 to 7 exact values; `data_classes` 1 to 6.
+`rights_assertion_refs` contains 1 to 64 local assertion IDs for an
+`active`; it does not resolve imported assertions. In `draft` or `denied`, it may be empty,
+since denial does not require proof of rights. `actor_kind` is always `local_human`
+on creation; revocation actor/time remain in separate terminal evidence.
+A grant never contains legal documents or source text.
 
-`created_at` é o instante de criação local e nunca muda. Para active/denied
-criados diretamente, created_at=granted_at=confirmed_at do preview.
-Em draft, granted_at é null e expires_at é o prazo proposto, limitado a
-created_at+7.776.000 s; o draft é descartado após 86.400 s mesmo se esse prazo
-for maior. Na confirmação de draft, granted_at recebe o tempo autoritativo;
-não se pode ativar draft já descartável ou com prazo vencido. Em active/denied,
-`expiry_kind=fixed_utc` e
-`granted_at < expires_at <= granted_at + 7.776.000 s` (90 dias).
-Para `active`, `expires_at` não ultrapassa a menor expiração de suas afirmações.
-`retention_class=governed_copy_until_expiry` é o único valor para grants.
-Recusa também tem prazo válido para o registro, mas **não perde seu bloqueio**
-quando esse prazo passa. `terminal_at/reason` são null em `draft` e `active`,
-obrigatórios em `denied` e `revoked`; recusa usa `human_refusal` e
-terminal_at=granted_at, instante de confirmação da recusa, inclusive ao sair de
-draft. Toda combinação finalidade/dados/destino segue a tabela exaustiva.
+`created_at` is the local creation instant and never changes. For directly
+created active/denied, created_at=granted_at=confirmed_at of the preview.
+In draft, granted_at is null and expires_at is the proposed deadline, limited to
+created_at+7,776,000 s; the draft is discarded after 86,400 s even if that deadline
+is later. On draft confirmation, granted_at receives authoritative time;
+a draft already due for discard or past its deadline cannot be activated. In active/denied,
+`expiry_kind=fixed_utc` and
+`granted_at < expires_at <= granted_at + 7.776.000 s` (90 days).
+For `active`, `expires_at` does not exceed the earliest expiry of its assertions.
+`retention_class=governed_copy_until_expiry` is the only value for grants.
+Refusal also has a valid deadline for the record, but **does not lose its block**
+when that deadline passes. `terminal_at/reason` are null in `draft` and `active`,
+mandatory in `denied` and `revoked`; refusal uses `human_refusal` and
+terminal_at=granted_at, the refusal confirmation instant, including when leaving
+draft. Every purpose/data/destination combination follows the exhaustive table.
 
-| Estado armazenável | Transições permitidas | Consequência em linguagem comum |
+| Storable state | Permitted transitions | Consequence in plain language |
 | --- | --- | --- |
-| `draft` | Criar localmente; `draft -> active` ou `draft -> denied`, somente humano com novo preview atual | Rascunho não autoriza, não bloqueia outro registro por existir e não pode ser importado como autoridade. |
-| `active` | Criar diretamente com confirmação ou sair de draft; `active -> revoked` | Permite somente o uso listado, enquanto todos os gates passarem; nunca uso universal. |
-| `denied` | Criação ou saída de draft por recusa explícita | Não usar essa seleção para esse conjunto de finalidades/classes/destino; recusa prevalece mesmo contra grants mais específicos. |
-| `revoked` | Somente de active, humano ou motor nas razões permitidas | Cessar novos usos agora; dependências são bloqueadas e recebem obrigação de retirada/exclusão. Cópias externas podem permanecer. |
+| `draft` | Create locally; `draft -> active` or `draft -> denied`, only human with new current preview | Draft does not authorize, does not block another record merely by existing and cannot be imported as authority. |
+| `active` | Create directly with confirmation or leave draft; `active -> revoked` | Allows only the listed use while all gates pass; never universal use. |
+| `denied` | Creation or departure from draft by explicit refusal | Do not use this selection for this set of purposes/classes/destination; refusal prevails even against more specific grants. |
+| `revoked` | Only from active, human or engine for permitted reasons | Stop new uses now; dependencies are blocked and receive withdrawal/deletion obligation. External copies may remain. |
 
-Estados efetivos calculados adicionais: `expired` e `version_incompatible`,
-com a mesma regra temporal/de versão das afirmações; não são entradas válidas.
-Expirar equivale a cessar usos e emitir obrigação, não renovar. `active` não
-pode voltar a draft; `denied`/`revoked` não voltam a active; nenhum ID é
-reativado por importação, aprovação de TM, passagem do tempo ou versão nova.
-Todos os movimentos não enumerados são inválidos e retornam `deny_invalid`.
-Campos de active/denied são imutáveis salvo state/terminal_at/terminal_reason
-na transição permitida. Durante draft -> active/denied só podem mudar state,
-granted_at, preview_ref, rights_assertion_refs e campos terminais aplicáveis,
-atomicamente na confirmação. Seleção, destino e prazo proposto não mudam;
-mudá-los exige outro draft/ID. Um draft incompleto pode receber as referências
-de direitos apenas nessa confirmação, que reavalia todas as condições.
+Additional calculated effective states: `expired` and `version_incompatible`,
+with the same time/version rule as assertions; they are not valid inputs.
+Expiry means ceasing uses and issuing obligation, not renewal. `active` cannot
+return to draft; `denied`/`revoked` do not return to active; no ID is
+reactivated by import, TM approval, passage of time or new version.
+All unlisted movements are invalid and return `deny_invalid`.
+Active/denied fields are immutable except state/terminal_at/terminal_reason
+in the permitted transition. During draft -> active/denied only state,
+granted_at, preview_ref, rights_assertion_refs and applicable terminal fields may change,
+atomically on confirmation. Selection, destination and proposed deadline do not change;
+changing them requires another draft/ID. An incomplete draft may receive rights
+references only at that confirmation, which reassesses all conditions.
 
-Nova escolha exige novo ID/preview. `replaces` só retira da seleção efetiva
-impedimentos explicitamente nomeados de binding **inteiramente idêntico**:
-Policy-ID, escopo/snapshot, conjunto de finalidades, classes e destino/ref.
-Não altera a história, obrigações existentes ou registros dependentes.
-Substituição entre versões é inválida em v1; não há equivalência automática
-nem operação de reconciliação interversão implícita. Dois sucessores
-do mesmo registro são ambiguidade e bloqueiam. Substituição incompleta continua
-negada. Um grant específico não cancela recusa ampla; para mudar essa escolha,
-o humano precisa rever a recusa ampla inteira e criar depois as restrições
-exatas desejadas. Não há exceção implícita ou escolha do registro mais recente.
+A new choice requires new ID/preview. `replaces` removes from effective selection
+only explicitly named restrictions with **entirely identical** binding:
+Policy-ID, scope/snapshot, purpose set, classes and destination/ref.
+It does not change history, existing obligations or dependent records.
+Replacement across versions is invalid in v1; there is no automatic equivalence
+or implicit cross-version reconciliation operation. Two successors
+of the same record are ambiguity and block. Incomplete replacement remains
+denied. A specific grant does not cancel broad refusal; to change that choice,
+the human must review the entire broad refusal and then create the exact
+desired restrictions. No implicit exception or choice of the newest record.
 
-## Operações e gates independentes
+## Operations and independent gates
 
-As linhas ordinárias abaixo continuam exigindo autorização normal de
-projeto/arquivos, seleção humana e segurança de conteúdo. Não há validação legal
-implícita. São classificação para preservar o produto atual, não nova permissão
-para automatizar exportação ou compartilhar dados. Descoberta, aceite de termos
-e uma URL permitida não concedem finalidade.
+The ordinary rows below still require normal project/file
+authorization, human selection and content safety. No implicit legal
+validation. They are classification to preserve the current product, not new permission
+to automate export or share data. Discovery, acceptance of terms
+and an allowed URL do not grant purpose.
 
-| Operação/classificação fechada | Gate de finalidade | Outros gates e limite |
+| Closed operation/classification | Purpose gate | Other gates and limit |
 | --- | --- | --- |
-| `project_local` — criar/importar/inspecionar projeto, ler/extrair texto visível, gerar EPUB traduzido ou Markdown/revisão para uso do próprio projeto | Não exige PurposeGrant | Autorização ordinária e destino local do operador. Exportar um dataset não cabe nesta linha por mudar extensão ou nome. |
-| `cache_local` — criar/consultar/reter/limpar cache operacional, importar/exportar seu intercâmbio para uso pessoal local | Não exige PurposeGrant | Cache separado; usar intercâmbio para pesquisa/corpus/entrega exige as finalidades governadas. Retenção atual não muda. |
-| `tm_local` — criar/reusar TM pessoal ou aprovar TM no projeto | Não exige PurposeGrant desta política | Aprovação de qualidade não é base de direitos nem corpus. A #161 continua dona do ciclo de memória aprovada; nenhum reuso entre projetos é inferido. |
-| `provider_operational` — enviar texto visível selecionado ao tradutor para produzir o resultado solicitado | Não exige PurposeGrant para esse processamento operacional | Autorização ordinária e de rede separadas, com receptor/limites explícitos. Termos/uso do provider não autorizam treino, avaliação, pesquisa ou revenda por ele. Se não puder separar esses usos, o futuro gate nega esse envio. |
-| `governed_use` — qualquer uma das sete finalidades, mesmo inteiramente local | Exige RightsAssertion e PurposeGrant independentemente efetivos | Projeto, identidade, inventário/linhagem, finalidade e, se houver egress, rede devem passar. Exportação/distribuição/contribuição nunca se disfarçam de cache ou saída ordinária. |
+| `project_local` — create/import/inspect project, read/extract visible text, generate translated EPUB or Markdown/review for the project's own use | Does not require PurposeGrant | Ordinary authorization and operator's local destination. Exporting a dataset does not fit this row by changing extension or name. |
+| `cache_local` — create/query/retain/clean operational cache, import/export its interchange for local personal use | Does not require PurposeGrant | Separate cache; using interchange for research/corpus/delivery requires governed purposes. Current retention does not change. |
+| `tm_local` — create/reuse personal TM or approve TM in the project | Does not require PurposeGrant from this policy | Quality approval is neither rights basis nor corpus. #161 still owns the approved memory lifecycle; no cross-project reuse is inferred. |
+| `provider_operational` — send selected visible text to the translator to produce the requested result | Does not require PurposeGrant for that operational processing | Separate ordinary and network authorization, with explicit recipient/limits. Provider terms/use do not authorize its training, evaluation, research or resale. If those uses cannot be separated, the future gate denies that submission. |
+| `governed_use` — any of the seven purposes, even entirely local | Requires independently effective RightsAssertion and PurposeGrant | Project, identity, inventory/lineage, purpose and, if there is egress, network must pass. Export/distribution/contribution never masquerade as cache or ordinary output. |
 
-Operação desconhecida é `deny_unknown`. A classificação vem de um caso de uso
-local revisado, não de texto de livro, extensão de arquivo, nome de ferramenta
-ou propósito declarado pelo solicitante não confiável.
+Unknown operation is `deny_unknown`. Classification comes from a reviewed local
+use case, not book text, file extension, tool name
+or purpose declared by an untrusted requester.
 
-| Autorização ordinária/identidade | Finalidade (quando exigida) | Rede (quando há egress) | Resultado |
+| Ordinary authorization/identity | Purpose (when required) | Network (when there is egress) | Result |
 | --- | --- | --- | --- |
-| Não | Qualquer | Qualquer | `deny_project` |
-| Sim | Não | Qualquer | Negar pelo motivo de finalidade |
-| Sim | Sim | Não | `deny_network` |
-| Sim | Sim ou dispensada por operação ordinária | Sim ou sem egress | Somente então permitir o efeito delimitado |
+| No | Any | Any | `deny_project` |
+| Yes | No | Any | Deny for the purpose reason |
+| Yes | Yes | No | `deny_network` |
+| Yes | Yes or exempted by ordinary operation | Yes or no egress | Only then allow the bounded effect |
 
-Não há socket “local” dispensado do gate de rede. `local_managed` só dispensa
-rede se nenhum transporte ocorre. A permissão de rede nunca supre finalidade;
-um PurposeGrant nunca amplia destino, modo offline ou autorização do provider.
+No “local” socket is exempt from the network gate. `local_managed` only exempts
+network if no transport occurs. Network permission never supplies purpose;
+a PurposeGrant never expands destination, offline mode or provider authorization.
 
-## Algoritmo e tabelas completas de política efetiva
+## Algorithm and complete effective policy tables
 
-O resultado fechado é `allow` ou `deny` com exatamente um dos códigos abaixo.
-A ordem P00–P18 fixa o motivo quando há vários erros; **todas** as condições
-precisam passar. Não se continua após erro para procurar um grant mais
-permissivo. Nas tabelas de conflitos/cenários, pressupõem-se os gates anteriores
-satisfeitos, exceto quando explicitamente indicado. Como este registro ainda
-está Proposed, qualquer tentativa real governada para v1 para em P00.
+The closed result is `allow` or `deny` with exactly one of the codes below.
+P00–P18 order fixes the reason when there are multiple errors; **all** conditions
+must pass. Evaluation does not continue after error to seek a more
+permissive grant. Conflict/scenario tables assume previous gates are
+satisfied, except when explicitly indicated. Since this record is still
+Proposed, any real governed attempt for v1 stops at P00.
 
-A aplicação classifica a operação antes desta avaliação. P00 e P05–P16 só
-se aplicam a `governed_use`. Operações ordinárias percorrem somente P01
-(identificador de operação), P02 (estrutura própria), P03 (autorização/identidade
-ordinária), P04, P17 e P18; não recebem campos de grant/assertion nem ficam
-bloqueadas por Proposed. Essa distinção não muda a CLI entregue.
+The application classifies the operation before this evaluation. P00 and P05–P16 apply
+only to `governed_use`. Ordinary operations traverse only P01
+(operation identifier), P02 (own structure), P03 (ordinary authorization/identity),
+P04, P17 and P18; they do not receive grant/assertion fields or become
+blocked by Proposed. This distinction does not change the delivered CLI.
 
-Uma requisição normalizada Q contém operação, projeto/revisão, sujeitos/classes,
-conjunto completo de finalidades, destino exato e instante do relógio.
-“Aplicável” significa interseção não vazia de sujeitos **e** de finalidades
-**e** de classes, com o mesmo destino/classe. Para afirmações, não há dimensão
-finalidade/destino. Conjunto impossível de resolver não é conjunto vazio.
-Registros autoritativos malformados que não permitam provar disjunção bloqueiam
-todos os usos governados do projeto até reconciliação. Dados importados ficam
-fora do conjunto autoritativo, sem poder criar bloqueios arbitrários no registro.
+A normalized request Q contains operation, project/revision, subjects/classes,
+complete purpose set, exact destination and clock instant.
+“Applicable” means nonempty intersection of subjects **and** purposes
+**and** classes, with the same destination/class. Assertions have no
+purpose/destination dimension. A set impossible to resolve is not an empty set.
+Malformed authoritative records that do not allow disjointness to be proved block
+all governed uses of the project until reconciliation. Imported data remains
+outside the authoritative set, unable to create arbitrary blocks in the registry.
 
-| Ordem | Condição avaliada | Resultado / código |
+| Order | Evaluated condition | Result / code |
 | --- | --- | --- |
-| P00 | Registro não Accepted, aceite incompleto ou versão ativa sem aceite próprio | `deny / deny_governance` |
-| P01 | Operação, finalidade, classe, destino, scope_kind, ator, base, estado, retenção, expiry_kind ou razão desconhecidos | `deny / deny_unknown` |
-| P02 | Estrutura inválida, combinação inválida, relógio ausente/retrocedendo, ID com conteúdos diferentes, substituição inválida ou origem local sem integridade | `deny / deny_invalid` |
-| P03 | Projeto sem autorização ordinária, identidade/snapshot ausente, ambíguo, obsoleto, truncado ou fora do binding; inventário terminal pendente/incompleto | `deny / deny_project` |
-| P04 | Operação ordinária corretamente classificada | Dispensar P05–P16; ainda aplicar P17 e P18. Não criar grant/assertion. |
-| P05 | Tentativa de usar import, documento, AI/MCP, provider, ator forjado ou histórico copiado como autoridade, ou preview ausente/não vinculado | `deny / deny_authority` |
-| P06 | Par de versões incompatível/ausente em registro necessário ou impedimento não reconciliado | `deny / deny_version` |
-| P07 | Afirmação aplicável withdrawn/disputed, expirada ou substituição bifurcada; duas afirmações efetivas por sujeito/classe | `deny / deny_rights` para retirada/disputa/expiração; `deny / deny_ambiguous` para multiplicidade/bifurcação |
-| P08 | Falta exatamente uma afirmação efetiva para qualquer sujeito/classe/componente/ancestral de Q | `deny / deny_rights`; ainda não examina refs de um grant. |
-| P09 | PurposeGrant aplicável `denied` ou `revoked` não explicitamente substituído | `deny / deny_explicit` ou `deny / deny_revoked`, respectivamente; se ambos, `deny_explicit` |
-| P10 | PurposeGrant active aplicável já expirou, ainda que haja outro active válido | `deny / deny_expired`; não voltar a grant antigo/amplo |
-| P11 | Mais de um active candidato cobrindo Q inteira, ou sucessores conflitantes | `deny / deny_ambiguous`; duplicata idempotente do mesmo ID/conteúdo conta uma vez |
-| P12 | Nenhum grant autoritativo não-draft existente para o projeto | `deny / deny_absent` |
-| P13 | Nenhum único active restante cobre todos os sujeitos/revisões de Q | `deny / deny_scope` |
-| P14 | Nenhum desses grants cobre todas as finalidades de Q | `deny / deny_purpose` |
-| P15 | Nenhum desses grants cobre todas as classes de Q | `deny / deny_data` |
-| P16a | Nenhum desses grants cobre o destino/classe/ref exatos de Q, ou descritor/receptor não resolve | `deny / deny_destination` |
-| P16b | O único candidato integral não referencia todas as afirmações de P08, ou referencia afirmação não efetiva | `deny / deny_rights` |
-| P17 | Há egress sem autorização independente de rede para o destino/configuração atuais | `deny / deny_network` |
-| P18 | Todos os gates passaram; exatamente um grant cobre Q inteira quando exigido | `allow / allow_bounded` |
+| P00 | Record not Accepted, acceptance incomplete or active version without its own acceptance | `deny / deny_governance` |
+| P01 | Unknown operation, purpose, class, destination, scope_kind, actor, basis, state, retention, expiry_kind or reason | `deny / deny_unknown` |
+| P02 | Invalid structure, invalid combination, clock missing/going backward, ID with different contents, invalid replacement or local origin without integrity | `deny / deny_invalid` |
+| P03 | Project without ordinary authorization, identity/snapshot missing, ambiguous, stale, truncated or outside binding; terminal inventory pending/incomplete | `deny / deny_project` |
+| P04 | Correctly classified ordinary operation | Exempt P05–P16; still apply P17 and P18. Do not create grant/assertion. |
+| P05 | Attempt to use import, document, AI/MCP, provider, forged actor or copied history as authority, or preview missing/unbound | `deny / deny_authority` |
+| P06 | Incompatible/missing version pair in required record or unreconciled restriction | `deny / deny_version` |
+| P07 | Applicable assertion withdrawn/disputed, expired or branched replacement; two effective assertions per subject/class | `deny / deny_rights` for withdrawal/dispute/expiry; `deny / deny_ambiguous` for multiplicity/branching |
+| P08 | Any subject/class/component/ancestor of Q lacks the required single effective assertion | `deny / deny_rights`; does not yet examine grant refs. |
+| P09 | Applicable `denied` or `revoked` PurposeGrant not explicitly replaced | `deny / deny_explicit` or `deny / deny_revoked`, respectively; if both, `deny_explicit` |
+| P10 | Applicable active PurposeGrant has already expired, even if another valid active exists | `deny / deny_expired`; do not return to old/broad grant |
+| P11 | More than one active candidate covering all of Q, or conflicting successors | `deny / deny_ambiguous`; idempotent duplicate of same ID/content counts once |
+| P12 | No existing authoritative non-draft grant for the project | `deny / deny_absent` |
+| P13 | No single remaining active covers all subjects/revisions of Q | `deny / deny_scope` |
+| P14 | None of those grants covers all purposes of Q | `deny / deny_purpose` |
+| P15 | None of those grants covers all classes of Q | `deny / deny_data` |
+| P16a | None of those grants covers Q's exact destination/class/ref, or descriptor/recipient does not resolve | `deny / deny_destination` |
+| P16b | The sole complete candidate does not reference all P08 assertions, or references an ineffective assertion | `deny / deny_rights` |
+| P17 | Egress without independent network authorization for current destination/configuration | `deny / deny_network` |
+| P18 | All gates passed; exactly one grant covers all of Q when required | `allow / allow_bounded` |
 
-P13–P16a filtram sequencialmente o mesmo conjunto de candidatos, sem combinar
-permissões de registros diferentes. Um active “restante” também exige
-`granted_at <= now < expires_at`, preview e origem válidos;
-data futura é P02. Draft nunca é candidato ou impedimento; se só existem drafts,
-P12 nega. Afirmação com data futura também é P02. Grant não aplicável por outro
-propósito/dado/destino não bloqueia um grant válido de Q; simplesmente não
-autoriza Q. Registros terminais/expirados só bloqueiam sua interseção, sem
-revogar outras escolhas por inferência. Mudança de versão pendente é a exceção
-conservadora explicitada em P06.
+P13–P16a sequentially filter the same candidate set, without combining
+permissions from different records. A “remaining” active also requires
+`granted_at <= now < expires_at`, valid preview and origin;
+a future date is P02. Draft is never candidate or restriction; if only drafts exist,
+P12 denies. An assertion with a future date is also P02. A grant not applicable due to another
+purpose/data/destination does not block a valid grant of Q; it simply does not
+authorize Q. Terminal/expired records block only their intersection, without
+revoking other choices by inference. Pending version change is the conservative
+exception explicitly stated in P06.
 
-Para P11, “cobre Q inteira” é somente cobertura estrutural de todos os sujeitos,
-finalidades, classes e destino; não depende do teste de refs de P16b. Se houver
-mais de um, P11 nega antes de escolher qualquer um. P08 examina somente direitos
-de Q, mesmo sem grant. Se não houver direitos nem grant, P08 é o primeiro
-motivo; V02 e os casos destinados a testar ausência de grant pressupõem A válida.
-A recusa continua válida sem direitos, mas P08 precede P09 no código devolvido:
-sem A e com denied, o resultado é deny_rights; com A válida, deny_explicit.
-Ambas as situações negam, sem apagar a recusa.
+For P11, “covers all of Q” is only structural coverage of all subjects,
+purposes, classes and destination; it does not depend on P16b's refs test. If there
+is more than one, P11 denies before choosing any. P08 examines only Q's
+rights, even without grant. If neither rights nor grant exist, P08 is the first
+reason; V02 and cases intended to test grant absence assume valid A.
+Refusal remains valid without rights, but P08 precedes P09 in the returned code:
+without A and with denied, result is deny_rights; with valid A, deny_explicit.
+Both situations deny, without erasing refusal.
 
-| Registros que se intersectam em Q | Decisão determinística |
+| Records intersecting in Q | Deterministic decision |
 | --- | --- |
-| Allow amplo + deny específico | `deny_explicit` na interseção; fora dela avaliar todos os gates. |
-| Deny amplo + allow específico | `deny_explicit`; especificidade não ultrapassa recusa. |
-| Allow amplo + revogação específica, ou inverso | `deny_revoked`; não há fallback amplo/específico. |
-| Allow válido + allow expirado aplicável, amplo/específico ou parcialmente sobreposto | `deny_expired`; um novo grant não limpa expiração anterior sem substituição explícita. |
-| Dois allows cobrindo Q, amplo/específico, mesmo instante ou instantes diferentes | `deny_ambiguous`; nunca escolher newest, first ou most-permissive. |
-| Dois allows apenas parciais cuja união cobriria Q | Negar no primeiro filtro P13–P16 que falhar; não costurar escopo/finalidade/dado/destino. |
-| Um allow cobre Q e outro só parte, ambos válidos | Permitir se todos os demais gates passarem; o parcial não amplia nem decide Q. |
-| Deny/revogado/expirado em escopo disjunto, finalidade/dado sem interseção ou outro destino | Não autoriza nem veta Q; verificar grant próprio de Q. |
-| Mesmo ID, mesmo conteúdo repetido | Uma ocorrência idempotente; não cria autoridade se veio de importação. |
-| Mesmo ID com conteúdos diferentes, ou origem ambígua | `deny_invalid`; nunca desempatar por timestamp. |
-| Grant novo com replaces completo, binding idêntico e confirmação local; nenhum outro impedimento | Antecessores deixam de decidir novos usos; história e obrigações ficam. Reavaliar P00–P18 inteiro. |
-| Grant novo sem replaces ou com binding diferente | Não limpa impedimento; substituição declarada inválida é P02. |
+| Broad allow + specific deny | `deny_explicit` in the intersection; outside it evaluate all gates. |
+| Broad deny + specific allow | `deny_explicit`; specificity does not override refusal. |
+| Broad allow + specific revocation, or inverse | `deny_revoked`; no broad/specific fallback. |
+| Valid allow + applicable expired allow, broad/specific or partially overlapping | `deny_expired`; a new grant does not clear prior expiry without explicit replacement. |
+| Two allows covering Q, broad/specific, same instant or different instants | `deny_ambiguous`; never choose newest, first or most-permissive. |
+| Two only partial allows whose union would cover Q | Deny at the first failing P13–P16 filter; do not stitch scope/purpose/data/destination. |
+| One allow covers Q and another only part, both valid | Allow if all other gates pass; the partial neither expands nor decides Q. |
+| Deny/revoked/expired in disjoint scope, nonintersecting purpose/data or another destination | Neither authorizes nor vetoes Q; check Q's own grant. |
+| Same ID, same content repeated | One idempotent occurrence; does not create authority if imported. |
+| Same ID with different contents, or ambiguous origin | `deny_invalid`; never break ties by timestamp. |
+| New grant with complete replaces, identical binding and local confirmation; no other restriction | Predecessors cease deciding new uses; history and obligations remain. Reevaluate all of P00–P18. |
+| New grant without replaces or with different binding | Does not clear restriction; declared invalid replacement is P02. |
 
-Para requests de múltiplos sujeitos, um deny em um deles nega Q inteira; o
-chamador pode propor outra requisição sem esse sujeito, nunca omiti-lo
-silenciosamente. A afirmação e o grant são checados no planejamento, antes de
-cada leitura/copiação/egress e antes de publicar cada artefato. A decisão não
-é um token ilimitado: revogação entre etapas impede o próximo efeito. Efeito
-irreversível já iniciado é registrado como tal e segue as limitações abaixo.
+For multi-subject requests, a deny on one denies all of Q; the
+caller may propose another request without that subject, never silently
+omit it. Assertion and grant are checked during planning, before
+each read/copy/egress and before publishing each artifact. The decision is
+not an unlimited token: revocation between stages prevents the next effect. An
+irreversible effect already started is recorded as such and follows the limitations below.
 
-## Revogação e obrigações limitadas
+## Revocation and bounded obligations
 
-`terminal_reason`/`revocation_reason` usam exatamente os valores abaixo.
-Uma razão de retirada de direitos não pode ser usada como recusa inicial de
-grant sem registrar a transição correta. Ator de revogação é verificado na
-operação local; seu campo serializado não basta.
+`terminal_reason`/`revocation_reason` use exactly the values below.
+A rights withdrawal reason cannot be used as initial grant refusal
+without recording the correct transition. Revocation actor is verified in the
+local operation; its serialized field is not enough.
 
-| Razão | Ator permitido / origem | Efeito e consequência antes da confirmação |
+| Reason | Permitted actor / origin | Effect and consequence before confirmation |
 | --- | --- | --- |
-| `human_refusal` | local_human; criação de denied | Bloqueia novas escolhas sobrepostas; não é prova de que usos anteriores foram ilegais. |
-| `human_withdrawal` | local_human; assertion withdrawn ou grant revoked | Deixar de usar agora; cópias derivadas geridas devem ser retiradas; terceiros podem já tê-las. |
-| `rights_disputed` | local_human ou policy_engine; assertion disputed e grants dependentes revoked | Direitos incertos bloqueiam, sem julgamento jurídico; não resolver com uma afirmação mais ampla. |
-| `identity_ambiguous` | local_human ou policy_engine; assertion disputed e grants dependentes revoked | Escopo/linhagem não confiável bloqueia até nova revisão de identidade. |
-| `destination_changed` | local_human ou policy_engine; grant revoked | Não enviar ao receptor alterado; repetir preview para o destino novo, sem fallback. |
-| `policy_changed` | policy_engine ou local_human; grant revoked | Antigo aceite não vale na versão nova; reconfirmar também os limites/impedimentos, sem conversão automática. |
-| `security_incident` | local_human ou policy_engine; grant revoked | Parar futuros efeitos e isolar derivados geridos; não prometer desfazer vazamento anterior. |
-| `expiry_reached` | policy_engine; estado efetivo expired de assertion/grant | Prazo acabou, novos usos negados e obrigações emitidas. Não gravar como revoked só para esconder expiração. |
-| `explicit_replacement` | local_human; evento replaced de assertion/grant | Nova decisão com binding idêntico retira o antecessor da seleção, sem reativar ID nem apagar obrigações. |
+| `human_refusal` | local_human; creation of denied | Blocks new overlapping choices; not proof that previous uses were unlawful. |
+| `human_withdrawal` | local_human; assertion withdrawn or grant revoked | Stop using now; managed derived copies must be withdrawn; third parties may already have them. |
+| `rights_disputed` | local_human or policy_engine; assertion disputed and dependent grants revoked | Uncertain rights block, without legal judgment; do not resolve with a broader assertion. |
+| `identity_ambiguous` | local_human or policy_engine; assertion disputed and dependent grants revoked | Untrusted scope/lineage blocks until new identity review. |
+| `destination_changed` | local_human or policy_engine; grant revoked | Do not send to changed recipient; repeat preview for new destination, without fallback. |
+| `policy_changed` | policy_engine or local_human; grant revoked | Old acceptance is not valid in the new version; reconfirm limits/restrictions too, without automatic conversion. |
+| `security_incident` | local_human or policy_engine; grant revoked | Stop future effects and isolate managed derivatives; do not promise to undo prior leak. |
+| `expiry_reached` | policy_engine; effective expired state of assertion/grant | Deadline ended, new uses denied and obligations issued. Do not write as revoked just to hide expiry. |
+| `explicit_replacement` | local_human; replaced event of assertion/grant | New decision with identical binding removes predecessor from selection, without reactivating ID or erasing obligations. |
 
-Revogação confirmada em T é efetiva para todo efeito com relógio `now >= T`;
-expiração também no instante exato (`now == expires_at`). Não depende de worker,
-restart, próxima sincronização ou exclusão física. A operação registra a
-evidência/obrigação durável antes de confirmar sucesso; falha de registro nega
-uso e não finge que concluiu a revogação. Retirada/disputa/expiração de uma
-afirmação invalida todos os grants que dela dependem imediatamente. Novos
-rights/grants não ressuscitam datasets/artifacts já retirados.
+Revocation confirmed at T is effective for every effect with clock `now >= T`;
+expiry also at the exact instant (`now == expires_at`). It does not depend on worker,
+restart, next synchronization or physical deletion. The operation records durable
+evidence/obligation before confirming success; recording failure denies
+use and does not pretend revocation was completed. Withdrawal/dispute/expiry of an
+assertion immediately invalidates all grants depending on it. New
+rights/grants do not resurrect already withdrawn datasets/artifacts.
 
-Para cada evento terminal, o futuro executor inventaria dependentes e emite
-uma obrigação idempotente por evento+artefato+tipo e, quando houver,
-destinatário conhecido. Recusa inicial sem dependentes gera zero obrigações;
-não inventar artefatos ou apagar cópias não relacionadas. Não cria worker nesta decisão. Limites
-obrigatórios: bloquear seleção/treino/egress dos derivados já em T; inventariar
-dependentes/linhagem em até 86.400 s; remover das seleções e excluir cópias
-geridas até T+604.800 s (7 dias); enviar pedido aos destinatários conhecidos em
-até 86.400 s; registrar resposta ou ausência dela até T+2.592.000 s (30 dias).
-Inventário incompleto nunca é sucesso: manter o projeto/derivados bloqueados
-e reportar obrigação `unfulfilled`. Sistema offline ou desligado não ganha
-prazo novo: ao voltar, bloquear antes de qualquer efeito e reportar atraso.
+For each terminal event, the future executor inventories dependents and issues
+one idempotent obligation per event+artifact+type and, when present,
+known recipient. Initial refusal without dependents generates zero obligations;
+do not invent artifacts or delete unrelated copies. This decision creates no worker. Mandatory
+limits: block selection/training/egress of derivatives as of T; inventory
+dependents/lineage within 86,400 s; remove from selections and delete managed
+copies by T+604,800 s (7 days); send request to known recipients within
+86,400 s; record response or its absence by T+2,592,000 s (30 days).
+Incomplete inventory is never success: keep project/derivatives blocked
+and report `unfulfilled` obligation. Offline or powered-off system does not get
+a new deadline: on return, block before any effect and report delay.
 
-| `obligation_kind` fechado | Objeto afetado e conclusão honesta |
+| Closed `obligation_kind` | Affected object and honest completion |
 | --- | --- |
-| `inventory_check` | Um evento terminal sem inventário completo: bloquear o projeto, concluir enumeração até T+86.400 s ou registrar inventory_incomplete. Não exige inventar artifact_ref. |
-| `managed_delete` | Dataset, pacote, avaliação, resultado de pesquisa ou cópia gerida derivada: bloquear e excluir no prazo de 7 dias. Falha fica explícita. |
-| `recipient_withdrawal` | Destinatário conhecido: pedir cessação/exclusão; confirmação do destinatário não prova erasure físico. Sem controle/resposta, registrar limite. |
-| `model_restrict` | Modelo derivado gerido: bloquear novo uso/exportação agora e eliminar a cópia gerida até 7 dias; decidir retreino em outra issue, sem prometer unlearning. |
+| `inventory_check` | A terminal event without complete inventory: block project, complete enumeration by T+86,400 s or record inventory_incomplete. Does not require inventing artifact_ref. |
+| `managed_delete` | Dataset, package, evaluation, research result or derived managed copy: block and delete within 7 days. Failure remains explicit. |
+| `recipient_withdrawal` | Known recipient: request cessation/deletion; recipient confirmation does not prove physical erasure. Without control/response, record limit. |
+| `model_restrict` | Managed derived model: block new use/export now and eliminate managed copy within 7 days; decide retraining in another issue, without promising unlearning. |
 
-| `obligation_state` fechado | Transição permitida / significado |
+| Closed `obligation_state` | Permitted transition / meaning |
 | --- | --- |
-| `pending` | Criado no instante real da emissão >=T; somente `pending -> fulfilled` ou `pending -> unfulfilled`. due_at/delete_at continuam ancorados no T original, inclusive retries. |
-| `fulfilled` | Terminal: ação gerida verificada ou pedido/resposta limitada registrado; não implica erasure externo. |
-| `unfulfilled` | Terminal: prazo vencido, inventário incompleto ou ação impossível; incidente continua visível. Nova tentativa usa novo ID vinculado ao anterior, sem apagar falha. |
+| `pending` | Created at actual issuance instant >=T; only `pending -> fulfilled` or `pending -> unfulfilled`. due_at/delete_at remain anchored to original T, including retries. |
+| `fulfilled` | Terminal: verified managed action or bounded request/response recorded; does not imply external erasure. |
+| `unfulfilled` | Terminal: deadline missed, incomplete inventory or impossible action; incident remains visible. New attempt uses new ID linked to previous one, without erasing failure. |
 
-O campo fechado `obligation_result` é `pending`, `managed_deleted`,
+The closed `obligation_result` field is `pending`, `managed_deleted`,
 `recipient_confirmed`, `recipient_unverifiable`, `model_removed`,
-`deadline_missed`, `inventory_incomplete`, `managed_unavailable`, `inventory_complete`. `pending` só com pending;
-fulfilled só com `managed_deleted` para managed_delete, `model_removed` para
-model_restrict, `recipient_confirmed` para recipient_withdrawal ou
-`inventory_complete` para inventory_check;
-unfulfilled só com `deadline_missed` para qualquer tipo, `inventory_incomplete`
-para inventory_check,
-`managed_unavailable` para managed_delete/model_restrict, ou
-`recipient_unverifiable` para recipient_withdrawal. Demais combinações inválidas.
-Não há estado “resolvido” que esconda dependência desconhecida.
-Fechamento usa closed_at real e pode ser tardio; depois do prazo nunca fulfilled.
-No retorno de aplicação desligada, registrar unfulfilled/deadline_missed sem
-alterar due_at/T. Se a enumeração mostrou lacuna dentro do prazo, usar
-inventory_incomplete. Há uma inventory_check por evento cujo inventário não
-possa ser comprovado completo em T; se comprovadamente sem dependentes, não
-criar obrigação artificial e marcar inventário complete.
+`deadline_missed`, `inventory_incomplete`, `managed_unavailable`, `inventory_complete`. `pending` only with pending;
+fulfilled only with `managed_deleted` for managed_delete, `model_removed` for
+model_restrict, `recipient_confirmed` for recipient_withdrawal or
+`inventory_complete` for inventory_check;
+unfulfilled only with `deadline_missed` for any type, `inventory_incomplete`
+for inventory_check,
+`managed_unavailable` for managed_delete/model_restrict, or
+`recipient_unverifiable` for recipient_withdrawal. Other combinations are invalid.
+There is no “resolved” state hiding an unknown dependency.
+Closure uses actual closed_at and may be late; after the deadline never fulfilled.
+When a powered-off application returns, record unfulfilled/deadline_missed without
+changing due_at/T. If enumeration revealed a gap within the deadline, use
+inventory_incomplete. There is one inventory_check per event whose inventory cannot
+be proved complete at T; if proved to have no dependents, do not
+create an artificial obligation and mark inventory complete.
 
-Cache operacional, TM pessoal/aprovada e original não são alvos automáticos
-dessa exclusão: grant não altera sua retenção. Remover um derivado governado
-que referencia uma entrada TM não apaga a entrada TM. Direitos contestados
-podem exigir ação separada nesses sistemas pela sua própria política; esta
-proposta não autoriza deletar fonte/EPUB original nem alterar texto visível.
+Operational cache, personal/approved TM and original are not automatic targets
+of this deletion: a grant does not change their retention. Removing a governed derivative
+referencing a TM entry does not delete the TM entry. Disputed rights
+may require separate action in those systems under their own policy; this
+proposal does not authorize deleting source/original EPUB or changing visible text.
 
-Limites a mostrar **antes** de qualquer confirmação futura: exclusão local
-não é secure erase; backups, exportações não geridas, destinatários e cópias
-já distribuídas podem persistir; não há garantia de exclusão retroativa em
-terceiros, recolhimento público ou unlearning instantâneo. Artefatos de modelos
-já entregues não podem ser apagados remotamente por esta política. A obrigação
-é cessar novos usos controlados, retirar derivados geridos e pedir retirada
-onde houver receptor conhecido; não prometer controlar o que não se controla.
+Limits to show **before** any future confirmation: local deletion
+is not secure erase; backups, unmanaged exports, recipients and already
+distributed copies may persist; there is no guarantee of retroactive deletion at
+third parties, public recall or instant unlearning. Already delivered model artifacts
+cannot be remotely deleted by this policy. The obligation
+is to cease new controlled uses, withdraw managed derivatives and request withdrawal
+where there is a known recipient; do not promise control over what is not controlled.
 
-## Retenção, minimização e tombstones
+## Retention, minimization and tombstones
 
-Prazos propostos são tetos de produto para aceite humano, sem alegar obrigação
-legal. Nenhum prazo infinito nem “reter conforme necessário” é permitido.
-Não existe legal hold implícito: uma exigência legal futura precisa decisão
-separada, sem inserir documentos privados aqui ou ampliar automaticamente TTL.
+Proposed deadlines are product ceilings for human acceptance, without claiming legal
+obligation. No infinite deadline or “retain as needed” is allowed.
+There is no implicit legal hold: a future legal requirement needs a separate
+decision, without inserting private documents here or automatically expanding TTL.
 
-| `retention_class` fechado | Objeto e início do prazo | Expiração/regra exata |
+| Closed `retention_class` | Object and start of deadline | Expiry/exact rule |
 | --- | --- | --- |
-| `policy_source` | RightsAssertion/PurposeGrant e preview allowlisted | Manter enquanto candidato/draft válido; draft expira 86.400 s após criação e é descartado. Em terminalidade, expiração ou substituição T, apagar corpo/preview até T+2.592.000 s (30 dias), preservando tombstone e evidência/obrigações somente nos respectivos prazos. |
-| `support_link` | Referência opaca de suporte da afirmação | Usada somente enquanto assertion candidata; depois só para revisão de retirada, apagar até T+2.592.000 s. Nunca armazenar documento, caminho ou credencial; não controlar a retenção do documento externo. |
-| `revocation_evidence` | Evento terminal, refs e obrigações allowlisted | Apagar corpo detalhado até T+7.776.000 s (90 dias), mesmo com obrigação sem cumprimento; reduzir resultado final à tombstone. Não estender por tentativa/restart. |
-| `audit_tombstone` | Metadados mínimos de terminalidade/decisão, começando em T | Apagar até T+31.536.000 s (365 dias), inclusive ator pseudônimo e refs de dependência. Recusa deixa de ter registro, mas ausência continua negando; não ressuscitar ID ou importar história. |
-| `governed_copy_until_expiry` | Cópia/dataset/resultado/modelo governado | Prazo máximo igual ao menor expires_at de grants e assertions ancestrais; cessar uso nesse instante, excluir geridos até +604.800 s. Renovação não prolonga cópia existente sem nova revisão e nova identidade de derivado. |
+| `policy_source` | RightsAssertion/PurposeGrant and allowlisted preview | Keep while valid candidate/draft; draft expires 86,400 s after creation and is discarded. At terminality, expiry or replacement T, delete body/preview by T+2,592,000 s (30 days), preserving tombstone and evidence/obligations only within their respective deadlines. |
+| `support_link` | Opaque assertion support reference | Used only while candidate assertion; then only for withdrawal review, delete by T+2,592,000 s. Never store document, path or credential; do not control external document retention. |
+| `revocation_evidence` | Terminal event, allowlisted refs and obligations | Delete detailed body by T+7,776,000 s (90 days), even with unfulfilled obligation; reduce final result to tombstone. Do not extend through attempt/restart. |
+| `audit_tombstone` | Minimal terminality/decision metadata, starting at T | Delete by T+31,536,000 s (365 days), including pseudonymous actor and dependency refs. Refusal no longer has a record, but absence still denies; do not resurrect ID or import history. |
+| `governed_copy_until_expiry` | Governed copy/dataset/result/model | Maximum deadline equals earliest expires_at of ancestral grants and assertions; cease use at that instant, delete managed copies by +604,800 s. Renewal does not extend existing copy without new review and new derivative identity. |
 
-`terminalidade T` é o primeiro de: retirada, disputa, revogação, expiração,
-substituição ou mudança de versão. Nunca se recalcula T pelo último acesso.
-Para denied, T é a confirmação da recusa (granted_at), não a criação prévia de
-um draft; não emitir nova terminalidade nem
-reiniciar TTL ao passar expires_at. Expiração, incompatibilidade e substituição
-mantêm o estado armazenado original, mas geram evento/tombstone e bloqueio
-efetivo; terminal_at/reason do corpo continuam null quando a tabela assim exige.
-As razões calculadas são, respectivamente, expiry_reached, policy_changed e
-explicit_replacement. Eventos created pertencem à fonte (policy_source) e são
-apagados com ela até T+30 dias; não têm TTL de 90 dias iniciado antes de existir T.
-Apagar uma política inteira exige antes revogar grants ativos e emitir
-obrigações. Não expurgar bloqueios mais cedo para obter allow. Depois de
-apagar tombstone, nenhum grant anterior a T é reutilizável: novo uso exige novo
-preview/assertion/grant e identidade nova. Caso haja autorização concorrente
-afetada por impedimento a expurgar, invalidá-la antes do expurgo, não permitir
-fallback. A implementação futura precisa provar isso, inclusive restauração
-de backup; impossibilidade de provar integridade após restore nega projeto.
+`terminality T` is the first of: withdrawal, dispute, revocation, expiry,
+replacement or version change. T is never recalculated from last access.
+For denied, T is refusal confirmation (granted_at), not earlier creation of
+a draft; do not issue new terminality or
+restart TTL when expires_at passes. Expiry, incompatibility and replacement
+keep the original stored state, but generate event/tombstone and effective
+block; body terminal_at/reason remain null when the table requires it.
+Calculated reasons are, respectively, expiry_reached, policy_changed and
+explicit_replacement. Created events belong to the source (policy_source) and are
+deleted with it by T+30 days; they do not have a 90-day TTL starting before T exists.
+Deleting an entire policy first requires revoking active grants and issuing
+obligations. Do not purge blocks earlier to obtain allow. After
+deleting tombstone, no grant preceding T is reusable: new use requires new
+preview/assertion/grant and new identity. If concurrent authorization is
+affected by a restriction to be purged, invalidate it before purge, do not allow
+fallback. The future implementation must prove this, including backup
+restoration; inability to prove integrity after restore denies project.
 
-O corpo terminal é reduzido a tombstone até 30 dias, **preservando o impedimento
-exato** na allowlist abaixo até seu TTL de 365 dias. Não apagar o conjunto
-finito de sujeitos necessário à interseção em P07/P09/P10. Para corrigir
-identidade que não permita resolver equivalência do snapshot, v1 nega o projeto:
-não permite substituir por escopo diferente nem inventa migração. O produto
-deve encaminhar esse caso a decisão de identidade/política separada.
+The terminal body is reduced to tombstone within 30 days, **preserving the exact
+restriction** in the allowlist below until its 365-day TTL. Do not delete the finite
+subject set needed for intersection in P07/P09/P10. To correct
+identity that does not allow snapshot equivalence to be resolved, v1 denies the project:
+it does not allow replacement with a different scope or invent migration. The product
+must refer that case to a separate identity/policy decision.
 
-Não se guarda log permanente de cada leitura ou cada negativa. Durante uma
-operação, motivo de decisão pode existir em memória com TTL até o fim dessa
-operação, no máximo 86.400 s. Auditoria persistente somente para criação,
-recusa, retirada, disputa, revogação, expiração, substituição e cumprimento de
-obrigação, nos tetos acima. Rótulos de exibição, identidade real do operador,
-endereço de receptor e detalhes de preview não entram em tombstone.
+No permanent log of each read or denial is kept. During an
+operation, a decision reason may exist in memory with TTL until the end of that
+operation, at most 86,400 s. Persistent audit only for creation,
+refusal, withdrawal, dispute, revocation, expiry, replacement and obligation
+fulfillment, within the ceilings above. Display labels, real operator identity,
+recipient address and preview details do not enter tombstone.
 
-Allowlist exata de evidência de evento: `event_id` (UUID4), `record_id`,
+Exact event evidence allowlist: `event_id` (UUID4), `record_id`,
 `policy_id`, `vocabulary_version`, `event_kind`, `effective_at`, `actor_kind`,
-`actor_ref` (null apenas para motor), `reason` (null só na criação),
-`obligation_refs` (zero IDs, exceto exatamente um em obligation_closed), `retention_class`,
-`delete_at`. `created` usa retention_class=policy_source; delete_at é null
-enquanto fonte ativa não tem T, preenchido atomicamente em T para T+30 dias.
-Para draft, é created_at+86.400 s; ativar draft atualiza para null até T.
-Os demais usam revocation_evidence, com delete_at=T+7.776.000 s.
-Obrigações apontam ao event_id terminal; ele não contém cópia da lista de
-dependentes. A consulta completa por evento alimenta os contadores mínimos;
-consulta parcial mantém inventory_state=incomplete, nunca conta como sucesso.
-`event_kind` fechado: `created`, `denied`, `withdrawn`, `disputed`, `revoked`,
-`expired`, `version_invalidated`, `replaced`, `obligation_closed`. Transições correspondem somente às
-tabelas de ciclo de vida; expired é fato calculado. `obligation_closed` tem
-exatamente uma obligation_ref e reason igual à razão terminal do evento pai;
-estado/resultado são lidos da obrigação vinculada, não são campos implícitos
-do evento. O evento pai é o event_id já existente da obrigação, nunca o próprio
-obligation_closed; ciclos e referência inexistente são P02.
-Cada um dos demais eventos usa a razão correspondente da tabela.
-version_invalidated usa policy_changed, sem mudar estado armazenado da assertion;
-grants também podem ter revoked/policy_changed. O primeiro evento **terminal** fixa T.
-Não gravar dados livres em `reason`.
+`actor_ref` (null only for engine), `reason` (null only on creation),
+`obligation_refs` (zero IDs, except exactly one in obligation_closed), `retention_class`,
+`delete_at`. `created` uses retention_class=policy_source; delete_at is null
+while active source has no T, atomically set at T to T+30 days.
+For draft, it is created_at+86,400 s; activating draft updates to null until T.
+Others use revocation_evidence, with delete_at=T+7,776,000 s.
+Obligations point to terminal event_id; it does not contain a copy of the
+dependent list. The complete query by event feeds the minimal counters;
+partial query keeps inventory_state=incomplete, never counts as success.
+Closed `event_kind`: `created`, `denied`, `withdrawn`, `disputed`, `revoked`,
+`expired`, `version_invalidated`, `replaced`, `obligation_closed`. Transitions correspond only to
+lifecycle tables; expired is a calculated fact. `obligation_closed` has
+exactly one obligation_ref and reason equal to the parent event's terminal reason;
+state/result are read from the linked obligation, not implicit event
+fields. The parent event is the obligation's already existing event_id, never the
+obligation_closed itself; cycles and nonexistent reference are P02.
+Each other event uses the corresponding reason from the table.
+version_invalidated uses policy_changed, without changing the assertion's stored state;
+grants may also have revoked/policy_changed. The first **terminal** event fixes T.
+Do not write free data in `reason`.
 
-Allowlist exata de obrigação: `obligation_ref`, `event_id`, `artifact_ref`
-(UUID4 de mapping local; null só para inventory_check), `destination_ref`
-(UUID4 obrigatório só para recipient_withdrawal; null nos demais),
+Exact obligation allowlist: `obligation_ref`, `event_id`, `artifact_ref`
+(UUID4 from local mapping; null only for inventory_check), `destination_ref`
+(UUID4 mandatory only for recipient_withdrawal; null for others),
 `obligation_kind`, `obligation_state`, `obligation_result`, `created_at`,
-`due_at`, `closed_at` (null só em pending), `previous_ref` (null ou UUID4),
-`sent_at`, `response_at`, `receipt_ref`, `delete_at`. Os três campos novos são
-null para managed_delete/model_restrict/inventory_check. Para recipient_withdrawal, sent_at é
-null até o envio ou o tempo autoritativo do pedido; response_at é null até a
-resposta, senão >= sent_at. Resposta e fechamento são registrados atomicamente,
-com response_at <= closed_at; não há response_at em pending. receipt_ref é UUID4
-aleatório de confirmação local desta própria obrigação, sem objeto de suporte
-adicional nem resolução externa (nunca resposta/texto/endereço). É emitido pelo
-adaptador local ao observar a confirmação e apagado com a obrigação em T+90 dias;
-obrigatório para recipient_confirmed
-com sent_at/response_at não null, e opcional para recipient_unverifiable.
-Cumprimento exige envio até T+86.400 s; atraso é deadline_missed, mesmo com
-confirmação posterior. inventory_check usa due_at=T+86.400 s;
-managed_delete/model_restrict usam due_at=T+604.800 s;
-recipient_withdrawal usa due_at=T+2.592.000 s, com envio até T+86.400 s.
-Seu corpo segue revocation_evidence (90 dias), e resultado mínimo segue tombstone.
+`due_at`, `closed_at` (null only in pending), `previous_ref` (null or UUID4),
+`sent_at`, `response_at`, `receipt_ref`, `delete_at`. The three new fields are
+null for managed_delete/model_restrict/inventory_check. For recipient_withdrawal, sent_at is
+null until sending or the authoritative request time; response_at is null until
+response, otherwise >= sent_at. Response and closure are recorded atomically,
+with response_at <= closed_at; there is no response_at in pending. receipt_ref is a random
+UUID4 of local confirmation of this very obligation, without additional support
+object or external resolution (never response/text/address). It is issued by the
+local adapter upon observing confirmation and deleted with the obligation at T+90 days;
+mandatory for recipient_confirmed
+with non-null sent_at/response_at, and optional for recipient_unverifiable.
+Fulfillment requires sending by T+86,400 s; delay is deadline_missed, even with
+later confirmation. inventory_check uses due_at=T+86,400 s;
+managed_delete/model_restrict use due_at=T+604,800 s;
+recipient_withdrawal uses due_at=T+2,592,000 s, with sending by T+86,400 s.
+Its body follows revocation_evidence (90 days), and minimal result follows tombstone.
 
-Allowlist exata do tombstone: `record_id`, `record_kind`, `policy_id`,
+Exact tombstone allowlist: `record_id`, `record_kind`, `policy_id`,
 `vocabulary_version`, `project_id`, `event_kind`, `terminal_reason`,
-`effective_at`, `actor_kind`, `actor_ref` (null para motor), `preview_ref`,
+`effective_at`, `actor_kind`, `actor_ref` (null for engine), `preview_ref`,
 `restriction`, `block_kind`, `inventory_state`, `obligation_summary`, `retention_class=audit_tombstone`, `delete_at`.
-`record_kind` só `rights_assertion` ou `purpose_grant`.
-`block_kind` só `rights`, `explicit`, `revoked`, `expired`,
-`version_incompatible`, `none`: direitos withdrawn/disputed usam rights;
-grant denied usa explicit; grant revoked usa revoked; expiração usa expired;
-mudança de versão usa version_incompatible; replaced usa none. Substituição
-explícita atualiza atomicamente também o block_kind do antecessor para none e
-restriction para null, sem mudar T/delete_at nem o fato/razão terminal original.
-Esse none persiste após apagar ambos os corpos, sem ressuscitar a recusa.
+`record_kind` only `rights_assertion` or `purpose_grant`.
+`block_kind` only `rights`, `explicit`, `revoked`, `expired`,
+`version_incompatible`, `none`: withdrawn/disputed rights use rights;
+denied grant uses explicit; revoked grant uses revoked; expiry uses expired;
+version change uses version_incompatible; replaced uses none. Explicit
+replacement also atomically updates predecessor block_kind to none and
+restriction to null, without changing T/delete_at or original terminal fact/reason.
+That none persists after deleting both bodies, without resurrecting refusal.
 `restriction`
-é null só para none; nos demais casos tem exatamente `scope`, `subject_refs`,
-`purposes`, `data_classes`, `destination_class`, `destination_ref`, com os
-mesmos valores imutáveis do binding e a lista de 1 a 4.096 sujeitos resolvidos
-do snapshot. Para rights_assertion, purposes é vazio e ambos campos de destino
-são null; para purpose_grant, são obrigatórios conforme grant original. Esta é
-a informação mínima para continuar calculando interseção/substituição sem
-guardar preview completo, evidência de suporte ou conteúdo. A lista de sujeitos
-e relações de escopo necessária fica sujeita ao mesmo TTL de tombstone, não ao
-TTL de conteúdo da fonte. Não existe outro índice permanente de bloqueio.
-`inventory_state` fechado é `pending`, `complete`, `incomplete`, derivado da
-inventory_check; só complete libera P03. Sem dependentes comprovadamente, é
-complete com zero obrigações. Pending/incomplete bloqueiam o projeto inteiro,
-inclusive se block_kind=none; substituir grant não sana inventário desconhecido.
-Expiração de assertion em tombstone (record_kind=rights_assertion, block_kind=expired)
-é P07 deny_rights; expiração de grant é P10 deny_expired, não se confundem.
-`obligation_summary` é tupla dos três contadores inteiros não negativos
-`pending_count`, `fulfilled_count`, `unfulfilled_count`, cada um <= 2**63-1;
-sem obrigação, todos zero. Tombstone de criação só após terminalidade, com
-event_kind terminal correspondente; não retém corpo integral do grant.
-delete_at é sempre effective_at+31.536.000 s; effective_at usa o primeiro T,
-não a última obrigação. Nenhum campo opcional fora das nulabilidades acima.
+is null only for none; in other cases it has exactly `scope`, `subject_refs`,
+`purposes`, `data_classes`, `destination_class`, `destination_ref`, with the
+same immutable binding values and the list of 1 to 4,096 resolved subjects
+from the snapshot. For rights_assertion, purposes is empty and both destination fields
+are null; for purpose_grant, they are mandatory according to the original grant. This is
+the minimal information to keep calculating intersection/replacement without
+storing full preview, support evidence or content. The subject list
+and necessary scope relations are subject to the same tombstone TTL, not the
+source content TTL. No other permanent block index exists.
+Closed `inventory_state` is `pending`, `complete`, `incomplete`, derived from
+inventory_check; only complete releases P03. With proven absence of dependents, it is
+complete with zero obligations. Pending/incomplete block the entire project,
+even if block_kind=none; replacing grant does not resolve unknown inventory.
+Assertion expiry in tombstone (record_kind=rights_assertion, block_kind=expired)
+is P07 deny_rights; grant expiry is P10 deny_expired, not interchangeable.
+`obligation_summary` is a tuple of the three nonnegative integer counters
+`pending_count`, `fulfilled_count`, `unfulfilled_count`, each <= 2**63-1;
+without obligation, all zero. Creation of tombstone only after terminality, with
+corresponding terminal event_kind; it does not retain the full grant body.
+delete_at is always effective_at+31,536,000 s; effective_at uses the first T,
+not the last obligation. No optional field outside the nullabilities above.
 
-P03 exige **prova positiva de inventário completo atual em cada operação
-governada**, não ausência de tombstone. Após o TTL de evidências de 90 dias,
-resolver inventory_state=incomplete exige reconstrução integral local; sem ela,
-continua negado. Antes de expurgar tombstone em 365 dias com inventário ainda
-pendente/incompleto, invalidar todos os grants do projeto e descartar o contexto
-de autorização governada (sem apagar o projeto ordinário ou o original).
-O próximo acesso é bootstrap sem autoridade: inventário completo reconstruído,
-novas afirmações, novos grants e novos previews são obrigatórios. Se não puder
-reconstruir, P03 continua negando por falta da pré-condição positiva, sem manter
-um marcador eterno. A implementação futura deve provar esse bootstrap também
-após restore, não inferir complete do desaparecimento de registros.
+P03 requires **positive proof of current complete inventory in each governed
+operation**, not absence of tombstone. After the 90-day evidence TTL,
+resolving inventory_state=incomplete requires full local reconstruction; without it,
+it remains denied. Before purging tombstone at 365 days with inventory still
+pending/incomplete, invalidate all project grants and discard the governed
+authorization context (without deleting the ordinary project or original).
+The next access is bootstrap without authority: reconstructed complete inventory,
+new assertions, new grants and new previews are mandatory. If reconstruction
+is impossible, P03 keeps denying for lack of the positive precondition, without keeping
+an eternal marker. The future implementation must prove this bootstrap also
+after restore, not infer complete from disappearing records.
 
-Tombstones **não autorizam** e não recompõem grants. Retêm somente o binding
-necessário a negar, não texto, título, hashes de conteúdo, endereço/URL, dados
-da pessoa ou suporte. P07/P09/P10 leem os impedimentos reduzidos da mesma forma
-que seus antecessores. O bloqueio concorrente é invalidado antes do expurgo
-final para impedir fallback de grants antigos.
-Registro mínimo de uma obrigação encerrada conserva só contadores;
-referências da obrigação desaparecem em 90 dias. O binding de restrição pode
-reter destination_ref e sujeitos até 365 dias exclusivamente para negar;
-continuam metadados sensíveis, sem nome/endereço e sem anonimização alegada.
+Tombstones **do not authorize** or reconstruct grants. They retain only the binding
+needed to deny, not text, title, content hashes, address/URL, personal
+data or support. P07/P09/P10 read reduced restrictions the same way
+as their predecessors. The concurrent block is invalidated before final
+purge to prevent fallback to old grants.
+Minimal record of a closed obligation preserves only counters;
+obligation references disappear in 90 days. The restriction binding may
+retain destination_ref and subjects for up to 365 days exclusively to deny;
+they remain sensitive metadata, without name/address or claimed anonymization.
 
-Proibições de privacidade valem para policy, preview persistido, eventos,
-erros, repr, logs e tombstones: nenhum texto fonte/traduzido, prompt de livro,
-documento jurídico de suporte, credencial, caminho privado absoluto, nome,
-e-mail, título ou identificador pessoal desnecessário. Não derivar referência
-de trecho, título, e-mail ou segredo por hash; digest não é anonimização.
-O preview visual pode mostrar ao humano a seleção que ele já pode ler, mas seu
-registro persistido só contém a allowlist, nunca uma captura de tela/texto.
-Allowlist exata do preview persistido: `preview_ref`, `record_kind`, `binding`,
+Privacy prohibitions apply to policy, persisted preview, events,
+errors, repr, logs and tombstones: no source/translated text, book prompt,
+supporting legal document, credential, absolute private path, name,
+email, title or unnecessary personal identifier. Do not derive reference
+from excerpt, title, email or secret by hash; digest is not anonymization.
+The visual preview may show the human a selection they may already read, but its
+persisted record contains only the allowlist, never a screenshot/text.
+Exact persisted preview allowlist: `preview_ref`, `record_kind`, `binding`,
 `actor_ref`, `issued_at`, `confirmed_at`, `consumed_at`, `confirmation_ref`,
-`policy_id`, `vocabulary_version`, `expires_at`, `delete_at`. binding de
-rights_assertion tem exatamente scope, data_classes, basis, support_ref,
-actor_kind, actor_ref, expiry_kind, expires_at e replaces. binding de
-purpose_grant tem exatamente scope, purposes, data_classes, destination_class,
+`policy_id`, `vocabulary_version`, `expires_at`, `delete_at`. The binding of
+rights_assertion has exactly scope, data_classes, basis, support_ref,
+actor_kind, actor_ref, expiry_kind, expires_at and replaces. The binding of
+purpose_grant has exactly scope, purposes, data_classes, destination_class,
 destination_ref, rights_assertion_refs, actor_kind, actor_ref, expiry_kind,
-expires_at, retention_class e replaces. São os campos homônimos deste contrato,
-todos imutáveis no preview. Os nomes de campo nesta frase são literais.
-IDs e asserted_at/granted_at são associados pelo serviço somente na confirmação,
-que grava a preview_ref única no registro; uma preview_ref não pode criar dois
-registros. asserted_at/granted_at devem coincidir com confirmed_at.
-confirmation_ref é UUID4 de evidência da sessão local humana, sem identidade
-real; não é aceita de payload importado. confirmed_at/consumed_at/confirmation_ref
-são null antes da confirmação; confirmação explícita de **todas** as dimensões
-e consequências preenche os três atomicamente e consome o preview uma única
-vez, sem replay. issued_at <= confirmed_at=consumed_at < expires_at,
-expires_at=issued_at+900 s (15 minutos); expirar preview não estende prazo do
-grant. delete_at é null para preview consumido ligado a registro ainda sem T;
-é fixado atomicamente em T para T+30 dias. Preview de draft segue created_at+1 dia.
-Na emissão, delete_at=expires_at+86.400 s; ao consumir, aplicar atomicamente a
-regra do registro vinculado acima. Preview expirado não consumido é apagado
-até expires_at+86.400 s. Consequências são as desta versão, sem campo livre,
-captura do receptor, texto ou documento. A prova local do ato ainda exige a
-implementação/validação antireplay indicada nas questões abertas; até ela
-existir, P05 nega.
+expires_at, retention_class and replaces. These are the identically named fields of this contract,
+all immutable in preview. Field names in this sentence are literal.
+IDs and asserted_at/granted_at are associated by the service only on confirmation,
+which records the unique preview_ref in the record; one preview_ref cannot create two
+records. asserted_at/granted_at must coincide with confirmed_at.
+confirmation_ref is UUID4 evidence of the local human session, without real
+identity; it is not accepted from imported payload. confirmed_at/consumed_at/confirmation_ref
+are null before confirmation; explicit confirmation of **all** dimensions
+and consequences fills all three atomically and consumes the preview a single
+time, without replay. issued_at <= confirmed_at=consumed_at < expires_at,
+expires_at=issued_at+900 s (15 minutes); preview expiry does not extend the
+grant deadline. delete_at is null for consumed preview linked to a record still without T;
+it is atomically fixed at T to T+30 days. Draft preview follows created_at+1 day.
+On issuance, delete_at=expires_at+86,400 s; on consumption, atomically apply the
+linked record's rule above. Unconsumed expired preview is deleted
+by expires_at+86,400 s. Consequences are those of this version, without free field,
+recipient capture, text or document. Local proof of the act still requires the
+anti-replay implementation/validation indicated in the open questions; until it
+exists, P05 denies.
 
-## Exemplos adversariais e oráculos para revisão/teste
+## Adversarial examples and review/test oracles
 
-Esta matriz é o índice exaustivo para revisão dos vocabulários. Valor conhecido
-não significa allow: só elimina P01; as demais condições continuam necessárias.
+This matrix is the exhaustive vocabulary review index. A known value
+does not mean allow: it only eliminates P01; other conditions remain necessary.
 
-| Vocabulário / conjunto fechado | Validação e ponto de decisão |
+| Vocabulary / closed set | Validation and decision point |
 | --- | --- |
-| Policy-ID, Vocabulary-Version, status de governança | P00/P06; nenhuma tradução implícita entre versões. |
-| Finalidades (7), classes de dados (6), classes de destino (3) | P01/P02 para cada célula válida/inválida do produto 7×6×3; P14/P15/P16a para correspondência exata. |
-| scope_kind (4), namespace/versão de sujeito | P01/P02/P03; inclusão/interseção em P07–P13; identidade ausente não é escopo vazio. |
-| actor_kind/origem (7), bases de direitos (3) | P01/P02/P05/P07/P08; só local_human cria, nenhuma base tem precedência. |
-| Estados armazenados de assertion (3) e grant (4) | P02 para transições; P07/P09; draft não autoriza. |
-| Estados efetivos expired/version_incompatible (2) | P06/P07/P10, derivados exclusivamente de versão/relógio, nunca entrada. |
-| expiry_kind (1), retention_class (5) | P01/P02; prazos/fonte/TTL na tabela de retenção; retention_class de grant só governed_copy_until_expiry. |
-| Razões terminais (9), event_kind (9) | P01/P02; combinações e atores da tabela de razões, ciclo de vida e evidência. |
-| obligation_kind (4), obligation_state (3), obligation_result (9) | P01/P02; prazos, combinações e estado terminal na tabela de obrigações. |
-| record_kind (2), block_kind (6), inventory_state (3), contadores/refs de tombstone | P01/P02; inventário P03; direitos/expired de assertion P07, explicit/revoked P09, expired de grant P10, version_incompatible P06, none nunca autoriza. |
-| Operações (5), resultados (2), códigos de decisão (18) | Classificar antes de P00; P00–P18 e tabela de gates; qualquer campo obrigatório faltante nega. |
+| Policy-ID, Vocabulary-Version, governance status | P00/P06; no implicit translation across versions. |
+| Purposes (7), data classes (6), destination classes (3) | P01/P02 for each valid/invalid cell of the 7×6×3 product; P14/P15/P16a for exact match. |
+| scope_kind (4), subject namespace/version | P01/P02/P03; inclusion/intersection in P07–P13; missing identity is not empty scope. |
+| actor_kind/origin (7), rights bases (3) | P01/P02/P05/P07/P08; only local_human creates, no basis has precedence. |
+| Stored assertion (3) and grant (4) states | P02 for transitions; P07/P09; draft does not authorize. |
+| Effective expired/version_incompatible states (2) | P06/P07/P10, derived exclusively from version/clock, never input. |
+| expiry_kind (1), retention_class (5) | P01/P02; deadlines/source/TTL in retention table; grant retention_class only governed_copy_until_expiry. |
+| Terminal reasons (9), event_kind (9) | P01/P02; combinations and actors from reason, lifecycle and evidence tables. |
+| obligation_kind (4), obligation_state (3), obligation_result (9) | P01/P02; deadlines, combinations and terminal state in obligations table. |
+| record_kind (2), block_kind (6), inventory_state (3), tombstone counters/refs | P01/P02; inventory P03; rights/expired of assertion P07, explicit/revoked P09, expired of grant P10, version_incompatible P06, none never authorizes. |
+| Operations (5), results (2), decision codes (18) | Classify before P00; P00–P18 and gates table; any missing mandatory field denies. |
 
-As únicas arestas de mudança de estado armazenado são as abaixo. Criação e
-estado efetivo calculado não são arestas de reativação. Qualquer par de estados
-não listado, inclusive auto-transição, é inválido em P02; retry idempotente
-do mesmo evento não é nova transição.
+The only stored state change edges are below. Creation and
+calculated effective state are not reactivation edges. Any unlisted state
+pair, including self-transition, is invalid in P02; idempotent retry
+of the same event is not a new transition.
 
-| Ciclo | Arestas exatas permitidas |
+| Lifecycle | Exact permitted edges |
 | --- | --- |
-| governança | `Proposed -> Accepted`, `Accepted -> Superseded` |
+| governance | `Proposed -> Accepted`, `Accepted -> Superseded` |
 | RightsAssertion | `asserted -> withdrawn`, `asserted -> disputed` |
 | PurposeGrant | `draft -> active`, `draft -> denied`, `active -> revoked` |
-| obrigação | `pending -> fulfilled`, `pending -> unfulfilled` |
+| obligation | `pending -> fulfilled`, `pending -> unfulfilled` |
 
-Símbolos: Q é uma requisição exata válida; A uma afirmação local; G um grant;
-B/S escopos amplo/específico com inclusão comprovada; T é relógio injetado.
-Não há texto de obra, pessoa real, endereço, segredo ou caminho nos exemplos.
-Os testes de governança são documentais; não se afirma comportamento executável
-de registry, persistência ou rede que ainda não existem.
-Exceto onde o caso testa o inventário, os cenários pressupõem inventário atual
-completo, inclusive depois da emissão de obrigações; assim P03 não mascara o
-gate de finalidade indicado no oráculo.
+Symbols: Q is an exact valid request; A a local assertion; G a grant;
+B/S broad/specific scopes with proved inclusion; T is the injected clock.
+There is no work text, real person, address, secret or path in examples.
+Governance tests are documentary; no executable behavior is claimed
+of registry, persistence or network that do not yet exist.
+Except where the case tests inventory, scenarios assume current complete
+inventory, including after obligations are issued; thus P03 does not mask the
+purpose gate indicated in the oracle.
 
-| Caso | Entrada/ataque ou limite | Oráculo obrigatório |
+| Case | Input/attack or limit | Mandatory oracle |
 | --- | --- | --- |
-| V01 | Política ainda Proposed, mesmo com aprovação desta issue | P00 `deny_governance`. |
-| V02 | A válida, nenhum G | P12 `deny_absent`; direitos não são finalidade. |
-| V03 | G válido sintaticamente, A ausente | P08 `deny_rights`; UI “consent” não supre A. |
-| V04 | Valor desconhecido em cada vocabulário de P01 (versão/status são casos V01/V18); chave consent extra é caso separado | Valor: P01 deny_unknown; chave extra: P02 deny_invalid, sem coercão. |
-| V05 | G expira em T, relógio em T−1 microssegundo / T | Demais gates válidos: allow_bounded antes, P10 deny_expired em T. |
-| V06 | G revogado em T, outro G amplo válido | P09 deny_revoked em T; nenhum fallback. |
-| V07 | G B active; G S denied / G B denied; G S active | Ambos P09 deny_explicit na interseção. |
-| V08 | Dois G active cobrindo Q, amplo/específico; inverter ordem ou timestamps | P11 deny_ambiguous nas duas ordens. |
-| V09 | A expirada/withdrawn/disputed, G active | P07 deny_rights, parar uso e emitir obrigação dependente. |
-| V10 | Q tem binding inválido; separadamente, Q válida com A atual, G no projeto de Q mas revisão/segmento distinto, sem outro candidato | Primeiro caso P03 deny_project; segundo P13 deny_scope. Clone sem G próprio e A atual é P12 deny_absent. |
-| V11 | G apenas model_training, Q model_evaluation; ou Q exige ambos | P14 deny_purpose; avaliação não é treino. |
-| V12 | G translation_text, Q aligned_pair; rights dos componentes válidos | P15 deny_data; par não nasce por composição. |
-| V13 | Mesmo destino-classe, destination_ref diferente; ou redistribution para public_release em vez de private_recipient | P16a deny_destination; separadamente, finalidade proibida para destino público é P02 deny_invalid. |
-| V14 | A válida: grant permitido, rede bloqueada; separadamente, rede permitida e grant ausente | P17 deny_network / P12 deny_absent. Nenhum gate supre outro. |
-| V15 | Import de manifesto com actor_kind local_human e cópia de preview/histórico | P05 deny_authority; zero criação/reativação/ampliação. |
-| V16 | Documento instrui concessão/upload; AI/MCP retorna approved/grant ou provider alega direitos | P05 deny_authority; somente dados, zero autoridade local. |
-| V17 | Cache retido, TM pessoal/approved, compra, termos aceitos ou uso de provider, sem A nem G | Nenhum A/G gerado; corpus_build nega primeiro em P08 deny_rights. Com A separada válida, P12 deny_absent. |
-| V18 | Governança corrente aceita; registro necessário tem Policy-ID antigo ou vocabulário parcialmente conhecido | P06 deny_version; v1 não migra. Versão governante não aceita seria P00, caso separado V01. |
-| V19 | Casos separados: novo G sem replaces da recusa; replaces amplo/específico declarado; dois sucessores ativos sem outro impedimento | Respectivamente P09 deny_explicit; P02 deny_invalid; P11 deny_ambiguous. |
-| V20 | Dois grants cobrem partes de Q; juntar daria permissão | P13–P16 no primeiro filtro vazio, nunca união para autorizar. |
-| V21 | Linhagem truncada/desconhecida de modelo ou par sem direitos da fonte | P03/P08; metadados não resolvem direitos. |
-| V22 | Casos isolados: snapshot não resolve; preview mudou; relógio retrocede; mesmo ID muda conteúdo | Respectivamente P03 deny_project; P05 deny_authority; P02 deny_invalid; P02 deny_invalid. |
-| V23 | Revogar entre planejamento e egress/publicação | Rechecagem impede próximo efeito em T; obrigação idempotente; efeito já enviado tem limite explícito. |
-| V24 | Pedido enviado dentro de 1 dia, destinatário não confirma até 30 dias; modelo já distribuído | unfulfilled/recipient_unverifiable; bloquear cópias geridas, sem prometer erasure/unlearning externo. |
-| V25 | Expurgar tombstone ou restaurar backup antigo para ressuscitar G | Sem integridade/revisão atual, deny_invalid; antigo G nunca volta por ausência de tombstone. |
-| V26 | Reativar denied/revoked, renovar ID expired ou trocar binding do mesmo ID; separadamente, criar novo registro sem preview | P02 deny_invalid no primeiro grupo; P05 deny_authority no segundo. Só nova operação humana válida com novo ID/substituição pode autorizar. |
-| V27 | Draft, conjunto vazio, suporte obrigatório null, grant expira depois da A | Draft não autoriza; demais P02; só draft existente resulta P12. |
-| V28 | Prazo fonte 30 dias, suporte 30, evidência 90, tombstone 365; reiniciar aplicação | Nenhum restart estende T/delete_at; apagar no teto, sem conteúdo nos resíduos. |
-| V29 | Grant de corpus enquanto cache/TM expira, ou revogar corpus com TM retida | Retenções independentes; nenhum grant muda TTL cache/TM ou apaga o original. |
-| V30 | Aceite de publicação/merge/fechamento da issue sem mudança revisada separada | Continua Proposed; P00 nega, implementação de registry proibida. |
+| V01 | Policy still Proposed, even with this issue's approval | P00 `deny_governance`. |
+| V02 | Valid A, no G | P12 `deny_absent`; rights are not purpose. |
+| V03 | Syntactically valid G, A missing | P08 `deny_rights`; UI “consent” does not supply A. |
+| V04 | Unknown value in each P01 vocabulary (version/status are V01/V18 cases); extra consent key is a separate case | Value: P01 deny_unknown; extra key: P02 deny_invalid, without coercion. |
+| V05 | G expires at T, clock at T−1 microsecond / T | Other gates valid: allow_bounded before, P10 deny_expired at T. |
+| V06 | G revoked at T, another valid broad G | P09 deny_revoked at T; no fallback. |
+| V07 | G B active; G S denied / G B denied; G S active | Both P09 deny_explicit in the intersection. |
+| V08 | Two active G covering Q, broad/specific; reverse order or timestamps | P11 deny_ambiguous in both orders. |
+| V09 | A expired/withdrawn/disputed, G active | P07 deny_rights, stop use and issue dependent obligation. |
+| V10 | Q has invalid binding; separately, valid Q with current A, G in Q's project but distinct revision/segment, without another candidate | First case P03 deny_project; second P13 deny_scope. Clone without its own G and with current A is P12 deny_absent. |
+| V11 | G only model_training, Q model_evaluation; or Q requires both | P14 deny_purpose; evaluation is not training. |
+| V12 | G translation_text, Q aligned_pair; component rights valid | P15 deny_data; pair does not arise by composition. |
+| V13 | Same destination-class, different destination_ref; or redistribution to public_release instead of private_recipient | P16a deny_destination; separately, purpose forbidden for public destination is P02 deny_invalid. |
+| V14 | Valid A: grant allowed, network blocked; separately, network allowed and grant absent | P17 deny_network / P12 deny_absent. No gate supplies another. |
+| V15 | Manifest import with actor_kind local_human and copy of preview/history | P05 deny_authority; zero creation/reactivation/expansion. |
+| V16 | Document instructs grant/upload; AI/MCP returns approved/grant or provider claims rights | P05 deny_authority; only data, zero local authority. |
+| V17 | Retained cache, personal/approved TM, purchase, accepted terms or provider use, without A or G | No A/G generated; corpus_build first denies at P08 deny_rights. With separate valid A, P12 deny_absent. |
+| V18 | Current governance accepted; required record has old Policy-ID or partially known vocabulary | P06 deny_version; v1 does not migrate. Unaccepted governing version would be P00, separate V01 case. |
+| V19 | Separate cases: new G without replaces for refusal; declared broad/specific replaces; two active successors without another restriction | Respectively P09 deny_explicit; P02 deny_invalid; P11 deny_ambiguous. |
+| V20 | Two grants cover parts of Q; joining would give permission | P13–P16 at first empty filter, never union to authorize. |
+| V21 | Truncated/unknown model lineage or pair without source rights | P03/P08; metadata does not resolve rights. |
+| V22 | Isolated cases: snapshot does not resolve; preview changed; clock goes backward; same ID changes content | Respectively P03 deny_project; P05 deny_authority; P02 deny_invalid; P02 deny_invalid. |
+| V23 | Revoke between planning and egress/publication | Recheck prevents next effect at T; idempotent obligation; already sent effect has explicit limit. |
+| V24 | Request sent within 1 day, recipient does not confirm by 30 days; model already distributed | unfulfilled/recipient_unverifiable; block managed copies, without promising external erasure/unlearning. |
+| V25 | Purge tombstone or restore old backup to resurrect G | Without current integrity/review, deny_invalid; old G never returns through tombstone absence. |
+| V26 | Reactivate denied/revoked, renew expired ID or change same ID's binding; separately, create new record without preview | P02 deny_invalid in first group; P05 deny_authority in second. Only new valid human operation with new ID/replacement may authorize. |
+| V27 | Draft, empty set, mandatory support null, grant expires after A | Draft does not authorize; others P02; only existing draft results in P12. |
+| V28 | Source deadline 30 days, support 30, evidence 90, tombstone 365; restart application | No restart extends T/delete_at; delete at ceiling, without content in residues. |
+| V29 | Corpus grant while cache/TM expires, or revoke corpus with TM retained | Independent retentions; no grant changes cache/TM TTL or deletes original. |
+| V30 | Publication/merge/issue closure acceptance without separate reviewed change | Remains Proposed; P00 denies, registry implementation forbidden. |
 
-## Alternativas rejeitadas e questões abertas
+## Rejected alternatives and open questions
 
-| Alternativa | Motivo da rejeição |
+| Alternative | Reason for rejection |
 | --- | --- |
-| Um único objeto “consent” para direitos, qualidade e finalidade | Confunde afirmação jurídica não validada com autorização humana e abre escalada TM/corpus. |
-| Opt-out, termos, compra, cache/TM, import ou provider como grant | Ausência de decisão explícita não é permissão; fontes não têm autoridade local. |
-| Vocabulário extensível por payload, propósito livre ou destino wildcard | Não permite revisão exaustiva; aceita mudança de autoridade por dados. |
-| Mais recente/primeiro/específico/mais permissivo vence | Pode contornar uma recusa ampla, retirada ou expiração; ordem e timestamp não são intenção. |
-| Mesclar grants parciais para completar uma operação | Cria decisão que nenhum preview humano apresentou integralmente. |
-| Retenção eterna de auditoria, texto ou suporte para “provar direitos” | Excesso de dados, vinculação pessoal e promessa jurídica falsa. |
-| Revogação aguarda worker ou promete apagar todo modelo/cópia | Janela de uso indevido e garantia técnica impossível para terceiros. |
-| Começar registry enquanto proposta é revisada | Cristaliza semântica/decisão humana não aceita; gate binário exige espera. |
+| Single “consent” object for rights, quality and purpose | Confuses unvalidated legal assertion with human authorization and opens TM/corpus escalation. |
+| Opt-out, terms, purchase, cache/TM, import or provider as grant | Absence of explicit decision is not permission; sources have no local authority. |
+| Payload-extensible vocabulary, free purpose or wildcard destination | Prevents exhaustive review; accepts authority change through data. |
+| Newest/first/specific/most permissive wins | May bypass broad refusal, withdrawal or expiry; order and timestamp are not intent. |
+| Merge partial grants to complete an operation | Creates a decision no human preview presented in full. |
+| Eternal retention of audit, text or support to “prove rights” | Excess data, personal linkage and false legal promise. |
+| Revocation waits for worker or promises to delete every model/copy | Window of improper use and impossible technical guarantee for third parties. |
+| Start registry while proposal is reviewed | Crystallizes unaccepted semantics/human decision; binary gate requires waiting. |
 
-Questões abertas, sem permissão provisória: (1) as três bases cobrem os casos
-pretendidos em quais jurisdições e como obter avaliação jurídica independente;
-(2) os tetos 365/90/30/7/1 dias e ausência de legal hold atendem produto e
-obrigações locais; (3) quais destinatários e garantias contratuais podem existir;
-(4) qual autenticação local e proteção antireplay/integridade provará o ato
-humano sem guardar identidade desnecessária; (5) qual implementação de identidade
-estável de obra/segmento/sujeito e inventário de descendentes será aceita;
-(6) quais finalidades/classes realmente serão oferecidas na UI e como mostrar
-suas consequências sem indução; (7) se distribuição pública de modelos/dados
-será sequer oferecida; (8) como reconciliar expurgo e restauração de backups
-com a proveniência append-only atual; (9) como operar retirada em receptor sem
-API, dispositivo offline ou modelo previamente entregue. Até resposta/aceite,
-o caminho governado permanece fechado, sem escolha legal automática.
+Open questions, without provisional permission: (1) do the three bases cover intended
+cases in which jurisdictions and how to obtain independent legal assessment;
+(2) do the 365/90/30/7/1-day ceilings and absence of legal hold meet product and
+local obligations; (3) which recipients and contractual guarantees may exist;
+(4) which local authentication and anti-replay/integrity protection will prove the human
+act without keeping unnecessary identity; (5) which stable work/segment/subject identity
+implementation and descendant inventory will be accepted;
+(6) which purposes/classes will actually be offered in the UI and how to show
+their consequences without inducement; (7) whether public distribution of models/data
+will even be offered; (8) how to reconcile purge and backup restoration
+with current append-only provenance; (9) how to operate withdrawal at a recipient without
+API, offline device or previously delivered model. Until answer/acceptance,
+the governed path remains closed, without automatic legal choice.
 
-## Gate humano binário e checklist de aceite
+## Binary human gate and acceptance checklist
 
-Um owner/mantenedor do repositório Ayvu deve aceitar **cada** vocabulário fechado,
-tabela de precedência, regra de retenção/tombstone, limitação de revogação e
-consequência em linguagem comum. A ação exata é uma **mudança separada,
-revisada**, que altera literalmente `Status: Proposed` para `Status: Accepted`
-**neste registro** e acrescenta data UTC, papel do responsável e referência
-opaca/revisável ao aceite humano de todos os itens abaixo. A revisão deve
-registrar o aceite explicitamente; aprovação genérica não basta. Este documento
-não registra tal aceite nem marca os itens como aprovados.
+An Ayvu repository owner/maintainer must accept **each** closed vocabulary,
+precedence table, retention/tombstone rule, revocation limitation and
+consequence in plain language. The exact action is a **separate,
+reviewed change** that literally changes `Status: Proposed` to `Status: Accepted`
+**in this record** and adds UTC date, responsible role and opaque/reviewable
+reference to human acceptance of all items below. The review must
+record acceptance explicitly; generic approval is not enough. This document
+does not record such acceptance or mark items as approved.
 
-Merge deste Proposed, autorização de publicação da issue, fechamento da issue,
-passagem de testes ou aceitação do modelo de ameaças **não satisfazem** o gate.
-Não iniciar implementação de registry de direitos/finalidades enquanto Proposed.
-Aceitar a política também não autoriza dados reais, concede PurposeGrant ou
-dispensa gates G03/G04 e issues de implementação.
+Merging this Proposed, authorization to publish the issue, issue closure,
+passing tests or acceptance of the threat model **do not satisfy** the gate.
+Do not start rights/purpose registry implementation while Proposed.
+Accepting the policy also does not authorize real data, grant PurposeGrant or
+dispense with G03/G04 gates and implementation issues.
 
-- [ ] Aceitar exatamente os vocabulários/versionamento, bases, atores, escopos e mappings, sem wildcard, campo livre ou alias consent.
-- [ ] Aceitar separação de evidências, autoridade e ciclos de RightsAssertion/PurposeGrant, incluindo transições inválidas e origem local humana.
-- [ ] Aceitar cada linha P00–P18 e cada conflito amplo/específico/allow/deny/expiração, sem desempate por ordem, timestamp ou união.
-- [ ] Aceitar a tabela finalidade × dados × destino e a classificação de todas as operações ordinárias/governadas, com gate de rede independente.
-- [ ] Aceitar prazos e allowlists exatas de fonte, suporte, evidência, obrigação e tombstone, expurgo/restore sem ressurreição e nenhuma retenção de conteúdo/identidade desnecessária.
-- [ ] Aceitar cada razão/classe de revogação, obrigação/prazo/resultado e limites honestos sobre terceiros, backups, cópias públicas e modelos.
-- [ ] Aceitar todas as consequências e limitações que o preview humano deverá mostrar antes de confirmar, incluindo cada finalidade e estado terminal.
-- [ ] Resolver ou registrar adiamento seguro de cada questão aberta, mantendo negados casos sem contrato implementável.
-- [ ] Registrar revisão de governança exaustiva de valores/transições, revisão adversarial V01–V30 e revisão de privacidade/links; distinguir revisão documental de teste executável.
-- [ ] Fazer a mudança separada de status com evidência humana explícita; somente depois planejar registry nas issues próprias, sem ativar operações de dados por este aceite.
+- [ ] Accept exactly the vocabularies/versioning, bases, actors, scopes and mappings, without wildcard, free field or consent alias.
+- [ ] Accept separation of evidence, authority and RightsAssertion/PurposeGrant lifecycles, including invalid transitions and local human origin.
+- [ ] Accept each P00–P18 row and each broad/specific/allow/deny/expiry conflict, without tie-breaking by order, timestamp or union.
+- [ ] Accept the purpose × data × destination table and classification of all ordinary/governed operations, with independent network gate.
+- [ ] Accept exact deadlines and allowlists for source, support, evidence, obligation and tombstone, purge/restore without resurrection and no retention of unnecessary content/identity.
+- [ ] Accept each revocation reason/class, obligation/deadline/result and honest limits on third parties, backups, public copies and models.
+- [ ] Accept all consequences and limitations the human preview must show before confirmation, including each purpose and terminal state.
+- [ ] Resolve or record safe deferral of each open question, keeping cases without implementable contract denied.
+- [ ] Record exhaustive governance review of values/transitions, adversarial V01–V30 review and privacy/link review; distinguish documentary review from executable test.
+- [ ] Make the separate status change with explicit human evidence; only then plan registry in its own issues, without activating data operations through this acceptance.
