@@ -263,7 +263,7 @@ def test_timestamp_conflict_requires_replace_and_stage_tamper_rejected(tmp_path)
 
 def test_explicit_legacy_import_to_unmigrated_v1_does_not_promote(tmp_path):
     import sqlite3
-    from ayvu.v1.cache import SCHEMA
+    from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
     from ayvu.knowledge.cache.schema import classify_cache, SchemaState
     cache, source = tmp_path / 'v1.sqlite', tmp_path / 'input.json'
     with sqlite3.connect(cache) as conn:
@@ -324,7 +324,7 @@ def test_preview_binds_broader_scope_authority(tmp_path):
 
 def test_explicit_v1_namespace_inspect_export_and_clean_without_promotion(tmp_path):
     import sqlite3
-    from ayvu.v1.cache import SCHEMA
+    from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
     from ayvu.knowledge.cache.admin import ExportRequest
     from ayvu.knowledge.cache.schema import SchemaState, classify_cache
     cache, output = tmp_path / 'v1.sqlite', tmp_path / 'out.json'

@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 import pytest
 
-from ayvu.v1.cache import SCHEMA
+from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
 from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheFilter, CleanSelection,
     InspectRequest, PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest)
 from ayvu.composition.builders.cache_admin import cache_admin_services

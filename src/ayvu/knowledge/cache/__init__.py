@@ -29,6 +29,7 @@ from .entries import (
     ExactEntryKey, PutIfAbsentResult, PutIfAbsentState, exact_entry_key,
 )
 from .identity import SemanticOperationV2
+from .legacy_schema import SCHEMA as LEGACY_SCHEMA
 
 __all__ = [
     "AuthorizedCacheScope", "CACHE_ENTRY_V2_LIMITS", "CACHE_IDENTITY_VERSION", "CacheAdminError",
@@ -44,7 +45,7 @@ __all__ = [
     "MAX_FILE_BYTES", "MAX_METADATA_LENGTH", "MAX_STRUCTURE_DEPTH", "MAX_STRUCTURE_TOKENS", "MAX_TEXT_LENGTH",
     "OpaqueSemanticRevision", "PinnedExecutionIdentityReference", "PreviewClean", "PreviewCleanRequest",
     "PreviewImport", "PutIfAbsentResult", "PutIfAbsentState", "ResolvedCacheExecutionIdentity",
-    "SemanticOperationV2", "SemanticRouteHop", "TRANSLATION_STAGE_AGGREGATE", "_invalid",
+    "LEGACY_SCHEMA", "SemanticOperationV2", "SemanticRouteHop", "TRANSLATION_STAGE_AGGREGATE", "_invalid",
     "candidate_matches_query", "checkpoint", "exact_entry_key", "report", "resolve_compatible_identities",
     "validate_payload",
 ]

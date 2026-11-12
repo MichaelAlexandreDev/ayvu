@@ -7,7 +7,7 @@ from ...knowledge.cache import (ExecuteClean, ExportCache, ImportCache, InspectC
                           PreviewImport, ExecuteImport, DiscardImport, ExportReceipt)
 from ...knowledge.cache.admin_store import LocalCacheFiles, SQLiteCacheStore
 from ...knowledge.cache.admin_v2_store import SQLiteCacheV2Store
-from ...v1.cache_admin_store import SQLiteLegacyStreamingStore
+from ...knowledge.cache.legacy_admin_store import SQLiteLegacyStreamingStore
 from ...knowledge.cache import admin_store as legacy_store
 from ...knowledge.cache.schema import SchemaState, classify_cache_waiting, _SUFFIXES
 from pathlib import Path

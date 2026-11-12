@@ -8,12 +8,12 @@ import tempfile
 from pathlib import Path
 from urllib.parse import quote
 
-from .cache import SCHEMA
-from ..knowledge.cache import ImportCounts, CacheAdminError, checkpoint, report, _invalid
-from ..knowledge.cache import admin_store as legacy
-from ..knowledge.cache.admin_store import CacheStorageError, _error
-from ..knowledge.cache.admin_v2_files import _safe_file, _file_digest, _file_identity
-from ..knowledge.cache.schema import _location, _identity, classify_cache_waiting, participating_admin_connection, SchemaState
+from .legacy_schema import SCHEMA
+from . import ImportCounts, CacheAdminError, checkpoint, report, _invalid
+from . import admin_store as legacy
+from .admin_store import CacheStorageError, _error
+from .admin_v2_files import _safe_file, _file_digest, _file_identity
+from .schema import _location, _identity, classify_cache_waiting, participating_admin_connection, SchemaState
 
 # Legacy unknown objects require a disk-backed set of decoded key digests.
 # Bound that index separately from the six-field rows without rejecting dense
@@ -64,7 +64,7 @@ class SQLiteLegacyStreamingStore:
         stage_identity = None
         owned_dirs = []
         try:
-            from .cache_stream import iter_legacy_entries
+            from .legacy_stream import iter_legacy_entries
             checkpoint(request, 'cache_before_read')
             raw_limit = min(legacy.MAX_FILE_BYTES, request.limits.raw_input)
             cache = _location(Path(request.cache.value))

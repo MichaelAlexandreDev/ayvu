@@ -324,7 +324,7 @@ def test_compatibility_facades_export_identical_contracts():
 
 
 def test_existing_cache_inspection_uses_only_selected_readonly_sqlite(tmp_path, monkeypatch):
-    from ayvu.v1.cache import SCHEMA
+    from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
     path = tmp_path / 'selected.sqlite'
     connect = sqlite3.connect
     connection = connect(path)

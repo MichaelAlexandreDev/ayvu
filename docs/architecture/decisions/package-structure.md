@@ -228,7 +228,7 @@ src/ayvu/
   jobs/            model, events, execution, service, store
   artifacts/       model, service, store, destination
   formats/         contracts, service, local; epub/ (archive, adapter, io, html_structure, validation); markdown/
-  knowledge/       cache/ (identity, schema, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
+  knowledge/       cache/ (identity, schema, legacy_schema, legacy_format, legacy_stream, legacy_admin_store, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
                    memory/ (fuzzy; approved/ model, service, store); glossary/ (rules, catalog, catalog_store)
   providers/       ports, capabilities, discovery, service, network, session;
                    libretranslate/ (client, adapter)
@@ -238,8 +238,7 @@ src/ayvu/
   review/          application, exchange, exchange_model, exchange_parts, exchange_mapping,
                    exchange_codec, exchange_files, csv_export, csv_import
   recovery/        service, store
-  v1/              translation, epub, html_translate, cache, cache_check, cache_format, cache_stream,
-                   cache_admin_store, resume, resume_scan
+  v1/              translation, epub, html_translate, cache, cache_check, resume, resume_scan
   composition/     cli, desktop, editions (later); builders/
   interfaces/      cli/ (app, commands/, render, progress); desktop/; server/ (later)
 ```
@@ -265,7 +264,7 @@ The table of where each flat module was planned to go is in the [refactoring fil
 | knowledge ↔ translation | `memory_retrieval` (in knowledge) uses `translation_plan` and `translation_protection` | REF-07 and REF-09 (`memory_retrieval` to the pipeline) |
 | artifacts ↔ formats | `artifact_destination` calls `format_local` and `format_service` | REF-08 (a port) |
 | formats ↔ v1 | `epub_io` uses the v1 cache, translator and HTML translation; `validation` uses `extract_visible_text` | REF-10 |
-| knowledge ↔ v1 | cache administration reads the v1 cache schema and format; `translation_memory` reads the v1 cache | REF-09 and REF-18 |
+| knowledge ↔ v1 | Removed by REF-18 R3: Knowledge owns the shared legacy schema, codec and streaming storage; v1 imports the public schema value | REF-09 and REF-18 |
 | translation ↔ v1 | `preflight` builds the v1 translator and opens the v1 cache | REF-11 |
 
 ## Sequence
