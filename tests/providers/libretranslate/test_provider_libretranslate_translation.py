@@ -1,30 +1,21 @@
-from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 import logging
-from threading import Barrier
 
 import pytest
 import requests
 
-from ayvu.content.model import Constraint, ProtectedPart
 from ayvu.jobs.execution import CancellationSource
 from ayvu.provenance.model import NOT_APPLICABLE, UNKNOWN
-from ayvu.providers.ports import (
-    ConstraintsFeature, ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProtectedPartsFeature, ProviderRoute,
-    ProviderStatus, Requirement, request_diagnostics, result_diagnostics,
-)
+from ayvu.providers.ports import ContextFeature, ContextItem, DeadlineFeature, DeliveryState, ProviderRoute, ProviderStatus, Requirement, request_diagnostics, result_diagnostics
 from ayvu.providers.libretranslate.adapter import (
     ADAPTER_ID, ADAPTER_VERSION, LIBRETRANSLATE_SAFE_POINTS, LibreTranslateProvider, LibreTranslateProviderFactory,
 )
-from ayvu.providers.service import ProviderInstance, ProviderRegistry, execute
-from ayvu.providers.libretranslate.client import (
-    LibreTranslateTranslator, RequestRateLimiter, RoutedTranslator, TranslationRoute, Translator, TranslatorError,
-)
+from ayvu.providers.libretranslate.client import TranslationRoute, Translator, TranslatorError
 from tests.support.provider_fakes import FakeSession, http_response, request
 from ayvu.kernel import JobFailureFamily
 
 from tests.providers.libretranslate.provider_libretranslate_support import ADVISORY_FEATURES, BRIDGE, NOW, REQUIRED_FEATURES, SECRET_URL
-from tests.providers.libretranslate.provider_libretranslate_support import URL, bare_factory, libre_registry, ok, provider
+from tests.providers.libretranslate.provider_libretranslate_support import URL, ok, provider
 from tests.providers.libretranslate.provider_libretranslate_support import translator
 
 
@@ -106,71 +97,6 @@ def test_rate_limit_applies_per_request_through_the_adapter(monkeypatch):
     base = translator([ok('Hello'), ok('Ola')], requests_per_second=2.0)
     provider(base, BRIDGE).execute(request('Salut', 'fr', 'pt'))
     assert sleeps == [pytest.approx(0.4)]
-
-
-def test_sequential_use_has_one_translator_and_one_session():
-    sessions = []
-    target = libre_registry(LibreTranslateProviderFactory(bare_factory(sessions)))
-    with target.open('libre_local') as opened:
-        assert execute(opened, request()).text == 'Ola'
-    assert len(sessions) == 1 and sessions[0].closed == 1
-
-
-def test_each_parallel_task_gets_its_own_session_and_shares_the_rate_limiter():
-    limiter = RequestRateLimiter(requests_per_second=None)
-    sessions = []
-    created = []
-
-    def make():
-        base = bare_factory(sessions, rate_limiter=limiter)()
-        created.append(base)
-        return base
-
-    target = libre_registry(LibreTranslateProviderFactory(make))
-    barrier = Barrier(4)
-
-    def task(_):
-        with target.open('libre_local') as opened:
-            barrier.wait(timeout=5)
-            return execute(opened, request()).text
-
-    with ThreadPoolExecutor(4) as pool:
-        assert list(pool.map(task, range(4))) == ['Ola'] * 4
-    assert len({id(session) for session in sessions}) == 4
-    assert {id(base.rate_limiter) for base in created} == {id(limiter)}
-    assert [session.closed for session in sessions] == [1, 1, 1, 1] and all(len(session.posts) == 1 for session in sessions)
-
-
-def test_factory_applies_the_configured_route():
-    sessions = []
-
-    def make():
-        base = LibreTranslateTranslator(retries=0)
-        base.session = FakeSession([ok('Hello'), ok('Ola')])
-        sessions.append(base.session)
-        return base
-
-    target = libre_registry(LibreTranslateProviderFactory(make, route=BRIDGE))
-    with target.open('libre_local') as opened:
-        result = execute(opened, request('Salut', 'fr', 'pt'))
-    assert result.route == ProviderRoute('fr', 'pt', 'en') and len(sessions[0].posts) == 2
-
-
-def test_a_translator_without_a_session_needs_no_cleanup():
-    class Plain(Translator):
-        def translate(self, text, source, target):
-            return text.upper()
-
-    target = libre_registry(LibreTranslateProviderFactory(Plain))
-    with target.open('libre_local') as opened:
-        assert execute(opened, request()).text == 'HELLO'
-
-
-def test_explicit_cleanup_runs_on_close():
-    calls = []
-    LibreTranslateProvider(translator(), cleanup=lambda: calls.append(1)).close()
-    LibreTranslateProvider(translator()).close()
-    assert calls == [1]
 
 
 @pytest.mark.parametrize('feature', REQUIRED_FEATURES, ids=lambda item: item.name)

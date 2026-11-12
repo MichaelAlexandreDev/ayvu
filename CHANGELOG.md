@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote C: testes de provedores e rede movidos para seus pacotes,
+  com divisões por contrato e preservação dos testes e invariantes core.
+
 - REF-16 (#284), lote B: testes de kernel e preferências movidos para seus pacotes,
   com migrações SQLite divididas por transações e publicação, preservando os testes.
 

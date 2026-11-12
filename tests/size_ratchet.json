@@ -46,7 +46,6 @@
     "tests/test_project_profile_integration.py": 416,
     "tests/test_project_store.py": 545,
     "tests/test_provenance_store.py": 573,
-    "tests/test_provider_discovery.py": 466,
     "tests/test_review_application.py": 406,
     "tests/test_review_exchange.py": 664,
     "tests/test_rich_runtime.py": 540,

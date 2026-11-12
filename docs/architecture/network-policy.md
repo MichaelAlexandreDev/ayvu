@@ -73,10 +73,10 @@ o servidor LibreTranslate ou seus próprios destinatários.
 
 ## Evidência automatizada
 
-`test_network_policy.py` instrumenta DNS, sockets, Session/adapter send, construção
+`tests/network/test_network_policy.py` instrumenta DNS, sockets, Session/adapter send, construção
 do payload e preparação do corpo; simula o socket externo, mantendo Requests,
 urllib3, framing HTTP e parsing reais. Cobre classificação, zona, respostas mistas,
-rebinding, proxies, `.netrc` e redirects. `test_network_policy_flows.py` percorre
+rebinding, proxies, `.netrc` e redirects. `tests/network/test_network_policy_flows.py` percorre
 composição, #128, preflight, workers, CLI, menus, preview, tradução, lote, retomada
 e leitor externo. Nenhum teste usa servidor ou dados pessoais reais. Integrações
 que exigem um filesystem confiável devem ser executadas fora de sandboxes que

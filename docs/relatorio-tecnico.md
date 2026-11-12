@@ -101,7 +101,12 @@ ayvu/
 │   ├── test_review_export.py
 │   ├── test_review_import.py
 │   ├── test_resume.py
-│   ├── test_translator.py
+│   ├── providers/
+│   │   └── libretranslate/
+│   │       ├── test_translator_http.py
+│   │       ├── test_translator_languages.py
+│   │       ├── test_translator_rate_limit.py
+│   │       └── test_translator_routes.py
 │   └── test_validation.py
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md

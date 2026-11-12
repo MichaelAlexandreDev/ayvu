@@ -19,6 +19,7 @@ from ayvu.providers.libretranslate.client import LibreTranslateTranslator, Trans
 
 from tests.support.network_policy_support import WireSocket, answer, deny_network, install_wire, isolated
 from tests.support.network_policy_support import wire_reply
+from tests.support.paths import PROJECT_ROOT
 
 
 @pytest.mark.parametrize("url,host,port", [
@@ -253,7 +254,7 @@ def test_help_explains_request_policy_and_external_reader(args):
 
 
 def test_import_contract_has_no_presentation_or_desktop_dependency():
-    root = Path(__file__).resolve().parents[1] / "src" / "ayvu"
+    root = PROJECT_ROOT / "src" / "ayvu"
     for name in ("network/policy", "network/http", "providers/network", "providers/discovery", "providers/session",
                  "composition/builders/providers", "providers/libretranslate/client"):
         tree = ast.parse((root / f"{name}.py").read_text())

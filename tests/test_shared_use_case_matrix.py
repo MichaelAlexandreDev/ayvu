@@ -89,7 +89,10 @@ PUBLIC_LINK_TARGETS = {
     ROOT / "tests" / "test_review_application.py",
     ROOT / "tests" / "test_cli_translate_project.py",
     ROOT / "tests" / "test_shared_use_case_matrix.py",
-    ROOT / "tests" / "test_translator.py",
+    ROOT / "tests" / "providers" / "libretranslate" / "test_translator_http.py",
+    ROOT / "tests" / "providers" / "libretranslate" / "test_translator_rate_limit.py",
+    ROOT / "tests" / "providers" / "libretranslate" / "test_translator_languages.py",
+    ROOT / "tests" / "providers" / "libretranslate" / "test_translator_routes.py",
     ROOT / "tests" / "test_workflow_characterization.py",
 }
 

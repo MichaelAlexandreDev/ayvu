@@ -21,6 +21,7 @@ from ayvu.providers.libretranslate.adapter import (
 from ayvu.providers.service import observe_availability
 from ayvu.providers.libretranslate.client import LibreTranslateTranslator, RequestRateLimiter, TranslatorError
 from tests.support.provider_fakes import FakeSession, http_response, request
+from tests.support.paths import PROJECT_ROOT
 
 NOW = datetime(2026, 11, 3, 12, tzinfo=UTC)
 LANGUAGES = json.dumps([
@@ -288,7 +289,7 @@ def test_language_errors_are_sanitized_and_keep_typed_contracts(response, messag
 
 
 def test_capability_module_names_no_provider():
-    source = (Path(__file__).parents[1] / 'src' / 'ayvu' / 'providers/capabilities.py').read_text()
+    source = (PROJECT_ROOT / 'src' / 'ayvu' / 'providers/capabilities.py').read_text()
     assert 'libretranslate' not in source.lower() and 'localhost' not in source
     assert 'requests' not in [line.split()[1] for line in source.splitlines() if line.startswith('import ')]
 

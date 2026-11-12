@@ -469,7 +469,10 @@ staged reconstruction, and legacy v1 apply refusal.
 [EPUB tests](../../tests/test_epub_io.py),
 [HTML tests](../../tests/v1/test_html_translate.py),
 [preflight tests](../../tests/test_preflight.py),
-[translator tests](../../tests/v1/test_translator.py),
+[translator HTTP tests](../../tests/providers/libretranslate/test_translator_http.py),
+[rate-limit tests](../../tests/providers/libretranslate/test_translator_rate_limit.py),
+[language tests](../../tests/providers/libretranslate/test_translator_languages.py),
+[route tests](../../tests/providers/libretranslate/test_translator_routes.py),
 [cache tests](../../tests/v1/test_cache.py),
 [resume tests](../../tests/v1/test_resume.py),
 [library tests](../../tests/test_library.py) and

@@ -15,6 +15,7 @@ from ayvu.providers.service import (
 )
 from tests.support.provider_fakes import FAKE_PRODUCER, FakeFactory, FakeProvider, failure, fake_instance, request, success
 from ayvu.kernel import JobFailureFamily, JobOperationError, JobFailure
+from tests.support.paths import PROJECT_ROOT
 
 REQUIRED = ContextFeature((ContextItem('previous', 'x'),), Requirement.REQUIRED)
 ADVISORY = ConstraintsFeature((Constraint('max_chars', 5),), Requirement.ADVISORY)
@@ -239,7 +240,7 @@ def test_a_provider_can_use_the_shared_cancellation_token():
 
 
 def test_contract_modules_have_no_provider_name_or_framework():
-    root = Path(__file__).parents[1] / 'src' / 'ayvu'
+    root = PROJECT_ROOT / 'src' / 'ayvu'
     forbidden = {'requests', 'typer', 'rich', 'sqlite3', 'bs4', 'ebooklib', 'lxml', 'os', 'pathlib', 'importlib'}
     for name in ('providers/ports.py', 'providers/service.py'):
         source = (root / name).read_text()
