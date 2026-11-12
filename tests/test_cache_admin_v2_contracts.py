@@ -111,7 +111,7 @@ def test_changed_replace_policy_is_stale_before_port_access():
 
 
 def test_scope_map_entry_count_normative_boundary():
-    from ayvu.knowledge.cache.admin_v2_store import _map
+    from ayvu.knowledge.cache.admin_v2_records import _map
     project = str(uuid5(NAMESPACE_DNS, "authorized"))
     dest = namespace()
     def pair(index):
@@ -125,7 +125,7 @@ def test_scope_map_entry_count_normative_boundary():
 
 
 def test_scope_map_canonical_bytes_normative_boundary():
-    from ayvu.knowledge.cache.admin_v2_store import _map
+    from ayvu.knowledge.cache.admin_v2_records import _map
     project = str(uuid5(NAMESPACE_DNS, "authorized"))
     def ns(text):
         scope = CacheScope(CacheScopeKind.WORK, text)

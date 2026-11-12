@@ -94,6 +94,7 @@ entries fail, so a rename cannot silently discard protection.
 | `cache`, `glossary` | Knowledge adapter | Exact cache, Glossary |
 | `knowledge.cache.admin` | Application | Typed cache administration use cases and ports |
 | `knowledge.cache.admin_store` | Knowledge adapter | Standalone SQLite administration and local JSON publication |
+| `knowledge.cache.admin_v2_store`, `admin_v2_queries`, `admin_v2_files`, `admin_v2_export`, `admin_v2_records`, `admin_v2_import` | Knowledge adapter | Namespace administration, SQLite views, owned files, streaming exports, records and private import staging |
 | `composition.builders.cache_admin` | Composition | Local cache administration adapters |
 | `config`, `resume`, `review.csv_export`, `review.csv_import` | Infrastructure | Preferences, Jobs, Review |
 
