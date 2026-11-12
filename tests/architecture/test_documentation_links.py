@@ -30,6 +30,7 @@ LOCAL_WORKER = PROJECT_ROOT / "docs" / "architecture" / "adr-local-worker-isolat
 AI_ASSISTANCE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "ai-assistance-authority.md"
 REFACTOR_BASELINE = PROJECT_ROOT / "docs" / "architecture" / "refactor-baseline.md"
 PACKAGE_STRUCTURE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "package-structure.md"
+WHERE_CODE_GOES = PROJECT_ROOT / "docs" / "architecture" / "where-code-goes.md"
 WORKER_SPIKE = PROJECT_ROOT / "spikes" / "local-worker" / "README.md"
 FORMAT_COMPATIBILITY = PROJECT_ROOT / "docs" / "architecture" / "format-compatibility.md"
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
@@ -49,8 +50,8 @@ def _resolve_local_markdown_target(document: Path, target: str) -> Path | None:
 
 @pytest.mark.parametrize(
     "document",
-    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY, HTML_STRUCTURE, EPUB_FORMAT, LOCAL_WORKER, WORKER_SPIKE, AI_ASSISTANCE, REFACTOR_BASELINE, PACKAGE_STRUCTURE],
-    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility", "html-structure", "epub-format", "local-worker", "worker-spike", "ai-assistance-authority", "refactor-baseline", "package-structure"],
+    [PRODUCT_SCOPE, PRODUCT_THREAT_MODEL, MODULE_BOUNDARIES, GLOBAL_PREFERENCES, LOCAL_STORAGE, PROJECT_MIGRATIONS, JOB_LIFECYCLE, JOB_EVENTS, JOB_ARTIFACTS, PROVENANCE, CONTENT_MODEL, PROVIDER_CONTRACTS, PROVIDER_CAPABILITIES, TRANSLATION_PIPELINE, PROVIDER_DISCOVERY, FORMAT_ADAPTER, FORMAT_COMPATIBILITY, HTML_STRUCTURE, EPUB_FORMAT, LOCAL_WORKER, WORKER_SPIKE, AI_ASSISTANCE, REFACTOR_BASELINE, PACKAGE_STRUCTURE, WHERE_CODE_GOES],
+    ids=["product-scope", "product-threat-model", "module-boundaries", "global-preferences", "local-storage", "project-migrations", "job-lifecycle", "job-events", "job-artifacts", "provenance", "content-model", "provider-contracts", "provider-capabilities", "translation-pipeline", "provider-discovery", "format-adapter", "format-compatibility", "html-structure", "epub-format", "local-worker", "worker-spike", "ai-assistance-authority", "refactor-baseline", "package-structure", "where-code-goes"],
 )
 def test_local_markdown_links_resolve_inside_repository(document: Path) -> None:
     """Keep simple inline links in product and architecture docs navigable."""
