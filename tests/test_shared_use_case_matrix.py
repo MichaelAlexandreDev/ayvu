@@ -11,7 +11,6 @@ from typer.main import get_command
 
 from ayvu.interfaces.cli.app import app
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX_PATH = ROOT / "docs" / "architecture" / "shared-use-case-matrix.md"
 SNAPSHOT_PATTERN = re.compile(
@@ -81,7 +80,12 @@ PUBLIC_LINK_TARGETS = {
     ROOT / "tests" / "test_cli.py",
     ROOT / "tests" / "test_cli_progress.py",
     ROOT / "tests" / "preferences" / "test_config.py",
-    ROOT / "tests" / "test_content_use_cases.py",
+    ROOT / "tests" / "content_use_cases" / "test_content_inspection.py",
+    ROOT / "tests" / "content_use_cases" / "test_content_export.py",
+    ROOT / "tests" / "formats" / "markdown" / "test_markdown_writer_guards.py",
+    ROOT / "tests" / "formats" / "markdown" / "test_markdown_writer_publication.py",
+    ROOT / "tests" / "formats" / "markdown" / "test_markdown_writer_filesystem.py",
+    ROOT / "tests" / "content_use_cases" / "test_content_redaction.py",
     ROOT / "tests" / "test_epub_io.py",
     ROOT / "tests" / "knowledge" / "glossary" / "test_glossary.py",
     ROOT / "tests" / "test_html_translate.py",

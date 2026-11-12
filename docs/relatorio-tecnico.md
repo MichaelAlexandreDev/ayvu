@@ -109,7 +109,7 @@ ayvu/
 │   │       ├── test_translator_languages.py
 │   │       ├── test_translator_rate_limit.py
 │   │       └── test_translator_routes.py
-│   └── test_validation.py
+│   └── formats/epub/test_validation.py
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── LICENSE

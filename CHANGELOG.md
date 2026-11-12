@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote H: testes de conteúdo e formatos movidos para seus pacotes,
+  com divisões por responsabilidade e preservação dos testes e invariantes core.
+
 - REF-16 (#284), lote G2: testes de revisão movidos para `tests/review/`,
   com divisões de codec, mapeamento e aplicação e preservação dos testes.
 

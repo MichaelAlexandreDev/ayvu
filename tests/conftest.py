@@ -67,8 +67,23 @@ def minimal_epub_path(tmp_path: Path) -> Path:
 TESTS = Path(__file__).resolve().parent
 CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
     "original_epub_unchanged": ("test_workflow_characterization.py", "test_cli.py", "test_epub_io.py"),
-    "zip_structure_and_mimetype": ("test_epub_archive.py", "test_epub_format.py", "test_validation.py"),
-    "visible_text_and_tags": ("v1/test_html_translate.py", "test_html_structure.py"),
+    "zip_structure_and_mimetype": (
+        "formats/epub/test_epub_archive_open.py",
+        "formats/epub/test_epub_archive_copy.py",
+        "formats/epub/test_epub_format_contract.py",
+        "formats/epub/test_epub_format_detection.py",
+        "formats/epub/test_epub_format_extraction.py",
+        "formats/epub/test_epub_format_reconstruction.py",
+        "formats/epub/test_epub_format_validation.py",
+        "formats/epub/test_epub_format_publication.py",
+        "formats/epub/test_validation.py",
+    ),
+    "visible_text_and_tags": (
+        "v1/test_html_translate.py",
+        "formats/epub/test_html_structure_extraction.py",
+        "formats/epub/test_html_structure_reconstruction.py",
+        "formats/epub/test_html_structure_transient.py",
+    ),
     "chunk_order_and_spacing": ("test_chunking.py",),
     "persisted_identities": ("test_persisted_identities.py",),
     "architecture_guardrails": ("test_size_ratchet.py", "test_import_contracts.py", "test_public_api.py"),

@@ -43,7 +43,7 @@ BEFORE_OUTPUT = "epub_before_output"
 # owner-only permissions, which holds the book in plain text until it is closed.
 SPOOL_MEMORY_BYTES = 64 * 1024 ** 2
 _CHUNK_BYTES = 1024 * 1024
-_EVIDENCE = ("contract:format_adapter_v1", "test:tests/test_epub_format.py")
+_EVIDENCE = ("contract:format_adapter_v1", "test:tests/formats/epub/test_epub_format_contract.py")
 _INTEGRITY_CODES = frozenset({"corrupt_archive", "corrupt_member"})
 _POLICY_CODES = frozenset({"encrypted_member", "encrypted_content", "entity_declaration"})
 _INVALID_FINDINGS = frozenset({"no_documents"})
