@@ -6,13 +6,16 @@ import re
 from pathlib import Path
 from typing import Any
 
+import pytest
 import typer
 from typer.main import get_command
 
 from ayvu.interfaces.cli.app import app
 
 from tests.support.paths import PROJECT_ROOT as ROOT
-MATRIX_PATH = ROOT / "docs" / "architecture" / "shared-use-case-matrix.md"
+from tests.architecture.cli_surface_support import _subcommands, normalized_cli_contract
+MATRIX_PATH = ROOT / "docs" / "architecture" / "modules" / "interfaces-cli.md"
+SURFACE_PATH = ROOT / "docs" / "architecture" / "cross-cutting" / "cli-surface.md"  # option boundary and snapshot
 SNAPSHOT_PATTERN = re.compile(
     r"<!-- AYVU_CLI_SURFACE_SNAPSHOT_START -->\s*"
     r"```json\s*(?P<payload>.*?)\s*```\s*"
@@ -35,6 +38,8 @@ OPTION_KINDS = {
     "presentation-only",
 }
 PUBLIC_LINK_TARGETS = {
+    MATRIX_PATH,  # the two halves of the matrix link each other
+    SURFACE_PATH,
     ROOT / "docs" / "architecture" / "cross-cutting" / "network-policy.md",
     ROOT / "README.md",
     ROOT / "docs" / "product-scope.md",
@@ -110,7 +115,7 @@ PUBLIC_LINK_TARGETS = {
 
 def _load_matrix() -> tuple[str, dict[str, Any]]:
     text = MATRIX_PATH.read_text(encoding="utf-8")
-    match = SNAPSHOT_PATTERN.search(text)
+    match = SNAPSHOT_PATTERN.search(SURFACE_PATH.read_text(encoding="utf-8"))
     assert match is not None, "CLI surface snapshot markers are missing"
     return text, json.loads(match.group("payload"))
 
@@ -138,15 +143,6 @@ def _long_options(command: Any) -> list[str]:
         )
         result.extend(long_options)
     return sorted(result)
-
-
-def _subcommands(command: Any) -> dict[str, Any] | None:
-    commands = getattr(command, "commands", None)
-    if commands is None:
-        return None
-    assert isinstance(commands, dict), "command children must be stored by name"
-    return commands
-
 
 def _discover_command(command: Any, universal_options: set[str]) -> dict[str, Any]:
     subcommands: dict[str, Any] = {}
@@ -291,8 +287,9 @@ def test_every_command_and_option_has_a_stable_mapping() -> None:
             assert set(exclusions) <= set(record["options"])
 
 
-def test_matrix_local_links_resolve_inside_repository() -> None:
-    text, _ = _load_matrix()
+@pytest.mark.parametrize("document", [MATRIX_PATH, SURFACE_PATH], ids=["matrix", "surface"])
+def test_matrix_local_links_resolve_inside_repository(document: Path) -> None:
+    text = document.read_text(encoding="utf-8")
 
     for match in LOCAL_LINK_PATTERN.finditer(text):
         raw_target = match.group("target")
@@ -303,41 +300,10 @@ def test_matrix_local_links_resolve_inside_repository() -> None:
             f"internal link fragments are not validated: {raw_target}"
         )
         assert "#" not in raw_target, f"local link fragments are not validated: {raw_target}"
-        resolved = (MATRIX_PATH.parent / raw_target).resolve()
+        resolved = (document.parent / raw_target).resolve()
         assert resolved.is_relative_to(ROOT), f"link escapes repository: {raw_target}"
         assert resolved in PUBLIC_LINK_TARGETS, f"local link is not allowlisted: {raw_target}"
         assert resolved.exists(), f"broken local link: {raw_target}"
-
-
-def normalized_cli_contract():
-    """Effective Click/Typer metadata, including generated options and defaults (#132/#158)."""
-    from enum import Enum
-    def value(item):
-        if isinstance(item, Enum):
-            return item.value
-        if isinstance(item, Path):
-            return str(item)
-        if isinstance(item, (tuple, list)):
-            return [value(part) for part in item]
-        return item
-    def command_record(command):
-        parameters = []
-        for parameter in command.get_params(typer.Context(command)):
-            parameter_type = parameter.type
-            parameters.append({
-                'name': parameter.name, 'kind': parameter.param_type_name,
-                'opts': list(parameter.opts), 'secondary_opts': list(getattr(parameter, 'secondary_opts', ())),
-                'required': parameter.required, 'default': value(parameter.default),
-                'nargs': parameter.nargs, 'multiple': getattr(parameter, 'multiple', False),
-                'envvar': parameter.envvar, 'type': parameter_type.name,
-                'choices': value(getattr(parameter_type, 'choices', None)),
-                'is_flag': getattr(parameter, 'is_flag', False),
-                'help': getattr(parameter, 'help', None),
-            })
-        return {'parameters': parameters, 'help': command.help,
-                'commands': {name: command_record(child) for name, child in sorted((_subcommands(command) or {}).items())}}
-    return command_record(get_command(app))
-
 
 def test_frozen_post_predecessor_cli_contract_with_explicit_159_and_162_additions():
     baseline = json.loads((ROOT / 'tests/fixtures/cli-post-predecessor.json').read_text())

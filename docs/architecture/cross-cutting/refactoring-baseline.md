@@ -2,6 +2,8 @@
 
 Issue: [#266 — REF-01](https://github.com/MichaelAlexandreDev/ayvu/issues/266). Base commit: `5796e49`.
 
+This is evidence recorded at `5796e49`, before the refactoring, not a current decision; the [package-structure decision](../decisions/package-structure.md) is.
+
 This is the starting point of the refactoring into the package structure decided in REF-02
 ([#267](https://github.com/MichaelAlexandreDev/ayvu/issues/267)). Each later refactoring pull
 request quotes the same report, so progress shows as these numbers going down.
@@ -15,7 +17,7 @@ scripts/arch_metrics.py --json   # the same, as JSON
 
 The script reads the source only: it does not import Ayvu and needs no network.
 - Files inside a package belong to their first package segment.
-- Top-level files belong to the module groups of the [module boundaries](decisions/modular-monolith-boundaries.md),
+- Top-level files belong to the module groups of the [module boundaries](../decisions/modular-monolith-boundaries.md),
   listed in `LEGACY_GROUPS` inside the script.
 - Two groups that import each other in both directions count as one cycle pair.
 
@@ -109,7 +111,7 @@ module groups that import each other: 12
 
 ## Frozen identities
 
-`tests/test_persisted_identities.py` pins, independently of where the code lives:
+`tests/architecture/test_persisted_identities.py` (at `5796e49`, `tests/test_persisted_identities.py`) pins, independently of where the code lives:
 - every literal domain tag that frames a persisted digest;
 - the identity schema versions and the pipeline semantic revisions;
 - a golden digest for each identity function, built from non-ASCII sample text;

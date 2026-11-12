@@ -7,10 +7,10 @@ It records delivered services and CLI presentation decisions. Desktop,
 API and MCP must consume these contracts through their own composition roots;
 the matrix neither introduces an interface nor accepts an additional ADR.
 
-The product boundary remains defined by [Product scope](../product-scope.md).
-Current command examples remain documented in the [README](../../README.md), and
+The product boundary remains defined by [Product scope](../../product-scope.md).
+Current command examples remain documented in the [README](../../../README.md), and
 translation compatibility is constrained by the
-[translation workflow migration baseline](../translation-workflow-migration-baseline.md).
+[translation workflow migration baseline](../../translation-workflow-migration-baseline.md).
 
 ## Contract vocabulary
 
@@ -36,22 +36,22 @@ the capability it exposes.
 
 | ID | Capability and invocations | Current owner and evidence | Inputs | Side effects and network | Progress, cancellation, errors, artifacts | Consumers |
 | --- | --- | --- | --- | --- | --- | --- |
-| `AYVU-UC-001` | Inspect EPUB metadata and inventory: `inspect` | [`content_use_cases.py`](../../src/ayvu/content_use_cases.py), [`composition/builders/content.py`](../../src/ayvu/composition/builders/content.py), [`formats/service.py`](../../src/ayvu/formats/service.py), [`formats/epub/adapter.py`](../../src/ayvu/formats/epub/adapter.py); [`test_content_inspection.py`](../../tests/content_use_cases/test_content_inspection.py), [`test_content_redaction.py`](../../tests/content_use_cases/test_content_redaction.py), [`test_cli_content.py`](../../tests/interfaces/cli/test_cli_content.py) | EPUB source reference; optional cancellation and progress ports | Reads local EPUB only; no network, cache, project, job, artifact or destination writes | Typed inventory, format capabilities, source revision, bounded warnings, progress, cancellation and normalized failures; CLI renders the existing six-field table | CLI and framework-free consumer now; Desktop/API/MCP after adapter work |
+| `AYVU-UC-001` | Inspect EPUB metadata and inventory: `inspect` | [`content_use_cases.py`](../../../src/ayvu/content_use_cases.py), [`composition/builders/content.py`](../../../src/ayvu/composition/builders/content.py), [`formats/service.py`](../../../src/ayvu/formats/service.py), [`formats/epub/adapter.py`](../../../src/ayvu/formats/epub/adapter.py); [`test_content_inspection.py`](../../../tests/content_use_cases/test_content_inspection.py), [`test_content_redaction.py`](../../../tests/content_use_cases/test_content_redaction.py), [`test_cli_content.py`](../../../tests/interfaces/cli/test_cli_content.py) | EPUB source reference; optional cancellation and progress ports | Reads local EPUB only; no network, cache, project, job, artifact or destination writes | Typed inventory, format capabilities, source revision, bounded warnings, progress, cancellation and normalized failures; CLI renders the existing six-field table | CLI and framework-free consumer now; Desktop/API/MCP after adapter work |
 | `AYVU-UC-002` | Explicit test: `test-translator` | `providers.discovery.ProviderDiscoveryService.test_provider`, via `composition.cli.cli_provider_session`; `tests/providers/test_provider_discovery_operations.py`, `tests/providers/libretranslate/test_provider_discovery_libretranslate.py`, `tests/interfaces/cli/test_cli_translator.py` | Explicit configuration, language pair and execution policy | Sends only the fixed public sample; no document | Typed result, bounded diagnostics and legacy output | CLI and framework-free consumer; future interfaces authorize their policy |
 | `AYVU-UC-003` | Languages: `languages` and guided selection | `providers.discovery.ProviderDiscoveryService.languages`, via `composition.cli.cli_provider_session`; `tests/providers/test_provider_discovery_operations.py`, `tests/providers/libretranslate/test_provider_discovery_libretranslate.py`, `tests/translation/test_preflight_provider_routes.py`, `tests/interfaces/cli/test_cli_translator.py` | Explicit configuration and execution policy | Explicit language query; performs no test translation | Typed collection, normalized failures and CLI rendering | CLI and framework-free consumer |
-| `AYVU-UC-004` | Translate one EPUB: `translate <epub>`, guided Translate | [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py), [`translation/project.py`](../../src/ayvu/translation/project.py), [`review/application.py`](../../src/ayvu/review/application.py), [`composition/builders/review.py`](../../src/ayvu/composition/builders/review.py), `composition/builders/review_packages.py`, `composition/builders/review_operations.py`, [`v1/epub.py`](../../src/ayvu/v1/epub.py), [`v1/html_translate.py`](../../src/ayvu/v1/html_translate.py), [`v1/cache.py`](../../src/ayvu/v1/cache.py), [`translation/preflight.py`](../../src/ayvu/translation/preflight.py), [`providers/libretranslate/client.py`](../../src/ayvu/providers/libretranslate/client.py), [`v1/resume.py`](../../src/ayvu/v1/resume.py), [`knowledge/memory/fuzzy.py`](../../src/ayvu/knowledge/memory/fuzzy.py), [`formats/epub/validation.py`](../../src/ayvu/formats/epub/validation.py), [`preferences/config_facade.py`](../../src/ayvu/preferences/config_facade.py), [`interfaces/cli/progress.py`](../../src/ayvu/interfaces/cli/progress.py); [`test_workflow_translation_resume.py`](../../tests/interfaces/cli/test_workflow_translation_resume.py), [`test_workflow_route_review.py`](../../tests/interfaces/cli/test_workflow_route_review.py), [`test_workflow_translation_reporting.py`](../../tests/interfaces/cli/test_workflow_translation_reporting.py), [`test_cli_project_translation.py`](../../tests/interfaces/cli/test_cli_project_translation.py), [`test_cli_progress.py`](../../tests/interfaces/cli/test_cli_progress.py) | Input EPUB, language/profile, chapter selection, translator/cache/glossary/TM policies, execution controls, output/review policies | Reads the original without changing it; reads/writes SQLite cache and checkpoint; normally calls configured HTTP translator; `--cache-only` makes no translator request; may write translated EPUB, v2 review package, missing-text TXT, and Markdown reports | `TranslateProject` owns the durable translation result; review export consumes that exact result through a separate no-provider use case and D106 publication; cancellation and outcome contracts are shared | CLI now; framework-free application consumers now; Desktop/API/MCP after adapter work |
+| `AYVU-UC-004` | Translate one EPUB: `translate <epub>`, guided Translate | [`interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py), [`translation/project.py`](../../../src/ayvu/translation/project.py), [`review/application.py`](../../../src/ayvu/review/application.py), [`composition/builders/review.py`](../../../src/ayvu/composition/builders/review.py), `composition/builders/review_packages.py`, `composition/builders/review_operations.py`, [`v1/epub.py`](../../../src/ayvu/v1/epub.py), [`v1/html_translate.py`](../../../src/ayvu/v1/html_translate.py), [`v1/cache.py`](../../../src/ayvu/v1/cache.py), [`translation/preflight.py`](../../../src/ayvu/translation/preflight.py), [`providers/libretranslate/client.py`](../../../src/ayvu/providers/libretranslate/client.py), [`v1/resume.py`](../../../src/ayvu/v1/resume.py), [`knowledge/memory/fuzzy.py`](../../../src/ayvu/knowledge/memory/fuzzy.py), [`formats/epub/validation.py`](../../../src/ayvu/formats/epub/validation.py), [`preferences/config_facade.py`](../../../src/ayvu/preferences/config_facade.py), [`interfaces/cli/progress.py`](../../../src/ayvu/interfaces/cli/progress.py); [`test_workflow_translation_resume.py`](../../../tests/interfaces/cli/test_workflow_translation_resume.py), [`test_workflow_route_review.py`](../../../tests/interfaces/cli/test_workflow_route_review.py), [`test_workflow_translation_reporting.py`](../../../tests/interfaces/cli/test_workflow_translation_reporting.py), [`test_cli_project_translation.py`](../../../tests/interfaces/cli/test_cli_project_translation.py), [`test_cli_progress.py`](../../../tests/interfaces/cli/test_cli_progress.py) | Input EPUB, language/profile, chapter selection, translator/cache/glossary/TM policies, execution controls, output/review policies | Reads the original without changing it; reads/writes SQLite cache and checkpoint; normally calls configured HTTP translator; `--cache-only` makes no translator request; may write translated EPUB, v2 review package, missing-text TXT, and Markdown reports | `TranslateProject` owns the durable translation result; review export consumes that exact result through a separate no-provider use case and D106 publication; cancellation and outcome contracts are shared | CLI now; framework-free application consumers now; Desktop/API/MCP after adapter work |
 | `AYVU-UC-005` | Batch: `translate <epub>...` | `translation.batch.TranslateBatch`, `composition.builders.translate_batch.LocalTranslateBatch`, via `composition.cli.translate_batch`; `tests/interfaces/cli/test_translate_batch_output_planning.py`, `tests/interfaces/cli/test_translate_batch_execution_integration.py`, `tests/interfaces/cli/test_batch_bounded_validation.py` | Resolved order, destinations, policies and confirmations; same public restrictions | Complete bounded plan before execution; runs the same service per project; per-item publications and reports | Per-item events and results; cancellation, continuation and fail-fast belong to the service; Rich only projects | CLI and framework-free consumer |
 | `AYVU-UC-006` | Preview: root `--preview` and guided flow | `composition.cli._translate_without_project` connects the delivered facade `composition.builders.translate_project.translate_without_project`; `tests/interfaces/cli/test_workflow_batch_preview.py`, `tests/kernel/test_cli_output_plan.py`, `test_cli_composition.py` | EPUB, confirmed destination, language and preview selection | Reads original; uses only required cache/provider; publishes preview without creating project/checkpoint | Retains compatibility callbacks and one final validation; report and path deliberately visible | CLI; a future interface must supply its own presenter |
 | `AYVU-UC-007` | Resume: `resume [epub]` and guided offer | `recovery.service.ListInterruptedJobs`, `InspectJobRecoverability`, `RequestJobResume`, via `composition.cli.open_job_recovery`; `tests/interfaces/cli/test_cli_recovery.py`, `tests/recovery/test_job_recovery_*_integration.py` | Opaque reference, explicit decisions and saved configuration | Read-only inspection; resume authorizes continuation of the same `TranslateProject`; legacy checkpoint remains compatible | Recoverability result, bounded reasons, cancellation and durable chain; menu and confirmation belong to CLI | CLI and framework-free consumer |
-| `AYVU-UC-008` | Extract reader-visible content: `extract` | [`content_use_cases.py`](../../src/ayvu/content_use_cases.py), [`composition/builders/content.py`](../../src/ayvu/composition/builders/content.py), [`formats/epub/adapter.py`](../../src/ayvu/formats/epub/adapter.py), [`formats/epub/html_structure.py`](../../src/ayvu/formats/epub/html_structure.py), [`formats/markdown/writer.py`](../../src/ayvu/formats/markdown/writer.py); [`test_content_export.py`](../../tests/content_use_cases/test_content_export.py), [`test_markdown_writer_guards.py`](../../tests/formats/markdown/test_markdown_writer_guards.py), [`test_markdown_writer_publication.py`](../../tests/formats/markdown/test_markdown_writer_publication.py), [`test_markdown_writer_filesystem.py`](../../tests/formats/markdown/test_markdown_writer_filesystem.py), [`test_content_redaction.py`](../../tests/content_use_cases/test_content_redaction.py), [`test_cli_content.py`](../../tests/interfaces/cli/test_cli_content.py) | EPUB source reference, authorized output directory and overwrite policy; optional expected revision, cancellation and progress ports | Reads EPUB and atomically publishes one Markdown file per document; no network or durable project/artifact record; unrelated output files are preserved | Full output plan is validated before publication; typed per-file completed/failed/not-started outcomes, progress, cancellation and normalized failures; partial publication is explicit and no directory transaction is claimed | CLI and framework-free consumer now; Desktop/API/MCP after adapter work |
-| `AYVU-UC-009` | Export, inspect, validate, and apply review packages: `translate --review-output`, `apply-review` | [`review/application.py`](../../src/ayvu/review/application.py), [`composition/builders/review.py`](../../src/ayvu/composition/builders/review.py), `composition/builders/review_packages.py`, `composition/builders/review_operations.py`, [`review/csv_import.py`](../../src/ayvu/review/csv_import.py), [`review/exchange.py`](../../src/ayvu/review/exchange.py), `review/exchange_codec.py`, `review/exchange_mapping.py`, [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py); [`test_review_application_export_validate.py`](../../tests/review/test_review_application_export_validate.py), [`test_review_application_apply.py`](../../tests/review/test_review_application_apply.py), [`test_review_exchange_codec.py`](../../tests/review/test_review_exchange_codec.py), [`test_review_exchange_mapping.py`](../../tests/review/test_review_exchange_mapping.py), [`test_review_exchange_legacy.py`](../../tests/review/test_review_exchange_legacy.py), [`test_review_exchange_epub_integration.py`](../../tests/review/test_review_exchange_epub_integration.py), [`test_cli_project_review_application.py`](../../tests/interfaces/cli/test_cli_project_review_application.py), [`test_cli_project_review_status.py`](../../tests/interfaces/cli/test_cli_project_review_status.py), [`test_cli_project_review_races.py`](../../tests/interfaces/cli/test_cli_project_review_races.py), [`test_cli_project_review_reconciliation.py`](../../tests/interfaces/cli/test_cli_project_review_reconciliation.py), [`test_cli_translate_review_export.py`](../../tests/interfaces/cli/test_cli_translate_review_export.py) | Exact `TranslateProjectResult` for export; bounded v1 inspection or v2 bytes plus source/project/machine/format context; output and overwrite policy for apply | V1 inspection and v2 validation are read-only; export/apply use no provider/network; export publishes the sensitive v2 package through D106; apply reconstructs, validates and publishes a new EPUB through D106 | Application commands/results are framework-neutral; validation evidence is a digest, not authorization; apply fully revalidates; v1 apply stops with `legacy_reexport_required`; job, progress, cancellation, errors, events and provenance carry bounded codes and opaque identities | CLI and framework-free application consumer now; future Desktop/API/MCP after adapter work |
-| `AYVU-UC-010` | Inspect cache | [`knowledge/cache/admin.py`](../../src/ayvu/knowledge/cache/admin.py), `composition/builders/cache_admin.py`, `knowledge/cache/admin_v2_store.py`, [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py) | Cache reference, authorized namespace or explicit all, filters | Reads SQLite without creating absent caches; no network | Bounded aggregate metadata, progress, cancellation, warnings and normalized failures; default legacy gate remains | CLI and framework-free consumers with appropriate authorization |
+| `AYVU-UC-008` | Extract reader-visible content: `extract` | [`content_use_cases.py`](../../../src/ayvu/content_use_cases.py), [`composition/builders/content.py`](../../../src/ayvu/composition/builders/content.py), [`formats/epub/adapter.py`](../../../src/ayvu/formats/epub/adapter.py), [`formats/epub/html_structure.py`](../../../src/ayvu/formats/epub/html_structure.py), [`formats/markdown/writer.py`](../../../src/ayvu/formats/markdown/writer.py); [`test_content_export.py`](../../../tests/content_use_cases/test_content_export.py), [`test_markdown_writer_guards.py`](../../../tests/formats/markdown/test_markdown_writer_guards.py), [`test_markdown_writer_publication.py`](../../../tests/formats/markdown/test_markdown_writer_publication.py), [`test_markdown_writer_filesystem.py`](../../../tests/formats/markdown/test_markdown_writer_filesystem.py), [`test_content_redaction.py`](../../../tests/content_use_cases/test_content_redaction.py), [`test_cli_content.py`](../../../tests/interfaces/cli/test_cli_content.py) | EPUB source reference, authorized output directory and overwrite policy; optional expected revision, cancellation and progress ports | Reads EPUB and atomically publishes one Markdown file per document; no network or durable project/artifact record; unrelated output files are preserved | Full output plan is validated before publication; typed per-file completed/failed/not-started outcomes, progress, cancellation and normalized failures; partial publication is explicit and no directory transaction is claimed | CLI and framework-free consumer now; Desktop/API/MCP after adapter work |
+| `AYVU-UC-009` | Export, inspect, validate, and apply review packages: `translate --review-output`, `apply-review` | [`review/application.py`](../../../src/ayvu/review/application.py), [`composition/builders/review.py`](../../../src/ayvu/composition/builders/review.py), `composition/builders/review_packages.py`, `composition/builders/review_operations.py`, [`review/csv_import.py`](../../../src/ayvu/review/csv_import.py), [`review/exchange.py`](../../../src/ayvu/review/exchange.py), `review/exchange_codec.py`, `review/exchange_mapping.py`, [`interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py); [`test_review_application_export_validate.py`](../../../tests/review/test_review_application_export_validate.py), [`test_review_application_apply.py`](../../../tests/review/test_review_application_apply.py), [`test_review_exchange_codec.py`](../../../tests/review/test_review_exchange_codec.py), [`test_review_exchange_mapping.py`](../../../tests/review/test_review_exchange_mapping.py), [`test_review_exchange_legacy.py`](../../../tests/review/test_review_exchange_legacy.py), [`test_review_exchange_epub_integration.py`](../../../tests/review/test_review_exchange_epub_integration.py), [`test_cli_project_review_application.py`](../../../tests/interfaces/cli/test_cli_project_review_application.py), [`test_cli_project_review_status.py`](../../../tests/interfaces/cli/test_cli_project_review_status.py), [`test_cli_project_review_races.py`](../../../tests/interfaces/cli/test_cli_project_review_races.py), [`test_cli_project_review_reconciliation.py`](../../../tests/interfaces/cli/test_cli_project_review_reconciliation.py), [`test_cli_translate_review_export.py`](../../../tests/interfaces/cli/test_cli_translate_review_export.py) | Exact `TranslateProjectResult` for export; bounded v1 inspection or v2 bytes plus source/project/machine/format context; output and overwrite policy for apply | V1 inspection and v2 validation are read-only; export/apply use no provider/network; export publishes the sensitive v2 package through D106; apply reconstructs, validates and publishes a new EPUB through D106 | Application commands/results are framework-neutral; validation evidence is a digest, not authorization; apply fully revalidates; v1 apply stops with `legacy_reexport_required`; job, progress, cancellation, errors, events and provenance carry bounded codes and opaque identities | CLI and framework-free application consumer now; future Desktop/API/MCP after adapter work |
+| `AYVU-UC-010` | Inspect cache | [`knowledge/cache/admin.py`](../../../src/ayvu/knowledge/cache/admin.py), `composition/builders/cache_admin.py`, `knowledge/cache/admin_v2_store.py`, [`interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py) | Cache reference, authorized namespace or explicit all, filters | Reads SQLite without creating absent caches; no network | Bounded aggregate metadata, progress, cancellation, warnings and normalized failures; default legacy gate remains | CLI and framework-free consumers with appropriate authorization |
 | `AYVU-UC-011` | Preview and clean cache | Same as UC-010 | Cache reference, authorized namespace, filters or explicit all; interface confirmation | Transactional deletion after preview revalidation; no network | Per-namespace aggregate counts, progress, cancellation, warnings and stale-preview failures | CLI and framework-free consumers with appropriate authorization |
 | `AYVU-UC-012` | Export cache | Same as UC-010 | Cache and destination references, authorized namespace or explicit all, filters and overwrite policy | Reads SQLite and atomically publishes sensitive JSON; no network | Count and actual JSON format version, progress, cancellation, warnings and normalized failures | CLI and framework-free consumers with appropriate authorization |
 | `AYVU-UC-013` | Import cache | Same as UC-010 | Cache and source references, caller-authorized external scope map, replace policy and revision-bound preview | Validates JSON and mapping before transactional SQLite mutation; no network; preview is discarded on refusal/failure or retained as audit after successful import | Counts, conflicts, duplicates, preview revision, progress, cancellation, warnings and normalized failures; sensitive audit artifact | CLI and framework-free consumers with appropriate authorization |
-| `AYVU-UC-014` | Discover, inspect, and open library books: guided Library | [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py), [`library/service.py`](../../src/ayvu/library/service.py), [`library/adapters.py`](../../src/ayvu/library/adapters.py) | Configured library root and folder names, opaque book/entry references, optional reader command | Discovery reads local directory metadata without opening EPUB contents; an explicit open can launch a local reader | Grouped entries, bounded warnings, cooperative cancellation and normalized open outcomes; a new scan invalidates prior references | Guided CLI and framework-free service consumers; other interfaces must authorize reader launch explicitly |
+| `AYVU-UC-014` | Discover, inspect, and open library books: guided Library | [`interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py), [`library/service.py`](../../../src/ayvu/library/service.py), [`library/adapters.py`](../../../src/ayvu/library/adapters.py) | Configured library root and folder names, opaque book/entry references, optional reader command | Discovery reads local directory metadata without opening EPUB contents; an explicit open can launch a local reader | Grouped entries, bounded warnings, cooperative cancellation and normalized open outcomes; a new scan invalidates prior references | Guided CLI and framework-free service consumers; other interfaces must authorize reader launch explicitly |
 | `AYVU-UC-015` | Preferences: first use, Settings and configuration reading | `preferences.service.get_preferences` / `update_preferences`, via `composition.cli.configuration_store`; facade `config.ConfigStore`, values `preferences.model`; `tests/preferences/test_preferences.py`, `tests/preferences/test_preferences_store.py`, `tests/preferences/test_config.py`, `tests/interfaces/cli/test_cli_root_processing.py` | V1 values and expected revision; resolved prompts | Selected JSON repository; reading creates no configuration; writing validates revision | Snapshot, warnings, refusal and persistence result; presentation retains messages and menus | CLI and framework-free consumer |
-| `AYVU-UC-016` | Create, edit, preview, and select managed glossaries | [`knowledge/glossary/catalog.py`](../../src/ayvu/knowledge/glossary/catalog.py), [`knowledge/glossary/catalog_store.py`](../../src/ayvu/knowledge/glossary/catalog_store.py), [`composition/builders/glossary.py`](../../src/ayvu/composition/builders/glossary.py), [`interfaces/cli/app.py`](../../src/ayvu/interfaces/cli/app.py) | Trusted managed root, opaque references, entries and revisions | Bounded local JSON catalog; no network | Normalized failures and cooperative cancellation; divergent updates are unavailable; presentation owns prompts and paths | Guided CLI and framework-free consumers with a supplied repository |
+| `AYVU-UC-016` | Create, edit, preview, and select managed glossaries | [`knowledge/glossary/catalog.py`](../../../src/ayvu/knowledge/glossary/catalog.py), [`knowledge/glossary/catalog_store.py`](../../../src/ayvu/knowledge/glossary/catalog_store.py), [`composition/builders/glossary.py`](../../../src/ayvu/composition/builders/glossary.py), [`interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py) | Trusted managed root, opaque references, entries and revisions | Bounded local JSON catalog; no network | Normalized failures and cooperative cancellation; divergent updates are unavailable; presentation owns prompts and paths | Guided CLI and framework-free consumers with a supplied repository |
 
 ## Proposed target ownership
 
@@ -83,227 +83,7 @@ proposals below now point to actually delivered contracts.
 
 ## Option boundary
 
-The committed snapshot below classifies every effective long option. Short
-aliases such as `-o` are normalized to their canonical long option and inherit
-the same mapping. Click's generated `--help` is recorded once as a universal
-presentation option and verified at every command level:
-
-- `domain-input`: content identity or selection, such as languages and chapters;
-- `application-policy`: execution, cache, conflict, retry, or mutation policy;
-- `adapter-configuration`: configuration of an external adapter, such as an HTTP
-  endpoint or translation backend;
-- `artifact-destination`: requested output/cache/input artifact location;
-- `presentation-only`: rendering or shell interaction with no domain effect;
-- `presentation-confirmation`: a CLI confirmation mechanism; the underlying
-  permission to mutate is an application policy;
-- `compatibility-routing`: legacy CLI routing to an existing use case.
-
-Concrete paths are serializable application inputs today, but future interfaces
-must apply their own filesystem authorization before invoking a service. Likewise,
-retry/rate limits are stable policies even though the current CLI provides their
-defaults. `--mode`, help/completion, prompt wording, tables, colors, and exit codes
-remain presentation concerns.
-
-<!-- AYVU_CLI_SURFACE_SNAPSHOT_START -->
-```json
-{
-  "universal_options": {
-    "--help": {
-      "kind": "presentation-only",
-      "mappings": ["AYVU-UI-004"]
-    }
-  },
-  "root_options": {
-    "--network-policy": {
-      "kind": "application-policy",
-      "mappings": ["AYVU-UC-002", "AYVU-UC-003", "AYVU-UC-004", "AYVU-UC-005", "AYVU-UC-006", "AYVU-UC-007"]
-    },
-    "--install-completion": {
-      "kind": "presentation-only",
-      "mappings": ["AYVU-UI-001"]
-    },
-    "--mode": {
-      "kind": "presentation-only",
-      "mappings": ["AYVU-UI-002"]
-    },
-    "--preview": {
-      "kind": "compatibility-routing",
-      "mappings": ["AYVU-UC-006"]
-    },
-    "--show-completion": {
-      "kind": "presentation-only",
-      "mappings": ["AYVU-UI-001"]
-    }
-  },
-  "commands": {
-    "apply-review": {
-      "use_cases": ["AYVU-UC-009"],
-      "options": {
-        "--output": "artifact-destination",
-        "--overwrite": "application-policy",
-        "--validate-only": "application-policy"
-      },
-      "subcommands": {}
-    },
-    "cache": {
-      "use_cases": ["AYVU-UI-003"],
-      "options": {},
-      "subcommands": {
-        "clean": {
-          "use_cases": ["AYVU-UC-011"],
-          "options": {
-            "--namespace": "application-policy",
-            "--scope-kind": "domain-input",
-            "--scope-id": "domain-input",
-            "--project-id": "domain-input",
-            "--all": "application-policy",
-            "--before": "domain-input",
-            "--cache": "artifact-destination",
-            "--dry-run": "application-policy",
-            "--source": "domain-input",
-            "--target": "domain-input",
-            "--yes": "presentation-confirmation"
-          }
-        },
-        "export": {
-          "use_cases": ["AYVU-UC-012"],
-          "options": {
-            "--all": "application-policy",
-            "--namespace": "application-policy",
-            "--scope-kind": "domain-input",
-            "--scope-id": "domain-input",
-            "--project-id": "domain-input",
-            "--before": "domain-input",
-            "--cache": "artifact-destination",
-            "--overwrite": "application-policy",
-            "--source": "domain-input",
-            "--target": "domain-input"
-          }
-        },
-        "import": {
-          "use_cases": ["AYVU-UC-013"],
-          "options": {
-            "--all": "application-policy",
-            "--dry-run": "application-policy",
-            "--scope-map": "artifact-destination",
-            "--yes": "presentation-confirmation",
-            "--cache": "artifact-destination",
-            "--replace": "application-policy"
-          }
-        },
-        "inspect": {
-          "use_cases": ["AYVU-UC-010"],
-          "options": {
-            "--all": "application-policy",
-            "--namespace": "application-policy",
-            "--scope-kind": "domain-input",
-            "--scope-id": "domain-input",
-            "--project-id": "domain-input",
-            "--before": "domain-input",
-            "--cache": "artifact-destination",
-            "--source": "domain-input",
-            "--target": "domain-input"
-          }
-        }
-      }
-    },
-    "extract": {
-      "use_cases": ["AYVU-UC-008"],
-      "options": {
-        "--output": "artifact-destination",
-        "--overwrite": "application-policy"
-      },
-      "subcommands": {}
-    },
-    "inspect": {
-      "use_cases": ["AYVU-UC-001"],
-      "options": {},
-      "subcommands": {}
-    },
-    "languages": {
-      "use_cases": ["AYVU-UC-003"],
-      "options": {
-        "--network-policy": "application-policy",
-        "--requests-per-second": "application-policy",
-        "--retries": "application-policy",
-        "--retry-backoff": "application-policy",
-        "--retry-backoff-max": "application-policy",
-        "--timeout": "application-policy",
-        "--url": "adapter-configuration"
-      },
-      "subcommands": {}
-    },
-    "resume": {
-      "use_cases": ["AYVU-UC-007"],
-      "options": {
-        "--network-policy": "application-policy",
-        "--target": "domain-input"
-      },
-      "subcommands": {}
-    },
-    "test-translator": {
-      "use_cases": ["AYVU-UC-002"],
-      "options": {
-        "--network-policy": "application-policy",
-        "--requests-per-second": "application-policy",
-        "--retries": "application-policy",
-        "--retry-backoff": "application-policy",
-        "--retry-backoff-max": "application-policy",
-        "--source": "domain-input",
-        "--target": "domain-input",
-        "--timeout": "application-policy",
-        "--url": "adapter-configuration"
-      },
-      "subcommands": {}
-    },
-    "translate": {
-      "use_cases": ["AYVU-UC-004", "AYVU-UC-005"],
-      "option_exclusions": {
-        "AYVU-UC-005": ["--missing-output", "--output", "--review-output"]
-      },
-      "options": {
-        "--network-policy": "application-policy",
-        "--cache": "artifact-destination",
-        "--cache-only": "application-policy",
-        "--chapters": "domain-input",
-        "--chunk-limit": "application-policy",
-        "--continue-on-error": "application-policy",
-        "--dry-run": "application-policy",
-        "--fail-fast": "application-policy",
-        "--glossary": "artifact-destination",
-        "--missing-output": "artifact-destination",
-        "--output": "artifact-destination",
-        "--output-dir": "artifact-destination",
-        "--overwrite": "application-policy",
-        "--performance-profile": "application-policy",
-        "--profile": "domain-input",
-        "--requests-per-second": "application-policy",
-        "--require-full-cache": "application-policy",
-        "--retries": "application-policy",
-        "--retry-backoff": "application-policy",
-        "--retry-backoff-max": "application-policy",
-        "--review-output": "artifact-destination",
-        "--source": "domain-input",
-        "--target": "domain-input",
-        "--timeout": "application-policy",
-        "--tm-apply-threshold": "application-policy",
-        "--tm-conservative-auto-apply": "application-policy",
-        "--tm-legacy-cache-compatibility": "application-policy",
-        "--tm-suggest-threshold": "application-policy",
-        "--translate-alt-text": "application-policy",
-        "--translate-metadata": "application-policy",
-        "--translation-memory": "application-policy",
-        "--no-translation-memory": "application-policy",
-        "--translator": "adapter-configuration",
-        "--url": "adapter-configuration",
-        "--workers": "application-policy"
-      },
-      "subcommands": {}
-    }
-  }
-}
-```
-<!-- AYVU_CLI_SURFACE_SNAPSHOT_END -->
+The option boundary and the CLI surface snapshot are in the [CLI option boundary and surface snapshot](../cross-cutting/cli-surface.md); the maintenance rule below covers both documents.
 
 ## Guided workflow coverage
 
@@ -328,7 +108,7 @@ coverage is explicit:
    EPUB/HTML transformation, cache SQL, glossary rules, configuration storage,
    translation HTTP, checkpoint semantics, and output safety stay in reusable
    modules.
-3. #159 [HTTP policy](cross-cutting/network-policy.md) is per run: `none` blocks
+3. #159 [HTTP policy](../cross-cutting/network-policy.md) is per run: `none` blocks
    before DNS/socket/payload; `loopback` allows only validated loopback HTTP.
    It covers all current uses of GET `/languages` and POST `/translate`.
    External readers and the local server's network have independent authority.
@@ -367,7 +147,7 @@ or not implemented for one of them. Universal and root options carry their
 mappings explicitly. Any public Typer command, subcommand, or long option change
 must update the JSON snapshot and the corresponding stable mapping in the same
 change. The contract
-test in [`test_shared_use_case_matrix.py`](../../tests/architecture/test_shared_use_case_matrix.py)
+test in [`test_shared_use_case_matrix.py`](../../../tests/architecture/test_shared_use_case_matrix.py)
 compares this snapshot with the effective Typer command tree and validates its
 local references. Guided-flow changes require a manual update to the guided table
 until those choices have a separately inspectable registry.

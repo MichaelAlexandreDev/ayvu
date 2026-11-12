@@ -73,9 +73,9 @@ remain reusable. Import and `--help` neither open stores nor construct
 providers. Cache-only acquires no provider, secret or transport; queries
 open only required repositories. There is no service locator or singleton.
 
-The [shared matrix](../shared-use-case-matrix.md) contains final owners,
+The [shared matrix](../modules/interfaces-cli.md) contains final owners,
 the full helper/facade inventory, frozen base SHA and deferred construction
-rules. #133 [executable rules](../dependency-boundary-enforcement.md)
+rules. #133 [executable rules](dependency-enforcement.md)
 also check transitive dependencies and presentation reexports.
 
 ### Desktop composition root
@@ -183,7 +183,7 @@ the existing test suite provide evidence, not proof, of conformance.
 - [Accepted product threat model and privacy data flows](../decisions/product-threat-model.md)
 - [Product scope and capability taxonomy](../../product-scope.md)
 - [Translation workflow migration baseline](../../translation-workflow-migration-baseline.md)
-- [Shared application use-case matrix](../shared-use-case-matrix.md)
+- [Shared application use-case matrix](../modules/interfaces-cli.md)
 - [`src/ayvu/interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py)
 - [`src/ayvu/formats/epub/io.py`](../../../src/ayvu/formats/epub/io.py)
 - [`src/ayvu/v1/html_translate.py`](../../../src/ayvu/v1/html_translate.py)

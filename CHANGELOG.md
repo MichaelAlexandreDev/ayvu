@@ -50,6 +50,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote D: índice `docs/architecture/README.md`; a matriz de casos de uso vira o contrato
+  `modules/interfaces-cli.md` e o snapshot `cross-cutting/cli-surface.md`; a verificação de dependências e o baseline
+  da refatoração vão para `cross-cutting/`. `docs/architecture/` passa a ter só `decisions/`, `modules/` e
+  `cross-cutting/`, todos os documentos em inglês, com até 400 linhas e links verificados.
+
 - REF-20 (#288), lote C6: as decisões de fronteiras do monólito modular e do modelo de ameaças ficam em
   `decisions/`, e seus contratos vão para `cross-cutting/` (fronteiras, donos dos módulos, modelo de ameaças e
   registro de ameaças), junto com a política de rede e o guia de onde vai o código novo.
