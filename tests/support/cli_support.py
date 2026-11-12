@@ -30,7 +30,7 @@ runner = CliRunner()
 def _fake_translation(monkeypatch, fake_translate) -> None:
     """Replaces the book's work where both flows meet, to test what the CLI does around it.
 
-    The real run through the use case is in tests/test_workflow_characterization.py and tests/test_cli_translate_project.py.
+    The real run through the use case is in tests/test_workflow_characterization.py and tests/interfaces/cli/test_cli_project_translation.py.
     """
     def run(book, hooks):
         preflight = book.prepare()

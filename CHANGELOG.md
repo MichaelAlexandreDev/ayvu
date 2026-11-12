@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote J3: testes do comando de projeto da CLI divididos em sete
+  arquivos por responsabilidade, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote J2: arquivo-base de testes da CLI dividido por responsabilidade,
   com valores no kernel e preservação dos 43 testes e invariantes core.
 
