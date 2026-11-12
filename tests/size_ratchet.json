@@ -27,7 +27,6 @@
     "tests/test_job_recovery_integration.py": 586,
     "tests/test_local_worker_spike.py": 499,
     "tests/test_memory_retrieval.py": 619,
-    "tests/test_rich_runtime.py": 540,
     "tests/test_translate_batch_integration.py": 434,
     "tests/test_translate_project.py": 1250,
     "tests/test_translation_context.py": 550,

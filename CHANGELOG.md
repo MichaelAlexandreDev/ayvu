@@ -47,6 +47,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-16 (#284), lote J4: testes de CLI rica, composição e rótulos de modelo
+  divididos por responsabilidade, preservando os mesmos testes e invariantes core.
+
 - REF-16 (#284), lote J3: testes do comando de projeto da CLI divididos em sete
   arquivos por responsabilidade, preservando os mesmos testes e invariantes core.
 
