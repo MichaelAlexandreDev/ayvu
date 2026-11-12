@@ -7,291 +7,290 @@ Issue: [#160](https://github.com/DevStarrk1137/ayvu/issues/160).
 
 Local evidence: 2026-11-06 (UTC).
 
-Dependência obrigatória: [modelo de ameaças #129](product-threat-model.md),
-`Accepted` em 2026-11-05, presente no baseline
-`79bcc6ec45d603bcab1d74da58021f1edf0657ca` de `main`.
-O [ADR desktop](adr-desktop-stack.md) também está `Accepted`; ele não oferece
-uma matriz de suporte de sistemas operacionais ou de distribuição.
+Mandatory dependency: [threat model #129](product-threat-model.md),
+`Accepted` on 2026-11-05, present in the `main` baseline
+`79bcc6ec45d603bcab1d74da58021f1edf0657ca`.
+The [desktop ADR](adr-desktop-stack.md) is also `Accepted`; it does not provide
+an operating system or distribution support matrix.
 
-## Decisão proposta e limite de validade
+## Proposed decision and validity limit
 
-Plataformas com suporte comprovado nesta revisão: **nenhuma**.
-A allowlist efetiva de produção permanece vazia. Recomenda-se qualificar apenas
-o candidato Linux abaixo antes de propor sua admissão. O sandbox recusou o
-socket D-Bus antes de qualquer CRUD. Depois, o revisor executou a prova fora do
-sandbox, na sessão autorizada, e observou CRUD real com limpeza confirmada no
-ambiente travado por `uv.lock` (ver abaixo). Isso não basta para suporte:
-trancado, negado/cancelado, identidade do serviço e pacote continuam sem prova,
-e não há licença para promover a instalação de um pacote a garantia de armazenamento.
-Este registro e os comandos de pesquisa são uma entrega parcial da #160.
+Platforms with proven support in this review: **none**.
+The effective production allowlist remains empty. The recommendation is to qualify only
+the Linux candidate below before proposing its admission. The sandbox refused the
+D-Bus socket before any CRUD. Later, the reviewer ran the proof outside the
+sandbox, in the authorized session, and observed real CRUD with confirmed cleanup in
+the environment locked by `uv.lock` (see below). That is insufficient for support:
+locked, denied/cancelled, service identity and packaging remain unproven,
+and there is no license to promote a package installation to a storage guarantee.
+This record and the research commands are a partial delivery of #160.
 
-| Ambiente | Versão mínima / arquitetura / distribuição | Backend único candidato | Suporte nesta revisão |
+| Environment | Minimum version / architecture / distribution | Sole candidate backend | Support in this review |
 | --- | --- | --- | --- |
-| Linux desktop GNOME/Wayland, Secret Service de GNOME Keyring | Somente snapshot Arch Linux rolling observado em 2026-11-06, x86_64, CPython 3.14.9, GNOME Shell 51.1, GNOME Keyring 51.1; sem extrapolação para outra versão/distro | `keyring.backends.SecretService.Keyring`, distribuição `keyring==25.7.0`, SecretStorage 3.5.0 | Pendente: falhas nativas (trancado, negado/cancelado, coleção ausente), identidade do serviço e pacote. CRUD real, indisponibilidade e resolução travada observados pelo revisor |
-| Linux KWallet ou outro provedor de Secret Service | Nenhuma versão/arquitetura aprovada | Nenhum | Não suportado |
-| Linux headless, contêiner, sessão sem D-Bus, sistema mínimo | Nenhuma versão/arquitetura aprovada | Nenhum | Não suportado |
-| Windows | Nenhuma versão/arquitetura/formato de pacote aprovado | Nenhum | Não suportado; sem host nativo |
-| macOS | Nenhuma versão/arquitetura/identidade assinada aprovada | Nenhum | Não suportado; sem host nativo |
+| Linux GNOME/Wayland desktop, GNOME Keyring Secret Service | Only the Arch Linux rolling snapshot observed on 2026-11-06, x86_64, CPython 3.14.9, GNOME Shell 51.1, GNOME Keyring 51.1; no extrapolation to another version/distro | `keyring.backends.SecretService.Keyring`, distribution `keyring==25.7.0`, SecretStorage 3.5.0 | Pending: native failures (locked, denied/cancelled, missing collection), service identity and packaging. Real CRUD, unavailability and locked resolution observed by the reviewer |
+| Linux KWallet or another Secret Service provider | No approved version/architecture | None | Unsupported |
+| Linux headless, container, session without D-Bus, minimal system | No approved version/architecture | None | Unsupported |
+| Windows | No approved version/architecture/package format | None | Unsupported; no native host |
+| macOS | No approved version/architecture/signed identity | None | Unsupported; no native host |
 
-Não existe versão mínima Linux genérica aceita. O snapshot é uma restrição de
-pesquisa, não um compromisso com Arch rolling ou requisito novo para a CLI.
-O alvo empacotado ainda precisa ser identificado por formato, arquitetura,
-hash do artefato, resolução e identidade de execução antes de integrar a matriz.
+There is no accepted generic minimum Linux version. The snapshot is a research
+restriction, not a commitment to Arch rolling or a new CLI requirement.
+The packaged target still needs to be identified by format, architecture,
+artifact hash, resolution and execution identity before joining the matrix.
 
-## Evidência reproduzível e sua procedência
+## Reproducible evidence and its provenance
 
-O [spike isolado](../../spikes/secret-store/README.md) contém manifesto,
-prova executável e comandos de repetição. A
-[saída sanitizada](../../spikes/secret-store/results/sandbox-2026-11-06.json)
-registra timestamps, códigos de saída, inventário instalado, licenças e hashes
-de metadados. O [inventário nativo observado](../../spikes/secret-store/results/native-packages-2026-11-06.txt)
-é metadado do gerenciador de pacotes, não uma auditoria completa de redistribuição.
-O [fechamento transitivo instalado](../../spikes/secret-store/results/native-closure-2026-11-06.json)
-registra 190 pacotes, com versões/licenças declaradas, grafos e resolução de
-provedores virtuais; as 190 consultas retornaram zero. Não é o inventário dos
-arquivos de um executável distribuído.
+The [isolated spike](../../spikes/secret-store/README.md) contains a manifest,
+executable proof and repeat commands. The
+[sanitized output](../../spikes/secret-store/results/sandbox-2026-11-06.json)
+records timestamps, exit codes, installed inventory, licenses and metadata
+hashes. The [observed native inventory](../../spikes/secret-store/results/native-packages-2026-11-06.txt)
+is package manager metadata, not a complete redistribution audit.
+The [installed transitive closure](../../spikes/secret-store/results/native-closure-2026-11-06.json)
+records 190 packages, with declared versions/licenses, graphs and virtual provider
+resolution; all 190 queries returned zero. It is not the file inventory
+of a distributed executable.
 
-| Prova executada | Resultado observado | O que permite concluir |
+| Proof executed | Observed result | What it establishes |
 | --- | --- | --- |
-| `native` | `access_denied`, nenhum evento CRUD, zero arquivos no HOME/config isolados | Sandbox não alcança o serviço; não prova recusa pelo GNOME Keyring |
-| `missing-bus` | `access_denied`, nenhum evento CRUD | Sandbox também impede o socket ausente; não prova o erro de socket de um host normal |
-| `missing-service` | `worker_failed`, exit 127 | D-Bus privado não iniciou no sandbox; não prova serviço ausente |
-| Null, fail-only, chain, inesperado, classe com nome falsificado | `backend_rejected` | Política de identidade recusa objetos reais Null/fail/chain e objetos sintéticos inesperados antes de operação |
-| Override de backend e de propriedade | `override_rejected` | Mesmo o nome do candidato permitido não concede autoridade via ambiente |
-| `keyrings.alt` plaintext/encrypted | `dependency_missing` | Não instalado; execução com essas classes reais continua pendente |
-| Resolução opcional offline | Falhou: `cffi==2.1.1` indisponível no cache novo isolado | Nenhuma resolução/lock íntegro ou instalação reproduzível comprovada |
-| Host instalado | `jaraco.context` tem versão de desenvolvimento diferente do pin | Instalação do sistema não equivale ao manifesto de pesquisa |
-| Empacotamento | PyInstaller ausente; resolução offline indisponível | Nenhum backend ou dependência foi validado em pacote |
+| `native` | `access_denied`, no CRUD event, zero files in isolated HOME/config | Sandbox cannot reach the service; does not prove refusal by GNOME Keyring |
+| `missing-bus` | `access_denied`, no CRUD event | Sandbox also prevents access to the missing socket; does not prove the socket error on a normal host |
+| `missing-service` | `worker_failed`, exit 127 | Private D-Bus did not start in sandbox; does not prove missing service |
+| Null, fail-only, chain, unexpected, class with spoofed name | `backend_rejected` | Identity policy rejects real Null/fail/chain objects and unexpected synthetic objects before operation |
+| Backend and property override | `override_rejected` | Even the allowed candidate's name grants no authority through environment |
+| `keyrings.alt` plaintext/encrypted | `dependency_missing` | Not installed; execution with these real classes remains pending |
+| Offline optional resolution | Failed: `cffi==2.1.1` unavailable in the new isolated cache | No complete resolution/lock or reproducible installation proved |
+| Installed host | `jaraco.context` has a development version different from the pin | System installation is not equivalent to the research manifest |
+| Packaging | PyInstaller absent; offline resolution unavailable | No backend or dependency validated in a package |
 
-A tabela acima é a execução dentro do sandbox do agente. O revisor repetiu a
-prova fora dele, em 2026-11-06, na sessão GNOME autorizada pelo dono, com
-`uv lock`/`uv sync --locked --no-build` num ambiente temporário (rede só para
-esse ambiente; `pyproject.toml` e `uv.lock` da raiz intactos). O
-[resultado do revisor](../../spikes/secret-store/results/reviewer-native-2026-11-06.json)
-registra o hash do [`uv.lock` de pesquisa](../../spikes/secret-store/uv.lock).
+The table above is execution inside the agent's sandbox. The reviewer repeated the
+proof outside it, on 2026-11-06, in the owner-authorized GNOME session, with
+`uv lock`/`uv sync --locked --no-build` in a temporary environment (network only for
+that environment; root `pyproject.toml` and `uv.lock` intact). The
+[reviewer's result](../../spikes/secret-store/results/reviewer-native-2026-11-06.json)
+records the hash of the [research `uv.lock`](../../spikes/secret-store/uv.lock).
 
-| Prova fora do sandbox | Resultado observado | O que permite concluir |
+| Proof outside sandbox | Observed result | What it establishes |
 | --- | --- | --- |
-| `native` | `crud_pass`, eventos create, read, rotate, delete, `cleanup_verified`; zero arquivos isolados | O backend candidato, com as guardas, cria, lê, troca e apaga uma entrada canário na coleção padrão destrancada e confirma a limpeza |
-| `missing-bus` | `unavailable`, exit 1 | Socket ausente vira indisponibilidade, sem CRUD |
-| `missing-service` | `missing_service`, exit 1 | Bus privado sem `org.freedesktop.secrets` é recusado sem ativar serviço |
-| Null, fail-only, chain, inesperado, nome falsificado | `backend_rejected` | Igual ao sandbox |
-| Overrides no mapa avaliado e na entrada do processo | `override_rejected` | Igual ao sandbox; o override na entrada recusa antes de lançar trabalhador |
-| `keyrings.alt` plaintext/encrypted (5.0.2, ambiente separado do grupo `rejected`) | `backend_rejected` | As classes reais proibidas são recusadas por identidade |
-| Resolução e instalação | `uv.lock` com 13 pacotes; os 10 pins instalados batem com o manifesto (`matches_pin=true`) | Instalação reproduzível do conjunto de pesquisa; não aprova redistribuição |
+| `native` | `crud_pass`, create, read, rotate, delete events, `cleanup_verified`; zero isolated files | The candidate backend, with guards, creates, reads, rotates and deletes a canary entry in the unlocked default collection and confirms cleanup |
+| `missing-bus` | `unavailable`, exit 1 | Missing socket becomes unavailability, without CRUD |
+| `missing-service` | `missing_service`, exit 1 | Private bus without `org.freedesktop.secrets` is refused without service activation |
+| Null, fail-only, chain, unexpected, spoofed name | `backend_rejected` | Same as sandbox |
+| Overrides in the evaluated mapping and process entry | `override_rejected` | Same as sandbox; override at entry refuses before launching a worker |
+| `keyrings.alt` plaintext/encrypted (5.0.2, separate environment of the `rejected` group) | `backend_rejected` | The real prohibited classes are rejected by identity |
+| Resolution and installation | `uv.lock` with 13 packages; the 10 installed pins match the manifest (`matches_pin=true`) | Reproducible installation of the research set; does not approve redistribution |
 
-Com o Python do sistema, `missing-bus` retornou `probe_failed` porque a pasta
-de trabalho tinha caminho longo: o socket falso passou do limite de 108 bytes
-do `AF_UNIX`. Use `--work-root` curto. Trancado, negado/cancelado e coleção
-ausente continuam **não observados**: a autorização proíbe provocá-los no
-chaveiro pessoal.
+With system Python, `missing-bus` returned `probe_failed` because the working
+folder had a long path: the fake socket exceeded the 108-byte `AF_UNIX`
+limit. Use a short `--work-root`. Locked, denied/cancelled and missing
+collection remain **unobserved**: authorization prohibits provoking them in
+the personal keyring.
 
-Não foi lida, enumerada, exportada ou alterada nenhuma entrada pessoal.
-A prova gera serviço `ayvu-test-<uuid>` e conta `canary-<uuid>`, com dois valores
-aleatórios não secretos, compara-os apenas em memória e não os imprime. Só
-busca atributos dessa chave exata depois de tentar criá-la. A limpeza no
-`finally` apaga todas as correspondências exatas e verifica ausência sem ler
-valores. Falha na limpeza impede sucesso e exige investigação; interrupção
-forçada do processo ou perda do serviço não permite prometer limpeza concluída.
-Esses riscos exigem supervisão durante a prova fora do sandbox.
+No personal entry was read, enumerated, exported or changed.
+The proof generates service `ayvu-test-<uuid>` and account `canary-<uuid>`, with two
+random nonsecret values, compares them only in memory and does not print them. It only
+searches attributes of that exact key after attempting to create it. Cleanup in
+`finally` deletes all exact matches and checks absence without reading
+values. Cleanup failure prevents success and requires investigation; forced
+process interruption or service loss prevents promising completed cleanup.
+These risks require supervision during proof outside the sandbox.
 
-Foi inspecionada a implementação instalada: `get_default_collection()` pode
-criar coleção, e `get_preferred_collection()`/`unlock()` podem destrancar.
-Por isso a pesquisa usa a classe exata de keyring com guardas temporárias:
-coleção padrão preexistente, sem criação/lock/unlock/exclusão de coleções,
-sem prompt e sem ativação do serviço. A chamada CRUD continua no backend real.
-Uma prova bem-sucedida deve registrar `guarded_upstream=true`; ela não valida
-o caminho upstream sem essas guardas, nem constitui um adaptador Ayvu.
+The installed implementation was inspected: `get_default_collection()` may
+create a collection, and `get_preferred_collection()`/`unlock()` may unlock.
+Therefore the research uses the exact keyring class with temporary guards:
+preexisting default collection, no collection creation/lock/unlock/deletion,
+no prompt and no service activation. The CRUD call still uses the real backend.
+A successful proof must record `guarded_upstream=true`; it validates neither
+the upstream path without these guards nor an Ayvu adapter.
 
-## Fontes oficiais e atualização
+## Official sources and refresh
 
-Sem rede nesta sessão. A inspeção atual é dos metadados e código dos pacotes
-instalados, não uma alegação sobre a última versão pública. Os links abaixo
-são fontes primárias para a revisão conectada; disponibilidade, conteúdo atual
-e versão mais recente **não foram verificados online**. A atualização das
-fontes é um gate pendente, não satisfeita por resumos de terceiros.
+No network in this session. The current inspection concerns installed package
+metadata and code, not a claim about the latest public version. The links below
+are primary sources for the connected review; availability, current content
+and latest version **were not checked online**. Refreshing the
+sources is a pending gate, not satisfied by third-party summaries.
 
-| Fonte oficial | Uso obrigatório na revisão |
+| Official source | Required use in review |
 | --- | --- |
-| [keyring: documentação](https://keyring.readthedocs.io/en/latest/) | Backends, headless, desativação, configuração, segurança e packaging |
-| [keyring: metadados PyPI](https://pypi.org/pypi/keyring/25.7.0/json), [licença upstream](https://github.com/jaraco/keyring/blob/v25.7.0/LICENSE) | Confirmar versão, dependências, hashes de wheels e licença MIT |
-| [SecretService upstream](https://github.com/jaraco/keyring/blob/v25.7.0/keyring/backends/SecretService.py) | Identidade exata e efeitos de criação/desbloqueio |
-| [SecretStorage](https://secretstorage.readthedocs.io/en/latest/), [código/licença](https://github.com/mitya57/secretstorage) | Protocolo, sessões, erros e dependências |
-| [Secret Service specification](https://specifications.freedesktop.org/secret-service-spec/latest/) | Locked, prompts, atributos, sessão e identidade D-Bus |
-| [GNOME Keyring](https://gitlab.gnome.org/GNOME/gnome-keyring), [GNOME libsecret](https://gnome.pages.gitlab.gnome.org/libsecret/) | Serviço nativo e seus limites; libsecret não é dependência Python selecionada |
-| [Jeepney](https://gitlab.com/takluyver/jeepney), [cryptography licensing](https://cryptography.io/en/latest/faq/#what-license-is-cryptography-under) | Dependências de transporte e criptografia |
-| [cffi](https://github.com/python-cffi/cffi), [pycparser](https://github.com/eliben/pycparser) | Licenças, bibliotecas e build |
-| [jaraco.classes](https://github.com/jaraco/jaraco.classes), [jaraco.context](https://github.com/jaraco/jaraco.context), [jaraco.functools](https://github.com/jaraco/jaraco.functools), [more-itertools](https://github.com/more-itertools/more-itertools) | Licenças e dependências auxiliares |
-| [OpenSSL license](https://openssl-library.org/source/license/), [libffi](https://github.com/libffi/libffi), [D-Bus](https://dbus.freedesktop.org/doc/dbus-specification.html), [GLib](https://gitlab.gnome.org/GNOME/glib) | Componentes nativos e condições de distribuição |
-| [Windows Credential Manager](https://learn.microsoft.com/en-us/windows/win32/secauthn/credentials-management), [Apple Keychain](https://developer.apple.com/documentation/security/keychain-services) | Avaliações futuras, sem concessão de suporte |
+| [keyring: documentation](https://keyring.readthedocs.io/en/latest/) | Backends, headless, disabling, configuration, security and packaging |
+| [keyring: PyPI metadata](https://pypi.org/pypi/keyring/25.7.0/json), [upstream license](https://github.com/jaraco/keyring/blob/v25.7.0/LICENSE) | Confirm version, dependencies, wheel hashes and MIT license |
+| [SecretService upstream](https://github.com/jaraco/keyring/blob/v25.7.0/keyring/backends/SecretService.py) | Exact identity and creation/unlocking effects |
+| [SecretStorage](https://secretstorage.readthedocs.io/en/latest/), [code/license](https://github.com/mitya57/secretstorage) | Protocol, sessions, errors and dependencies |
+| [Secret Service specification](https://specifications.freedesktop.org/secret-service-spec/latest/) | Locked, prompts, attributes, session and D-Bus identity |
+| [GNOME Keyring](https://gitlab.gnome.org/GNOME/gnome-keyring), [GNOME libsecret](https://gnome.pages.gitlab.gnome.org/libsecret/) | Native service and its limits; libsecret is not a selected Python dependency |
+| [Jeepney](https://gitlab.com/takluyver/jeepney), [cryptography licensing](https://cryptography.io/en/latest/faq/#what-license-is-cryptography-under) | Transport and cryptography dependencies |
+| [cffi](https://github.com/python-cffi/cffi), [pycparser](https://github.com/eliben/pycparser) | Licenses, libraries and build |
+| [jaraco.classes](https://github.com/jaraco/jaraco.classes), [jaraco.context](https://github.com/jaraco/jaraco.context), [jaraco.functools](https://github.com/jaraco/jaraco.functools), [more-itertools](https://github.com/more-itertools/more-itertools) | Licenses and auxiliary dependencies |
+| [OpenSSL license](https://openssl-library.org/source/license/), [libffi](https://github.com/libffi/libffi), [D-Bus](https://dbus.freedesktop.org/doc/dbus-specification.html), [GLib](https://gitlab.gnome.org/GNOME/glib) | Native components and distribution conditions |
+| [Windows Credential Manager](https://learn.microsoft.com/en-us/windows/win32/secauthn/credentials-management), [Apple Keychain](https://developer.apple.com/documentation/security/keychain-services) | Future evaluations, without granting support |
 
-## Dependências e distribuição
+## Dependencies and distribution
 
-O manifesto é exclusivo de pesquisa, para CPython 3.14 x86_64 Linux. Não altera
-`pyproject.toml`/`uv.lock` da raiz nem introduz extra em produção. Os pins abaixo
-são o conjunto candidato. O revisor gerou um `uv.lock` de pesquisa com hashes
-de wheels e fez uma instalação limpa e travada com ele; a auditoria de licenças
-e obrigações dos artefatos distribuídos continua obrigatória antes de considerar
-a supply chain validada. Python 3.11 acrescentaria
-`importlib_metadata`/`zipp` e `backports.tarfile`; não é alvo desta proposta.
+The manifest is research-only, for CPython 3.14 x86_64 Linux. It does not change
+root `pyproject.toml`/`uv.lock` or introduce a production extra. The pins below
+are the candidate set. The reviewer generated a research `uv.lock` with wheel
+hashes and performed a clean, locked installation with it; the license and
+distributed artifact obligation audit remains mandatory before considering
+the supply chain validated. Python 3.11 would add
+`importlib_metadata`/`zipp` and `backports.tarfile`; it is not a target of this proposal.
 
-| Pacote / pin candidato | Relação | Licença observada e obrigação a verificar na redistribuição |
+| Package / candidate pin | Relationship | Observed license and obligation to check for redistribution |
 | --- | --- | --- |
-| keyring 25.7.0 | Direta | MIT confirmada no LICENSE instalado: preservar aviso e permissão |
-| SecretStorage 3.5.0 | keyring Linux | BSD-3-Clause: preservar avisos, condições e disclaimer, inclusive documentação binária |
-| jeepney 0.9.0 | keyring + SecretStorage | MIT: preservar aviso e permissão |
-| cryptography 50.0.2 | SecretStorage | Apache-2.0 OR BSD-3-Clause; escolher e cumprir via aplicável, incluir licenças/avisos de terceiros e de bibliotecas embarcadas |
-| cffi 2.1.1 | cryptography CPython | Metadado MIT-0; texto instalado incluído na evidência; auditar libffi separadamente |
-| pycparser 3.12 | cffi | BSD-3-Clause: preservar avisos e condições |
-| jaraco.classes 3.4.0 | keyring | MIT confirmada no LICENSE instalado |
-| jaraco.context 6.1.2 | keyring | MIT no instalado **6.1.3.dev0+g098f39c91.d20260403**; licença/artefato do pin ainda não verificados |
-| jaraco.functools 4.1.0 | keyring | MIT confirmada no LICENSE instalado |
-| more-itertools 11.2.1 | jaraco.classes/functools | MIT no instalado |
+| keyring 25.7.0 | Direct | MIT confirmed in installed LICENSE: preserve notice and permission |
+| SecretStorage 3.5.0 | keyring Linux | BSD-3-Clause: preserve notices, conditions and disclaimer, including binary documentation |
+| jeepney 0.9.0 | keyring + SecretStorage | MIT: preserve notice and permission |
+| cryptography 50.0.2 | SecretStorage | Apache-2.0 OR BSD-3-Clause; choose and comply with the applicable route, include third-party and bundled library licenses/notices |
+| cffi 2.1.1 | cryptography CPython | MIT-0 metadata; installed text included in evidence; audit libffi separately |
+| pycparser 3.12 | cffi | BSD-3-Clause: preserve notices and conditions |
+| jaraco.classes 3.4.0 | keyring | MIT confirmed in installed LICENSE |
+| jaraco.context 6.1.2 | keyring | MIT in installed **6.1.3.dev0+g098f39c91.d20260403**; pin license/artifact not yet checked |
+| jaraco.functools 4.1.0 | keyring | MIT confirmed in installed LICENSE |
+| more-itertools 11.2.1 | jaraco.classes/functools | MIT in installed package |
 
-Os textos e hashes instalados são evidência de origem local. Não provam hashes
-dos wheels upstream. O inventário inclui LICENSE, LICENSE.APACHE e LICENSE.BSD
-de cryptography, mas não fecha os notices de todos os componentes nativos
-efetivamente embarcados em um wheel/pacote: a cadeia de notices permanece
-incompleta. Nenhuma aprovação jurídica ou de redistribuição decorre de campos
-SPDX isolados.
+Installed texts and hashes are evidence of local origin. They do not prove upstream
+wheel hashes. The inventory includes cryptography's LICENSE, LICENSE.APACHE and LICENSE.BSD,
+but does not complete the notices for all native components actually
+bundled in a wheel/package: the notice chain remains incomplete.
+No legal or redistribution approval follows from isolated SPDX fields.
 
-Componentes nativos iniciais observados: GNOME Keyring `1:51.1-1`, GLib
+Initial native components observed: GNOME Keyring `1:51.1-1`, GLib
 `2.90.1-1`, D-Bus `1.16.2-2`, dbus-broker `37-3`, OpenSSL `3.6.5-1`, libffi
 `3.8.0-1`, glibc `2.44+r50+g1848099f063e-1`, Python `3.14.9-1`.
-O inventário transitivo fecha os metadados das dependências obrigatórias
-instaladas de `gnome-keyring`, `python-keyring`, `python-cryptography`, `python`
-e `dbus-broker`, incluindo famílias LGPL, GPL e licenças permissivas. Não inclui
-dependências opcionais nem demonstra que todas estão carregadas ou serão
-redistribuídas. **Não fecha os textos/obrigações de todas as licenças nativas
-nem o inventário de um pacote Ayvu**.
+The transitive inventory completes the metadata of installed mandatory dependencies
+of `gnome-keyring`, `python-keyring`, `python-cryptography`, `python`
+and `dbus-broker`, including LGPL, GPL and permissive license families. It includes neither
+optional dependencies nor proof that all are loaded or will be
+redistributed. **It does not complete all native license texts/obligations
+or an Ayvu package inventory**.
 
-Estratégia proposta: serviço de credenciais e bus fornecidos pelo sistema;
-Ayvu não os instala, empacota, configura ou destranca. SecretStorage/Jeepney
-usam D-Bus sem requerer dbus-python ou libsecret neste caminho. Wheels de
-cryptography podem incorporar OpenSSL e outros componentes de Rust/C; o pacote
-da distro e o wheel não são evidência intercambiável. O futuro pacote precisa
-inventário de arquivos/DSOs efetivamente incluídos, versões, fontes e hashes,
-textos de licença/NOTICE e obrigações de fonte/relink conforme a licença
-aplicável. Usar serviço do sistema não elimina obrigações dos binários que
-Ayvu redistribuir. Sem esse fechamento, distribuição permanece bloqueada.
+Proposed strategy: system-provided credential service and bus;
+Ayvu does not install, package, configure or unlock them. SecretStorage/Jeepney
+use D-Bus without requiring dbus-python or libsecret on this path. Cryptography
+wheels may incorporate OpenSSL and other Rust/C components; the distro package
+and the wheel are not interchangeable evidence. The future package needs an inventory
+of actually included files/DSOs, versions, sources and hashes,
+license/NOTICE texts and source/relink obligations according to the applicable
+license. Using a system service does not eliminate obligations for binaries that
+Ayvu redistributes. Without this completion, distribution remains blocked.
 
-## Allowlist fechada e seleção futura
+## Closed allowlist and future selection
 
-Estas são regras propostas, não código de produção:
+These are proposed rules, not production code:
 
-1. Validar primeiro alvo empacotado, SO/snapshot, arquitetura, conjunto de
-   dependências e integridade do artefato contra evidência aprovada. Atualmente
-   nenhum alvo passa este gate. Código Python substituído ou SO comprometido
-   estão na base confiável de T10; comparação de nomes não é isolamento.
-2. Recusar overrides de runtime `PYTHON_KEYRING_BACKEND`, qualquer
-   `PYTHON_KEYRING*`, `KEYRING_*` (inclui `KEYRING_PROPERTY_*`), caminhos de
-   plugins/configuração e injeções de loader. Não usar `get_keyring()`, discovery,
-   prioridade ou arquivo de configuração como autoridade. Ambiente/config nunca
-   recebe o valor da credencial.
-3. Após aprovação humana e evidência, importar diretamente a classe registrada
-   do artefato verificado e exigir `type(active) is approved_class`. Conferir
-   distribuição/versão e propriedades fixas (coleção/esquema/aplicação), não
-   apenas `__module__`/`__name__`. Instanciar sem overrides. O teste de classe
-   isolado não detecta monkeypatch ou dependência comprometida.
-4. Verificar dono atual de `org.freedesktop.secrets`, implementação GNOME Keyring
-   aprovada e coleção preexistente acessível, sem autoativação/desbloqueio.
-   Protocolo Secret Service e disponibilidade reportada não identificam o
-   provedor; o spike **não atesta** o dono. Falta definir e provar essa
-   verificação no pacote antes de admitir o alvo.
-5. Exigir operação real com canário do próprio aplicativo, sem enumerar entradas
-   alheias, e limpar. Revalidar identidade/estado em novas conexões/operações;
-   check inicial não resolve corrida de lock/troca do serviço.
-6. Qualquer falha encerra a operação sem fallback. Nunca escolher
-   `keyring.backends.null.Keyring`, backend fail-only, `keyrings.alt` (inclusive
-   `PlaintextKeyring` e encrypted-file), arquivos plaintext/encrypted geridos por
-   Ayvu, ambiente/config, classe inesperada, subclassificação não aprovada ou
-   chain. Neste desenho toda chain é recusada; só novo ADR com identificação e
-   validação de **cada** backend alcançável poderia admiti-la.
+1. First validate packaged target, OS/snapshot, architecture, dependency set
+   and artifact integrity against approved evidence. Currently
+   no target passes this gate. Replaced Python code or a compromised OS
+   are in T10's trusted base; name comparison is not isolation.
+2. Refuse runtime overrides `PYTHON_KEYRING_BACKEND`, any
+   `PYTHON_KEYRING*`, `KEYRING_*` (including `KEYRING_PROPERTY_*`), plugin/configuration
+   paths and loader injections. Do not use `get_keyring()`, discovery,
+   priority or a configuration file as authority. Environment/config never
+   receives the credential value.
+3. After human approval and evidence, directly import the registered class
+   from the verified artifact and require `type(active) is approved_class`. Check
+   distribution/version and fixed properties (collection/schema/application), not
+   just `__module__`/`__name__`. Instantiate without overrides. The isolated class
+   test does not detect monkeypatching or a compromised dependency.
+4. Check the current owner of `org.freedesktop.secrets`, approved GNOME Keyring
+   implementation and accessible preexisting collection, without autoactivation/unlocking.
+   The Secret Service protocol and reported availability do not identify the
+   provider; the spike **does not attest** the owner. This check still needs to be
+   defined and proved in the package before admitting the target.
+5. Require a real operation with the application's own canary, without enumerating
+   others' entries, and clean up. Revalidate identity/state on new connections/operations;
+   an initial check does not resolve a lock/service replacement race.
+6. Any failure ends the operation without fallback. Never choose
+   `keyring.backends.null.Keyring`, fail-only backend, `keyrings.alt` (including
+   `PlaintextKeyring` and encrypted-file), Ayvu-managed plaintext/encrypted files,
+   environment/config, unexpected class, unapproved subclass or
+   chain. This design rejects every chain; only a new ADR with identification and
+   validation of **each** reachable backend could admit one.
 
-T03 exige vincular futuramente a credencial ao destino autorizado; T04 impede
-valores, paths e mensagens upstream em diagnósticos; T10 exige proveniência;
-T11 impede prometer apagamento seguro de backups do SO. Secret Service não
-deve ser anunciado como isolamento entre aplicativos do mesmo usuário. Labels
-e atributos não devem conter credenciais, títulos, URLs ou paths pessoais.
+T03 requires future binding of the credential to the authorized destination; T04 prevents
+values, paths and upstream messages in diagnostics; T10 requires provenance;
+T11 prevents promising secure erasure of OS backups. Secret Service must not
+be advertised as isolation between applications of the same user. Labels
+and attributes must not contain credentials, titles, URLs or personal paths.
 
-## Desktop, falhas e limites de diagnóstico
+## Desktop, failures and diagnostic limits
 
-O candidato pressupõe sessão GNOME Wayland interativa, bus de sessão acessível,
-serviço GNOME Keyring já ativo e coleção padrão preexistente e destrancada.
-Não se aceita um serviço apenas porque é ativável. Ausência de `DISPLAY` não
-prova headless nem que prompts funcionam; o endpoint e o estado nativos mandam.
-Sem sessão, sem coleção, bus inacessível, instalação mínima, contêiner ou
-headless: nenhum suporte. Não recomendar contêiner privilegiado.
+The candidate assumes an interactive GNOME Wayland session, accessible session bus,
+already active GNOME Keyring service and preexisting unlocked default collection.
+A service is not accepted merely because it is activatable. Absence of `DISPLAY` proves
+neither headless operation nor working prompts; native endpoint and state govern.
+No session, no collection, inaccessible bus, minimal installation, container or
+headless: no support. Do not recommend a privileged container.
 
-| Resultado futuro distinto | Ação comunicável ao usuário, sem erro upstream |
+| Distinct future result | Action communicable to the user, without upstream error |
 | --- | --- |
-| Alvo sem suporte / dependência ausente | Informar que credenciais persistidas não estão disponíveis nessa instalação; usar alvo posteriormente qualificado |
-| Backend inesperado / override | Recusar; orientar remover override/configuração de keyring e reiniciar com o pacote oficial |
-| Bus/serviço/coleção indisponível | Informar serviço de credenciais indisponível; verificar a sessão desktop pelas ferramentas do SO; Ayvu não provisiona serviço ou coleção |
-| Coleção/item locked | Informar bloqueio; usuário decide destrancar pelas ferramentas do SO e repetir; Ayvu não destranca |
-| Negado/cancelado | Informar acesso negado/cancelado; respeitar recusa, sem retry automático ou troca de backend |
-| Erro inesperado / timeout / cleanup não confirmado | Interromper e informar código sanitizado; nunca declarar sucesso ou apagamento confirmado |
+| Unsupported target / missing dependency | Inform that persisted credentials are unavailable in this installation; use a subsequently qualified target |
+| Unexpected backend / override | Refuse; advise removing keyring override/configuration and restarting with the official package |
+| Unavailable bus/service/collection | Inform that credential service is unavailable; check the desktop session with OS tools; Ayvu does not provision a service or collection |
+| Locked collection/item | Inform of lock; user decides whether to unlock with OS tools and retry; Ayvu does not unlock |
+| Denied/cancelled | Inform of denied/cancelled access; respect refusal, without automatic retry or backend switch |
+| Unexpected error / timeout / unconfirmed cleanup | Stop and report sanitized code; never declare success or confirmed erasure |
 
-`access_denied` observado no sandbox é uma recusa de acesso ao socket; locked e
-denied/cancelled do serviço real continuam **não observados**. Fakes exercitam
-guardas e limpeza, não satisfazem essas provas. A autorização desta máquina
-proíbe provocar lock/unlock, criar/apagar coleções ou alterar configuração.
-Para qualificar tais estados, usar sessão/VM descartável autorizada em que o
-estado já esteja preparado por seu operador, sem tocar no chaveiro pessoal.
-Até lá o suporte permanece ausente; não omitir esses casos da matriz.
+`access_denied` observed in sandbox is a socket access refusal; locked and
+denied/cancelled from the real service remain **unobserved**. Fakes exercise
+guards and cleanup; they do not satisfy these proofs. Authorization for this machine
+prohibits provoking lock/unlock, creating/deleting collections or changing configuration.
+To qualify such states, use an authorized disposable session/VM where the
+state is already prepared by its operator, without touching the personal keyring.
+Until then support remains absent; do not omit these cases from the matrix.
 
-Para Windows/macOS, nem Python de desenvolvimento nem suporte upstream provam
-isolamento do pacote Ayvu. Futura pesquisa precisa nome/versão/arquitetura do
-SO, formato e identidade assinada do executável, regras de acesso do Credential
-Manager/Keychain, atualizações e prompts reais, além de inventário específico.
-Nenhum resultado Linux é herdado por esses sistemas.
+For Windows/macOS, neither development Python nor upstream support proves
+Ayvu package isolation. Future research needs OS name/version/architecture,
+executable format and signed identity, Credential Manager/Keychain access
+rules, updates and real prompts, plus a specific inventory.
+No Linux result is inherited by these systems.
 
-## Gate obrigatório de CI e aceite humano
+## Mandatory CI gate and human acceptance
 
-Cada alvo empacotado que se quiser suportar deve executar, sem skip:
+Each packaged target intended for support must execute, without skips:
 
-- resolução limpa do conjunto opcional, lock/hashes, licenças Python transitivas
-  e componentes nativos efetivos, com notices/source/relink quando aplicável;
-- identidade do backend e do serviço no executável distribuído, incluindo
-  módulos/metadados ausentes ou alterados pelo empacotador;
-- create, read, rotate, delete e ausência após limpeza no store nativo real,
-  sob namespace exclusivo, sem ler/listar entradas pessoais;
-- locked, denied/cancelled, missing-bus, missing-service e coleção ausente em
-  ambiente descartável autorizado; nenhum auto-unlock/auto-create/fallback;
-- Null, fail-only, classes reais `keyrings.alt` plaintext/encrypted, ambiente,
-  propriedades, classe inesperada/nome falsificado e chain não aprovada;
-  confirmar recusa específica, zero chamadas de escrita e zero arquivo/config;
-- comportamento em atualização do pacote/identidade, reconexão, cleanup após
-  erro e falhas redigidas. Arquivar timestamps UTC, SO, pacote/hash, versões,
-  códigos e resultados sanitizados.
+- clean resolution of the optional set, lock/hashes, transitive Python licenses
+  and actual native components, with notices/source/relink where applicable;
+- backend and service identity in the distributed executable, including
+  modules/metadata missing or changed by the packager;
+- create, read, rotate, delete and absence after cleanup in the real native store,
+  under an exclusive namespace, without reading/listing personal entries;
+- locked, denied/cancelled, missing-bus, missing-service and missing collection in an
+  authorized disposable environment; no auto-unlock/auto-create/fallback;
+- Null, fail-only, real `keyrings.alt` plaintext/encrypted classes, environment,
+  properties, unexpected class/spoofed name and unapproved chain;
+  confirm specific refusal, zero write calls and zero file/config;
+- behavior on package/identity update, reconnection, cleanup after
+  error and redacted failures. Archive UTC timestamps, OS, package/hash, versions,
+  codes and sanitized results.
 
-Runner sem sessão segura fica fora da matriz suportada. Skips, mocks, Null,
-memória e evidência de outro alvo não satisfazem esse gate. Testes unitários
-deste PR protegem ferramentas de pesquisa; não convertem o gate em verde.
+A runner without a secure session stays outside the supported matrix. Skips, mocks, Null,
+memory and evidence from another target do not satisfy this gate. Unit tests
+in this PR protect research tools; they do not turn the gate green.
 
-O mantenedor deve registrar explicitamente o aceite humano, datado e com a
-matriz/evidência e riscos aceitos, antes de mudar `Proposed`. A saída anexada
-pelo revisor precisa passar revisão das fontes/licenças e todos os casos acima;
-um CRUD bem-sucedido isolado não basta. Uma issue posterior implementará port,
-`SecretRef`, adapter e composição somente depois desse aceite. Esta issue não
-autoriza esses tipos, UI, autenticação, OAuth, migração, cloud vaults ou
-dependência de produção.
+The maintainer must explicitly record human acceptance, dated and with the
+matrix/evidence and accepted risks, before changing `Proposed`. Output attached
+by the reviewer needs source/license review and all cases above;
+a successful CRUD alone is insufficient. A later issue will implement the port,
+`SecretRef`, adapter and composition only after this acceptance. This issue does not
+authorize those types, UI, authentication, OAuth, migration, cloud vaults or a
+production dependency.
 
-## Alternativas e riscos restantes
+## Alternatives and remaining risks
 
-- Instalar keyring e aceitar sua seleção automática: rejeitado, pois ambiente,
-  configuração, prioridade e chains podem alterar o backend.
-- KWallet: adiado; sem sessão/prova/inventário específicos. Compatibilidade
-  com Linux ou protocolo não autoriza substituição de GNOME Keyring.
-- Windows e macOS: adiados por falta de hosts/pacotes reais, sem inferência a
-  partir da documentação upstream.
-- Arquivo criptografado, plaintext, ambiente, Null ou fail como fallback:
-  rejeitados; mudariam a ameaça e a retenção sem autorização.
-- Continuar sem persistência de credenciais: comportamento atual preservado e
-  recomendação operacional até fechar evidências e aceite.
+- Install keyring and accept its automatic selection: rejected, because environment,
+  configuration, priority and chains may change the backend.
+- KWallet: deferred; without specific session/proof/inventory. Linux or protocol
+  compatibility does not authorize replacing GNOME Keyring.
+- Windows and macOS: deferred for lack of real hosts/packages, without inference
+  from upstream documentation.
+- Encrypted file, plaintext, environment, Null or fail as fallback:
+  rejected; they would change threat and retention without authorization.
+- Continue without credential persistence: current behavior preserved and
+  operational recommendation until evidence and acceptance are complete.
 
-Riscos em aberto: integridade/identidade do serviço no mesmo usuário, corridas
-de estado, risco do pacote de desenvolvimento observado, limites de limpeza
-em perda de sessão, versão pública atual não consultada, licenças transitivas
-nativas incompletas e efeitos de packaging não medidos. Não são riscos
-implicitamente aceitos pela existência deste ADR.
+Open risks: service integrity/identity under the same user, state races,
+risk of the observed development package, cleanup limits on session loss,
+current public version not consulted, incomplete native transitive licenses
+and unmeasured packaging effects. These risks are not
+implicitly accepted by the existence of this ADR.

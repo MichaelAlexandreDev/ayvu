@@ -9,55 +9,55 @@ framework, store, format or provider: it receives them as ports from a compositi
 [resume](job-recovery.md) of a job it left behind. Dry run, preview and a resume file that recomputes to no job have no
 project to run in, so they keep the current flow behind `translate_without_project`.
 
-## Seleção explícita do runtime (#252)
+## Explicit runtime selection (#252)
 
-`ayvu.composition.cli` resolve `translator_models` para o tradutor escolhido e
-`ayvu.composition.builders.translate_project` constrói `LegacyTranslationRuntime` ou
-`RichTranslationRuntime`. Sem rótulo, a composição e o fingerprint legados permanecem
-os mesmos. O rótulo válido (`[a-z0-9][a-z0-9_-]{0,47}`) produz o modelo
-`declared:<rótulo>`; `unknown` não foi tornado elegível. **Trocar o modelo do servidor
-sem atualizar o rótulo reutiliza resultados antigos sob a mesma declaração.**
+`ayvu.composition.cli` resolves `translator_models` for the selected translator and
+`ayvu.composition.builders.translate_project` constructs `LegacyTranslationRuntime` or
+`RichTranslationRuntime`. Without a label, legacy composition and fingerprint remain
+the same. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
+`declared:<label>`; `unknown` has not been made eligible. **Changing the server model
+without updating the label reuses old results under the same declaration.**
 
-O runtime rico prepara `SQLiteExactCache` em `<nome de --cache>.v2.sqlite` antes de
-preparar o provedor; não abre nem migra o v1. Exige `--workers 1` e recusa
-`--translation-memory`, `--cache-only` e `--require-full-cache`. Não há identidade/rota
-offline fixada para oferecer cache-only rico nesta integração. Preflight sanitiza
-recusas do cache. A autorização HTTP existente é reutilizada, sem novas requisições.
+In the #252 integration described here, the rich runtime prepares `SQLiteExactCache` at `<--cache name>.v2.sqlite` before
+preparing the provider; it neither opens nor migrates v1. It requires `--workers 1` and refuses
+`--translation-memory`, `--cache-only` and `--require-full-cache`. There is no pinned offline
+identity/route to offer rich cache-only in this integration. Preflight sanitizes
+cache refusals. Existing HTTP authorization is reused, without new requests.
 
-Um consumidor de aplicação pode injetar `ProjectTranslation.translation_context`
-com snapshots e autorização explícitos. A [política de contexto limitado](translation-context.md)
-prepara e valida a divulgação antes dos repositórios/provider, revalida na saída
-de cada chamada e inclui o efeito no fingerprint do job somente quando declarado.
-Isso não cria autorização implícita a partir de um perfil ou configuração da CLI.
+An application consumer may inject `ProjectTranslation.translation_context`
+with explicit snapshots and authorization. The [bounded context policy](translation-context.md)
+prepares and validates disclosure before repositories/provider, revalidates at each
+call's egress and includes the effect in the job fingerprint only when declared.
+This does not create implicit authorization from a profile or CLI configuration.
 
-O port recebe um `RuntimeContext` com job real, cancelamento e canal de eventos.
-Antes de cada documento, a composição consulta o job atual para observar leases
-renovados, mantendo o token do dono original para não adotar a posse de outro processo.
-`TranslationResources.prepare_document` prepara as execuções de um documento antes de
-o engine consumir suas unidades. Só a composição conhece `DocumentTranslator` e seus
-repositórios. Exceções na preparação interrompem o livro; o engine e o caso de uso
-não selecionam runtime. O engine mantém o progresso de capítulos; eventos internos de
-progresso de documento não são intercalados com essa sequência. Avisos são encaminhados,
-e cancelamento é emitido uma vez no encerramento.
+The port receives a `RuntimeContext` with a real job, cancellation and event channel.
+Before each document, composition queries the current job to observe renewed
+leases, keeping the original owner's token to avoid adopting another process's ownership.
+`TranslationResources.prepare_document` prepares a document's executions before
+the engine consumes its units. Only composition knows `DocumentTranslator` and its
+repositories. Preparation exceptions stop the book; the engine and use case
+do not select runtime. The engine retains chapter progress; internal document
+progress events are not interleaved with that sequence. Warnings are forwarded,
+and cancellation is emitted once at closure.
 
-O comando carrega identidade genérica de execução: revisão `1` no legado e `2` no
-rico, produtor opcional e papéis adicionais de saída. A revisão é gravada em
-`JobRequest.command_version`, com `translated_output` e `raw_results` em `output_roles`
-no rico; a proveniência `execution_identity` e os registros de resultado guardam o
-produtor declarado. O fingerprint do job inclui essas dimensões apenas quando declaradas.
-A continuação compara as revisões antes de criar o novo job e recusa `runtime_mismatch`;
-a CLI nomeia `legacy/v1` e `rich/v2`. O checkpoint rico guarda somente a revisão de
-execução `2`; o rótulo não é copiado. A recuperação refaz o fingerprint com o produtor
-já registrado no job, independentemente da configuração atual. Sem prova, recusa a
-associação em vez de rebaixar a entrada para v1. Checkpoints legados omitem o campo novo.
+The command carries generic execution identity: revision `1` in legacy and `2` in
+rich, optional producer and additional output roles. The revision is recorded in
+`JobRequest.command_version`, with `translated_output` and `raw_results` in `output_roles`
+in rich; `execution_identity` provenance and result records store the
+declared producer. The job fingerprint includes these dimensions only when declared.
+Continuation compares revisions before creating the new job and refuses `runtime_mismatch`;
+the CLI names `legacy/v1` and `rich/v2`. The rich checkpoint stores only execution
+revision `2`; the label is not copied. Recovery recomputes the fingerprint with the producer
+already recorded in the job, regardless of current configuration. Without proof, it refuses
+association rather than downgrading the entry to v1. Legacy checkpoints omit the new field.
 
-Uma falha do provedor no rico deixa um job `failed`, retomável, sem EPUB parcial.
-Segmentos já concluídos permanecem em v2; o retry usa esses valores pré-glossário.
-O runtime aplica o glossário em cada execução, inclusive sobre acertos do cache.
-Resultados brutos são produzidos por documento. Uma continuação recebe a cadeia de jobs
-anteriores em `RuntimeContext.reusable_jobs` e só reaproveita o que prova igual (#242,
-[recuperação](job-recovery.md#replay-through-a-continuation-242)). Publicação, validação, relatório e exportação de revisão seguem
-os mesmos ports do caminho legado, preservando o EPUB original.
+A provider failure in rich leaves a resumable `failed` job, without a partial EPUB.
+Already completed segments remain in v2; retry uses these pre-glossary values.
+The runtime applies the glossary on each run, including on cache hits.
+Raw results are produced per document. A continuation receives the previous job chain
+in `RuntimeContext.reusable_jobs` and reuses only what it proves equal (#242,
+[recovery](job-recovery.md#replay-through-a-continuation-242)). Publication, validation, reporting and review export follow
+the same ports as the legacy path, preserving the original EPUB.
 
 | Module | Layer | Responsibility |
 | --- | --- | --- |

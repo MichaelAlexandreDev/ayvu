@@ -50,6 +50,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote B1: 16 documentos de módulos e fronteiras traduzidos para inglês, com links e
+  leitor documental ajustados; decisões, contratos e exemplos preservados, sem mover ou fundir arquivos.
+
 - REF-20 (#288), lote A: cabeçalhos das 21 decisões de arquitetura padronizados, com teste de formato e
   inventário; estados, datas e registros de aceite preservados, sem mover ou dividir documentos.
 

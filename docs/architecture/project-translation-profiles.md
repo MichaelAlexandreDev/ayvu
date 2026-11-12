@@ -1,54 +1,54 @@
-# Perfis de tradução versionados do projeto
+# Versioned project translation profiles
 
-O contrato da issue #163 usa os donos das dependências #134 (manifesto/CAS),
-#152 (preferências v1), #153 (identidade semântica do cache bruto) e #157
-(referência/revisão de glossário). Nenhuma migração acontece durante leitura,
-abertura de projeto ou tradução. O pipeline de produção ainda não consome os
-snapshots nem as projeções descritas aqui.
+The #163 contract uses dependency owners #134 (manifest/CAS),
+#152 (v1 preferences), #153 (raw cache semantic identity) and #157
+(glossary reference/revision). No migration occurs during reading,
+project opening or translation. The production pipeline does not yet consume the
+snapshots or projections described here.
 
-## Donos e esquema fechado
+## Owners and closed schema
 
-`projects/profiles/model.py` contém valores imutáveis e a política de resolução v1;
-`projects/profiles/service.py` contém histórico, portas e casos de uso. Ambos
-são contratos da aplicação, sem JSON, filesystem, SQLite, provedor ou interface.
-A referência do glossário continua pertencendo a `knowledge.glossary.catalog`; não é
-substituída por UUID, hash de caminho ou novo registro de identidade.
+`projects/profiles/model.py` contains immutable values and v1 resolution policy;
+`projects/profiles/service.py` contains history, ports and use cases. Both
+are application contracts, without JSON, filesystem, SQLite, provider or interface.
+The glossary reference still belongs to `knowledge.glossary.catalog`; it is not
+replaced by a UUID, path hash or new identity registry.
 
-O esquema v1 exige exatamente `version`, `target_language`, `glossary`, `style`.
-Os três últimos aceitam null. Um glossário presente exige exatamente `reference`
-e `revision`. O idioma preserva a validação e o limite de 35 caracteres da #152;
-o estilo aceita null ou `neutral`, `technical`, `literary`, `academic`. A referência
-gerenciada usa a validação e os limites da #157; a revisão é o token exato de
-64 dígitos hexadecimais retornado por ela. Não existe campo de caminho, nome de
-perfil, extensão ou configuração do provedor. Campos e versões desconhecidos,
-tipos incorretos e chaves duplicadas são recusados integralmente.
+Schema v1 requires exactly `version`, `target_language`, `glossary`, `style`.
+The last three accept null. A present glossary requires exactly `reference`
+and `revision`. Language preserves #152 validation and the 35-character limit;
+style accepts null or `neutral`, `technical`, `literary`, `academic`. The managed
+reference uses #157 validation and limits; revision is the exact
+64-hex-digit token returned by it. There is no path, profile name,
+extension or provider configuration field. Unknown fields and versions,
+incorrect types and duplicate keys are refused in full.
 
-Referências de projeto reutilizam a identidade UUID da #134. Referências de
-perfil são tokens `profile:` opacos aceitos pela #134, emitidos de aleatoriedade
-independente de conteúdo, nome, processo e relógio. Uma revisão é o SHA-256 da
-projeção canônica versionada do conteúdo. O hash inclui o estilo inerte para
-registrar mudanças de metadados, sem torná-las semântica do provedor.
+Project references reuse #134 UUID identity. Profile
+references are opaque `profile:` tokens accepted by #134, issued from randomness
+independent of content, name, process and clock. A revision is the SHA-256 of the
+versioned canonical content projection. The hash includes inert style to
+record metadata changes without making them provider semantics.
 
-A serialização canônica interna tem tags: null `n`, booleanos `t`/`f`, inteiro
-`i<decimal>;`, string UTF-8 `s<bytes>:<conteúdo>`, sequência
-`l<quantidade>:<itens>`, mapa `m<sequência de pares ordenados por chave>`.
-As chaves do esquema são ASCII fixas; o conteúdo legado não é renormalizado.
-O adaptador JSON usa chaves ordenadas, null explícito e rejeita constantes e
-duplicatas em todos os níveis. Nenhum JSON entra nas portas.
+Internal canonical serialization has tags: null `n`, booleans `t`/`f`, integer
+`i<decimal>;`, UTF-8 string `s<bytes>:<conteúdo>`, sequence
+`l<quantidade>:<itens>`, map `m<sequência de pares ordenados por chave>`.
+Schema keys are fixed ASCII; legacy content is not renormalized.
+The JSON adapter uses sorted keys, explicit null and rejects constants and
+duplicates at all levels. No JSON enters the ports.
 
-Audiência, tom, formalidade, termos protegidos, voz de obra/personagem, contexto
-de capítulo, restrições de formato e ativação do estilo são adições futuras de
-esquema/política versionados. Não são inferidos do nome, do livro ou do glossário.
+Audience, tone, formality, protected terms, work/character voice, chapter
+context, format constraints and style activation are future additions to
+versioned schema/policy. They are not inferred from the name, book or glossary.
 
-## Migração explícita e janela de compatibilidade
+## Explicit migration and compatibility window
 
-Durante toda a janela v1, `--profile`, `--target`, `--glossary` e o modo guiado
-mantêm o comportamento existente. Não há comando novo de migração. O consumidor
-legado continua disponível nesta versão, sem data de remoção; encerrar a janela
-exige uma mudança futura explícita e documentada. O consumidor
-da aplicação deve fornecer a raiz de processamento e a raiz gerenciada pela
-composição, o projeto existente, sua revisão esperada e a referência de destino.
-Exemplo para um chamador autorizado, com repositório de preferências já composto:
+Throughout the v1 window, `--profile`, `--target`, `--glossary` and guided mode
+retain existing behavior. There is no new migration command. The legacy
+consumer remains available in this version, without a removal date; closing the window
+requires a future explicit, documented change. The application
+consumer must supply processing root and managed root through
+composition, the existing project, its expected revision and destination reference.
+Example for an authorized caller with an already composed preferences repository:
 
 ```python
 from ayvu.composition.builders.profiles import project_profile_service
@@ -61,119 +61,119 @@ result = service.migrate(preferences_repository, legacy_name,
 print(result.diagnostic())  # outcome tipado, sem dados privados
 ```
 
-O chamador deve tratar `migrated`, `already_migrated`, `conflict`,
+The caller must handle `migrated`, `already_migrated`, `conflict`,
 `unresolved_glossary`, `unsupported_version`, `invalid_profile`, `cancelled`,
-`persistence`, `not_found`, `invalid_plan`, `limit`. Só os resultados de sucesso
-contêm estado/snapshot publicado. Não descarte recusas ou suponha sucesso porque
-o perfil foi validado. Uma origem com campos desconhecidos/read-only é recusada.
-Não há avisos retornados e ignorados por uma interface.
+`persistence`, `not_found`, `invalid_plan`, `limit`. Only successful results
+contain published state/snapshot. Do not discard refusals or assume success because
+the profile validated. A source with unknown/read-only fields is refused.
+There are no warnings returned and ignored by an interface.
 
-O nome seleciona uma entrada validada da #152, sem participar da identidade.
-O recibo persistido contém destino e revisão inicial, sem nome ou caminho.
-Repetir a mesma migração para o mesmo destino devolve `already_migrated`, inclusive
-após uma edição posterior no projeto: não desfaz essa edição. Conteúdo divergente
-para esse destino retorna conflito. Um destino novo requer a revisão atual do
-projeto e uma migração explícita distinta. A origem global não é salva nem apagada.
+The name selects a validated #152 entry without participating in identity.
+The persisted receipt contains destination and initial revision, without name or path.
+Repeating the same migration to the same destination returns `already_migrated`, including
+after a later project edit: it does not undo that edit. Divergent content
+for that destination returns conflict. A new destination requires the project's current
+revision and a distinct explicit migration. The global source is neither saved nor deleted.
 
-Caminhos relativos de glossário usam somente a raiz gerenciada injetada.
-Caminhos absolutos são aceitos apenas quando o arquivo canonicalizado é filho
-direto dessa raiz. O adaptador consulta #157, reutiliza suas regras de leitura e
-seu lock e fixa a revisão exata. Ausência, caminho externo, aliases de caixa/NFC,
-link simbólico, múltiplos hard links, arquivo inválido ou revisão obsoleta bloqueiam
-a migração com motivo fechado (`missing`, `external`, `ambiguous`, `unsafe`,
-`stale`, `io`) e sem atualizar o projeto. Resolva o problema no catálogo e repita
-explicitamente. Um glossário externo continua utilizável pelo caminho legado da
-CLI; ele não recebe referência gerenciada fictícia.
+Relative glossary paths use only the injected managed root.
+Absolute paths are accepted only when the canonicalized file is a direct
+child of that root. The adapter queries #157, reuses its read rules and
+lock and pins the exact revision. Absence, external path, case/NFC aliases,
+symlink, multiple hard links, invalid file or stale revision block
+migration with a closed reason (`missing`, `external`, `ambiguous`, `unsafe`,
+`stale`, `io`) and without updating the project. Resolve the issue in the catalog and retry
+explicitly. An external glossary remains usable through the legacy CLI
+path; it receives no fictitious managed reference.
 
-O alvo null preserva a intenção de default. Na resolução, a ordem é override
-explícito não vazio, alvo do perfil, default do chamador (padrão `pt`). O fluxo
-guiado pode fornecer seu default global, como já faz hoje. Overrides ficam no
-snapshot, nunca no perfil migrado. `glossary_present=False` herda o glossário;
-`True` seleciona a referência fornecida e null explícito desativa a seleção.
-Valor presente com `glossary_present=False` é ambíguo e recusado.
+A null target preserves default intent. Resolution order is explicit
+nonempty override, profile target, caller default (default `pt`). Guided
+flow may supply its global default, as it already does today. Overrides stay in the
+snapshot, never in the migrated profile. `glossary_present=False` inherits the glossary;
+`True` selects the supplied reference and explicit null disables selection.
+A present value with `glossary_present=False` is ambiguous and refused.
 
-## Resolução, fatos confiáveis e efeitos
+## Resolution, trusted facts and effects
 
-`service.write` cria/atualiza um perfil com as revisões esperadas de projeto e
-perfil. `service.resolve` exige essas revisões, `PlanFacts` e `ProfileOverrides`;
-`repository.read(project)` permite ler os perfis, revisões e snapshots históricos.
-Resolva o alvo e a seleção antes de fornecer a projeção exata do pedido planejado.
-Não construa um pedido ao provedor a partir deste contrato nesta issue.
+`service.write` creates/updates a profile with expected project and profile
+revisions. `service.resolve` requires these revisions, `PlanFacts` and `ProfileOverrides`;
+`repository.read(project)` allows reading profiles, revisions and historical snapshots.
+Resolve target and selection before supplying the exact projection of the planned request.
+Do not construct a provider request from this contract in this issue.
 
-Um snapshot fixa projeto/revisão de entrada, referência/revisão/conteúdo do perfil,
-overrides explícitos, default, glossário/revisão, política v1, fatos do plano e
-classificação completa. Mesmos valores e ordem distinta dos mapas produzem os
-mesmos bytes e identidade entre processos. Publicar o snapshot avança a revisão
-do manifesto; o snapshot registra a revisão de entrada anterior à publicação.
-Repetir sua resolução exata imediatamente retorna o mesmo snapshot, revalidando
-glossários e a revisão atual do perfil. Mudanças posteriores do manifesto exigem
-nova resolução ou leitura explícita do histórico. Ler histórico não exige
-que o glossário atual ainda tenha a revisão histórica; criar um snapshot novo
-exige revalidar todas as referências vinculadas, inclusive a seleção sobrescrita.
+A snapshot pins input project/revision, profile reference/revision/content,
+explicit overrides, default, glossary/revision, v1 policy, plan facts and
+full classification. Equal values and different map order produce the
+same bytes and identity across processes. Publishing the snapshot advances the manifest
+revision; the snapshot records the input revision before publication.
+Immediately repeating its exact resolution returns the same snapshot, revalidating
+glossaries and current profile revision. Later manifest changes require
+new resolution or explicit history reading. Reading history does not require
+the current glossary to retain the historical revision; creating a new snapshot
+requires revalidating all bound references, including the overridden selection.
 
-Somente a política v1 deriva as classes; o chamador fornece fatos tipados do plano
-negociado: estágio, projeção exata do pedido/capacidade e estágio do glossário.
-Esses fatos são fornecidos pela composição confiável, não por documento, resposta
-do provedor ou metadados do adaptador. Não há campo para escolher a classe.
-Pedido incompatível com alvo, suporte desconhecido de terminologia, política
-ausente e classificação incompleta falham antes da publicação.
+Only v1 policy derives classes; the caller supplies typed facts from the negotiated
+plan: stage, exact request/capability projection and glossary stage.
+These facts come from trusted composition, not from document, provider
+response or adapter metadata. There is no field to select a class.
+A request incompatible with target, unknown terminology support, missing
+policy and incomplete classification fail before publication.
 
-| Dimensão | Plano | Classe | Efeito |
+| Dimension | Plan | Class | Effect |
 | --- | --- | --- | --- |
-| Idioma alvo | translate/replay | raw-provider-affecting | Contribui para a identidade bruta |
-| Glossário | post_cache | downstream-only | Muda replay/invalidação downstream; mantém contribuição bruta |
-| Glossário | provider, com suporte negociado e seleção/política exatas | raw-provider-affecting | Referência, revisão, capacidade e política contribuem antes de lookup futuro |
-| Glossário | none | inert | Seleção registrada, sem contribuição efetiva |
-| Estilo legado | todos | inert | Revisão de metadados e snapshot mudam; pedido, saída bruta e cache não |
-| Estágio de execução | todos | operational-only | Snapshot muda; contribuição semântica bruta não |
-| Alvo/glossário | inspect | inert | Nenhum pedido ou lookup autorizado por esse plano |
+| Target language | translate/replay | raw-provider-affecting | Contributes to raw identity |
+| Glossary | post_cache | downstream-only | Changes downstream replay/invalidation; retains raw contribution |
+| Glossary | provider, with negotiated support and exact selection/policy | raw-provider-affecting | Reference, revision, capability and policy contribute before future lookup |
+| Glossary | none | inert | Selection recorded, without effective contribution |
+| Legacy style | all | inert | Metadata revision and snapshot change; request, raw output and cache do not |
+| Execution stage | all | operational-only | Snapshot changes; raw semantic contribution does not |
+| Target/glossary | inspect | inert | No request or lookup authorized by this plan |
 
-`raw_semantic_contribution()` fornece argumentos limitados para
-`knowledge.cache.identity_values.OpaqueSemanticRevision` da #153. Sua referência `profile_effect:`
-é resolvida por `state.raw_projection(reference)` a evidência bruta durável
-presente nos snapshots. Ela depende só da partição bruta e versão da política;
-nunca use o hash do snapshot completo no cache. A identidade geral de provedor,
-rota e demais políticas continua pertencendo à #153, não é substituída aqui.
-`effects.downstream_projection()` entrega a partição separada. Nomes, caminhos,
-texto de glossário, estilo, labels, overrides inertes e estágio operacional não
-entram na contribuição bruta. A terminologia enviada usa contribuição opaca
-derivada da referência/revisão/política efetivas, sem expor nome ou conteúdo.
+`raw_semantic_contribution()` supplies bounded arguments for
+#153 `knowledge.cache.identity_values.OpaqueSemanticRevision`. Its `profile_effect:` reference
+is resolved by `state.raw_projection(reference)` to durable raw evidence
+present in snapshots. It depends only on the raw partition and policy version;
+never use the full snapshot hash in cache. Overall provider identity,
+route and other policies still belong to #153 and are not replaced here.
+`effects.downstream_projection()` delivers the separate partition. Names, paths,
+glossary text, style, labels, inert overrides and operational stage do not
+enter raw contribution. Sent terminology uses an opaque contribution
+derived from effective reference/revision/policy, without exposing name or content.
 
-Não existe alteração de chave/schema do cache, migração de linhas, lookup ou
-reconstrução automática. O cache continua armazenando tradução bruta; glossário
-pós-cache deve ser reaplicado em futuros consumidores. Proveniência futura deve
-guardar a referência histórica do snapshot, sem reabrir o ponteiro atual e
-atribuir retroativamente uma revisão nova a um artefato antigo. Ativar estilo
-exige nova política/esquema e contribuição raw explícita, sem reinterpretar v1.
+There is no cache key/schema change, row migration, lookup or automatic
+reconstruction. Cache continues storing raw translation; post-cache glossary
+must be reapplied by future consumers. Future provenance must
+store the historical snapshot reference, without reopening the current pointer and
+retroactively assigning a new revision to an old artifact. Activating style
+requires new policy/schema and explicit raw contribution, without reinterpreting v1.
 
-## Publicação, retenção e privacidade
+## Publication, retention and privacy
 
-`projects.profiles.store` usa o mesmo lock de workspace e CAS da #134. O manifesto
-continua v1: `x-translation-profiles` aponta para um registro local imutável
-`profiles:<digest>`. A identidade imutável original do projeto não é alterada.
-O registro guarda heads, revisões anteriores, recibos e snapshots; uma atualização
-é append-only. Limites: 64 perfis/recibos, 1.024 revisões e 1.024 snapshots por
-projeto, 8 MiB por registro serializado. Exaustão retorna `limit`, sem truncamento.
+`projects.profiles.store` uses the same workspace lock and CAS as #134. The manifest
+remains v1: `x-translation-profiles` points to an immutable local record
+`profiles:<digest>`. Original immutable project identity is unchanged.
+The record stores heads, earlier revisions, receipts and snapshots; an update
+is append-only. Limits: 64 profiles/receipts, 1,024 revisions and 1,024 snapshots per
+project, 8 MiB per serialized record. Exhaustion returns `limit`, without truncation.
 
-Arquivos privados de estado são preparados e sincronizados antes da substituição
-atômica do manifesto, com modo 0600 e diretório 0700. A substituição preserva um
-modo anterior mais restrito do manifesto. Um cancelamento antes da publicação,
-revisão obsoleta ou erro mantém o manifesto anterior. Erro de sync após rename
-restaura os bytes anteriores e retorna falha; como na #157, filesystem com falha
-persistente não permite prometer durabilidade do rollback. Processos que ignoram
-locks têm a mesma janela residual POSIX da #157 após a última revalidação.
-Não existe ponto de cancelamento entre publicação bem-sucedida e retorno.
+Private state files are prepared and synchronized before atomic manifest
+replacement, with mode 0600 and directory 0700. Replacement preserves a
+more restrictive previous manifest mode. Cancellation before publication,
+stale revision or error retains the previous manifest. A sync error after rename
+restores previous bytes and returns failure; as in #157, a persistently failing
+filesystem prevents promising rollback durability. Processes ignoring
+locks have the same residual POSIX window as #157 after the last revalidation.
+There is no cancellation point between successful publication and return.
 
-Registros preparados que nunca receberam ponteiro podem permanecer órfãos após
-falha; eles não são lidos/publicados como sucesso. Esta versão não coleta lixo nem
-remove revisões/snapshots históricos. Referências de jobs/artefatos futuros exigem
-retenção, não mutação do histórico. Todos os leitores usam o ponteiro publicado;
-leitura de um snapshot desconhecido falha com `not_found`.
+Prepared records that never received a pointer may remain orphaned after
+failure; they are not read/published as success. This version neither collects garbage nor
+removes historical revisions/snapshots. Future job/artifact references require
+retention, not history mutation. All readers use the published pointer;
+reading an unknown snapshot fails with `not_found`.
 
-Persistência local contém as referências/revisões necessárias, mas não caminhos
-legados, conteúdo do glossário/livro, credenciais, endpoint ou nome do perfil.
-Repr, exceções normalizadas e `diagnostic()` omitem identificadores, revisões e
-fingerprints. Mapas/bytes canônicos são payload privado de persistência/contrato,
-não diagnóstico ou bundle de suporte. Apresentação autorizada pode mostrar o nome
-legado ou local deliberadamente; não os propague para eventos ou proveniência
-padrão. Estes casos de uso não emitem eventos nem efetuam chamadas de tradução.
+Local persistence contains necessary references/revisions, but no legacy
+paths, glossary/book content, credentials, endpoint or profile name.
+Repr, normalized exceptions and `diagnostic()` omit identifiers, revisions and
+fingerprints. Canonical maps/bytes are private persistence/contract payload,
+not diagnostics or support bundles. Authorized presentation may deliberately show the
+legacy or local name; do not propagate them to default events or provenance.
+These use cases neither emit events nor make translation calls.

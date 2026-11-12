@@ -11,7 +11,7 @@ reproducible with `scripts/arch_metrics.py`.
 ## Acceptance record
 
 Accepted on 2026-11-10 by the repository owner, through explicit approval in the development session
-("eu aceito o REF-02"), with no restrictions on D1 to D14, the target tree, the file map or the sequence.
+(translated quotation: "I accept REF-02"), with no restrictions on D1 to D14, the target tree, the file map or the sequence.
 
 Two additions accepted at the same time:
 - **D15**, the language rule below.

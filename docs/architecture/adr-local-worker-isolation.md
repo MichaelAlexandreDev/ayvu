@@ -5,311 +5,311 @@ Decision-Date: `2026-11-06`
 Owners: Project maintainer (acceptance)
 Issue: [#167](https://github.com/DevStarrk1137/ayvu/issues/167).
 
-Aceita em 2026-11-10 pelo mantenedor; ver o [registro de aceite](#registro-de-aceite).
-O aceite não habilita um runner em produção.
+Accepted on 2026-11-10 by the maintainer; see the [acceptance record](#acceptance-record).
+Acceptance does not enable a production runner.
 
-## Gate e comportamento preservado
+## Gate and preserved behavior
 
-O gate foi verificado no `main` local, HEAD `3e667fb`, sem rede. Os cinco
-artefatos estão versionados nesse commit:
+The gate was checked on local `main`, HEAD `3e667fb`, without network access. The five
+artifacts are versioned in that commit:
 
-| Dependência | Artefato e fato necessário |
+| Dependency | Artifact and required fact |
 | --- | --- |
-| #124 | [Stack Desktop](adr-desktop-stack.md#acceptance-record): `Accepted`, aceite do mantenedor em 2026-11-05; PySide6/Qt Widgets, Linux x86_64 como primeiro alvo de avaliação/produto; Windows/macOS adiados até evidência nativa |
-| #126 | [Eventos e cancelamento](job-events-cancellation.md): schema 1, produtor único, outcome, falhas e safe points |
-| #129 | [Threat model](product-threat-model.md): `Accepted`, aceite em 2026-11-05; subprocesso não é sandbox |
-| #137 | [Artefatos](job-artifacts.md): `Accepted`, staging/ready/abandoned, lease e reconciliação |
-| #159 | [Política HTTP](network-policy.md): `none`/`loopback`, negação antes de I/O e sem autoridade ambiente |
+| #124 | [Desktop stack](adr-desktop-stack.md#acceptance-record): `Accepted`, maintainer approval on 2026-11-05; PySide6/Qt Widgets, Linux x86_64 as the first evaluation/product target; Windows/macOS deferred until native evidence |
+| #126 | [Events and cancellation](job-events-cancellation.md): schema 1, single producer, outcome, failures and safe points |
+| #129 | [Threat model](product-threat-model.md): `Accepted`, approval on 2026-11-05; a subprocess is not a sandbox |
+| #137 | [Artifacts](job-artifacts.md): `Accepted`, staging/ready/abandoned, lease and reconciliation |
+| #159 | [HTTP policy](network-policy.md): `none`/`loopback`, denial before I/O and no ambient authority |
 
-A #124 aceita o toolkit, mantendo gates de distribuição/acessibilidade. Não
-existe suporte Desktop entregue. A interpretação conservadora para esta matriz
-é medir Linux x86_64, sem promover Windows/macOS a alvos aceitos. Trechos antigos
-da #124 ainda dizem que o aceite está pendente; prevalece seu registro explícito.
-Esta pesquisa não modifica plataformas nem resolve os gates de release.
+#124 accepts the toolkit while retaining distribution/accessibility gates. No
+Desktop support has been delivered. The conservative interpretation for this matrix
+is to measure Linux x86_64, without promoting Windows/macOS to accepted targets. Older
+passages in #124 still say acceptance is pending; its explicit record takes precedence.
+This research does not change platforms or resolve release gates.
 
-O paralelismo de `formats/epub/io.py` com `ThreadPoolExecutor`, callbacks da CLI e retomada
-v1 continua intacto. A `main` já tem contratos de jobs e artefatos posteriores ao
-contexto original da issue; sua existência não é um supervisor de processos nem
-prova de contenção. A CLI `--help` foi executada em home/config/cwd temporários:
-código 0, 3973 bytes de stdout e nenhum stderr.
+Parallelism in `formats/epub/io.py` with `ThreadPoolExecutor`, CLI callbacks and v1
+resume remains intact. `main` already has job and artifact contracts later than the
+issue's original context; their existence is neither a process supervisor nor
+proof of containment. CLI `--help` was run with temporary home/config/cwd:
+exit code 0, 3973 bytes of stdout and no stderr.
 
-## Recomendação reversível e confiança inicial
+## Reversible recommendation and initial trust
 
-Propor `subprocess.Popen` com entrada fixa do pacote e um `AF_UNIX socketpair`
-anônimo herdado para IPC, um worker por execução e grupo de processos próprio.
-Os dois canais stdout/stderr ficam separados do protocolo. A escolha prioriza
-essa separação e a ausência de endpoint nomeado; os tempos próximos não provam
-superioridade de desempenho. Não reutilizar processos entre jobs na v1.
+Propose `subprocess.Popen` with a fixed package entry point and an inherited anonymous
+`AF_UNIX socketpair` for IPC, one worker per run and its own process group.
+Both stdout/stderr channels stay separate from the protocol. The choice prioritizes
+this separation and the absence of a named endpoint; the similar timings do not prove
+performance superiority. Do not reuse processes between jobs in v1.
 
-**Somente comandos in-tree revisados e allowlisted são confiáveis.** O chamador
-seleciona um identificador e um schema fechado; não fornece executável, módulo,
-código, argv livre ou shell. Plugins, dependências de origem arbitrária, modelos
-executáveis e comandos externos exigem outra decisão. Um parser comprometido
-continua com a autoridade do usuário. Esta recomendação é separação de processos,
-sem promessa de sandbox de segurança.
+**Only reviewed, allowlisted in-tree commands are trusted.** The caller
+selects an identifier and a closed schema; it supplies no executable, module,
+code, unrestricted argv or shell. Plugins, dependencies of arbitrary origin, executable
+models and external commands require another decision. A compromised parser
+retains the user's authority. This recommendation provides process separation,
+without promising a security sandbox.
 
-O lançamento mínimo é obrigatório nas duas alternativas: executável resolvido
-pela instalação confiável, entrada fixa, `shell=False`, ambiente substituído por
-allowlist mínima, cwd temporário exclusivo `0700`, `close_fds=True`, apenas IPC e
-streams exigidos herdados, limites de tempo e cleanup do grupo. No spike, Python
-usa `-I -S`, e o ambiente contém apenas `LANG=C` e `LC_ALL=C`; nem PATH, HOME,
-PYTHONPATH, proxies ou variáveis do pai são copiados. Um pacote real precisará
-validar seu bootstrap instalado; `-S` não é uma receita para importar Ayvu.
-Qualquer mecanismo que não cumpra esse mínimo fica recusado para produção.
+The minimum launch requirements are mandatory for both alternatives: an executable resolved
+from the trusted installation, a fixed entry point, `shell=False`, an environment replaced by
+a minimal allowlist, an exclusive temporary `0700` cwd, `close_fds=True`, only required IPC and
+streams inherited, time limits and group cleanup. In the spike, Python
+uses `-I -S`, and the environment contains only `LANG=C` and `LC_ALL=C`; neither PATH, HOME,
+PYTHONPATH, proxies nor parent variables are copied. A real package will need to
+validate its installed bootstrap; `-S` is not a recipe for importing Ayvu.
+Any mechanism that fails to meet this minimum is refused for production.
 
-Não existe campo de credencial ou resolução de `SecretRef`. Nem credenciais em
-argv, ambiente, arquivos temporários, mensagens ou diagnósticos são autorizadas.
-Um adaptador real de referências de segredo, aceito e implementado, é gate para
-qualquer capacidade futura que precise disso; a decisão proposta da #160 não o
-satisfaz. Canários desta pesquisa são aleatórios e sintéticos, sem credenciais.
+There is no credential field or `SecretRef` resolution. Credentials in
+argv, environment, temporary files, messages or diagnostics are not authorized.
+A real, accepted and implemented secret reference adapter is a gate for
+any future capability that needs it; the proposed #160 decision does not
+satisfy it. Canaries in this research are random and synthetic, with no credentials.
 
-## Comparação sob os mesmos critérios
+## Comparison under the same criteria
 
-| Critério | Popen + stdin/stdout com JSON framed | Popen + socketpair com JSON framed (proposto) |
+| Criterion | Popen + stdin/stdout with framed JSON | Popen + socketpair with framed JSON (proposed) |
 | --- | --- | --- |
-| Startup fresco, 7 amostras | Mediana 24,910 ms | Mediana 27,204 ms |
-| Packaging | stdlib; reexec da entrada fixa precisa de smoke no bundle | stdlib; mesmo gate de bundle, mais passagem explícita do fd |
-| Portabilidade | Pipes existem nos três OS, mas este loop POSIX com select só foi executado em Linux | AF_UNIX herdado medido somente em Linux; nenhuma promessa Windows/macOS |
-| Framing | Prefixo uint32 big-endian + JSON canônico | Mesmo framing e codec |
-| Backpressure | Pipe nativo bloqueia produtor; fila da aplicação com crédito | Socket nativo bloqueia produtor; mesma fila com crédito |
-| Stdout acidental | Corrompe o protocolo; deve falhar fechado | Drenado/descartado fora do IPC; limite independente de stderr |
-| Cancelamento | Mensagem por stdin; sem interrupção mágica de chamada bloqueada | Mensagem pelo socket; mesma limitação |
-| Crash/EOF | EOF ou deadline; código de saída necessário, insuficiente para sucesso | Idem; stdout não oculta EOF do IPC |
-| Cleanup | Grupo POSIX e espera limitada | Mesmo mecanismo; fechar as duas pontas criadas pelo pai |
-| Pai morreu | Leitor de EOF cooperativo mata o próprio grupo | Idem; escritor do pai não pode vazar para descendentes |
-| Peer/endpoint | Descritores privados criados pelo SO, sem listener | Capacidade fd privada, par criado atomicamente, sem listener/endereço em disco |
-| Throughput sintético, 128 frames | 15410,1 frames/s; 8,306 ms | 16773,9 frames/s; 7,631 ms |
+| Fresh startup, 7 samples | Median 24.910 ms | Median 27.204 ms |
+| Packaging | stdlib; reexec of the fixed entry point needs a bundle smoke test | stdlib; same bundle gate, plus explicit fd passing |
+| Portability | Pipes exist on all three OSes, but this POSIX loop with select was run only on Linux | Inherited AF_UNIX measured only on Linux; no Windows/macOS promise |
+| Framing | uint32 big-endian prefix + canonical JSON | Same framing and codec |
+| Backpressure | Native pipe blocks producer; application queue with credit | Native socket blocks producer; same queue with credit |
+| Accidental stdout | Corrupts the protocol; must fail closed | Drained/discarded outside IPC; independent stderr limit |
+| Cancellation | Message through stdin; no magic interruption of a blocked call | Message through socket; same limitation |
+| Crash/EOF | EOF or deadline; exit code necessary, insufficient for success | Same; stdout does not hide IPC EOF |
+| Cleanup | POSIX group and bounded wait | Same mechanism; close both ends created by the parent |
+| Parent died | Cooperative EOF reader kills its own group | Same; parent writer must not leak to descendants |
+| Peer/endpoint | Private OS-created descriptors, no listener | Private fd capability, pair created atomically, no listener/address on disk |
+| Synthetic throughput, 128 frames | 15410.1 frames/s; 8.306 ms | 16773.9 frames/s; 7.631 ms |
 
-Pipes permanecem alternativa viável e reversível se embalagem de descritores
-falhar. Não há mudança silenciosa de transporte: trocar exige repetir a matriz.
-`multiprocessing` com spawn também é compatível com Python, mas seus canais de
-objetos usuais e filas serializam objetos; eles ficam recusados neste desenho.
-Uma variante limitada a `send_bytes` com codec próprio demandaria os mesmos
-controles de framing e mais um bootstrap de packaging, sem benefício demonstrado.
-Não usar `Connection.recv`, `Queue`, `pickle`, `eval`, hooks de objetos, importação
-de classes pelo decoder ou exec de payload. Threads não são candidato a isolamento
-nem substituto para o caminho existente. Endpoint TCP local adicionaria listener,
-autenticação e disputa de porta desnecessários; não foi selecionado.
+Pipes remain a viable, reversible alternative if descriptor packaging
+fails. There is no silent transport change: switching requires repeating the matrix.
+`multiprocessing` with spawn is also compatible with Python, but its usual object
+channels and queues serialize objects; they are refused in this design.
+A variant limited to `send_bytes` with its own codec would require the same
+framing controls and another packaging bootstrap, with no demonstrated benefit.
+Do not use `Connection.recv`, `Queue`, `pickle`, `eval`, object hooks, decoder
+class imports or payload exec. Threads are neither an isolation candidate
+nor a replacement for the existing path. A local TCP endpoint would add an unnecessary
+listener, authentication and port contention; it was not selected.
 
-## Envelope e rejeição determinística
+## Envelope and deterministic rejection
 
-O protocolo externo é independente do schema canônico de eventos da #126.
-A forma abaixo descreve o envelope, sem IDs, conteúdo ou caminhos de usuário:
+The external protocol is independent of the canonical #126 event schema.
+The form below describes the envelope, without user IDs, content or paths:
 
 ```text
 uint32_be comprimento | JSON ASCII canônico
 {v:1, run:UUID, job:UUID, request:UUID, seq:inteiro, kind:tipo, body:objeto fechado}
 ```
 
-`run` identifica uma única tentativa; `job` é a referência opaca durável, e
-`request` correlaciona comando/resposta e a operação. Todos são UUIDs canônicos,
-sem significado de caminho ou autorização. `seq` é por direção, começa em 1 e
-cresce exatamente de um em um, abaixo de 2^31. Não é a sequência de `JobEvent`.
-Mudança de run/job/request é `invalid_peer`; lacuna/replay/regressão do transporte
-é `invalid_sequence`. Rejeições não avançam sequência. Replays duráveis continuam
-obedecendo ao `JobEventSequence`, inclusive duplicata idêntica, sem redefini-lo.
+`run` identifies a single attempt; `job` is the durable opaque reference, and
+`request` correlates command/response and the operation. All are canonical UUIDs,
+without path or authorization meaning. `seq` is per direction, starts at 1 and
+increases by exactly one, below 2^31. It is not the `JobEvent` sequence.
+A run/job/request change is `invalid_peer`; a transport gap/replay/regression
+is `invalid_sequence`. Rejections do not advance the sequence. Durable replays still
+obey `JobEventSequence`, including identical duplicates, without redefining it.
 
-| Tipo | Contrato proposto |
+| Type | Proposed contract |
 | --- | --- |
-| `hello` | Primeiro em cada direção. Pai oferece `versions:[1]`, `event_schema:1`; filho confirma `version:1`, `event_schema:1`. Sem interseção, versão desconhecida, mudança durante execução ou hello repetido: recusar, sem downgrade nem comando |
-| `command` | Um por tentativa. Tipo/version allowlisted, referências opacas de job e artefatos autorizados e deadline UTC opcional do contrato da operação. Nada de caminho, texto, URL, codec de objetos ou política nova |
-| `event` | Dados de progresso/aviso/ack conforme #126; sem strings livres. Supervisor valida os DTOs e permanece produtor único do stream durável, atribuindo IDs, timestamps, correlação e sequência canônica |
-| `cancel` | `CancellationRequest`: reason code fechado e requested_at UTC; idempotente, encaminhado ao `CancellationSource`. Ack só no safe point declarado; pedido não significa outcome |
-| `result` | Uma resposta por request: `JobOutcome` candidato segundo #126 e até 16 referências UUID de artefatos já reservados; nenhum payload ou localização. Supervisor valida lease, identidade, integridade, estado e publicação antes de decidir qualquer sucesso |
+| `hello` | First in each direction. Parent offers `versions:[1]`, `event_schema:1`; child confirms `version:1`, `event_schema:1`. No intersection, unknown version, change during execution or repeated hello: refuse, without downgrade or command |
+| `command` | One per attempt. Allowlisted type/version, opaque references to the job and authorized artifacts and optional UTC deadline from the operation contract. No path, text, URL, object codec or new policy |
+| `event` | Progress/warning/ack data according to #126; no free strings. Supervisor validates DTOs and remains the durable stream's single producer, assigning IDs, timestamps, correlation and canonical sequence |
+| `cancel` | `CancellationRequest`: closed reason code and UTC requested_at; idempotent, forwarded to `CancellationSource`. Ack only at the declared safe point; request does not mean outcome |
+| `result` | One response per request: candidate `JobOutcome` according to #126 and up to 16 UUID references to already reserved artifacts; no payload or location. Supervisor validates lease, identity, integrity, state and publication before deciding any success |
 
-No spike não existe job runner: `event.body.event` carrega fixtures canônicas da
-#126 e `result` usa `artifacts:[]`. O teste decodifica as fixtures com o decoder e
-ordenador reais, inclusive request/ack/outcome cancelado. A implementação futura
-terá o supervisor como produtor único; não copiar o produtor sintético do spike.
-Os campos numéricos `pids` e flags de autoridade são extensões **exclusivas de
-probe**, não campos de produção nem diagnósticos persistíveis.
+There is no job runner in the spike: `event.body.event` carries canonical #126
+fixtures and `result` uses `artifacts:[]`. The test decodes the fixtures with the real
+decoder and ordering logic, including cancelled request/ack/outcome. The future implementation
+will have the supervisor as single producer; do not copy the spike's synthetic producer.
+The numeric `pids` fields and authority flags are **probe-only** extensions,
+not production fields or persistable diagnostics.
 
-A leitura verifica o prefixo antes de reservar corpo. JSON padrão, sem hooks,
-passa por limite lexical de profundidade antes do parser e re-encoding canônico
-com igualdade byte a byte. Isso recusa duplicatas, whitespace alternativo, UTF-8
-não canônico, campos extras/ausentes, NaN/Infinity e formas executáveis. UUIDs,
-tipos exatos (bool não é inteiro), schemas e direção são validados antes de usar
-um payload. O validador de produção reutilizará os contratos existentes para o
-corpo; não substituirá `decode_event` nem suas regras de ordenação.
+Reading checks the prefix before reserving a body. Standard JSON, without hooks,
+passes through a lexical depth limit before parsing and canonical re-encoding
+with byte-for-byte equality. This rejects duplicates, alternative whitespace, noncanonical
+UTF-8, extra/missing fields, NaN/Infinity and executable forms. UUIDs,
+exact types (bool is not an integer), schemas and direction are validated before using
+a payload. The production validator will reuse the existing contracts for the
+body; it will not replace `decode_event` or its ordering rules.
 
-| Orçamento determinístico da pesquisa/proposta inicial | Limite |
+| Deterministic budget for the research/initial proposal | Limit |
 | --- | --- |
-| Corpo de frame / cabeçalho | 32768 bytes / 4 bytes |
-| Evento canônico interno | 16384 bytes, conforme #126 |
-| Profundidade JSON | 8 níveis antes do parse |
-| Fila de aplicação | 8 frames (262144 bytes brutos), mais um frame em leitura e um em escrita; objetos Python têm overhead adicional |
-| Jobs/comandos simultâneos por canal | 1; controle de cancelamento precisa de leitor independente do trabalho |
-| I/O de frame | 1 s total por frame, sem renovar em cada fragmento |
-| Startup | até 1 s para envio de hello + 3 s para resposta; encerrar se não completar |
-| Deadline de operação | UTC recebido pela operação, convertido uma vez para relógio monotônico; clamp ao orçamento local; nunca estendido por progresso/retry |
-| Cancel grace / TERM / KILL | 250 ms / 250 ms / 1000 ms; no máximo 1500 ms após pedido de cancelamento antes de declarar cleanup pendente |
-| Fechamento da sessão | até 1250 ms de término + duas esperas de dreno de 1000 ms (3250 ms); limite sob escalonamento normal, sem garantia de tempo real |
-| Stdout e stderr | 16384 bytes cada como quota cumulativa; descartar os bytes, contador saturado em 16385; ultrapassar recusa sucesso |
-| Buffer por dreno | 4096 bytes; continua descartando até encerramento, sem acumular saída |
-| Caso de teste / medição completa | 8 s por teste (SIGALRM); 120 s no coletor e comando externo de teste |
+| Frame body / header | 32768 bytes / 4 bytes |
+| Internal canonical event | 16384 bytes, according to #126 |
+| JSON depth | 8 levels before parsing |
+| Application queue | 8 frames (262144 raw bytes), plus one frame being read and one being written; Python objects have additional overhead |
+| Simultaneous jobs/commands per channel | 1; cancellation control needs a reader independent of the work |
+| Frame I/O | 1 s total per frame, without renewal for each fragment |
+| Startup | up to 1 s to send hello + 3 s for the response; terminate if incomplete |
+| Operation deadline | UTC received by the operation, converted once to a monotonic clock; clamp to the local budget; never extended by progress/retry |
+| Cancel grace / TERM / KILL | 250 ms / 250 ms / 1000 ms; at most 1500 ms after a cancellation request before declaring cleanup pending |
+| Session closure | up to 1250 ms for termination + two 1000 ms drain waits (3250 ms); limit under normal scheduling, no real-time guarantee |
+| Stdout and stderr | 16384 bytes each as a cumulative quota; discard bytes, counter saturated at 16385; exceeding it refuses success |
+| Buffer per drain | 4096 bytes; keeps discarding until termination, without accumulating output |
+| Test case / full measurement | 8 s per test (SIGALRM); 120 s in the collector and external test command |
 
-A fila cheia impede nova leitura até liberar crédito; nenhum evento aceito é
-silenciosamente perdido. Produtor parado e deadline expirado levam a falha e
-cleanup, não a fila ilimitada. O leitor de cancelamento precisa continuar mesmo
-com a fila de eventos cheia; o spike mede bloqueio real do transporte, mas não
-implementa o multiplexador do supervisor. Buffers nativos têm capacidade finita
-administrada pelo SO; não são o orçamento de heap da aplicação. O sandbox recusou
-`getsockopt` e `setsockopt`, portanto **nenhum teto numérico de buffer nativo foi
-medido ou imposto aqui**. Um gate do adaptador futuro é configurar/verificar esse
-teto no host empacotado, ou rejeitar a configuração se o produto o exigir.
+A full queue prevents further reading until credit is released; no accepted event is
+silently lost. A stalled producer and an expired deadline lead to failure and
+cleanup, not an unbounded queue. The cancellation reader must continue even
+with a full event queue; the spike measures real transport blocking but does not
+implement the supervisor's multiplexer. Native buffers have finite capacity
+managed by the OS; they are not the application's heap budget. The sandbox refused
+`getsockopt` and `setsockopt`, so **no numeric native buffer ceiling was
+measured or enforced here**. A gate for the future adapter is to configure/check this
+ceiling on the packaged host, or reject the configuration if the product requires it.
 
-EOF/truncamento/crash é `worker_crashed`; frame inválido é `invalid_frame`, prefixo
-acima do teto é `oversized_frame`, versão é `incompatible_version`, schema/tipo é
-`invalid_message`, prazo é `timeout`. A primeira falha inutiliza a sessão: nem
-resposta tardia nem exit 0 a recuperam. Encerrar grupo, descartar resultados em
-trânsito e fechar descritores. Erros são códigos de allowlist, sem corpo bruto,
-stdout/stderr, caminho, canário, valor de ambiente ou mensagem de exceção original.
+EOF/truncation/crash is `worker_crashed`; an invalid frame is `invalid_frame`, a prefix
+above the ceiling is `oversized_frame`, version is `incompatible_version`, schema/type is
+`invalid_message`, deadline is `timeout`. The first failure invalidates the session: neither
+a late response nor exit 0 recovers it. Terminate the group, discard results in
+transit and close descriptors. Errors are allowlisted codes, without raw body,
+stdout/stderr, path, canary, environment value or original exception message.
 
-## Vinculação do peer, filesystem e política de rede
+## Peer binding, filesystem and network policy
 
-O SO cria as duas pontas do `socketpair` atomicamente. O pai passa exclusivamente
-a ponta filha usando `pass_fds`, fecha sua cópia e guarda a outra; o filho marca o
-fd não herdável em exec. A própria posse do descritor é a autoridade por execução;
-não há token secreto em argv, ambiente ou handshake. IDs adicionais vinculam a
-conversa, mas não autenticam alguém que já roubou o descritor. Não usar PID do
-`SO_PEERCRED` de um par pré-criado como prova de identidade do worker.
+The OS creates both ends of the `socketpair` atomically. The parent passes only
+the child end using `pass_fds`, closes its copy and keeps the other; the child marks the
+fd non-inheritable on exec. Possession of the descriptor itself is the per-run authority;
+there is no secret token in argv, environment or handshake. Additional IDs bind the
+conversation but do not authenticate someone who has already stolen the descriptor. Do not use the
+`SO_PEERCRED` PID of a pre-created pair as proof of the worker's identity.
 
-Um processo separado sem fd herdado tentou injetar e recebeu recusa do SO. O
-worker também enviou run incorreto pelo canal real: o receptor recusou
-`invalid_peer`. Um arquivo sintético com nome de socket antigo permaneceu intacto.
-Sem bind/listen/pathname não há endpoint obsoleto para reaproveitar, substituir
-ou unlinkar; cleanup fecha descritores, nunca remove arquivos de terceiros.
-Processo do mesmo usuário capaz de inspecionar/subverter o pai continua fora da
-garantia. Fork herda descritores até exec; o worker confiável precisa fechar os
-não exigidos ao criar descendentes. Esse é um risco operacional, não isolamento.
+A separate process without an inherited fd attempted injection and received an OS refusal. The
+worker also sent an incorrect run through the real channel: the receiver refused it with
+`invalid_peer`. A synthetic file with an old socket name remained intact.
+Without bind/listen/pathname there is no stale endpoint to reuse, replace
+or unlink; cleanup closes descriptors and never removes third-party files.
+A process of the same user capable of inspecting/subverting the parent remains outside the
+guarantee. Fork inherits descriptors until exec; the trusted worker must close
+unneeded ones when creating descendants. This is an operational risk, not isolation.
 
-Cwd não limita filesystem: o worker leu e escreveu em um diretório irmão com
-canários sintéticos. Acesso às demais permissões do usuário não foi examinado.
-A política `NetworkDecision` da #159 continua `none`/`loopback`: deve ser resolvida
-no pai e revalidada no adaptador autorizado do worker, sem rede implícita nem
-credenciais ambiente. Não serializar o objeto Python; apenas a representação de
-dados do contrato aceito, vinculada à execução e à operação. Não introduzir
-classes de rede concorrentes ou inferir autorização a partir da alcançabilidade.
+Cwd does not constrain the filesystem: the worker read and wrote in a sibling directory with
+synthetic canaries. Access to the user's other permissions was not examined.
+The #159 `NetworkDecision` policy remains `none`/`loopback`: it must be resolved
+in the parent and revalidated in the worker's authorized adapter, without implicit network or
+ambient credentials. Do not serialize the Python object; only the accepted contract's
+data representation, bound to the run and operation. Do not introduce
+competing network classes or infer authorization from reachability.
 
-O teste de listener controlado ficou **skipped**: o sandbox recusa criar socket
-AF_INET. Não se testou Internet, DNS, LAN nem listener real do usuário. A recusa do
-host não prova negação causada pelo mecanismo selecionado. Como nenhuma política
-OS de rede faz parte desta baseline, filesystem e network containment estão
-indisponíveis. `none` só é exigível no código confiável via #159; se o requisito for
-negação OS mesmo após comprometimento do worker, rejeitar esta proposta e abrir
-revisão separada de isolamento antes de executar a operação. Não contornar #159.
+The controlled listener test was **skipped**: the sandbox refuses AF_INET
+socket creation. Internet, DNS, LAN and the user's real listener were not tested. The host's
+refusal does not prove denial caused by the selected mechanism. Since no OS
+network policy is part of this baseline, filesystem and network containment are
+unavailable. `none` is enforceable only in trusted code through #159; if the requirement is
+OS denial even after worker compromise, reject this proposal and open a
+separate isolation review before executing the operation. Do not bypass #159.
 
-## Matriz de controles por plataforma
+## Control matrix by platform
 
-E = imposto pelo mecanismo explicitamente indicado; B = best-effort sob código
-confiável e escalonamento normal; U = indisponível na baseline. NM = não medido,
-sem atribuição de garantia. Não existe controle de GPU nesta pesquisa.
+E = enforced by the explicitly identified mechanism; B = best-effort under trusted
+code and normal scheduling; U = unavailable in the baseline. NM = not measured,
+with no guarantee attributed. There is no GPU control in this research.
 
-| Controle | Linux x86_64, medido | Windows, adiado por #124 | macOS, adiado por #124 |
+| Control | Linux x86_64, measured | Windows, deferred by #124 | macOS, deferred by #124 |
 | --- | --- | --- | --- |
-| Ambiente mínimo / fds não exigidos | E no lançamento Popen; ausência de canário e fd verificada | NM; não portar pass_fds/select como se fossem handles Windows | NM |
-| Cwd temporário explícito | E como diretório inicial; não contém filesystem | NM | NM |
-| Filesystem | U; leitura/escrita fora do cwd em raízes sintéticas confirmadas | U/NM | U/NM |
-| Rede | U; probe loopback skipped pelo host; #159 é controle da aplicação | U/NM | U/NM |
-| Criação de filhos | U; subprocesso sintético executou | U/NM | U/NM |
-| Cleanup de filhos/netos | B: killpg + espera; casos sem escape passaram | NM; avaliar mecanismo nativo em pesquisa própria | NM; grupos ainda não medidos |
-| Parede / cancelamento | B: deadlines, EOF, TERM/KILL; não é prazo de tempo real | NM | NM |
-| Memória | U para RSS/árvore; E experimental para espaço virtual por processo via RLIMIT_AS, 96 MiB, alocação de 128 MiB recusada | U/NM | U/NM |
-| Contagem de processos | U: grupo não é quota; limite por UID não é limite por job | U/NM | U/NM |
-| CPU | U para taxa/quota de árvore; E experimental de tempo CPU por processo com RLIMIT_CPU, SIGXCPU observado (soft 1 s, hard 2 s) | U/NM | U/NM |
-| Recuperação após crash do pai | B: thread observa EOF e mata grupo; worker parado/comprometido pode não cooperar | NM | NM |
+| Minimal environment / unneeded fds | E at Popen launch; absence of canary and fd verified | NM; do not port pass_fds/select as if they were Windows handles | NM |
+| Explicit temporary cwd | E as initial directory; does not contain the filesystem | NM | NM |
+| Filesystem | U; read/write outside cwd in synthetic roots confirmed | U/NM | U/NM |
+| Network | U; loopback probe skipped by host; #159 is an application control | U/NM | U/NM |
+| Child creation | U; synthetic subprocess executed | U/NM | U/NM |
+| Child/grandchild cleanup | B: killpg + wait; cases without escape passed | NM; evaluate native mechanism in its own research | NM; groups not yet measured |
+| Wall time / cancellation | B: deadlines, EOF, TERM/KILL; not a real-time deadline | NM | NM |
+| Memory | U for RSS/tree; E experimentally for per-process virtual space through RLIMIT_AS, 96 MiB, 128 MiB allocation refused | U/NM | U/NM |
+| Process count | U: group is not a quota; per-UID limit is not a per-job limit | U/NM | U/NM |
+| CPU | U for tree rate/quota; E experimentally for per-process CPU time with RLIMIT_CPU, SIGXCPU observed (soft 1 s, hard 2 s) | U/NM | U/NM |
+| Recovery after parent crash | B: thread observes EOF and kills group; stopped/compromised worker may not cooperate | NM | NM |
 
-RLIMITs foram aplicados no próprio bootstrap sintético. Não há instalação desses
-limites na produção nem prova de RSS, CPU percentual ou total de descendentes.
-Não usar preexec_fn no processo multithread de UI. Uma futura entrada confiável
-poderia baixar limites hard antes de carregar trabalho, após validação específica.
-Cgroups/delegação, namespaces, seccomp, mecanismos nativos de Windows/macOS e
-empacotamento não foram sondados nem aceitos. Para garantir quota de árvore,
-cleanup após morte simultânea de pai e worker, ou conter descendants que usam
-setsid, será necessária outra primitiva e nova evidência. Não alterar a matriz de
-plataformas para esconder essa lacuna; recomendar revisão de escopo se exigida.
+RLIMITs were applied in the synthetic bootstrap itself. These limits are not installed
+in production, and there is no proof of RSS, CPU percentage or total descendants.
+Do not use preexec_fn in the multithreaded UI process. A future trusted entry point
+could lower hard limits before loading work, after specific validation.
+Cgroups/delegation, namespaces, seccomp, native Windows/macOS mechanisms and
+packaging were neither probed nor accepted. Guaranteeing a tree quota,
+cleanup after simultaneous parent and worker death, or containing descendants that use
+setsid will require another primitive and new evidence. Do not change the platform
+matrix to hide this gap; recommend a scope review if required.
 
-## Cancelamento, morte do pai e reconciliação
+## Cancellation, parent death and reconciliation
 
-O pedido cooperativo é idempotente; só o safe point confirma o ack. A escalada
-mata o grupo inclusive depois de o líder sair. Morte por sinal não significa
-`cancelled` reconhecido nem `validated`. O supervisor futuro aplica as transições
-da [máquina de jobs](job-lifecycle.md) por CAS. Sem ack, falha/timeout pode virar
-`JobFailure` resource/internal conforme causa; depois de ack, nunca emitir outcome
-contraditório. Se faltam fatos para concluir, manter `requires_reconciliation`
-sem fabricar outcome. Expiração de lease não é sucesso nem outcome.
+The cooperative request is idempotent; only the safe point confirms the ack. Escalation
+kills the group even after the leader exits. Death by signal does not mean
+acknowledged `cancelled` or `validated`. The future supervisor applies the
+[job state machine](job-lifecycle.md) transitions through CAS. Without an ack, failure/timeout may become
+resource/internal `JobFailure` according to the cause; after an ack, never emit a contradictory
+outcome. If facts are missing for a conclusion, keep `requires_reconciliation`
+without fabricating an outcome. Lease expiry is neither success nor an outcome.
 
-Após EOF por morte abrupta do pai, o worker sintético com leitor separado mata
-seu grupo, incluindo filho/neto. O harness Linux usa subreaper e pidfds para
-observar morte e reap dos órfãos, sem confundir zumbi com processo executando.
-O subreaper pertence só ao teste, não é garantia de produção. SIGSTOP, escape de
-grupo, kernel bloqueado e morte do leitor não estão contidos; EOF sozinho é
-best-effort. Crash do worker com descendentes vivos exige deadline e killpg do
-pai. Se não provar saída no orçamento, registrar cleanup pendente e bloquear
-reutilização/publicação; não apagar conteúdo com base apenas no PID.
+After EOF from abrupt parent death, the synthetic worker with a separate reader kills
+its group, including child/grandchild. The Linux harness uses subreaper and pidfds to
+observe death and reap orphans, without confusing a zombie with a running process.
+The subreaper belongs only to the test; it is not a production guarantee. SIGSTOP, group
+escape, a blocked kernel and reader death are not contained; EOF alone is
+best-effort. A worker crash with living descendants requires the parent's deadline and killpg.
+If exit cannot be proved within budget, record pending cleanup and block
+reuse/publication; do not delete content based only on PID.
 
-A resposta do worker nunca publica artefato. Somente o serviço #137 pode reservar,
-verificar tamanho/digest, publicar sem overwrite e fazer CAS para ready sob lease
-válida. Um arquivo `.part` permanece staging/incompleto após crash e novo worker.
-A reconciliação real de `ArtifactService`, exercitada com ports sintéticos, manteve
-lease ativa intacta e abandonou ausência de digest ou de arquivo final com os
-motivos canônicos. SQLite e payload store reais continuam sob os testes de #137;
-a integração deles não passou neste sandbox por `unsafe_path`. Não atribuir aos
-ports sintéticos prova dessa integração. A [retomada](job-recovery.md) não muda.
+A worker response never publishes an artifact. Only the #137 service may reserve,
+verify size/digest, publish without overwrite and CAS to ready under a valid
+lease. A `.part` file remains staging/incomplete after a crash and a new worker.
+Real `ArtifactService` reconciliation, exercised with synthetic ports, kept the
+active lease intact and abandoned a missing digest or final file with the
+canonical reasons. Real SQLite and payload store remain under #137 tests;
+their integration did not pass in this sandbox due to `unsafe_path`. Do not attribute
+proof of that integration to synthetic ports. [Resume](job-recovery.md) is unchanged.
 
-## Evidência, operação e desdobramento
+## Evidence, operation and follow-up
 
-Fontes, comandos, limitações e matriz de testes estão no
-[spike removível](../../spikes/local-worker/README.md), com
-[métricas estruturadas](../../spikes/local-worker/results/linux-x86_64.json).
-São observações locais em Python 3.12.12/Linux x86_64, sem reiniciar o host nem
-limpar page cache, não metas de desempenho nem resultados de distribuição.
-Nenhum source text, EPUB, tradução, caminho absoluto, valor de canário ou segredo
-entra na evidência. Os scripts não importam Ayvu; só testes consomem contratos
-existentes para verificar compatibilidade. Não há dependência/entrypoint instalado.
+Sources, commands, limitations and the test matrix are in the
+[removable spike](../../spikes/local-worker/README.md), with
+[structured metrics](../../spikes/local-worker/results/linux-x86_64.json).
+These are local observations on Python 3.12.12/Linux x86_64, without rebooting the host or
+clearing page cache, not performance targets or distribution results.
+No source text, EPUB, translation, absolute path, canary value or secret
+enters the evidence. The scripts do not import Ayvu; only tests consume existing
+contracts to check compatibility. There is no installed dependency/entry point.
 
-Propostas de follow-up, cada qual revisável e sem criar issues remotas nesta sessão:
+Follow-up proposals, each reviewable, without creating remote issues in this session:
 
-1. **M — codec e adapter IPC**: schemas de comando/resultado, validação dos DTOs
-   existentes, produtor único no supervisor, créditos com controle responsivo e
-   testes de fuzz/limites, sem execução de jobs nem segredos.
-2. **L — supervisor confiável Linux**: entrada fixa empacotada, ambiente/handles,
-   deadlines, cancelamento, saída limitada, cleanup e diagnóstico seguro. Gate:
-   smoke do bundle e definição explícita do teto de buffer nativo.
-3. **M — integração de leases/artefatos/recovery**: CAS, ownership, digest,
-   resultado tardio, reconciliação e testes SQLite fora deste sandbox; manter CLI.
-4. **M — contenção OS separada**: decidir se subprocesso confiável basta para cada
-   operação; caso contrário medir quotas de árvore e negação de rede/filesystem,
-   sem alegar sandbox antes das provas. Plugins continuam proibidos.
-5. **M por plataforma — pesquisa nativa e packaging**: somente se #124 incorporar
-   Windows/macOS; repetir toda a matriz, incluindo handles, árvore e morte do pai.
-6. **S — revisão humana desta ADR**: aceitar/rejeitar/restringir operações e riscos,
-   registrar autoria/data. Feito em 2026-11-10; ver o registro abaixo.
+1. **M — IPC codec and adapter**: command/result schemas, validation of existing
+   DTOs, single producer in supervisor, credits with responsive control and
+   fuzz/limit tests, without job execution or secrets.
+2. **L — trusted Linux supervisor**: fixed packaged entry point, environment/handles,
+   deadlines, cancellation, bounded output, cleanup and safe diagnostics. Gate:
+   bundle smoke test and explicit definition of the native buffer ceiling.
+3. **M — lease/artifact/recovery integration**: CAS, ownership, digest,
+   late result, reconciliation and SQLite tests outside this sandbox; preserve CLI.
+4. **M — separate OS containment**: decide whether a trusted subprocess suffices for each
+   operation; otherwise measure tree quotas and network/filesystem denial,
+   without claiming a sandbox before proof. Plugins remain prohibited.
+5. **M per platform — native research and packaging**: only if #124 incorporates
+   Windows/macOS; repeat the entire matrix, including handles, tree and parent death.
+6. **S — human review of this ADR**: accept/reject/restrict operations and risks,
+   record authorship/date. Done on 2026-11-10; see the record below.
 
-Se rejeitada, remover `spikes/local-worker`, seus testes/registro/links e esta ADR;
-nenhuma migração de dados, rollback de CLI ou dependência terá sido necessária.
+If rejected, remove `spikes/local-worker`, its tests/record/links and this ADR;
+no data migration, CLI rollback or dependency would have been needed.
 
-## Registro de aceite
+## Acceptance record
 
-Aceita em 2026-11-10 pelo mantenedor do projeto, por aprovação explícita na
-sessão de desenvolvimento, sem restrições à recomendação acima:
+Accepted on 2026-11-10 by the project maintainer, through explicit approval in the
+development session, without restrictions on the recommendation above:
 
-- o Desktop executa trabalho pesado em um worker local separado, lançado por
-  `subprocess.Popen` com entrada fixa do pacote e IPC por `AF_UNIX socketpair`
-  anônimo herdado;
-- um worker por execução, em grupo de processos próprio, sem reutilização entre
-  jobs na v1, com stdout/stderr separados do protocolo;
-- somente comandos in-tree revisados e allowlisted são confiáveis; plugins,
-  executáveis, código e argv livres continuam proibidos;
-- o lançamento mínimo descrito acima é obrigatório, e nenhuma credencial passa
-  ao worker.
+- Desktop runs heavy work in a separate local worker, launched through
+  `subprocess.Popen` with a fixed package entry point and IPC through an inherited
+  anonymous `AF_UNIX socketpair`;
+- one worker per run, in its own process group, without reuse between
+  jobs in v1, with stdout/stderr separate from the protocol;
+- only reviewed, allowlisted in-tree commands are trusted; plugins,
+  unrestricted executables, code and argv remain prohibited;
+- the minimum launch requirements described above are mandatory, and no credential passes
+  to the worker.
 
-O aceite não implementa nem habilita um runner. Os follow-ups 1 a 5 continuam
-issues separadas, cada uma com revisão própria. Seguem em aberto, sem dispensa:
+Acceptance neither implements nor enables a runner. Follow-ups 1 through 5 remain
+separate issues, each with its own review. The following remain open, without waiver:
 
-- um subprocesso confiável não é sandbox; a contenção pelo SO (follow-up 4)
-  ainda não foi decidida;
-- Windows e macOS continuam sem evidência nativa;
-- o teto de buffer nativo e o smoke do bundle são gates do supervisor Linux.
+- a trusted subprocess is not a sandbox; OS containment (follow-up 4)
+  has not yet been decided;
+- Windows and macOS still lack native evidence;
+- the native buffer ceiling and bundle smoke test are gates for the Linux supervisor.
 
-`spikes/local-worker` continua sendo pesquisa descartável, fora de produção.
+`spikes/local-worker` remains disposable research, outside production.
