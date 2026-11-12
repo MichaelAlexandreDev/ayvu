@@ -1,14 +1,13 @@
 # ADR: Translation pipeline
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Translation (contract ownership)
+Issue: [#142 — Extract a versioned TranslationUnit pipeline](https://github.com/MichaelAlexandreDev/ayvu/issues/142)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: `DEC-007`, scoped to extracting the linguistic sequence from the HTML module
-
-Related issue: [#142 — Extract a versioned TranslationUnit pipeline](https://github.com/MichaelAlexandreDev/ayvu/issues/142)
 
 ## Decision and scope
 

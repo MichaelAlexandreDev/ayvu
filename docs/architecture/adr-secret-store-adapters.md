@@ -1,10 +1,12 @@
-# ADR: seleção de armazenamento nativo de credenciais (DESKTOP-129)
+# ADR: Native credential storage selection (DESKTOP-129)
 
-Status: `Proposed`
-
-Data e evidência local: 2026-11-06 (UTC).
-
+Status: Proposed
+Decision-Date: `2026-11-06`
+Owners: Ayvu repository owner and maintainer (human acceptance)
 Issue: [#160](https://github.com/DevStarrk1137/ayvu/issues/160).
+
+Local evidence: 2026-11-06 (UTC).
+
 Dependência obrigatória: [modelo de ameaças #129](product-threat-model.md),
 `Accepted` em 2026-11-05, presente no baseline
 `79bcc6ec45d603bcab1d74da58021f1edf0657ca` de `main`.

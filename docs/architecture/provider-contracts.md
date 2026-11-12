@@ -1,14 +1,13 @@
 # ADR: Translation provider contracts and registry
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Providers (contract ownership)
+Issue: [#141 — Introduce versioned translation provider contracts and registry](https://github.com/MichaelAlexandreDev/ayvu/issues/141)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: `DEC-008`, scoped to the request, result and failure contracts, the registry and the LibreTranslate compatibility adapter
-
-Related issue: [#141 — Introduce versioned translation provider contracts and registry](https://github.com/MichaelAlexandreDev/ayvu/issues/141)
 
 ## Decision and scope
 

@@ -1,12 +1,11 @@
 # Modular-monolith boundaries and module ownership
 
-Status: `Accepted`
-
-Date: 2026-09-03
+Status: Accepted
+Decision-Date: `2026-09-03`
+Owners: Project maintainer (acceptance, recorded as DevStarrk1137)
+Issue: [#125 — DESKTOP-004](https://github.com/DevStarrk1137/ayvu/issues/125)
 
 Accepted: 2026-09-03 by `DevStarrk1137` (project maintainer)
-
-Related issue: [#125 — DESKTOP-004](https://github.com/DevStarrk1137/ayvu/issues/125)
 
 ## Status and scope
 

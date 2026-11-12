@@ -1,6 +1,6 @@
 # Inspect and visible-content export
 
-Status: `Implemented`
+Implementation: Implemented
 
 Related issue: [#147 — Extract inspect and visible-content export application use cases](https://github.com/DevStarrk1137/ayvu/issues/147)
 

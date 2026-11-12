@@ -1,6 +1,6 @@
 # Review exchange package and codec
 
-Status: `Implemented`; shared application use cases and CLI orchestration are connected.
+Implementation: Implemented; shared application use cases and CLI orchestration are connected.
 
 Related issue: [#148 — Define a markup-safe versioned review exchange contract](https://github.com/DevStarrk1137/ayvu/issues/148)
 

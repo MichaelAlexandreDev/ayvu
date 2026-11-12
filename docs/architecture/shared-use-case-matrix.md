@@ -1,6 +1,6 @@
 # Shared application use-case matrix
 
-Status: matriz de implementação consolidada em #158; não altera o estado dos ADRs.
+Implementation: Implementation matrix consolidated in #158; this does not change ADR status.
 
 Esta é a matriz compartilhada de #123, atualizada após as dependências de #158.
 Registra os serviços entregues e as decisões de apresentação da CLI. Desktop,

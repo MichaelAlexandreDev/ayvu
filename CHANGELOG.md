@@ -50,6 +50,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-20 (#288), lote A: cabeçalhos das 21 decisões de arquitetura padronizados, com teste de formato e
+  inventário; estados, datas e registros de aceite preservados, sem mover ou dividir documentos.
+
 - REF-19 (#287): `docs/architecture/where-code-goes.md`, o guia de onde vai o código novo, com a tabela por
   módulo e o checklist de PR, e `scripts/arch_metrics.py` no checklist de release.
 

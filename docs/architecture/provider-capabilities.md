@@ -1,14 +1,13 @@
 # ADR: Provider capabilities and availability
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Providers (contract ownership)
+Issue: [#103 — Expose provider capabilities and operational constraints](https://github.com/MichaelAlexandreDev/ayvu/issues/103)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: extends `DEC-008`, scoped to descriptors, capability snapshots, availability and negotiation
-
-Related issue: [#103 — Expose provider capabilities and operational constraints](https://github.com/MichaelAlexandreDev/ayvu/issues/103)
 
 ## Decision and scope
 

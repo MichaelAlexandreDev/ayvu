@@ -1,13 +1,8 @@
 # Retirement of the v1 translation runtime
 
 Status: Proposed
-
 Decision-Date: `2026-11-12`
-
-Owners: the Ayvu repository owner and maintainer (inventory, compatibility and data-path acceptance);
-Composition and Translation (runtime selection and execution); Knowledge (cache and memory);
-Recovery (checkpoints and continuation); Formats (HTML/EPUB); Review (review exchange).
-
+Owners: the Ayvu repository owner and maintainer (inventory, compatibility and data-path acceptance); Composition and Translation (runtime selection and execution); Knowledge (cache and memory); Recovery (checkpoints and continuation); Formats (HTML/EPUB); Review (review exchange).
 Issue: [#286 — REF-18](https://github.com/MichaelAlexandreDev/ayvu/issues/286).
 
 ## Proposal and acceptance boundary

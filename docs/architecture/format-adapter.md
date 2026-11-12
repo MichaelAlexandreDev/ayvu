@@ -1,14 +1,13 @@
 # ADR: Format adapter contract
 
-Status: `Accepted`
-
-Date: 2026-11-03
+Status: Accepted
+Decision-Date: `2026-11-03`
+Owners: Project maintainer (acceptance); Formats (contract ownership)
+Issue: [#127 — Define the FormatAdapter port and capability descriptor](https://github.com/MichaelAlexandreDev/ayvu/issues/127)
 
 Accepted: 2026-11-03 by the project maintainer, through explicit approval in the development session
 
 Decision: extends `DEC-005`, scoped to the format port, its descriptor and its registry
-
-Related issue: [#127 — Define the FormatAdapter port and capability descriptor](https://github.com/MichaelAlexandreDev/ayvu/issues/127)
 
 ## Decision and scope
 

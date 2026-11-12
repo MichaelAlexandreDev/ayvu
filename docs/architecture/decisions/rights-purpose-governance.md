@@ -1,18 +1,13 @@
-# Governança de direitos, finalidades, retenção e revogação
+# Rights, purpose, retention and revocation governance
 
 Status: Proposed
+Decision-Date: `2026-11-05`
+Owners: Ayvu repository maintainer (acceptance and product); Policies (semantics); Knowledge (cache/TM/corpus); Projects + Provenance (identity and dependencies); Infrastructure (future retention and deletion execution).
+Issue: [#165 — DESKTOP-134](https://github.com/MichaelAlexandreDev/ayvu/issues/165).
 
 Policy-ID: `ayvu-rights-purpose-v1`
 
 Vocabulary-Version: `1`
-
-Decision-Date: `2026-11-05`
-
-Owners: mantenedor do repositório Ayvu (aceite e produto); Policies (semântica);
-Knowledge (cache/TM/corpus); Projects + Provenance (identidade e dependências);
-Infrastructure (futura execução de retenção e exclusão).
-
-Issue: [#165 — DESKTOP-134](https://github.com/MichaelAlexandreDev/ayvu/issues/165).
 
 ## Recomendação e limite desta decisão
 
