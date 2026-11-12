@@ -22,7 +22,7 @@ service, maintains SQLite cache and JSON settings/checkpoints, exports Markdown
 and CSV, inspects legacy review files, validates v2 review packages, and can
 launch an external reader. The CLI no longer applies positional v1 review text. The
 [accepted module boundaries](modular-monolith-boundaries.md) supply ownership;
-the [shared use-case matrix](../shared-use-case-matrix.md) describes future seams.
+the [shared use-case matrix](../modules/interfaces-cli.md) describes future seams.
 
 Desktop, local API, inbound/outbound MCP, plugins, AI assistance, managed models,
 durable projects/jobs, approved translation memory, and contributed training

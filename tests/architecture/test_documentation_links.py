@@ -28,7 +28,7 @@ HTML_STRUCTURE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "html-st
 EPUB_FORMAT = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "epub-format.md"
 LOCAL_WORKER = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "adr-local-worker-isolation.md"
 AI_ASSISTANCE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "ai-assistance-authority.md"
-REFACTOR_BASELINE = PROJECT_ROOT / "docs" / "architecture" / "refactor-baseline.md"
+REFACTOR_BASELINE = PROJECT_ROOT / "docs" / "architecture" / "cross-cutting" / "refactoring-baseline.md"
 PACKAGE_STRUCTURE = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "package-structure.md"
 V1_RETIREMENT = PROJECT_ROOT / "docs" / "architecture" / "decisions" / "v1-retirement.md"
 WHERE_CODE_GOES = PROJECT_ROOT / "docs" / "architecture" / "cross-cutting" / "where-code-goes.md"
@@ -167,3 +167,25 @@ def test_c5_documents_fit_the_line_budget(document: Path) -> None:
 @pytest.mark.parametrize("document", (*C6_DOCUMENTS, MODULE_BOUNDARIES, PRODUCT_THREAT_MODEL, WHERE_CODE_GOES))
 def test_c6_documents_fit_the_line_budget(document: Path) -> None:
     assert len(document.read_text(encoding="utf-8").splitlines()) <= 400
+
+
+ARCHITECTURE = PROJECT_ROOT / "docs" / "architecture"
+ARCHITECTURE_DOCUMENTS = sorted(path for path in ARCHITECTURE.rglob("*") if path.suffix in {".md", ".json"})
+
+
+def test_the_architecture_index_lists_every_document() -> None:
+    index = ARCHITECTURE / "README.md"
+    linked = {_resolve_local_markdown_target(index, match.group(1)) for match in MARKDOWN_LINK.finditer(index.read_text(encoding="utf-8"))}
+    assert set(ARCHITECTURE_DOCUMENTS) - {index} <= linked
+    assert {path for path in ARCHITECTURE.iterdir() if path.is_file()} == {index}, "documents live in decisions/, modules/ or cross-cutting/"
+
+
+@pytest.mark.parametrize("document", [path for path in ARCHITECTURE_DOCUMENTS if path.suffix == ".md"],
+                         ids=lambda path: path.relative_to(ARCHITECTURE).as_posix())
+def test_every_architecture_document_links_resolve_and_fits_the_line_budget(document: Path) -> None:
+    text = document.read_text(encoding="utf-8")
+    assert len(text.splitlines()) <= 400
+    for match in MARKDOWN_LINK.finditer(text):
+        resolved = _resolve_local_markdown_target(document, match.group(1))
+        if resolved is not None:
+            assert resolved.is_relative_to(PROJECT_ROOT.resolve()) and resolved.exists(), f"broken link in {document.name}: {match.group(1)}"

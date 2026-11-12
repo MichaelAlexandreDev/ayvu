@@ -118,7 +118,7 @@ def test_proposed_contract_identity_and_vocabulary_are_preserved(relative: str, 
 @pytest.mark.parametrize("relative, implementation", [
     ("modules/content-use-cases.md", "Implementation: Implemented"),
     ("modules/review.md", "Implementation: Implemented; shared application use cases and CLI orchestration are connected."),
-    ("shared-use-case-matrix.md", "Implementation: Implementation matrix consolidated in #158; this does not change ADR status."),
+    ("modules/interfaces-cli.md", "Implementation: Implementation matrix consolidated in #158; this does not change ADR status."),
 ])
 def test_implementation_notes_do_not_claim_decision_status(relative: str, implementation: str):
     text = (ARCHITECTURE / relative).read_text(encoding="utf-8")

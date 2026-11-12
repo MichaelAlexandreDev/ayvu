@@ -19,7 +19,7 @@ The current product is defined by the [product scope](../../product-scope.md), i
 observable behavior is protected by the
 [translation workflow migration baseline](../../translation-workflow-migration-baseline.md),
 and its interface-neutral operations are catalogued in the
-[shared application use-case matrix](../shared-use-case-matrix.md). This baseline
+[shared application use-case matrix](../modules/interfaces-cli.md). This baseline
 organizes those operations without changing them.
 
 ## Context

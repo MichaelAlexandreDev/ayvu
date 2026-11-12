@@ -5,7 +5,7 @@ Decision-Date: `2026-11-10`
 Owners: the Ayvu repository owner and maintainer (acceptance); Claude Code (refactoring execution by the owner's decision of 2026-11-10).
 Issue: [#267 — REF-02](https://github.com/MichaelAlexandreDev/ayvu/issues/267).
 
-Base: `main` at `7902aba`. The starting measurements are in [refactor-baseline.md](../refactor-baseline.md),
+Base: `main` at `7902aba`. The starting measurements are in [refactoring-baseline.md](../cross-cutting/refactoring-baseline.md),
 reproducible with `scripts/arch_metrics.py`.
 
 ## Acceptance record

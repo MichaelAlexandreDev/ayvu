@@ -1,7 +1,7 @@
 # Static architectural dependency checks
 
-The [accepted modular-monolith ADR](decisions/modular-monolith-boundaries.md) is enforced
-by [the architecture tests](../../tests/architecture/test_architecture_tree_validation.py), added
+The [accepted modular-monolith ADR](../decisions/modular-monolith-boundaries.md) is enforced
+by [the architecture tests](../../../tests/architecture/test_architecture_tree_validation.py), added
 for [#133](https://github.com/DevStarrk1137/ayvu/issues/133). This enforcement
 does not accept other proposed decisions or change production behavior.
 
@@ -187,7 +187,7 @@ directly. Imports inside functions and `TYPE_CHECKING` blocks are checked too. S
 internal modules/vendor roots, unreadable files/directories, invalid syntax,
 symlinks and ambiguous module/package names fail closed.
 
-[Negative fixtures](../../tests/fixtures/architecture_boundaries/negative.json)
+[Negative fixtures](../../../tests/fixtures/architecture_boundaries/negative.json)
 contain synthetic source snippets and expected rejection categories. They are
 written to temporary complete package trees and scanned by the same analyzer
 as `src/ayvu`. Further tests cover alias equivalence, relative resolution,
