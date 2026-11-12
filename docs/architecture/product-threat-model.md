@@ -490,7 +490,18 @@ staged reconstruction, and legacy v1 apply refusal.
 [cache tests](../../tests/v1/test_cache.py),
 [resume tests](../../tests/v1/test_resume.py),
 [library tests](../../tests/library/test_library.py) and
-[CLI tests](../../tests/test_cli.py) supply narrower evidence. They are not proof
+[cli output plan tests](../../tests/kernel/test_cli_output_plan.py),
+[cli translation options tests](../../tests/kernel/test_cli_translation_options.py),
+[cli root processing tests](../../tests/interfaces/cli/test_cli_root_processing.py),
+[cli root resume tests](../../tests/interfaces/cli/test_cli_root_resume.py),
+[cli translate output configuration tests](../../tests/interfaces/cli/test_cli_translate_output_configuration.py),
+[cli translate review export tests](../../tests/interfaces/cli/test_cli_translate_review_export.py),
+[cli translate markdown reports tests](../../tests/interfaces/cli/test_cli_translate_markdown_reports.py),
+[cli translate cache controls tests](../../tests/interfaces/cli/test_cli_translate_cache_controls.py),
+[cli translate language tests](../../tests/interfaces/cli/test_cli_translate_language.py),
+[cli translate execution profiles tests](../../tests/interfaces/cli/test_cli_translate_execution_profiles.py),
+[cli translate target profiles tests](../../tests/interfaces/cli/test_cli_translate_target_profiles.py),
+[cli console security tests](../../tests/interfaces/cli/test_cli_console_security.py) supply narrower evidence. They are not proof
 of budgets, alias containment, privacy redaction or proposed runtime isolation.
 
 [Requests documentation](https://requests.readthedocs.io/en/latest/user/advanced/)

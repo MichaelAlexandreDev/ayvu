@@ -164,7 +164,7 @@ imports are layer rules instead of exceptions.
 
 ### D12. Tests mirror the packages
 - `tests/<module>/test_*.py`; shared fakes and fixtures in `tests/support/`.
-- `test_cli.py` is split together with `cli.py`, and `CORE_TEST_FILES` follows.
+- CLI tests live in `tests/interfaces/cli/`; output-plan and translation-option values are tested in `tests/kernel/`. `CORE_TEST_FILES` follows the approved families.
 
 ### D13. Process
 - One migration open at a time.
@@ -385,7 +385,7 @@ REF-15 break up by reason to change after they move.
 | REF-13 | Interfaces: desktop and the CLI skeleton; entry points | S |
 | REF-14 | Split `cli.py` by command group (about 10 PRs) | L |
 | REF-15 | Split the modules over 800 lines (one issue per family) | L |
-| REF-16 | Tests mirroring the packages; split `test_cli.py` | M |
+| REF-16 | Tests mirroring the packages; split CLI base tests | M |
 | REF-17 | Composition roots per edition | M |
 | REF-18 | Inventory and retirement of v1 | M |
 | REF-19 | "Where new code goes" guide, AGENTS.md section and PR checklist | S |
