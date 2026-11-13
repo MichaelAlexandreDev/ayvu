@@ -83,6 +83,14 @@ def resolve_chapter_selection(
     translate_metadata: bool = False,
     max_documents: int | None = None,
 ) -> list[SelectedChapter]:
+    return preview_documents(input_path, translate_metadata=translate_metadata,
+                             max_documents=max_documents, selection=selection)
+
+
+def preview_documents(input_path: str | Path, *, translate_metadata: bool = False,
+                      max_documents: int | None = None,
+                      selection: ChapterSelection | None = None) -> list[SelectedChapter]:
+    """Use the v1 document order, limiting before selection; metadata is separate."""
     source_path = Path(input_path)
     book = epub.read_epub(str(source_path))
     opf_archive_path = _get_opf_archive_path(source_path)
@@ -101,7 +109,10 @@ def resolve_chapter_selection(
             max_documents,
         )
 
-    return _resolve_selected_chapters(documents, selection)
+    if selection is not None:
+        return _resolve_selected_chapters(documents, selection)
+    return [SelectedChapter(index, doc.name, doc.archive_path, doc.title)
+            for index, doc in enumerate(documents, 1)]
 
 
 def extract_markdown(input_path: str | Path, output_dir: str | Path) -> list[Path]:

@@ -52,6 +52,7 @@ def run_translation_preflight(
     network_policy: NetworkPolicy | str | None = None,
     *,
     cache_check: Callable[[Path], None],
+    close_on_error: bool = False,
 ) -> TranslationPreflightResult:
     """``cache_check`` opens the cache and proves it writable; composition passes the v1 one."""
     _check_language_pair(language_pair)
@@ -83,15 +84,21 @@ def run_translation_preflight(
             network_authorization=authorization,
         )
         translator = translator_factory()
-    _check_cache(cache_path, cache_check)
-    _check_epub(epub_path)
-    route: TranslationRoute | None = None
-    if not dry_run and not cache_only:
-        route = _resolve_route(translator, language_pair)
-        if route is not None and not route.is_direct:
-            translator = RoutedTranslator(translator, route)
-            base_factory = translator_factory
-            translator_factory = lambda: RoutedTranslator(base_factory(), route)
+    try:
+        _check_cache(cache_path, cache_check)
+        _check_epub(epub_path)
+        route: TranslationRoute | None = None
+        if not dry_run and not cache_only:
+            route = _resolve_route(translator, language_pair)
+            if route is not None and not route.is_direct:
+                translator = RoutedTranslator(translator, route)
+                base_factory = translator_factory
+                translator_factory = lambda: RoutedTranslator(base_factory(), route)
+    except BaseException:
+        if close_on_error and translator is not None:
+            base = translator._base if isinstance(translator, RoutedTranslator) else translator
+            base.close()
+        raise
     return TranslationPreflightResult(
         translator=translator,
         glossary=glossary,

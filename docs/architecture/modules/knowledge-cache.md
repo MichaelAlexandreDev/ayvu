@@ -54,7 +54,7 @@ The #252 integration derives the sibling file by appending `.v2.sqlite` to the
 nor changed by the rich runtime; there is no migration, copying, querying or promotion of its
 rows. A v1 accidentally found at the sibling name is also refused. The first
 rich use retranslates texts present only in v1. Removing the label restores
-the legacy path on new runs, with its cache intact. Preview and unlabeled dry runs use v1.
+the legacy path on new runs, with its cache intact. Unlabeled previews and dry runs use v1.
 Labeled dry runs read only authorized existing-project v2 evidence, through the transient runtime.
 
 The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and is part of the semantic fingerprint.
@@ -295,3 +295,9 @@ Durable labeled cache-only (REF-18 G7) also uses `ReadOnlyExactCache` at the exp
 sibling. Project/job creation grants only the normal project scope; no foreign project is searched.
 Knowledge supplies bounded validated canonical records. Translation resolves the per-unit plan
 and execution decision. No Knowledge dependency on Translation, Providers or Formats is added.
+
+Labeled previews use the same read-only v2 adapter only when an existing matching project
+supplies authorization. Each exact read uses the full discovered semantic fingerprint.
+A separate invocation overlay in Translation stores raw provider text before glossary
+application and is discarded at the end. It is never a persistent scope or cache writer;
+previews create no cache database, directory, lock, journal, WAL/SHM, backup or marker.

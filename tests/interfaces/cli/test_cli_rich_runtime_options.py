@@ -75,12 +75,14 @@ def test_declared_model_selects_transient_rich_for_dry_run(tmp_path, monkeypatch
     assert _jobs(tmp_path) == []
 
 
-def test_preview_stays_on_v1_with_a_declared_model(tmp_path, monkeypatch):
+def test_preview_uses_transient_rich_with_a_declared_model(tmp_path, monkeypatch):
     config(tmp_path)
     source = _book(tmp_path / "book.epub")
+    from tests.support.rich_preview_support import preview_guard
     session = Transport()
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
-    result = runner.invoke(cli.app, ["--mode", "developer", "--preview", str(source)])
+    with preview_guard(monkeypatch, tmp_path, tmp_path / "books" / "Preview" / "book-preview.epub"):
+        result = runner.invoke(cli.app, ["--mode", "developer", "--preview", str(source)])
     assert result.exit_code == 0, text(result)
     assert (tmp_path / "books" / "Preview" / "book-preview.epub").exists()
     assert not composition.v2_cache_path(tmp_path / "cache.sqlite").exists() and _jobs(tmp_path) == []

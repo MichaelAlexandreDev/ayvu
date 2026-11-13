@@ -61,7 +61,7 @@ The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and enters identity as
 `declared:<label>`, declared by the user; `unknown` remains ineligible.
 **Changing the server model without changing the label reuses old results.**
 There is no model discovery or new HTTP request. Without a label, `translate_text`
-retains signature, results, messages and v1 key. Preview stays on v1; labeled dry runs use the transient route below.
+retains signature, results, messages and v1 key. Unlabeled previews stay on v1; labeled previews and dry runs use the transient routes below.
 See [runtime selection](translation-project.md#explicit-runtime-selection-252).
 
 | Module | Layer | Responsibility |
@@ -130,15 +130,40 @@ cover publication and worker behavior.
 
 Production uses the engine inside `TranslateProject` in both runtimes. In rich,
 `TranslationResources.prepare_document` runs `DocumentTranslator` before the engine
-consumes units; a failure there stops the book. Preview and unlabeled dry runs retain the
-predecessor project-free flow. Labeled dry runs use `TransientTranslation`.
+consumes units; a failure there stops the book. Unlabeled previews and dry runs retain the
+predecessor project-free flow. Labeled previews and dry runs use `TransientTranslation`.
+
+## Online transient previews (REF-18 G2)
+
+`_BookRequest` carries the translator name/model mapping and an explicit preview marker.
+`composition.cli.prepare_preview` selects before stores or provider preparation. Only a valid
+label chooses late online preparation; the unlabeled path retains v1 timing and observables.
+The real session performs authorized discovery and supplies the execution's rate limiter.
+The resulting plan uses the declared producer and observed route/capability fingerprint.
+
+`TransientUnits` shares `LinguisticStages` with the offline operation and binds a `TransientProvider`
+that checks every result against the real plan. `TransientCache` first reads an authorized exact
+v2 key when an existing matching manifest grants scope, then checks the invocation overlay.
+It stores the observed raw provider value before glossary application; no v1/v2 write, cache
+initialization, lock, sidecar or persistent provenance is available. The overlay is cleared
+and the session closed on success, failure and cancellation. Without a matching project,
+there are zero persistent entry reads. Subsequent invocations may translate again.
+
+Formats supplies v1 document enumeration, with `max_documents` before chapter selection,
+`max(0, N)`, `None` for all, and metadata outside the document count. The CLI default stays 12.
+`TransientTranslation` sends a `PreviewRequest` to `TransientPublication` only after all selected
+units succeed. The local composition adapter owns staging, final EPUB validation, source/alias
+checks and replace; Translation implements neither ZIP nor rename. Unselected members and
+previews with no results keep their original member bytes. Provider failure leaves the destination
+intact. Preview publishes no Markdown, project/job, lease, checkpoint, raw-results or review package.
+The persistent-cache and partial-output differences remain pending owner acceptance in G2.
 
 ## Offline transient dry runs (REF-18 G3)
 
 `composition.cli` chooses `transient_dry_run` only when `selected_model` returns a valid label,
 before preparation or stores. `prepare_translation` receives that modality explicitly and calls
 the local preflight, which validates languages, glossary, endpoint, timeout and retry settings without
-DNS, transport, a provider/session or the v1 write probe. Preview selection is unchanged; durable cache-only has the separate route below.
+DNS, transport, a provider/session or the v1 write probe. Labeled previews use the online transient route below; durable cache-only has its separate route.
 
 `composition/builders/translate_transient.py` reads `ProjectJsonRepository.read_catalog`, calls
 `select_project`, and revalidates the single selected manifest with `load_read_only`. An absent

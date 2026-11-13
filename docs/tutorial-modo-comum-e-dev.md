@@ -437,7 +437,13 @@ miss and exits 1, preserving previous output. Complete hits reconstruct and vali
 Corruption, overflow or unsafe storage fail without EPUB/TXT publication. No new raw-results
 are published, including on complete hits. Rich workers greater than 1 remain refused.
 Without a label, existing cache-only behavior is preserved.
-Preview stays on v1. With a model label, `--dry-run` uses the offline transient rich
+Without a model label, preview stays on v1. With a label, root and guided previews use
+the transient rich runtime with real authorized discovery and translation. The default
+limit remains 12 documents, with the configured Preview folder and overwrite confirmation.
+No project/job, Markdown, raw-results or persistent cache writes are created. Exact v2
+hits require an existing matching project; new raw results are reused only in memory
+before the glossary and discarded at the end. Provider failure exits 1 without a partial
+EPUB or a change to previous output. With a model label, `--dry-run` uses the offline transient rich
 runtime: no provider/session/discovery, project/job creation or cache writes. Exact hits require
 a matching existing project and compatible canonical v2 evidence. Cache-only misses preserve the
 original and use the existing missing-text file; full-cache fails only for missing texts in this

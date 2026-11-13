@@ -137,6 +137,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "translation/test_cache_only_execution.py",
         "translation/test_transient_translation.py",
         "translation/test_transient_cache_effects.py",
+        "translation/test_transient_preview_publication.py",
     ),
     "resume": ("recovery/test_resume.py", "recovery/test_legacy_resume.py", "translation/test_raw_results_resume.py"),
     "glossary": (
@@ -181,6 +182,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "interfaces/cli/test_cli_output.py",
         "interfaces/cli/test_cli_plan.py",
         "interfaces/cli/test_cli_preview.py",
+        "interfaces/cli/test_cli_rich_preview.py",
         "interfaces/cli/test_cli_report.py",
         "interfaces/cli/test_cli_resume.py",
         "interfaces/cli/test_cli_review.py",

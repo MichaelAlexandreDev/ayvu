@@ -950,12 +950,17 @@ configuração, livro e versão do pipeline. Se algo mudou, ela traduz de novo e
 por exemplo `Aviso da tradução: raw_results_changed_provider`.
 
 Without a label, `legacy/v1` keeps its messages, continuation after errors and partial cache-only EPUBs.
-Removing the label restores the intact v1 cache for new translations. Preview and unlabeled dry runs
-retain v1. With a model label, `--dry-run` uses
+Removing the label restores the intact v1 cache for new translations. Unlabeled previews and dry runs
+retain v1. With a label, root and guided previews use the transient rich runtime: authorized
+discovery and translation, the first 12 documents, the configured Preview folder and overwrite
+confirmation, without project/job creation, Markdown or raw-results. Persistent exact v2 hits
+require an existing matching project. Raw provider results are reused only in memory during
+the invocation, before applying the current glossary; no cache is warmed. Provider failure
+returns 1 without publishing a partial EPUB or changing previous output. With a model label, `--dry-run` uses
 an offline transient rich runtime: no network, project/job creation or cache writes; exact v2 hits
 require an existing matching project. `--dry-run --cache-only --require-full-cache` exits 1 only
 when texts are missing. Configured workers/high are retained, with sequential local analysis stated
-in progress and reports. Preview selection is unchanged. Durable labeled cache-only uses the offline route described above.
+in progress and reports. Unlabeled preview selection is unchanged. Durable labeled cache-only uses the offline route described above.
 As políticas HTTP continuam as mesmas, sem novas requisições de descoberta.
 
 ## Configuração

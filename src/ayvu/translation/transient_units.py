@@ -1,16 +1,20 @@
-"""Offline unit execution through the shared rich linguistic stages.
+"""Transient unit execution through the shared rich linguistic stages.
 
-Only canonical evidence can resolve an exact key. No provider, memory, replay or
-write port is accepted here, including when every unit is a cache hit.
+Offline execution uses canonical local evidence only. Preview explicitly supplies
+a real provider and private raw overlay; neither route accepts durable writes,
+memory or replay.
 """
 from __future__ import annotations
 
 from typing import Protocol
+from uuid import uuid4
 
 from ..content import TranslationUnit, TextParts, protected_content_is_intact
 from ..kernel import LanguagePair
+from ..kernel import JobFailure, JobFailureFamily
+from ..providers import ProviderStatus, TranslationProviderRequest, execute
 from ..knowledge.cache import CacheIdentityError, CacheLookupState, CacheMissReason, CacheOnlyRequest, ExactCacheLookup
-from .document_contracts import _template, _expand
+from .document_contracts import TranslationExecutionError, _template, _expand
 from .engine import UnitExecution, STATUS_CACHE, STATUS_MISSING
 from .local_cache_plan import LocalCachePlanResolver, LocalCachePlanState
 from .pipeline import LinguisticStages, LinguisticSource
@@ -57,27 +61,46 @@ class TransientUnits:
     def __init__(self, language_pair: LanguagePair, apply_glossary, readable_original, *,
                  reader: ExactLookup | None = None, resolver: LocalCachePlanResolver | None = None,
                  cache_only: bool = False, chunk_limit: int = 3000, checkpoint=lambda _: None,
-                 on_hit=lambda unit, resolution: None, on_resolution=lambda resolution: None):
+                 on_hit=lambda unit, resolution: None, on_resolution=lambda resolution: None,
+                 provider=None, exact_cache=None, map_execution=lambda unit, result: result):
         self.pair, self.glossary = language_pair, apply_glossary
         self.readable_original = readable_original
         self.reader, self.resolver = reader, resolver
         self.cache_only, self.chunk_limit, self.checkpoint = cache_only, chunk_limit, checkpoint
         self.on_hit = on_hit
         self.on_resolution = on_resolution
+        self.provider, self.exact_cache, self.map_execution = provider, exact_cache, map_execution
 
     def execute(self, unit: TranslationUnit, *, readable_original=None) -> UnitExecution:
         template, originals = _template(unit)
-        cache = _LocalExact(self.reader, self.resolver, unit.source_text, template)
-        outcome = LinguisticStages(_NoProvider(), cache, self.glossary, on_stage=self.checkpoint).run(
-            template, self.pair, dry_run=True,
+        cache = (_LocalExact(self.reader, self.resolver, unit.source_text, template) if self.exact_cache is None
+                 else self.exact_cache.for_unit(unit, template))
+        outcome = LinguisticStages(self.provider or _NoProvider(), cache, self.glossary, on_stage=self.checkpoint).run(
+            template, self.pair, dry_run=self.provider is None,
             cache_only=CacheOnlyRequest.resolve_compatible() if self.cache_only else False,
             chunk_limit=self.chunk_limit)
         self.on_resolution(cache.resolution)
         missing = outcome.source is LinguisticSource.CACHE_ONLY_MISSING
         status = (STATUS_CACHE if outcome.source is LinguisticSource.EXACT_CACHE else
-                  STATUS_MISSING if missing else "dry_run")
+                  STATUS_MISSING if missing else "dry_run" if self.provider is None else "translated")
         original = (readable_original or self.readable_original)(template, originals)
         if outcome.source is LinguisticSource.EXACT_CACHE:
             self.on_hit(unit, cache.resolution)
-        return UnitExecution(outcome.text, status, original, _expand(outcome.text, originals),
-                             missing_text=original if missing else None, glossary_usage=outcome.glossary_usage)
+        return self.map_execution(unit, UnitExecution(outcome.text, status, original, _expand(outcome.text, originals),
+                             missing_text=original if missing else None, glossary_usage=outcome.glossary_usage))
+
+
+class TransientProvider:
+    """Check real provider results against the discovered plan, without a job."""
+
+    def __init__(self, provider, plan, *, cancellation=None):
+        self.provider, self.plan, self.cancellation = provider, plan, cancellation
+
+    def translate(self, text, source, target):
+        result = execute(self.provider, TranslationProviderRequest(str(uuid4()), text, source, target,
+            route=self.plan.route, policy_ref=self.plan.policy_ref, cancellation=self.cancellation))
+        if result.status is not ProviderStatus.SUCCEEDED:
+            raise TranslationExecutionError(result.failure)
+        if result.producer != self.plan.producer or result.route != self.plan.route:
+            raise TranslationExecutionError(JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "plan_invalidated"))
+        return result.text
