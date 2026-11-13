@@ -9,6 +9,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 2: `translate --cache-only` com rótulo e worker único reconstrói pelo
+  runtime rico durável, usando apenas cache exato v2 somente leitura, sem rede, provedor, TM,
+  replay ou novos raw-results. Faltas preservam a fonte e geram o `.txt` existente;
+  `--require-full-cache` bloqueia antes da reconstrução, preserva a saída anterior e retorna 1.
+  Corrupção, excesso de candidatos e recusa de storage são fatais. Sem rótulo, o v1 permanece igual.
+
 - REF-18 (#286), passo 2: `--dry-run` com rótulo de modelo usa execução rica transitória, sem rede,
   projeto/job ou escrita de cache. Lê somente o cache v2 autorizado por projeto existente; `--cache-only`
   preserva os originais ausentes e `--require-full-cache` avalia faltas. Workers configurados são mantidos,

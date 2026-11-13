@@ -14,7 +14,7 @@ from tests.support.rich_runtime_support import PAIR, runtime
 
 
 @pytest.mark.parametrize("changes,message", [({"workers": 2}, "--workers 1"),
-    ({"cache_only": True}, "--cache-only"), ({"require_full_cache": True}, "--require-full-cache")])
+    ({"cache_only": True, "workers": 2}, "--workers 1"), ({"require_full_cache": True}, "--require-full-cache")])
 def test_each_unsupported_option_is_the_actual_gate_before_cache_and_provider(tmp_path, changes, message):
     calls = []
     subject = runtime(tmp_path, options=TranslationOptions(language_pair=PAIR, **changes), prepare=lambda: calls.append("provider"))
@@ -126,3 +126,48 @@ def test_rich_preparation_keeps_the_book_policy_refusal_code(tmp_path):
     failure = subject.preflight()
     assert failure.family is JobFailureFamily.INPUT and failure.code == "encrypted_content"
     assert isinstance(subject.preflight_error, BookRefused)
+
+
+def test_offline_preflight_uses_only_explicit_local_preparation(tmp_path, monkeypatch):
+    from ayvu.translation.preflight import run_local_translation_preflight
+    from tests.support.rich_cache_only_support import _book, offline_guard, forbidden
+    source = _book(tmp_path / "source.epub")
+    local = lambda: run_local_translation_preflight(epub_path=source, glossary_path=None, language_pair=PAIR,
+        translator_name="libretranslate", url="http://localhost:5000", timeout=30, retries=0,
+        requests_per_second=None, retry_backoff=0.5, retry_backoff_max=8)
+    subject = runtime(tmp_path, options=TranslationOptions(language_pair=PAIR, cache_only=True), prepare=forbidden)
+    subject._prepare_offline = local
+    with offline_guard(monkeypatch):
+        assert subject.preflight() is None
+    assert subject._prepared.translator is None
+    assert type(subject._cache).__name__ == "ReadOnlyExactCache"
+    assert not composition.v2_cache_path(tmp_path / "cache.sqlite").exists()
+
+
+def test_offline_resources_bind_executor_without_online_factories(tmp_path, monkeypatch):
+    from ayvu.translation import RuntimeContext
+    from tests.support.rich_cache_only_support import warm_units, offline_guard, forbidden, document
+    doc = document("Hello")
+    _, env, _ = warm_units(composition.v2_cache_path(tmp_path / "cache.sqlite"), (doc,))
+    subject = runtime(tmp_path, options=TranslationOptions(language_pair=PAIR, cache_only=True),
+        prepare=forbidden, label="local-model-2026")
+    subject._prepare_offline = lambda: composition.LegacyResources(None)
+    monkeypatch.setattr("ayvu.composition.builders.rich_document_executor.open_provenance_repository",
+        lambda *args, **kwargs: env.provenance)
+    with offline_guard(monkeypatch):
+        assert subject.preflight() is None
+        with subject.resources(RuntimeContext(env.job, None, env.events)) as resources:
+            resources.prepare_document(doc)
+            result = resources.executor.execute(doc.units[0])
+    assert result.status == "cache" and result.translated == "PT:Hello"
+
+
+def test_offline_mapping_shares_rich_normalization_and_preserves_missing_source():
+    from types import SimpleNamespace
+    from ayvu.translation import UnitExecution
+    from ayvu.composition.builders.rich_document_executor import map_offline_execution
+    unit = SimpleNamespace(content=SimpleNamespace(kind=SimpleNamespace(name="paragraph")))
+    cached = UnitExecution("PT:Hello\r\nworld\x00", "cache", "source", "translated")
+    assert map_offline_execution(unit, cached).reconstruction_text == "PT:Hello\nworld"
+    missing = UnitExecution("original\r\n", "missing", "original", "original", missing_text="original")
+    assert map_offline_execution(unit, missing) is missing

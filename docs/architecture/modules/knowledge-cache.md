@@ -290,3 +290,8 @@ In explicit export, replacement also uses a restricted, incremental temporary co
 - [`tests/knowledge/cache/test_cache_admin_v2_roundtrip.py`](../../../tests/knowledge/cache/test_cache_admin_v2_roundtrip.py)
 - [`tests/knowledge/cache/test_cache_interchange_v2_validation.py`](../../../tests/knowledge/cache/test_cache_interchange_v2_validation.py)
 - [`tests/knowledge/cache/test_cache_interchange_v2_streaming.py`](../../../tests/knowledge/cache/test_cache_interchange_v2_streaming.py)
+
+Durable labeled cache-only (REF-18 G7) also uses `ReadOnlyExactCache` at the explicit v2
+sibling. Project/job creation grants only the normal project scope; no foreign project is searched.
+Knowledge supplies bounded validated canonical records. Translation resolves the per-unit plan
+and execution decision. No Knowledge dependency on Translation, Providers or Formats is added.

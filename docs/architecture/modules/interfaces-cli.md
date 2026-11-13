@@ -264,3 +264,9 @@ moved, not discarded. Facades `config`, `resume`, `preflight`,
 continue reexporting the same values/errors for existing consumers.
 Private delegates `_translate_in_project` and `_translate_without_project`
 remain in CLI for their characterization consumers; they contain no business logic.
+
+Labeled durable `translate --cache-only --workers 1` uses local preflight and exact v2 evidence,
+with normal project/job creation. Missing originals flow through `_save_missing_texts` unchanged:
+ordered occurrences, explicit overwrite, automatic suffixes and `AcceptedItem.write_auxiliary` in
+batch. Full-cache gaps preserve prior EPUB output and exit 1 after TXT/report; complete or allowed
+partial valid output exits 0. Corrupt/overflow/storage failure emits no EPUB or partial TXT list.

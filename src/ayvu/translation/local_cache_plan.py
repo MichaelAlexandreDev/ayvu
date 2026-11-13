@@ -14,6 +14,7 @@ from ..knowledge.cache import (
     CacheIdentityError, CacheIdentityResolutionState, CacheValueKind, CanonicalCacheRecord,
     CanonicalValue, ExactEntryKey, OpaqueSemanticRevision, SemanticOperationV2,
     resolve_compatible_identities, semantic_operation_from_canonical, source_content_digest,
+    ResolvedCacheExecutionIdentity,
 )
 from ..provenance import ProducerIdentity
 from ..providers import ProviderRoute, valid_reference
@@ -168,7 +169,14 @@ class LocalCachePlanResolver:
             raise CacheIdentityError("invalid_identity_resolution")
         self._records, self._scope, self._intent = records, scope, intent
 
-    def resolve(self, source_text: str) -> LocalCachePlanResolution:
+    def resolve(self, source_text: str, *, pinned=None) -> LocalCachePlanResolution:
+        if pinned is not None:
+            if type(pinned) is not ResolvedCacheExecutionIdentity:
+                raise CacheIdentityError("invalid_resolved_identity")
+            if pinned.scope != self._scope:
+                raise CacheIdentityError("cache_scope_denied")
+            if pinned.value_kind is not TRANSLATION_STAGE_AGGREGATE:
+                return LocalCachePlanResolution(LocalCachePlanState.MISS)
         intent = self._intent
         if intent.context_strategy != "none":
             return LocalCachePlanResolution(LocalCachePlanState.UNSUPPORTED, reason="offline_context_preparation_required")
@@ -186,7 +194,7 @@ class LocalCachePlanResolver:
             operation = semantic_operation_from_canonical(record.canonical_identity)
             if record.source_text != source_text or operation.fingerprint != record.key.semantic_fingerprint:
                 raise CacheIdentityError("cache_entry_corrupt")
-            if intent._matches(operation):
+            if intent._matches(operation) and (pinned is None or record.key.semantic_fingerprint == pinned.semantic_fingerprint):
                 compatible.append((record.key, operation))
         selection = resolve_compatible_identities((key for key, _ in compatible), scope=self._scope,
                                                   value_kind=TRANSLATION_STAGE_AGGREGATE, source_digest=digest)

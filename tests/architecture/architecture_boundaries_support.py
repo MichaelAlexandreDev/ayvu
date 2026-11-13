@@ -302,6 +302,7 @@ def forbidden(
                 return "undeclared internal edge"
             return None
         if destination.layer == "composition" and (source == CLI_ROOT or {source, target} <= EDITION_DATA_MODULES
+                or source.startswith("ayvu.composition.builders.") and target.startswith("ayvu.composition.builders.")
                 or (source == "ayvu.composition.desktop" and target in EDITION_DATA_MODULES)):
             return None if (source, target) in allowed_edges else "undeclared internal edge"
         if source != "ayvu" and target.startswith(source + "."):

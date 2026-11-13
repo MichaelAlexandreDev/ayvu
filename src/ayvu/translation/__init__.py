@@ -7,6 +7,7 @@ from .batch import (
     BatchCancellationCommand, BatchCancellationNotice, BatchCommand, BatchItem, BatchValidationError,
     ItemOutcome, ItemStatus, TranslateBatch,
 )
+from .cache_only_execution import CacheOnlyDocumentExecutor
 from .document import DocumentTranslator
 from .document_contracts import ExecutionContext, SAFE_POINTS, TranslationExecutionError, UnitSource
 from .raw_results import RAW_RESULTS_ROLE
@@ -44,7 +45,7 @@ from .resume_reuse import (
 __all__ = [
     "ALT_TEXT_KIND", "AcceptedOutputPlan", "ArtifactIntegrity", "BatchCancellationCommand",
     "BatchCancellationNotice", "BatchCommand", "BatchItem", "BatchOutputError", "BatchValidationError",
-    "BookRefused", "ContinuationTicket", "DocumentTranslator", "EngineObserver", "EngineRequest",
+    "CacheOnlyDocumentExecutor", "BookRefused", "ContinuationTicket", "DocumentTranslator", "EngineObserver", "EngineRequest",
     "EngineResult", "ExecutionContext", "ExecutorPool", "HtmlTranslationStats", "INTEGRITY_REASONS", "INTERRUPTED",
     "INTERRUPTED_AFTER_PUBLICATION", "ItemOutcome", "ItemStatus", "LegacyTextPipelineFacade",
     "LinguisticSource", "METADATA_KIND", "OUTPUT_ROLE", "OWN_JOB_STATES", "OutputValidation",
