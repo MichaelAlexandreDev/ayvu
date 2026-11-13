@@ -226,6 +226,7 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
             book.batch_plan,
             selected_model(book.translator_models, book.translator_name),
             book.cache_path,
+            prepare_offline=book.prepare,
         ),
         TranslateObserver(
             EngineObserver(hooks.on_chapter_start, hooks.on_chapter_done, hooks.on_text_processed),
@@ -313,6 +314,12 @@ def prepare_translation(*, epub_path, options, cache_path, glossary_path, transl
         on_ready()
         return prepared
     rich = project_backed and selected_model(translator_models or {}, translator_name) is not None
+    if rich and options.cache_only:
+        prepared = _local_preflight(epub_path=epub_path, glossary_path=glossary_path, language_pair=options.language_pair,
+            translator_name=translator_name, url=url, timeout=timeout, retries=retries,
+            requests_per_second=requests_per_second, retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max)
+        on_ready()
+        return prepared
     # The rich runtime already prepared the sibling cache before entering this callback.
     cache_options = {"cache_check": lambda _path: None} if rich else {}
     prepared = preflight(epub_path=epub_path, cache_path=cache_path, glossary_path=glossary_path,

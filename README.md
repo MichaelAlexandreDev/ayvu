@@ -897,10 +897,17 @@ O rótulo aparece nos dados operacionais de proveniência e identidade do cache;
 eventos, relatório de terminal ou checkpoint. Não coloque dados pessoais no rótulo.
 O checkpoint rico registra apenas a revisão de execução, para vincular a retomada ao job.
 
-`rich/v2` recusa `--workers` diferente de `1`, `--cache-only` e
-`--require-full-cache`, com mensagem antes de qualquer chamada ao tradutor. A resolução offline atual não fixa a identidade de execução
-e a rota necessárias para oferecer cache-only rico com segurança. Para usar esses recursos
-do modo legado, remova `translator_models.libretranslate` da configuração.
+With a valid model label, `--cache-only --workers 1` creates the normal project/job and
+reconstructs from authorized exact entries in `<--cache>.v2.sqlite`, without DNS,
+provider/session/discovery or cache writes. Each unit recovers its own compatible canonical
+identity, including stored bridge routes. A missing database is empty; incompatible or ambiguous
+identities preserve the source and generate the existing missing-text report. Corruption,
+overflow and unsafe storage fail without an EPUB or a misleading missing-text file.
+`--require-full-cache` blocks reconstruction before staging when any text is missing, preserves
+previous output and exits 1; complete coverage reconstructs and validates with exit 0.
+Cache-only excludes translation memory, fuzzy reuse and raw-results replay, and creates no new
+raw-results even on complete hits. Parallel rich execution still requires `--workers 1`.
+Without a model label, cache-only retains the v1 behavior.
 
 Com o rótulo configurado, `--translation-memory` seleciona o repositório governado
 `approved-memory.sqlite` do projeto (#162). O padrão continua desligado. A ordem é:
@@ -948,7 +955,7 @@ retain v1. With a model label, `--dry-run` uses
 an offline transient rich runtime: no network, project/job creation or cache writes; exact v2 hits
 require an existing matching project. `--dry-run --cache-only --require-full-cache` exits 1 only
 when texts are missing. Configured workers/high are retained, with sequential local analysis stated
-in progress and reports. Preview and non-dry cache-only behavior are unchanged.
+in progress and reports. Preview selection is unchanged. Durable labeled cache-only uses the offline route described above.
 As políticas HTTP continuam as mesmas, sem novas requisições de descoberta.
 
 ## Configuração

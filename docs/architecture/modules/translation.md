@@ -138,7 +138,7 @@ predecessor project-free flow. Labeled dry runs use `TransientTranslation`.
 `composition.cli` chooses `transient_dry_run` only when `selected_model` returns a valid label,
 before preparation or stores. `prepare_translation` receives that modality explicitly and calls
 the local preflight, which validates languages, glossary, endpoint, timeout and retry settings without
-DNS, transport, a provider/session or the v1 write probe. Preview and non-dry cache-only selection are unchanged.
+DNS, transport, a provider/session or the v1 write probe. Preview selection is unchanged; durable cache-only has the separate route below.
 
 `composition/builders/translate_transient.py` reads `ProjectJsonRepository.read_catalog`, calls
 `select_project`, and revalidates the single selected manifest with `load_read_only`. An absent
@@ -176,7 +176,7 @@ The standalone cache has a v2 boundary and repository; CLI runs without a declar
 
 ## The resolved plan
 
-`LocalCachePlanResolver` resolves per-unit plans from authorized canonical cache evidence and local intent without discovery; labeled transient dry runs use it in production. Durable cache-only integration remains deferred.
+`LocalCachePlanResolver` resolves per-unit plans from authorized canonical cache evidence and local intent without discovery; labeled transient dry runs and durable cache-only use it in production. Each unit resolves independently; an internal proven pin narrows compatible evidence without fallback.
 
 `resolve_plan` is pure, and it yields no plan unless the required capabilities are plainly accepted.
 Its artifact and cache identities split at the glossary:
@@ -256,14 +256,23 @@ Cache-only has two modes: `pinned` resolves one durable execution identity refer
 Zero candidates miss, one is checked against the current semantic identity and more than one distinct
 identity is ambiguous. Duplicates for one exact key are corruption. Neither mode uses discovery or
 transport. A rich result reports incomplete units when misses are allowed; it publishes no raw-results
-artifact for an incomplete document. The CLI keeps its current partial EPUB and `--require-full-cache`
-behavior behind the legacy adapter. The production rich integration refuses `--cache-only`
-and `--require-full-cache`: current offline resolution does not safely pin its identity and route.
+artifact for an incomplete document. The CLI keeps its partial EPUB and `--require-full-cache` contracts. With a model label,
+[`CacheOnlyDocumentExecutor`](../../../src/ayvu/translation/cache_only_execution.py) prepares the
+entire document before unit consumption, so corruption cannot be swallowed by legacy unit tolerance.
+It shares the typed lookup/protection/glossary kernel in `TransientUnits`. Hit lineage uses
+`reuse_exact_cache`, `SourceKind.CACHE` and a `cache_entry:` reference derived from the complete
+validated exact key; it never records provider production or stores new raw-results. The offline
+executor accepts no TM, fuzzy, replay, artifact publisher or provider port. Missing originals use
+the injected Formats review projection for body HTML and expanded originals for title/alt.
+Empty missing originals are rejected. Scope denial, candidate overflow and corrupt storage are fatal.
+The engine gates full-cache gaps before reconstruction and preserves previous output; partial
+allowed output keeps source for missing units and uses the existing TXT renderer, including batch.
+
 
 `SQLiteExactCache` implements the port for the rich path after `prepare_cache` runs before workers.
 In rich, the CLI prepares `<--cache name>.v2.sqlite` before the provider, without opening or
 changing v1. The first rich use retranslates texts available only in v1. It requires
-`--workers 1`, refuses `--translation-memory` until #162 and stops at the first provider failure
+`--workers 1` and stops at the first provider failure
 without publishing a partial EPUB. The job remains resumable and completed segments stay in cache.
 The glossary is applied to raw v2 values. Removing the label returns to legacy on new
 runs; resume between different runtimes is refused and names `legacy/v1` and `rich/v2`.

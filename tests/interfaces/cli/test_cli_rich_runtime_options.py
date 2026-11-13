@@ -13,8 +13,7 @@ from tests.support.cli_rich_runtime_support import runner, text
 
 
 @pytest.mark.parametrize("arguments,gate", [(["--workers", "2"], "--workers 1"),
-    (["--cache-only"], "--cache-only"),
-    (["--cache-only", "--require-full-cache"], "--require-full-cache")])
+    (["--cache-only", "--workers", "2"], "--workers 1")])
 def test_cli_unsupported_rich_options_name_the_actual_refusal(tmp_path, monkeypatch, arguments, gate):
     config(tmp_path)
     result, transport = invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), *arguments)

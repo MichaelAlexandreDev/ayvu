@@ -20,9 +20,10 @@ from ...knowledge.memory.approved.store import open_approved_memory
 from ...translation.stages import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
 from ...artifacts import ArtifactError
 from ...artifacts.destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
+from .rich_document_executor import RichDocumentExecutor, prepare_offline, offline_executor
+from ...knowledge.cache import CacheIdentityError
 from ...knowledge.cache.repository import SQLiteExactCache
 from ...knowledge.cache.schema import CacheSchemaError, SchemaState, classify_cache
-from ...content import ContentDocument, TranslationUnit
 from ...translation.context import ContextExecution, ContextError
 from ...formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
 from ...formats.epub.io import SelectedChapter, detect_epub_language, resolve_chapter_selection
@@ -30,9 +31,7 @@ from ...v1.epub import _validate_worker_options, translate_epub  # noqa: F401 - 
 from ...formats.local import LocalFormatSource, LocalOutputGuard
 from ...formats import BookFacts, FormatPublication, FormatRegistry, FormatService
 from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
-from ...formats.epub import html_unit_template, normalize_translated_text, without_xml_invalid
-from ...jobs import JobState
-from ...jobs import CancellationSource
+from ...jobs import JobState, CancellationSource
 from ...recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from ...recovery.store import LocalRecoveryEvidence
 from ...v1.translation import LegacyExecutorPool, LegacyUnitExecutor
@@ -64,11 +63,9 @@ from ...translation import (
     TranslationRuntime, TranslationReport, to_report,
     RuntimeContext,
 )
+from ...translation import TranslationResources
 from ...translation import (
-    ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED, TranslationResources, UnitExecution,
-)
-from ...translation import (
-    SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, ExecutionContext, TranslationExecutionError, UnitSource,
+    SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, TranslationExecutionError,
 )
 from ...knowledge.memory import TranslationMemory
 from ...translation import resolve_plan as resolve_translation_plan
@@ -338,6 +335,7 @@ class ProjectTranslation:
     model_label: str | None = None
     cache_path: Path | None = None
     translation_context: ContextExecution | None = None
+    prepare_offline: Callable[[], object] | None = None
 
     def __repr__(self) -> str:
         return f"ProjectTranslation(project_id={self.project_id!r})"
@@ -364,7 +362,7 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
     destination = translation.output.path
     overwrite = translation.accepted_output.overwrite if translation.accepted_output is not None else translation.replace_existing
     try:
-        if translation.translation_context is not None:
+        if translation.translation_context is not None and (translation.model_label is None or not translation.options.cache_only):
             if translation.model_label is None:
                 raise ContextError('context_capabilities')
             execution_context = translation.translation_context
@@ -389,9 +387,9 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
             runtime = RichTranslationRuntime(translation.source_path, translation.options, translation.prepare,
                 translation.cache_path, translation.model_label, paths.database, paths.backups,
                 projects.resolve_artifact_root(translation.project_id), translation.project_id,
-                translation_context=translation.translation_context)
+                translation_context=translation.translation_context, prepare_offline=translation.prepare_offline)
             execution = {"execution_revision": 2, "producer": runtime.producer,
-                         "additional_output_roles": (RAW_RESULTS_ROLE,)}
+                         "additional_output_roles": () if translation.options.cache_only else (RAW_RESULTS_ROLE,)}
             if translation.translation_context is not None:
                 execution['context_revision'] = translation.translation_context.job_revision
         guard = translation.accepted_output.publication_guard if translation.accepted_output is not None else translation.before_publish
@@ -450,61 +448,14 @@ def check_rich_options(options: TranslationOptions) -> None:
         raise PreflightError("O runtime rich/v2 requer --workers 1.", "Use --workers 1 ou remova o rótulo do modelo da configuração.")
     if options.translation_memory is not None:
         memory_policy(options.translation_memory)
-    if options.cache_only or options.require_full_cache:
-        raise PreflightError("--cache-only e --require-full-cache não estão disponíveis no runtime rich/v2.",
-                             "Remova essas opções ou remova o rótulo do modelo para usar o cache legado v1.")
-
-
-class _DocumentExecutor:
-    def __init__(self, translator: DocumentTranslator, context: RuntimeContext) -> None:
-        self._translator, self._context = translator, context
-        self._executions: dict[str, UnitExecution] = {}
-        self._documents = 0
-
-    def __repr__(self) -> str:
-        return "DocumentExecutor()"
-
-    def prepare_document(self, document: ContentDocument) -> None:
-        self._documents += 1
-        context = self._context
-        job = context.current_job() if context.current_job is not None else context.job
-        # Raw results replay only from earlier jobs of this continuation chain, after every dimension is proved.
-        result = self._translator.translate(document, ExecutionContext(
-            job, context.job.lease.owner_token, context.cancellation,
-            progress_phase=f"document_{self._documents}", reusable_jobs=context.reusable_jobs),
-            replay_raw_results=bool(context.reusable_jobs))
-        executions = {}
-        for unit, translated in zip(document.units, result.units, strict=True):
-            template = html_unit_template(unit)
-            tokenized = translated.tokenized_text
-            if tokenized is None:
-                raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "missing_tokenized_result"))
-            status = (STATUS_CACHE if translated.source in (UnitSource.EXACT_CACHE, UnitSource.ARTIFACT_REPLAY) else
-                      STATUS_MEMORY if translated.source in (UnitSource.APPROVED_MEMORY, UnitSource.APPLIED_MEMORY) else
-                      STATUS_MISSING if translated.source is UnitSource.CACHE_ONLY_MISSING else STATUS_TRANSLATED)
-            kind = unit.content.kind.name
-            if kind == METADATA_KIND:
-                if without_xml_invalid(tokenized) != tokenized:
-                    raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, "invalid_title_result"))
-                rebuilt = tokenized
-            else:
-                rebuilt = without_xml_invalid(tokenized) if kind == ALT_TEXT_KIND else normalize_translated_text(tokenized)
-            executions[unit.unit_id] = UnitExecution(rebuilt, status, template, translated.text,
-                memory_suggestion=None if not translated.retrieval_suggestions else translated.retrieval_suggestions[0].source_snippet,
-                glossary_usage=translated.glossary_usage)
-        self._executions = executions
-
-    def execute(self, unit: TranslationUnit) -> UnitExecution:
-        return self._executions[unit.unit_id]
-
-    def untranslated(self, unit: TranslationUnit) -> str:
-        return html_unit_template(unit)
+    if options.require_full_cache and not options.cache_only:
+        raise PreflightError("--require-full-cache requires --cache-only.", "Add --cache-only.")
 
 
 class RichTranslationRuntime:
     """Only the composition knows the concrete repositories and LibreTranslate adapter."""
     def __init__(self, source_path, options, prepare, cache_path, label, database, backups, artifact_root, project_id,
-                 *, clock=lambda: datetime.now(UTC), translation_context: ContextExecution | None = None) -> None:
+                 *, clock=lambda: datetime.now(UTC), translation_context: ContextExecution | None = None, prepare_offline=None) -> None:
         self._source_path, self._options, self._prepare = source_path, options, prepare
         self._cache_path = v2_cache_path(cache_path)
         self._database, self._backups, self._artifact_root = database, backups, artifact_root
@@ -514,6 +465,7 @@ class RichTranslationRuntime:
         self._prepared = None
         self._cache = None
         self._translation_context = translation_context
+        self._prepare_offline = prepare_offline
 
     def __repr__(self) -> str:
         return "RichTranslationRuntime()"
@@ -521,6 +473,9 @@ class RichTranslationRuntime:
     def preflight(self) -> JobFailure | None:
         try:
             check_rich_options(self._options)
+            if self._options.cache_only:
+                prepare_offline(self)
+                return None
             if self._translation_context is not None:
                 self._translation_context.validate(self._clock())
                 self._translation_context.authorize_prepared(self._clock())
@@ -530,6 +485,9 @@ class RichTranslationRuntime:
             # Constructor calls prepare_cache, synchronously, before preparation can reach /languages.
             self._cache = SQLiteExactCache(self._cache_path)
             self._prepared = self._prepare()
+        except TranslationExecutionError as error:
+            self.preflight_error = PreflightError("Offline preparation refused.", "Check local execution evidence.", detail=error.failure.code)
+            return error.failure
         except BookRefused as error:
             self.preflight_error = error
             return JobFailure(JobFailureFamily.INPUT, error.code)
@@ -549,6 +507,10 @@ class RichTranslationRuntime:
     @contextmanager
     def resources(self, context: RuntimeContext):
         prepared, options = self._prepared, self._options
+        if options.cache_only:
+            executor = offline_executor(self, context)
+            yield TranslationResources(executor, prepare_document=executor.prepare_document)
+            return
         translator = prepared.translator
         base = translator._base if isinstance(translator, RoutedTranslator) else translator
         route = translator.route if isinstance(translator, RoutedTranslator) else None
@@ -574,7 +536,7 @@ class RichTranslationRuntime:
             lambda text: apply_glossary_with_usage(text, prepared.glossary), artifacts, provenance, context.events,
             exact_cache=self._cache, approved_memory=retrieval, memory=legacy, retrieval_policy=policy, clock=self._clock,
             translation_context=self._translation_context)
-        executor = _DocumentExecutor(document_translator, context)
+        executor = RichDocumentExecutor(document_translator, context)
         try:
             yield TranslationResources(executor, prepare_document=executor.prepare_document)
         finally:
@@ -583,6 +545,8 @@ class RichTranslationRuntime:
     def classify(self, error: Exception) -> JobFailure:
         if isinstance(error, TranslationExecutionError):
             return error.failure
+        if isinstance(error, (CacheSchemaError, CacheIdentityError)):
+            return JobFailure(JobFailureFamily.RESOURCE, error.code)
         return JobFailure(JobFailureFamily.INTERNAL, "rich_translation_failed")
 
     def report(self, result, destination):

@@ -22,11 +22,18 @@ the same. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
 `declared:<label>`; `unknown` has not been made eligible. **Changing the server model
 without updating the label reuses old results under the same declaration.**
 
-In the #252 integration described here, the rich runtime prepares `SQLiteExactCache` at `<--cache name>.v2.sqlite` before
-preparing the provider; it neither opens nor migrates v1. It requires `--workers 1` and refuses
-`--translation-memory`, `--cache-only` and `--require-full-cache`. There is no pinned offline
-identity/route to offer rich cache-only in this integration. Preflight sanitizes
-cache refusals. Existing HTTP authorization is reused, without new requests.
+Online rich execution prepares `SQLiteExactCache` at `<--cache name>.v2.sqlite` before
+provider preparation. Durable cache-only instead runs the explicit local preflight and opens
+`ReadOnlyExactCache` before any online callback. It uses
+[`rich_document_executor.py`](../../../src/ayvu/composition/builders/rich_document_executor.py) to
+wire [`CacheOnlyDocumentExecutor`](../../../src/ayvu/translation/cache_only_execution.py), with
+normal project/job/lease authority and per-unit exact reuse provenance. Neither branch opens
+or migrates v1. Rich durable execution still requires `--workers 1`; full-cache requires cache-only.
+The engine's coverage gate precedes reconstruction/staging/publication. Gaps under full-cache
+end `PARTIALLY_COMPLETED/cache_incomplete`; the existing report and missing-text renderer still run.
+No cache-only path opens TM, fuzzy, replay or provider ports, or publishes raw-results.
+Internal pins can only be resolved by an explicitly injected durable authority; the production CLI
+uses compatible resolution and exposes no pin flag.
 
 An application consumer may inject `ProjectTranslation.translation_context`
 with explicit snapshots and authorization. The [bounded context policy](translation-context.md)

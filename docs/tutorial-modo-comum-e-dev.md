@@ -429,9 +429,14 @@ os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume li
 Mantenha o rótulo durante a retomada; um job legado exige sua ausência. A incompatibilidade
 entre `legacy/v1` e `rich/v2` é recusada antes de chamar o tradutor.
 
-Outside dry runs, `rich/v2` requires `--workers 1` and refuses `--cache-only` and
-`--require-full-cache`. For those operations, remove `libretranslate` from `translator_models`
-to start a legacy translation. Without a label, existing behavior is preserved.
+For labeled durable translations, `--cache-only --workers 1` reconstructs from the authorized
+exact v2 cache without network, sessions, discovery, cache writes, translation memory or replay.
+It creates the normal project/job. Missing or ambiguous entries keep the source and save the
+existing missing-text file. `--require-full-cache` blocks reconstruction before staging on a
+miss and exits 1, preserving previous output. Complete hits reconstruct and validate with exit 0.
+Corruption, overflow or unsafe storage fail without EPUB/TXT publication. No new raw-results
+are published, including on complete hits. Rich workers greater than 1 remain refused.
+Without a label, existing cache-only behavior is preserved.
 Preview stays on v1. With a model label, `--dry-run` uses the offline transient rich
 runtime: no provider/session/discovery, project/job creation or cache writes. Exact hits require
 a matching existing project and compatible canonical v2 evidence. Cache-only misses preserve the
