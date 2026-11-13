@@ -9,6 +9,13 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 2: preview raiz e guiado com rótulo usam a rota rica transitória,
+  com provedor/discovery autorizados, limite padrão de 12 documentos, pasta Preview configurada,
+  confirmação de overwrite e EPUB validado. Lê v2 somente com projeto correspondente existente
+  e reaproveita bruto em memória antes do glossário, sem aquecer cache ou criar projeto/job,
+  checkpoint, Markdown, revisão ou raw-results. Falha do provedor retorna 1 sem EPUB parcial
+  nem alteração do destino. Sem rótulo, a saída e os efeitos v1 permanecem iguais.
+
 - REF-18 (#286), passo 2: `translate --cache-only` com rótulo e worker único reconstrói pelo
   runtime rico durável, usando apenas cache exato v2 somente leitura, sem rede, provedor, TM,
   replay ou novos raw-results. Faltas preservam a fonte e geram o `.txt` existente;

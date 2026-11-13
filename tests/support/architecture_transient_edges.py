@@ -1,5 +1,16 @@
 """Reviewed dependency inventory for offline transient execution (REF-18 G3)."""
 TRANSIENT_EDGES = {
+    *(("ayvu.composition.builders.transient_publication", f"ayvu.{name}") for name in (
+        "formats.contracts", "formats.epub.adapter", "formats.epub.validation", "formats.local", "formats.service",
+        "translation.document_contracts", "translation.errors")),
+    *(("ayvu.composition.builders.translate_transient", f"ayvu.{name}") for name in (
+        "composition.builders.rich_document_executor", "composition.builders.transient_publication", "formats.epub.io",
+        "providers.capabilities", "providers.libretranslate.client", "providers.ports", "translation.plan",
+        "translation.transient_cache")),
+    *(("ayvu.translation.transient_cache", f"ayvu.{name}") for name in (
+        "content.protection", "knowledge.cache.entries", "knowledge.cache.identity_values")),
+    ("ayvu.translation.transient_units", "ayvu.providers.ports"),
+    ("ayvu.translation.transient_units", "ayvu.providers.service"),
     ("ayvu.composition.cli", "ayvu.composition.builders.translate_transient"),
     ("ayvu.interfaces.cli.run_support", "ayvu.interfaces.cli.progress"),
     *(("ayvu.composition.builders.translate_transient", f"ayvu.{name}") for name in (

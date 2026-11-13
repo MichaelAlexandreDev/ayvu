@@ -56,6 +56,7 @@ class _BookRequest:
     on_project_result: Callable[[TranslateProjectResult], None] | None = None
     translator_name: str = "libretranslate"
     translator_models: dict[str, str] = field(default_factory=dict, repr=False)
+    preview: bool = False
 
 
 @dataclass(frozen=True, repr=False)
@@ -120,6 +121,11 @@ def run_translation_preflight(**configuration):
     return _preflight(**{"cache_check": verify_cache_writable, **configuration})
 
 
+def prepare_preview(*, translator_models, translator_name, **configuration):
+    return translate_transient.prepare_preview(label=selected_model(translator_models, translator_name),
+                                              translator_name=translator_name, rich_preflight=_preflight, **configuration)
+
+
 def resolve_translation_project(processing_dir, epub_path, *, source, target, glossary_path, profile_name, **selections):
     request = build_project_request(epub_path, source=source, target=target,
         glossary_path=glossary_path, profile_name=profile_name, selections=translation_selections(**selections))
@@ -178,7 +184,7 @@ def validate_output(*args, **kwargs):
 
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
     """Dry run, and a resume file that recomputes to no job. See ``translate_without_project``."""
-    if translation_modality(book.options.dry_run, book.translator_models, book.translator_name) == "transient_dry_run":
+    if (book.options.dry_run or book.preview) and selected_model(book.translator_models, book.translator_name) is not None:
         return _BookOutcome(report=translate_transient.translate(book, hooks,
             selected_model(book.translator_models, book.translator_name),
             formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))

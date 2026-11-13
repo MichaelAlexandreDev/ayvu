@@ -125,3 +125,18 @@ so `two%20words.xhtml` finds its member, unlike the current check, which reports
 - [test_epub_format_reconstruction](../../../tests/formats/epub/test_epub_format_reconstruction.py).
 - [test_epub_format_validation](../../../tests/formats/epub/test_epub_format_validation.py).
 - [test_epub_io_paths](../../../tests/formats/epub/test_epub_io_paths.py).
+
+## Transient preview selection and publication
+
+`io.preview_documents` exposes the existing v1 enumeration: ebooklib document order,
+navigation inclusion controlled by metadata, `max_documents` sliced with `max(0, N)`
+before chapter selection, and `None` for all. It does not assume spine or ZIP order.
+Package metadata is extracted separately and consumes no document slot.
+`resolve_chapter_selection` delegates to this same boundary.
+
+`PreviewRequest`, `FormatContext` and the operation/error values are public Formats
+contracts. The transient local publication adapter uses the EPUB previewer directly
+without an artifact repository, then validates staging before replace. Structural errors
+block publication; validation warnings retain the EPUB and CLI report with exit 1. The previewer
+preserves untranslated ZIP member bytes and can render no translated results.
+The thirteen-document fixture deliberately varies manifest, spine and ZIP ordering.

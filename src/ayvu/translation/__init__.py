@@ -37,6 +37,8 @@ from .project_contracts import (
 from .report import HtmlTranslationStats, TextTranslationResult, TranslationReport, to_html_stats, to_report
 from .transient import TransientExecution, TransientTranslation
 from .transient_units import TransientUnits
+from .transient_units import TransientProvider
+from .transient_cache import TransientCache
 from .resume_reuse import (
     ArtifactIntegrity, INTEGRITY_REASONS, REUSE_DIMENSIONS, RecoveryReason, ResumeStage, StageEvidence,
     StageSelection, select_resume_stage,
@@ -60,5 +62,5 @@ __all__ = [
     "CanonicalCacheRecordsPort", "LocalCachePlanIntent", "LocalCachePlanResolution",
     "LocalCachePlanResolver", "LocalCachePlanState", "select_resume_stage",
     "to_html_stats", "to_report",
-    "TransientExecution", "TransientTranslation", "TransientUnits",
+    "TransientExecution", "TransientTranslation", "TransientUnits", "TransientCache", "TransientProvider",
 ]

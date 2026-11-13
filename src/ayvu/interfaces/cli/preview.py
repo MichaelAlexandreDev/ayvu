@@ -8,7 +8,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from . import report as reports, output as output_paths
 from .progress import TranslationProgress
 from ...preferences import AyvuConfig
-from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, check_book
+from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, check_book, prepare_preview
 from ...kernel import LanguagePair, OutputPlan, TranslationOptions, UserMode
 from ...translation import BookRefused, PreflightError
 from ...network import NetworkPolicy
@@ -65,43 +65,24 @@ def _run_preview(
         raise typer.Exit(code=1) from exc
 
     try:
-        preflight = translation_run.run_translation_preflight(
-            network_policy=_selected_network_policy(network_policy),
-            epub_path=epub_path,
-            cache_path=cache_path,
-            glossary_path=glossary_path,
-            translator_name=translator_name,
-            url=url,
-            timeout=timeout,
-            retries=retries,
-            requests_per_second=requests_per_second,
-            retry_backoff=retry_backoff,
-            retry_backoff_max=retry_backoff_max,
-            language_pair=language_pair,
-            dry_run=False,
-        )
+        prepare = _prepare_preview(config, mode, translation_options,
+            network_policy=_selected_network_policy(network_policy), epub_path=epub_path,
+            cache_path=cache_path, glossary_path=glossary_path, translator_name=translator_name,
+            url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,
+            retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
+            language_pair=language_pair, dry_run=False)
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"),
+                      BarColumn(), TaskProgressColumn(), TimeElapsedColumn(), console=console) as progress:
+            progress_view = TranslationProgress(progress, dry_run=False)
+            outcome = run_support._translate_without_project(
+                _BookRequest(epub_path, output_plan, True, translation_options, cache_path, prepare,
+                    translator_name=translator_name, translator_models=config.translator_models, preview=True),
+                _BookHooks(progress_view.chapter_started, progress_view.chapter_done,
+                           progress_view.text_processed, lambda *args: None), validate=False)
+            report = outcome.report
     except PreflightError as exc:
         _print_expected_error(exc.summary, exc.next_step, mode, detail=exc.detail)
         raise typer.Exit(code=1) from exc
-
-    plan._print_translation_route(preflight.route, mode=mode)
-    _print_network_selection(getattr(preflight, "network_decision", None))
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        console=console,
-    ) as progress:
-        progress_view = TranslationProgress(progress, dry_run=False)
-        outcome = run_support._translate_without_project(
-            _BookRequest(epub_path, output_plan, True, translation_options, cache_path, lambda: preflight),
-            _BookHooks(progress_view.chapter_started, progress_view.chapter_done, progress_view.text_processed, lambda *args: None),
-            validate=False,
-        )
-        report = outcome.report
 
     validation = run_support._validate_with_progress(output_path)
     reports._print_report(report, dry_run=False, validation_warnings=validation.warnings)
@@ -113,3 +94,13 @@ def _run_preview(
         return
 
     raise typer.Exit(code=1)
+
+
+def _prepare_preview(config, mode, options, **configuration):
+    def on_route(prepared):
+        plan._print_translation_route(prepared.route, mode=mode)
+        _print_network_selection(getattr(prepared, "network_decision", None))
+
+    return prepare_preview(translator_models=config.translator_models, options=options, defer=True,
+        processing_dir=settings._processing_dir(config), preflight=translation_run.run_translation_preflight,
+        on_route=on_route, **configuration)

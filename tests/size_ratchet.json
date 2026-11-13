@@ -28,7 +28,6 @@
     "src/ayvu/formats/use_cases.py::ExportVisibleContent.execute": 136,
     "src/ayvu/interfaces/cli/batch.py::_run_batch_translation": 156,
     "src/ayvu/interfaces/cli/commands/translate.py::translate": 272,
-    "src/ayvu/interfaces/cli/preview.py::_run_preview": 96,
     "src/ayvu/interfaces/cli/run.py::_run_translation": 330,
     "src/ayvu/knowledge/cache/interchange.py::iter_records": 82,
     "src/ayvu/knowledge/cache/legacy_admin_store.py::SQLiteLegacyStreamingStore.import_cache": 155,
