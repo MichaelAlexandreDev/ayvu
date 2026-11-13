@@ -29,7 +29,7 @@ provider preparation. Durable cache-only instead runs the explicit local preflig
 [`rich_document_executor.py`](../../../src/ayvu/composition/builders/rich_document_executor.py) to
 wire [`CacheOnlyDocumentExecutor`](../../../src/ayvu/translation/cache_only_execution.py), with
 normal project/job/lease authority and per-unit exact reuse provenance. Neither branch opens
-or migrates v1. Rich online execution still requires `--workers 1`; durable cache-only accepts the effective worker count without clamping. Full-cache requires cache-only.
+or migrates v1. Rich online execution and durable cache-only accept the effective worker count without clamping; governed memory still requires `--workers 1`. Full-cache requires cache-only.
 The engine's coverage gate precedes reconstruction/staging/publication. Gaps under full-cache
 end `PARTIALLY_COMPLETED/cache_incomplete`; the existing report and missing-text renderer still run.
 No cache-only path opens TM, fuzzy, replay or provider ports, or publishes raw-results.
@@ -246,3 +246,23 @@ compatibility checkpoint, as before; running it again repeats exact local
 resolution. It neither replays nor publishes raw-results, and existing completed
 raw artifacts remain available to authorized online continuations, which
 rediscover them through the durable job chain.
+
+### Ordered online workers (REF-18 G8, batch 5)
+
+With workers > 1, each document task builds its own translator through the
+prepared factory, its own `LibreTranslateProvider`, artifact service and
+provenance repository over the already prepared project database, and closes the
+provider when the task ends. The factory shares the book's single rate limiter,
+including retries and bridge hops, and the discovery session is never handed to a
+worker. Workers share the prepared exact cache through `ArbitratedExactCache`,
+which produces a repeated key once per invocation and wakes waiters with the
+owner's error if it fails. Raw results are confirmed per complete document, so a
+failed book stays resumable from the durable chain; the coordinator still owns
+observers, the compatibility checkpoint and the EPUB. A single worker keeps the
+previous wiring unchanged.
+With more than one worker, every repository on the project database, in the
+workers and in the coordinator, waits up to two seconds (the runner's maximum) for
+SQLite's write lock instead of half a second. Workers also take turns to write
+in-process, without a deadline, so SQLite only ever queues one worker next to the
+coordinator: on a slow disk under load, the whole queue of workers outlasted any
+busy timeout the runner accepts.

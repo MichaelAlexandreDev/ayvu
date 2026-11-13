@@ -78,6 +78,7 @@ OWNERS = {
     "ayvu.composition.builders.rich_document_executor": Owner("composition", "Translation"),
     "ayvu.translation.document_scheduler": Owner("application", "Translation"),
     "ayvu.translation.document_work": Owner("application", "Translation"),
+    "ayvu.translation.worker_cache_keys": Owner("application", "Translation"),
     "ayvu.composition.builders.rich_workers": Owner("composition", "Translation"),
     "ayvu.translation.cache_only_execution": Owner("application", "Translation"),
     "ayvu.composition.builders.translate_transient": Owner("composition", "Transient translation"),

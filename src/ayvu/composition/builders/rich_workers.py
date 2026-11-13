@@ -2,11 +2,15 @@
 
 The coordinator has already opened the project database. Repository constructors
 below only bind that prepared database; every operation opens its own connection.
-Online execution remains a single coordinator worker until REF-18 batch 5.
+Online workers each own a translator from the prepared factory, which shares the
+book's single rate limiter, plus their own provider, artifact and provenance
+adapters. They share the prepared exact cache through ArbitratedExactCache, so a
+repeated key is produced once per invocation.
 """
 from __future__ import annotations
 
 from contextlib import contextmanager
+from threading import Lock
 from dataclasses import replace
 
 from ...formats.epub import review_text_from_template
@@ -16,14 +20,68 @@ from ...knowledge.cache.read_only import ReadOnlyExactCache
 from ...knowledge.memory.approved import MemoryScope, ScopeKind
 from ...knowledge.memory.approved.store import open_approved_memory
 from ...translation.stages import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
+from ...artifacts import ArtifactService
+from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
+from ...providers.libretranslate.adapter import LibreTranslateProvider
+from ...providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator
 from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
 from ...projects.schema import project_migration_runner
 from ...provenance.store import SqliteProvenanceRepository
 from ...translation import (
-    CacheOnlyDocumentExecutor, DocumentTranslator, DocumentWork, LocalCachePlanIntent,
+    ArbitratedExactCache, CacheOnlyDocumentExecutor, DocumentTranslator, DocumentWork, LocalCachePlanIntent,
     TranslationResources, TranslationExecutionError, TranslationCancelled,
 )
 from .rich_document_executor import RichDocumentExecutor, map_offline_execution
+
+# Workers and the coordinator write one project database at once. On a slow disk the default
+# half second is shorter than the queue, so every party waits up to the runner's maximum.
+WORKER_BUSY_TIMEOUT = 2.0
+
+
+
+class _SerializedWrites:
+    """Worker repositories take turns to write, waiting in-process without a deadline.
+
+    SQLite then sees at most one worker at a time, next to the coordinator, so its
+    busy timeout covers one write rather than the whole queue. Reads stay concurrent.
+    """
+
+    def __init__(self) -> None:
+        self._runner, self._lock = project_migration_runner(busy_timeout=WORKER_BUSY_TIMEOUT), Lock()
+
+    def connect(self, database, *, readonly: bool):
+        if readonly:
+            return self._runner.connect(database, readonly=True)
+        self._lock.acquire()
+        try:
+            return _ReleasingConnection(self._runner.connect(database, readonly=False), self._lock)
+        except BaseException:
+            self._lock.release()
+            raise
+
+
+class _ReleasingConnection:
+    """Delegates to the SQLite connection and hands the write turn on when it closes."""
+
+    def __init__(self, connection, lock) -> None:
+        self._connection, self._lock = connection, lock
+
+    def __getattr__(self, name):
+        return getattr(self._connection, name)
+
+    def close(self) -> None:
+        try:
+            self._connection.close()
+        finally:
+            lock, self._lock = self._lock, None
+            if lock is not None:
+                lock.release()
+
+def project_store_options(translation) -> dict:
+    """Coordinator stores wait like the workers whenever several labeled workers share the database."""
+    if translation.model_label is not None and translation.options.workers > 1:
+        return {"busy_timeout": WORKER_BUSY_TIMEOUT}
+    return {}
 
 
 class WorkerAuthority:
@@ -55,13 +113,13 @@ def offline_work(runtime, context):
     options, prepared = runtime._options, runtime._prepared
     intent = LocalCachePlanIntent(options.source, options.target, runtime.producer, options.chunk_limit,
         glossary_ref=effective_glossary_reference(prepared.glossary))
-    authority = WorkerAuthority(context, runtime._clock)
+    authority, runner = WorkerAuthority(context, runtime._clock), _SerializedWrites()
 
     @contextmanager
     def factory(events, check):
         check()
         reader = ReadOnlyExactCache(runtime._cache_path)
-        repository = SqliteProvenanceRepository(project_migration_runner(), runtime._database,
+        repository = SqliteProvenanceRepository(runner, runtime._database,
             runtime._project_id, clock=runtime._clock)
         yield CacheOnlyDocumentExecutor(reader, intent, replace(context, events=events),
             WorkerProvenance(repository, check), review_text_from_template,
@@ -85,6 +143,9 @@ def online_work(runtime, context, plan, provider, artifacts, provenance, memory_
             legacy = LegacyCacheCompatibility(runtime._cache, policy,
                 apply_threshold=options.translation_memory.apply_threshold)
 
+    if options.workers > 1:
+        return _parallel_online(runtime, context, plan)
+
     @contextmanager
     def factory(events, check):
         translator = DocumentTranslator(plan, provider,
@@ -94,3 +155,34 @@ def online_work(runtime, context, plan, provider, artifacts, provenance, memory_
         yield RichDocumentExecutor(translator, context)
 
     return TranslationResources(None, documents=DocumentWork(factory, context))
+
+
+def _parallel_online(runtime, context, plan):
+    """Workers > 1 run without governed memory, which check_rich_options refuses earlier."""
+    factory_of = getattr(runtime._prepared, "translator_factory", None)
+    if factory_of is None:
+        raise TranslationExecutionError(JobFailure(JobFailureFamily.RESOURCE, "worker_factory_unavailable"))
+    cache, authority = ArbitratedExactCache(runtime._cache), WorkerAuthority(context, runtime._clock)
+    runner = _SerializedWrites()
+
+    @contextmanager
+    def factory(events, check):
+        check()
+        translator = factory_of()
+        base = translator._base if isinstance(translator, RoutedTranslator) else translator
+        provider = LibreTranslateProvider(translator, producer=plan.producer, clock=runtime._clock,
+            cleanup=base.close if isinstance(base, LibreTranslateTranslator) else None)
+        try:
+            artifacts = ArtifactService(SqliteArtifactRepository(runner, runtime._database, runtime._project_id,
+                clock=runtime._clock), LocalArtifactPayloads(runtime._artifact_root))
+            provenance = SqliteProvenanceRepository(runner, runtime._database, runtime._project_id, clock=runtime._clock)
+            translator_of_document = DocumentTranslator(plan, provider,
+                lambda text: apply_glossary_with_usage(text, runtime._prepared.glossary), artifacts,
+                WorkerProvenance(provenance, check), events, exact_cache=cache, clock=runtime._clock,
+                translation_context=runtime._translation_context)
+            with cache.worker(check):
+                yield RichDocumentExecutor(translator_of_document, replace(context, events=events))
+        finally:
+            provider.close()
+
+    return TranslationResources(None, documents=DocumentWork(factory, context, checkpoint=authority.check))

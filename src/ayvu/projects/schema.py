@@ -24,16 +24,18 @@ PROJECT_MIGRATIONS = (
 )
 
 
-def project_migration_runner() -> SqliteMigrationRunner:
-    return SqliteMigrationRunner(PROJECT_MIGRATIONS)
+def project_migration_runner(*, busy_timeout: float = 0.5) -> SqliteMigrationRunner:
+    """``busy_timeout`` lets concurrent document workers wait longer for the shared project database."""
+    return SqliteMigrationRunner(PROJECT_MIGRATIONS, busy_timeout=busy_timeout)
 
 
-def open_job_repository(database: Path, backups: Path, project_id: str, **factories) -> SqliteJobRepository:
+def open_job_repository(database: Path, backups: Path, project_id: str, *, busy_timeout: float = 0.5,
+                        **factories) -> SqliteJobRepository:
     """Bootstrap or upgrade the database explicitly, then expose its jobs.
 
     ``factories`` are the optional clock/new_id/new_token of the repository.
     """
-    runner = project_migration_runner()
+    runner = project_migration_runner(busy_timeout=busy_timeout)
     result = runner.migrate(database, backups)
     if not result.ok:
         raise JobStoreError(result.error or "io")
@@ -42,13 +44,13 @@ def open_job_repository(database: Path, backups: Path, project_id: str, **factor
 
 def open_artifact_service(database: Path, backups: Path, artifact_root: Path, project_id: str, *,
                           ops: ArtifactFileOps | None = None, payloads: ArtifactPayloadStore | None = None,
-                          **factories) -> ArtifactService:
+                          busy_timeout: float = 0.5, **factories) -> ArtifactService:
     """Bootstrap or upgrade the database explicitly, then expose the project's artifacts.
 
     ``factories`` are the optional clock/new_id of the repository. ``payloads`` replaces the project's
     own files, for an output the user chose. ``ops`` then belongs to that store, not to this call.
     """
-    runner = project_migration_runner()
+    runner = project_migration_runner(busy_timeout=busy_timeout)
     result = runner.migrate(database, backups)
     if not result.ok:
         raise ArtifactStoreError(result.error or "io")
@@ -56,12 +58,13 @@ def open_artifact_service(database: Path, backups: Path, artifact_root: Path, pr
     return ArtifactService(repository, payloads or LocalArtifactPayloads(artifact_root, ops=ops))
 
 
-def open_provenance_repository(database: Path, backups: Path, project_id: str, **factories) -> SqliteProvenanceRepository:
+def open_provenance_repository(database: Path, backups: Path, project_id: str, *, busy_timeout: float = 0.5,
+                               **factories) -> SqliteProvenanceRepository:
     """Bootstrap or upgrade the database explicitly, then expose the project's lineage.
 
     ``factories`` are the optional clock/new_id of the repository.
     """
-    runner = project_migration_runner()
+    runner = project_migration_runner(busy_timeout=busy_timeout)
     result = runner.migrate(database, backups)
     if not result.ok:
         raise ProvenanceStoreError(result.error or "io")

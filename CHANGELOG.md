@@ -9,6 +9,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 2: tradução online rica com rótulo aceita `--workers N` e o perfil high
+  sem reduzir N. Cada worker tem sessão, provedor e adaptadores próprios, com um único limitador
+  de taxa por livro; um texto repetido entre documentos é traduzido uma só vez. Falha ou
+  cancelamento param a admissão e esperam os workers iniciados; uma chamada HTTP em curso
+  termina no seu timeout. Memória governada paralela continua recusada.
+
 - REF-18 (#286), passo 2: cache-only rico durável aceita workers e perfil high sem
   reduzir N; documentos têm admissão limitada, consolidação em ordem e drain
   cooperativo sob o lease único, sem checkpoint novo. Conferências do cache

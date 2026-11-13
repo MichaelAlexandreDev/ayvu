@@ -12,14 +12,6 @@ from tests.support.cli_rich_runtime_support import Transport, config, invoke, is
 from tests.support.cli_rich_runtime_support import runner, text
 
 
-@pytest.mark.parametrize("arguments,gate", [(["--workers", "2"], "--workers 1")])
-def test_cli_unsupported_rich_options_name_the_actual_refusal(tmp_path, monkeypatch, arguments, gate):
-    config(tmp_path)
-    result, transport = invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), *arguments)
-    assert result.exit_code == 1 and gate in text(result) and "rich/v2" in text(result)
-    assert transport.requests == [] and not (tmp_path / "out.epub").exists()
-
-
 def test_require_full_cache_without_cache_only_keeps_its_original_cli_gate(tmp_path, monkeypatch):
     config(tmp_path)
     result, transport = invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), "--require-full-cache")

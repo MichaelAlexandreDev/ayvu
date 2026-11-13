@@ -1,5 +1,7 @@
-"""Reviewed document scheduling and task resource dependencies (REF-18 G8 offline)."""
+"""Reviewed document scheduling and task resource dependencies (REF-18 G8)."""
 WORKER_EDGES = {
+    ('ayvu.composition.builders.rich_workers', 'ayvu.artifacts.service'),
+    ('ayvu.composition.builders.rich_workers', 'ayvu.artifacts.store'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.composition.builders.rich_document_executor'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.formats.epub.html_structure'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.jobs.model'),
@@ -9,6 +11,8 @@ WORKER_EDGES = {
     ('ayvu.composition.builders.rich_workers', 'ayvu.knowledge.memory.approved.store'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.projects.schema'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.provenance.store'),
+    ('ayvu.composition.builders.rich_workers', 'ayvu.providers.libretranslate.adapter'),
+    ('ayvu.composition.builders.rich_workers', 'ayvu.providers.libretranslate.client'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.cache_only_execution'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.document'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.document_contracts'),
@@ -16,6 +20,7 @@ WORKER_EDGES = {
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.engine'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.local_cache_plan'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.stages.memory_retrieval'),
+    ('ayvu.composition.builders.rich_workers', 'ayvu.translation.worker_cache_keys'),
     ('ayvu.composition.builders.translate_project', 'ayvu.composition.builders.rich_workers'),
     ('ayvu.translation.document_work', 'ayvu.formats.contracts'),
     ('ayvu.translation.document_work', 'ayvu.jobs.events'),
@@ -23,4 +28,5 @@ WORKER_EDGES = {
     ('ayvu.translation.document_work', 'ayvu.translation.document_contracts'),
     ('ayvu.translation.document_work', 'ayvu.translation.document_scheduler'),
     ('ayvu.translation.document_work', 'ayvu.translation.engine'),
+    ('ayvu.translation.worker_cache_keys', 'ayvu.knowledge.cache.entries'),
 }

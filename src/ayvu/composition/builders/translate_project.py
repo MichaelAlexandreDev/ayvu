@@ -19,7 +19,7 @@ from ...translation.stages import RetrievalPolicy
 from ...artifacts import ArtifactError
 from ...artifacts.destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
 from .rich_document_executor import prepare_offline
-from .rich_workers import offline_work, online_work
+from .rich_workers import offline_work, online_work, project_store_options
 from ...knowledge.cache import CacheIdentityError
 from ...knowledge.cache.repository import SQLiteExactCache
 from ...knowledge.cache.schema import CacheSchemaError, SchemaState, classify_cache
@@ -253,16 +253,16 @@ def interrupted_translations(recovery: JobRecovery) -> InterruptedTranslations:
 def open_translate_project(processing_dir: Path, project_id: str, source_path: Path, destination: Path, *, overwrite: bool,
                            runtime: TranslationRuntime, clock: Callable[[], datetime] = _utc_now,
                            ops: DestinationFileOps | None = None, before_publish: Callable[[], None] | None = None,
-                           **tuning: object) -> TranslateProject:
+                           busy_timeout: float = 0.5, **tuning: object) -> TranslateProject:
     """``tuning`` is the optional new_id and lease timing of the use case. ``ops`` lets a test break the file system."""
     projects = ProjectJsonRepository(processing_dir)
     paths = projects.resolve_database_paths(project_id)
     root = projects.resolve_artifact_root(project_id)
     payloads = LocalDestinationPayloads(root, destination=destination, replace_existing=overwrite, ops=ops,
                                         before_publish=before_publish)
-    jobs = open_job_repository(paths.database, paths.backups, project_id, clock=clock)
-    artifacts = open_artifact_service(paths.database, paths.backups, root, project_id, payloads=payloads, clock=clock)
-    provenance = open_provenance_repository(paths.database, paths.backups, project_id, clock=clock)
+    jobs = open_job_repository(paths.database, paths.backups, project_id, clock=clock, busy_timeout=busy_timeout)
+    artifacts = open_artifact_service(paths.database, paths.backups, root, project_id, payloads=payloads, clock=clock, busy_timeout=busy_timeout)
+    provenance = open_provenance_repository(paths.database, paths.backups, project_id, clock=clock, busy_timeout=busy_timeout)
     def recorded_producer(job):
         if job.request.command_version == 1:
             return None
@@ -391,7 +391,7 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
             if translation.translation_context is not None:
                 execution['context_revision'] = translation.translation_context.job_revision
         guard = translation.accepted_output.publication_guard if translation.accepted_output is not None else translation.before_publish
-        publication_options = {} if guard is None else {"before_publish": guard}
+        publication_options = {**({} if guard is None else {"before_publish": guard}), **project_store_options(translation)}
         use_case = open_translate_project(translation.processing_dir, translation.project_id, translation.source_path, destination,
                                           overwrite=overwrite, runtime=runtime, **publication_options)
     except (ProjectError, JobError, ArtifactError, ProvenanceError, ContextError, OSError, sqlite3.Error) as error:
@@ -442,8 +442,6 @@ def memory_policy(options) -> RetrievalPolicy:
 
 
 def check_rich_options(options: TranslationOptions) -> None:
-    if options.workers != 1 and not options.cache_only:
-        raise PreflightError("O runtime rich/v2 requer --workers 1.", "Use --workers 1 ou remova o rótulo do modelo da configuração.")
     if options.workers > 1 and options.translation_memory is not None:
         raise PreflightError("--workers é incompatível com --translation-memory nesta versão.",
                              "Use --workers 1 com --translation-memory, ou remova --translation-memory para executar em paralelo.")
