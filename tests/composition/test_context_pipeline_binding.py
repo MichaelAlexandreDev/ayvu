@@ -42,14 +42,17 @@ def test_real_rich_runtime_resources_pass_context_to_document_translator(tmp_pat
     monkeypatch.setattr(composition, 'open_artifact_service', lambda *a, **kw: s.artifacts)
     monkeypatch.setattr(composition, 'open_provenance_repository', lambda *a, **kw: s.provenance)
     captured = []
-    real = composition.DocumentTranslator
+    from ayvu.composition.builders import rich_workers
+    real = rich_workers.DocumentTranslator
     def capture(*a, **kw):
         captured.append(kw['translation_context'])
         return real(*a, **kw)
-    monkeypatch.setattr(composition, 'DocumentTranslator', capture)
+    monkeypatch.setattr(rich_workers, 'DocumentTranslator', capture)
     context = RuntimeContext(s.job, None, s.events)
     with runtime.resources(context) as resources:
-        assert resources.prepare_document is not None
+        assert resources.documents is not None
+        with resources.documents.factory(context.events, lambda: None):
+            pass
     assert captured == [s.execution]
 
 

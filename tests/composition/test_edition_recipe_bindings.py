@@ -116,7 +116,7 @@ def test_provider_id_matches_real_rich_runtime_acquisition_and_cleanup(edition_i
         "00000000-0000-0000-0000-000000000001", clock=lambda: now)
     runtime._prepared = translate_project.LegacyResources(translator)
     with runtime.resources(RuntimeContext(None, None, SimpleNamespace())) as resources:
-        assert resources.prepare_document is not None
+        assert resources.documents is not None
         assert tuple(provider._producer.provider for provider in acquired) == surface.providers == ("libretranslate",)
         assert acquired[0]._translator is translator
         assert closed == []

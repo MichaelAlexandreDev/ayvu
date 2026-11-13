@@ -30,9 +30,7 @@ def test_rich_resources_use_real_document_translator_and_cache_label_miss_restor
                                             ("model-b", None, 2), ("model-a", None, 0)]:
         subject, context, env, session = prepared_runtime(tmp_path, monkeypatch, label=label, glossary=glossary)
         with caplog.at_level(logging.DEBUG), subject.resources(context) as resources:
-            assert isinstance(resources.executor._translator, DocumentTranslator)
-            resources.prepare_document(source)
-            results = [resources.executor.execute(unit) for unit in source.units]
+            results = resources.documents.execute(source).executions
         assert len(session.posts) == expected_calls
         assert env.artifacts.reuse_calls == []
         assert ("Olá" in results[0].translated) == (glossary is not None)
@@ -52,13 +50,13 @@ def test_first_middle_last_provider_failure_stops_and_retry_uses_cached_segments
     texts = ("first", "middle", "last")
     subject, context, env, session = prepared_runtime(tmp_path, monkeypatch, session=Session(failing=texts[index]))
     with subject.resources(context) as resources, pytest.raises(TranslationExecutionError) as raised:
-        resources.prepare_document(document(*texts))
+        resources.documents.execute(document(*texts))
     assert raised.value.failure.code == "provider_server_error"
     assert session.posts == list(texts[:index + 1])
     assert env.artifacts.calls == []
     retried, context, _, session = prepared_runtime(tmp_path, monkeypatch)
     with retried.resources(context) as resources:
-        resources.prepare_document(document(*texts))
+        resources.documents.execute(document(*texts))
     assert session.posts == list(texts[index:])
 
 
@@ -69,7 +67,7 @@ def test_runtime_pipeline_cancellation_acknowledges_the_requested_point(tmp_path
     cancellation = CancelAt((*composition.DOCUMENT_SAFE_POINTS, *LIBRETRANSLATE_SAFE_POINTS), point)
     context = replace(context, cancellation=cancellation)
     with subject.resources(context) as resources, pytest.raises(TranslationExecutionError) as raised:
-        resources.prepare_document(document("Hello"))
+        resources.documents.execute(document("Hello"))
     assert raised.value.failure.code == "translation_cancelled"
     assert cancellation.reached and cancellation.acknowledgement.safe_point == point
     assert not session.posts and not env.artifacts.calls
@@ -107,7 +105,7 @@ def test_rich_engine_reconstructs_actual_epub_preserving_structure(tmp_path, mon
             "translated_output", "reconstruct", 1, "sha256:" + "e" * 64), env.job.lease.owner_token, FixedGuard(AliasVerdict.DISTINCT))
         with subject.resources(context) as resources:
             result = TranslationEngine(composition.epub_format_service(), resources.executor,
-                prepare_document=resources.prepare_document).run(EngineRequest("epub", LocalFormatSource(source), publication,
+                documents=resources.documents).run(EngineRequest("epub", LocalFormatSource(source), publication,
                 env.job.request.project_id, subject.facts(), translate_metadata=metadata, translate_alt_text=alt))
         assert result.failure is None and result.output_written, result.failure
         if attempt:
@@ -182,7 +180,7 @@ def test_document_preparation_failure_stops_the_engine_before_later_documents_an
     formats = SimpleNamespace(extract=lambda *a, **kw: SimpleNamespace(documents=docs, failure=None),
                               reconstruct=lambda *a, **kw: publications.append(True))
     with subject.resources(context) as resources, pytest.raises(TranslationExecutionError) as error:
-        TranslationEngine(formats, resources.executor, prepare_document=resources.prepare_document).run(
+        TranslationEngine(formats, resources.executor, documents=resources.documents).run(
             EngineRequest("epub", object(), object(), env.job.request.project_id))
     assert error.value.failure.code == "provider_server_error"
     assert transport.posts == ["done", "failing"] and publications == []
@@ -204,10 +202,10 @@ def test_document_uses_the_renewed_lease_but_keeps_the_original_owner(tmp_path, 
     context = replace(context, current_job=current_job)
     with subject.resources(context) as resources:
         if ownership == "renewed":
-            resources.prepare_document(document("Hello"))
+            resources.documents.execute(document("Hello"))
             assert transport.posts == ["Hello"]
         else:
             with pytest.raises(TranslationExecutionError, match="lease_not_held"):
-                resources.prepare_document(document("Hello"))
+                resources.documents.execute(document("Hello"))
             assert transport.posts == []
     assert reads == [True]

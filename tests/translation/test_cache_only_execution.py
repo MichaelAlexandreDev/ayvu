@@ -25,7 +25,7 @@ def test_hits_reapply_glossary_preserve_cache_and_record_exact_references(tmp_pa
     env.provenance.calls.clear()
     subject = executor(path, plan, env, glossary=lambda value: Glossed(value.replace("reader", "CURRENT")))
     with offline_guard(monkeypatch):
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
         results = [subject.execute(unit) for unit in doc.units]
     assert all(result.status == "cache" and result.missing_text is None for result in results)
     assert results[0].translated == "  PT:Hello CURRENT.  "
@@ -39,7 +39,7 @@ def test_absent_database_is_missing_without_creating_any_file(tmp_path, monkeypa
     doc, env = document("One", "One"), Env()
     subject = executor(tmp_path / "absent" / "cache.sqlite", env.plan, env)
     with offline_guard(monkeypatch):
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     assert [subject.execute(unit).missing_text for unit in doc.units] == ["One", "One"]
     assert list(tmp_path.iterdir()) == [] and env.provenance.calls == []
 
@@ -68,7 +68,7 @@ def test_incompatible_or_ambiguous_identity_is_missing(tmp_path, monkeypatch, di
         subject.units.resolver = LocalCachePlanResolver(subject.units.reader, subject.scope,
             replace(subject.units.resolver._intent, context_ref="context:" + "a" * 64, context_strategy="configured_context"))
     with offline_guard(monkeypatch):
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     result = subject.execute(doc.units[0])
     assert result.status == "missing" and result.missing_text == "Hello"
 
@@ -83,7 +83,7 @@ def test_each_unit_recovers_its_own_bridge_or_direct_plan(tmp_path, monkeypatch)
     SQLiteExactCache(path).put_if_absent(exact_entry(SimpleNamespace(project_id=doc.project_id), bridge, "Two", "Bridge"))
     subject = executor(path, plan, env)
     with offline_guard(monkeypatch):
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     assert [subject.execute(unit).translated for unit in doc.units] == ["PT:One", "Bridge"]
 
 
@@ -106,7 +106,7 @@ def test_fatal_evidence_never_produces_unit_execution(tmp_path, monkeypatch, pro
     before = snapshot(tmp_path)
     subject = executor(path, plan, env)
     with offline_guard(monkeypatch), pytest.raises(TranslationExecutionError) as failure:
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     assert failure.value.failure.code == code and subject._executions == {}
     assert snapshot(tmp_path) == before
 
@@ -128,7 +128,7 @@ def test_pins_require_durable_authority_and_never_fall_back(tmp_path, monkeypatc
                 executor(path, plan, env, **kwargs)
             return
         subject = executor(path, plan, env, **kwargs)
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     assert subject.execute(doc.units[0]).status == ("cache" if pin_state == "valid" else "missing")
 
 
@@ -142,7 +142,7 @@ def test_missing_original_is_readable_and_keeps_literal_tokens_unicode_and_space
     doc = build_document(env.job.request.project_id, "source.xhtml", AdapterIdentity("html", 1, 1), UNKNOWN_LOCALE, (unit,))
     subject = executor(tmp_path / "absent.sqlite", env.plan, env, glossary=lambda value: Glossed(value.replace("HTTP", "WRONG")))
     with offline_guard(monkeypatch):
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     result = subject.execute(doc.units[0])
     expected = value if kind in {"title", "alt_text"} else "Café λ __AYVU_TAG_7__ HTTP"
     assert result.missing_text == expected and result.reconstruction_text != ""
@@ -153,7 +153,7 @@ def test_empty_missing_original_is_rejected(tmp_path, monkeypatch):
     doc, env = document("Hello"), Env()
     subject = executor(tmp_path / "absent.sqlite", env.plan, env, readable=lambda *_: "")
     with offline_guard(monkeypatch), pytest.raises(TranslationExecutionError) as failure:
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     assert failure.value.failure.code == "empty_missing_original" and not subject._executions
 
 
@@ -167,7 +167,11 @@ def test_real_format_engine_reconstructs_or_gates_before_publication(tmp_path, m
     from ayvu.formats.local import LocalFormatSource, LocalOutputGuard
     from ayvu.formats.epub.reader import read_package
     from ayvu.formats.epub.validation import validate_output_epub
-    from ayvu.translation import TranslationEngine, EngineRequest
+    from ayvu.translation import TranslationEngine, EngineRequest, DocumentWork
+    from contextlib import contextmanager
+    @contextmanager
+    def factory(events, check):
+        yield subject
     from tests.support.rich_cache_only_support import _book, ready_publisher
     from ayvu.composition.builders.translate_project import epub_format_service
     source = _book(tmp_path / "book.epub")
@@ -188,7 +192,7 @@ def test_real_format_engine_reconstructs_or_gates_before_publication(tmp_path, m
     output.chmod(0o640)
     before = source.read_bytes(), output.read_bytes(), output.stat().st_mode
     publication = FormatPublication(ready_publisher(env.artifacts), request, env.job.lease.owner_token, LocalOutputGuard(output))
-    engine = TranslationEngine(service, subject, prepare_document=subject.prepare_document)
+    engine = TranslationEngine(service, subject, documents=DocumentWork(factory, subject.context))
     with offline_guard(monkeypatch):
         result = engine.run(EngineRequest("epub", LocalFormatSource(source), publication, env.job.request.project_id,
             read_package(source).facts, require_full_cache=full))
@@ -212,7 +216,11 @@ def test_real_format_engine_reconstructs_or_gates_before_publication(tmp_path, m
 
 
 def test_corruption_in_a_later_document_never_calls_reconstruction(tmp_path, monkeypatch):
-    from ayvu.translation import TranslationEngine, EngineRequest
+    from ayvu.translation import TranslationEngine, EngineRequest, DocumentWork
+    from contextlib import contextmanager
+    @contextmanager
+    def factory(events, check):
+        yield subject
     from ayvu.formats import ContentScope, ExtractionRequest
     from ayvu.formats.local import LocalFormatSource
     from ayvu.formats.epub.reader import read_package
@@ -228,7 +236,7 @@ def test_corruption_in_a_later_document_never_calls_reconstruction(tmp_path, mon
         conn.execute("UPDATE cache_entries_v2 SET value='broken' WHERE source_text=?", (docs[-1].units[-1].source_text,))
     monkeypatch.setattr(service, "reconstruct", lambda *args, **kwargs: pytest.fail("corruption reconstructed"))
     subject = executor(path, plan, env)
-    engine = TranslationEngine(service, subject, prepare_document=subject.prepare_document)
+    engine = TranslationEngine(service, subject, documents=DocumentWork(factory, subject.context))
     with offline_guard(monkeypatch), pytest.raises(TranslationExecutionError) as failure:
         engine.run(EngineRequest("epub", LocalFormatSource(source), None, env.job.request.project_id, read_package(source).facts))
     assert failure.value.failure.code == "cache_entry_corrupt"
@@ -250,5 +258,5 @@ def test_durable_authority_is_required_before_any_lookup(tmp_path, monkeypatch, 
     if lease == "expired":
         subject.clock = lambda: env.job.created_at + timedelta(minutes=20)
     with offline_guard(monkeypatch), pytest.raises(TranslationExecutionError):
-        subject.prepare_document(doc)
+        subject.execute_document(doc)
     assert subject._executions == {} and env.provenance.calls == []

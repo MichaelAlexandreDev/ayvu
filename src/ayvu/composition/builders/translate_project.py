@@ -15,12 +15,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
-from ...knowledge.memory.approved import MemoryScope, ScopeKind
-from ...knowledge.memory.approved.store import open_approved_memory
-from ...translation.stages import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
+from ...translation.stages import RetrievalPolicy
 from ...artifacts import ArtifactError
 from ...artifacts.destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
-from .rich_document_executor import RichDocumentExecutor, prepare_offline, offline_executor
+from .rich_document_executor import prepare_offline
+from .rich_workers import offline_work, online_work
 from ...knowledge.cache import CacheIdentityError
 from ...knowledge.cache.repository import SQLiteExactCache
 from ...knowledge.cache.schema import CacheSchemaError, SchemaState, classify_cache
@@ -30,7 +29,7 @@ from ...formats.epub.io import SelectedChapter, detect_epub_language, resolve_ch
 from ...v1.epub import _validate_worker_options, translate_epub  # noqa: F401 - the same door, for v1
 from ...formats.local import LocalFormatSource, LocalOutputGuard
 from ...formats import BookFacts, FormatPublication, FormatRegistry, FormatService
-from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
+from ...knowledge.glossary import effective_glossary_reference
 from ...jobs import JobState, CancellationSource
 from ...recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from ...recovery.store import LocalRecoveryEvidence
@@ -40,8 +39,7 @@ from ...projects import ProjectError
 from ...projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
 from ...projects.store import ProjectJsonRepository
 from ...provenance import ProvenanceError, declared_model
-from ...providers import ProviderRoute
-from ...providers import Capability, ProviderRequirements
+from ...providers import ProviderRoute, Capability, ProviderRequirements
 from ...providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
 from ...recovery.checkpoint import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
@@ -65,7 +63,7 @@ from ...translation import (
 )
 from ...translation import TranslationResources
 from ...translation import (
-    SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, DocumentTranslator, TranslationExecutionError,
+    SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, TranslationExecutionError,
 )
 from ...knowledge.memory import TranslationMemory
 from ...translation import resolve_plan as resolve_translation_plan
@@ -444,8 +442,11 @@ def memory_policy(options) -> RetrievalPolicy:
 
 
 def check_rich_options(options: TranslationOptions) -> None:
-    if options.workers != 1:
+    if options.workers != 1 and not options.cache_only:
         raise PreflightError("O runtime rich/v2 requer --workers 1.", "Use --workers 1 ou remova o rótulo do modelo da configuração.")
+    if options.workers > 1 and options.translation_memory is not None:
+        raise PreflightError("--workers é incompatível com --translation-memory nesta versão.",
+                             "Use --workers 1 com --translation-memory, ou remova --translation-memory para executar em paralelo.")
     if options.translation_memory is not None:
         memory_policy(options.translation_memory)
     if options.require_full_cache and not options.cache_only:
@@ -508,8 +509,7 @@ class RichTranslationRuntime:
     def resources(self, context: RuntimeContext):
         prepared, options = self._prepared, self._options
         if options.cache_only:
-            executor = offline_executor(self, context)
-            yield TranslationResources(executor, prepare_document=executor.prepare_document)
+            yield offline_work(self, context)
             return
         translator = prepared.translator
         base = translator._base if isinstance(translator, RoutedTranslator) else translator
@@ -522,23 +522,8 @@ class RichTranslationRuntime:
         provenance = open_provenance_repository(self._database, self._backups, self._project_id, clock=self._clock)
         provider = LibreTranslateProvider(translator, producer=self.producer, clock=self._clock,
             cleanup=base.close if isinstance(base, LibreTranslateTranslator) else None)
-        retrieval, legacy, policy = None, None, RetrievalPolicy()
-        if options.translation_memory is not None:
-            policy = memory_policy(options.translation_memory)
-            scope = MemoryScope(ScopeKind.PROJECT, self._project_id)
-            repository = open_approved_memory(self._database.parent, allowed_scopes=frozenset({scope}),
-                provenance={self._project_id: provenance})
-            retrieval = MemoryRetrieval(repository, policy)
-            if policy.legacy_cache_enabled:
-                legacy = LegacyCacheCompatibility(self._cache, policy,
-                    apply_threshold=options.translation_memory.apply_threshold)
-        document_translator = DocumentTranslator(plan, provider,
-            lambda text: apply_glossary_with_usage(text, prepared.glossary), artifacts, provenance, context.events,
-            exact_cache=self._cache, approved_memory=retrieval, memory=legacy, retrieval_policy=policy, clock=self._clock,
-            translation_context=self._translation_context)
-        executor = RichDocumentExecutor(document_translator, context)
         try:
-            yield TranslationResources(executor, prepare_document=executor.prepare_document)
+            yield online_work(self, context, plan, provider, artifacts, provenance, memory_policy)
         finally:
             provider.close()
 

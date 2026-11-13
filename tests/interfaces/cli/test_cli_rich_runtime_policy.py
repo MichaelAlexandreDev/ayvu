@@ -78,11 +78,12 @@ def test_tm_approved_epub_workflow_and_cache_clear_isolation_real_stores(tmp_pat
     source = _book(tmp_path / 'book.epub')
     original_bytes = source.read_bytes()
     seen = []
-    real_translate = composition.DocumentTranslator.translate
+    from ayvu.translation import DocumentTranslator
+    real_translate = DocumentTranslator.translate
     def observe(self, document, *args, **kwargs):
         seen.append((document, self._plan))
         return real_translate(self, document, *args, **kwargs)
-    monkeypatch.setattr(composition.DocumentTranslator, 'translate', observe)
+    monkeypatch.setattr(DocumentTranslator, 'translate', observe)
     first, transport = invoke(tmp_path, monkeypatch, source, '--translation-memory')
     assert first.exit_code == 0, text(first)
     assert transport.posts == ['T', 'Hello title', 'Hello reader.', 'Goodbye reader.']

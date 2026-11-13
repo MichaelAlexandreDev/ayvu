@@ -175,6 +175,7 @@ class RuntimeContext:
     current_job: Callable[[], TranslationJob] | None = field(default=None, repr=False)
     # Earlier jobs of this continuation chain, nearest first. A runtime may reuse only what it proves from them.
     reusable_jobs: tuple[str, ...] = ()
+    lease_lost: Callable[[], bool] = field(default=lambda: False, repr=False)
 
     def __repr__(self) -> str:
         return "RuntimeContext()"

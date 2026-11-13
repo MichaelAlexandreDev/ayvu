@@ -3,14 +3,12 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from ...content import ContentDocument, TranslationUnit
+from ...content import ContentDocument
 from ...formats.epub import html_unit_template, normalize_translated_text, without_xml_invalid, review_text_from_template
 from ...kernel import JobFailure, JobFailureFamily
 from ...knowledge.cache.read_only import ReadOnlyExactCache
-from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
-from ...projects.schema import open_provenance_repository
 from ...translation import (
-    CacheOnlyDocumentExecutor, DocumentTranslator, ExecutionContext, LocalCachePlanIntent,
+    DocumentTranslator, ExecutionContext,
     RuntimeContext, TranslationExecutionError, UnitExecution, UnitSource,
     ALT_TEXT_KIND, METADATA_KIND, STATUS_CACHE, STATUS_MEMORY, STATUS_MISSING, STATUS_TRANSLATED,
 )
@@ -24,15 +22,6 @@ def prepare_offline(runtime):
         raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "offline_preparation_required"))
     runtime._prepared = runtime._prepare_offline()
     runtime._cache = ReadOnlyExactCache(runtime._cache_path)
-
-
-def offline_executor(runtime, context):
-    options, prepared = runtime._options, runtime._prepared
-    intent = LocalCachePlanIntent(options.source, options.target, runtime.producer, options.chunk_limit,
-        glossary_ref=effective_glossary_reference(prepared.glossary))
-    provenance = open_provenance_repository(runtime._database, runtime._backups, runtime._project_id, clock=runtime._clock)
-    return CacheOnlyDocumentExecutor(runtime._cache, intent, context, provenance, review_text_from_template,
-        lambda text: apply_glossary_with_usage(text, prepared.glossary), clock=runtime._clock, map_execution=map_offline_execution)
 
 
 def reconstruction_text(unit, tokenized):
@@ -54,22 +43,19 @@ def map_offline_execution(unit, result):
 class RichDocumentExecutor:
     def __init__(self, translator: DocumentTranslator, context: RuntimeContext) -> None:
         self._translator, self._context = translator, context
-        self._executions: dict[str, UnitExecution] = {}
-        self._documents = 0
 
     def __repr__(self) -> str:
         return "DocumentExecutor()"
 
-    def prepare_document(self, document: ContentDocument) -> None:
-        self._documents += 1
+    def execute_document(self, document: ContentDocument, index: int):
         context = self._context
         job = context.current_job() if context.current_job is not None else context.job
         # Raw results replay only from earlier jobs of this continuation chain, after every dimension is proved.
         result = self._translator.translate(document, ExecutionContext(
             job, context.job.lease.owner_token, context.cancellation,
-            progress_phase=f"document_{self._documents}", reusable_jobs=context.reusable_jobs),
+            progress_phase=f"document_{index}", reusable_jobs=context.reusable_jobs),
             replay_raw_results=bool(context.reusable_jobs))
-        executions = {}
+        executions = []
         for unit, translated in zip(document.units, result.units, strict=True):
             template = html_unit_template(unit)
             tokenized = translated.tokenized_text
@@ -79,15 +65,7 @@ class RichDocumentExecutor:
                       STATUS_MEMORY if translated.source in (UnitSource.APPROVED_MEMORY, UnitSource.APPLIED_MEMORY) else
                       STATUS_MISSING if translated.source is UnitSource.CACHE_ONLY_MISSING else STATUS_TRANSLATED)
             rebuilt = reconstruction_text(unit, tokenized)
-            executions[unit.unit_id] = UnitExecution(rebuilt, status, template, translated.text,
+            executions.append(UnitExecution(rebuilt, status, template, translated.text,
                 memory_suggestion=None if not translated.retrieval_suggestions else translated.retrieval_suggestions[0].source_snippet,
-                glossary_usage=translated.glossary_usage)
-        self._executions = executions
-
-    def execute(self, unit: TranslationUnit) -> UnitExecution:
-        return self._executions[unit.unit_id]
-
-    def untranslated(self, unit: TranslationUnit) -> str:
-        return html_unit_template(unit)
-
-
+                glossary_usage=translated.glossary_usage))
+        return tuple(executions)

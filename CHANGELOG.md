@@ -9,6 +9,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 2: cache-only rico durável aceita workers e perfil high sem
+  reduzir N; documentos têm admissão limitada, consolidação em ordem e drain
+  cooperativo sob o lease único, sem checkpoint novo. Conferências do cache
+  preservam as travas SQLite de leitores concorrentes; workers online e memória
+  governada paralela continuam recusados.
+
 - REF-18 (#286), passo 2: preview raiz e guiado com rótulo usam a rota rica transitória,
   com provedor/discovery autorizados, limite padrão de 12 documentos, pasta Preview configurada,
   confirmação de overwrite e EPUB validado. Lê v2 somente com projeto correspondente existente
