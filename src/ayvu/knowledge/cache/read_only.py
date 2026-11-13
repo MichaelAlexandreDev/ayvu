@@ -1,4 +1,4 @@
-"""Side-effect-free v2 cache adapter, deliberately not wired to production.
+"""Side-effect-free v2 cache adapter for authorized offline reads.
 
 Only stable rollback-journal databases are accepted. Existing protocol locks
 exclude cooperative migrations. Without a lock, SQLite's read transaction pins
@@ -17,6 +17,7 @@ from .entries import CanonicalCacheRecord, CacheLookupState, CacheMissReason, Ex
 from .identity_values import CacheIdentityError, CacheValueKind
 from .read_only_queries import candidate_records, exact_record, validate_resolution
 from .scope import AuthorizedCacheScope
+from .read_only_journal import journal_refusal
 from .schema import (
     CacheSchemaError, SchemaState, _connect, _error, _identity, _location, _state,
     _supported, fcntl,
@@ -35,6 +36,8 @@ def _validate(path, expected, artifacts):
     if _identity(path, absent=True) != expected or _artifacts(path) != artifacts:
         raise CacheSchemaError("cache_identity_changed")
     if any(artifacts[:-1]):
+        if expected is not None and artifacts[2] is not None and not any(artifacts[:2] + artifacts[3:-1]):
+            raise CacheSchemaError(journal_refusal(path, expected))
         raise CacheSchemaError("cache_recovery_required")
     if expected is None:
         return

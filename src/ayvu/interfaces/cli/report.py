@@ -59,6 +59,8 @@ def _print_report(
             str(report.glossary_usage.total_forbidden_found),
         )
     console.print(table)
+    if report.execution_note:
+        console.print(report.execution_note)
 
     for error in report.errors:
         console.print(f"[yellow]Error:[/yellow] {error}")
@@ -195,6 +197,8 @@ def _render_markdown_report(
     ]
     if report.review_output_path is not None:
         lines.insert(6, f"- Review file: {report.review_output_path}")
+    if report.execution_note:
+        lines.append(f"- Execution: {report.execution_note}")
     if report.texts_from_memory:
         lines.append(f"- Texts from memory: {report.texts_from_memory}")
     if report.memory_suggestions:

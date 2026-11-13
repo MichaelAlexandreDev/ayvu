@@ -8,7 +8,6 @@ from typing import NoReturn
 import typer
 from ...translation import ItemOutcome, ItemStatus
 from . import report as reports, output as output_paths
-from .progress import TranslationProgress
 from ...preferences import AyvuConfig
 from .contracts import AcceptedItem, TranslationReport
 from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, open_review_use_cases, destination_fingerprint, run_translation_preflight, resolve_translation_project, batch_item_outcome, prepare_translation, translation_checkpoint
@@ -103,7 +102,7 @@ def _run_translation(
         profile_name=resolved_profile_name,
         profile_style=profile.style if profile else None,
         performance_profile_name=performance_profile_name,
-        workers=workers,
+        workers=workers, local_sequential=run_support.translation_modality(dry_run, config.translator_models, translator_name) == "transient_dry_run",
         requests_per_second=requests_per_second,
         retries=retries,
         retry_backoff=retry_backoff,
@@ -172,7 +171,7 @@ def _run_translation(
 
     checkpoint = translation_checkpoint()
     progress = run_support._translation_progress_display()
-    progress_view = TranslationProgress(progress, dry_run=dry_run, workers=workers)
+    progress_view = run_support.translation_progress(progress, translation_options, config, translator_name)
 
     def prepare() -> object:
         prepared = prepare_translation(
@@ -183,7 +182,7 @@ def _run_translation(
             output_path=output_path, overwrite=overwrite, processing_dir=settings._processing_dir(config),
             profile_name=identity_profile_name, preflight=run_translation_preflight,
             translator_models=config.translator_models, project_backed=project_id is not None,
-            network_policy=_selected_network_policy(network_policy),
+            network_policy=_selected_network_policy(network_policy), modality=run_support.translation_modality(dry_run, config.translator_models, translator_name),
             save_checkpoint=lambda **values: run_support._checkpoint_action(checkpoint.start, **values),
             on_route=lambda route: plan._print_translation_route(route, mode=mode), on_ready=progress.start,
         )
@@ -337,7 +336,7 @@ def _run_translation(
     else:
         reports._offer_markdown_report(report, dry_run, validation_warnings, mode=mode)
 
-    if cache_only and require_full_cache and not report.output_written:
+    if run_support.cache_coverage_blocked(book, report):
         run_messages._print_cache_coverage_blocked(report, mode)
         item_exit("cache_incomplete")
 

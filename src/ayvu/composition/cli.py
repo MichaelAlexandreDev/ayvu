@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from . import editions, surface_rules
-from .builders import cache_admin, content, glossary, providers, review, translate_project
+from .builders import cache_admin, content, glossary, providers, review, translate_project, translate_transient
 from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation, selected_model
@@ -21,7 +21,7 @@ from ..library.adapters import LocalLibraryFilesystem, ReaderLauncher
 from ..library import LibraryService
 from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
-from ..translation.preflight import run_translation_preflight as _preflight
+from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
 from ..recovery.checkpoint import ResumeStateStore, TranslationResumeState
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
@@ -178,6 +178,10 @@ def validate_output(*args, **kwargs):
 
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
     """Dry run, and a resume file that recomputes to no job. See ``translate_without_project``."""
+    if translation_modality(book.options.dry_run, book.translator_models, book.translator_name) == "transient_dry_run":
+        return _BookOutcome(report=translate_transient.translate(book, hooks,
+            selected_model(book.translator_models, book.translator_name),
+            formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))
     preflight = book.prepare()
     with TranslationCache(book.cache_path) as cache:
         report = translate_without_project(
@@ -288,13 +292,26 @@ def translation_checkpoint():
     return TranslationCheckpoint()
 
 
+def translation_modality(dry_run, models, translator_name):
+    """Select without opening resources; unlabeled runs retain the predecessor path."""
+    return ("transient_dry_run" if dry_run and selected_model(models, translator_name) is not None else "standard")
+
+
 def prepare_translation(*, epub_path, options, cache_path, glossary_path, translator_name,
                         url, timeout, retries, requests_per_second, retry_backoff, retry_backoff_max,
                         output_path, overwrite, processing_dir, profile_name,
                         preflight, save_checkpoint, on_route, on_ready, network_policy=None,
-                        translator_models=None, project_backed=False):
+                        translator_models=None, project_backed=False, modality="standard"):
     """Wire predecessor preparation and the compatibility checkpoint at its original safe point."""
     check_book(epub_path)
+    if modality == "transient_dry_run":
+        local = _local_preflight(epub_path=epub_path, glossary_path=glossary_path, language_pair=options.language_pair,
+            translator_name=translator_name, url=url, timeout=timeout, retries=retries,
+            requests_per_second=requests_per_second, retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max)
+        prepared = translate_transient.prepare(epub_path=epub_path, options=options, glossary=local.glossary,
+            glossary_path=glossary_path, translator_name=translator_name, url=url, processing_dir=processing_dir, profile_name=profile_name)
+        on_ready()
+        return prepared
     rich = project_backed and selected_model(translator_models or {}, translator_name) is not None
     # The rich runtime already prepared the sibling cache before entering this callback.
     cache_options = {"cache_check": lambda _path: None} if rich else {}

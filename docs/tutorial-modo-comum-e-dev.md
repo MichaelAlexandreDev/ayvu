@@ -429,11 +429,15 @@ os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume li
 Mantenha o rótulo durante a retomada; um job legado exige sua ausência. A incompatibilidade
 entre `legacy/v1` e `rich/v2` é recusada antes de chamar o tradutor.
 
-`rich/v2` exige `--workers 1` e recusa `--cache-only` e
-`--require-full-cache`. A resolução offline atual ainda não fixa a identidade e a rota
-exigidas pelo cache-only rico. Para esses recursos, remova o campo `libretranslate` de
-`translator_models` e inicie uma tradução legada. Sem rótulo não há mudança no comportamento
-anterior; dry run e preview continuam no v1 mesmo com rótulo configurado.
+Outside dry runs, `rich/v2` requires `--workers 1` and refuses `--cache-only` and
+`--require-full-cache`. For those operations, remove `libretranslate` from `translator_models`
+to start a legacy translation. Without a label, existing behavior is preserved.
+Preview stays on v1. With a model label, `--dry-run` uses the offline transient rich
+runtime: no provider/session/discovery, project/job creation or cache writes. Exact hits require
+a matching existing project and compatible canonical v2 evidence. Cache-only misses preserve the
+original and use the existing missing-text file; full-cache fails only for missing texts in this
+branch. Workers/high keep their configured count, with explicitly sequential local analysis.
+Without a label, dry-run output and exit behavior remain unchanged.
 
 Com `translator_models.libretranslate` configurado, habilite a memória governada
 por projeto com `--translation-memory`. O cache exato v2 vem primeiro. Em seguida,

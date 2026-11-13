@@ -10,7 +10,8 @@ framework, store, format or provider: it receives them as ports from a compositi
 
 `translate` and the guided translation run through it, one book at a time, and so does each book of a batch, and a
 [resume](recovery.md) of a job it left behind. Dry run, preview and a resume file that recomputes to no job have no
-project to run in, so they keep the current flow behind `translate_without_project`.
+durable project execution. Preview and unlabeled dry runs keep the predecessor path behind
+`translate_without_project`; labeled dry runs use the [offline transient route](translation.md#offline-transient-dry-runs-ref-18-g3).
 
 ## Explicit runtime selection (#252)
 

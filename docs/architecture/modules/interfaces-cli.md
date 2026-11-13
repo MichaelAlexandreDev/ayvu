@@ -252,6 +252,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UC-004`, `AYVU-UC-006` | `_resolve_existing_output_conflict`, `_prompt_existing_output_action`, `_prompt_available_output_path`, `_cancel_existing_output`, `_confirm_existing_preview_overwrite` |
 | `AYVU-UI-004` | `_translated_books_dir`, `_preview_books_dir`, `_reports_dir`, `_processing_dir`, `_uses_internal_storage_defaults` |
 | `AYVU-UC-004`, `AYVU-UC-006` | `_translate_without_project`, `_translate_in_project` |
+| `AYVU-UC-004`, `AYVU-UC-005` | `cache_coverage_blocked`, `translation_progress` |
 | `AYVU-UC-007` | `_checkpoint_action` |
 | `AYVU-UC-004`, `AYVU-UC-005` | `_report_stem_for`, `_missing_stem_for` |
 

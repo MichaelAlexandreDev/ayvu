@@ -30,7 +30,7 @@ by the user, never observed on the server. `unknown` remains ineligible.
 A new cache prepared at this boundary starts as v2.
 
 `read_only.ReadOnlyExactCache` is a separate public I/O adapter, not exported by the package
-and not yet wired to production. It opens an explicit v2 path with URI `mode=ro` in a short
+and used by labeled transient dry runs. It opens an explicit v2 path with URI `mode=ro` in a short
 read transaction, reuses schema and payload validation, and returns an empty reader for an
 absent file. `lookup(key)` matches the writer's exact hit/miss/corruption contract;
 `canonical_records(scope, kind, source_digest, limit=...)` returns validated
@@ -42,13 +42,20 @@ or recovery without attempting either. Existing locks are opened read-only and a
 shared without chmod; without a lock, SQLite pins the stable rollback snapshot and the
 reader rechecks inode and artifacts around opening and reading. The owned-directory,
 cooperative migration protocol has the same non-cooperating replacement limit as `schema.py`.
+For a rollback journal, a bounded isolated Linux `F_GETLK` probe checks the SQLite RESERVED
+byte without reading database content or changing locks. A live writer produces `cache_busy`;
+a journal without a live writer produces `cache_recovery_required`. Unknown/failed probes
+conservatively report busy. The helper process prevents descriptor closure from dropping a writer's
+POSIX locks in the calling process. The reader never opens SQLite while the journal is present,
+waits for no writer, and never repairs or removes the journal.
 
 The #252 integration derives the sibling file by appending `.v2.sqlite` to the
 `--cache` name: `cache.sqlite` produces `cache.sqlite.v2.sqlite`. Original v1 is neither opened
 nor changed by the rich runtime; there is no migration, copying, querying or promotion of its
 rows. A v1 accidentally found at the sibling name is also refused. The first
 rich use retranslates texts present only in v1. Removing the label restores
-the legacy path on new runs, with its cache intact. Dry run and preview use v1.
+the legacy path on new runs, with its cache intact. Preview and unlabeled dry runs use v1.
+Labeled dry runs read only authorized existing-project v2 evidence, through the transient runtime.
 
 The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and is part of the semantic fingerprint.
 **Changing the server model without changing the label reuses old results.**

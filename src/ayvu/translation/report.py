@@ -57,6 +57,7 @@ class TranslationReport:
     input_path: Path | None = None
     detected_language: str | None = None
     target_language: str | None = None
+    execution_note: str | None = None
 
     def record_error(self, message: str) -> None:
         self.errors.append(message)

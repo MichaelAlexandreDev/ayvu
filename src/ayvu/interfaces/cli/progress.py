@@ -60,10 +60,11 @@ class TextProgressCounters:
 
 
 class TranslationProgress:
-    def __init__(self, progress: Progress, dry_run: bool, workers: int = 1) -> None:
+    def __init__(self, progress: Progress, dry_run: bool, workers: int = 1, *, local_sequential: bool = False) -> None:
         self._progress = progress
         self._dry_run = dry_run
         self._workers = workers
+        self._local_sequential = local_sequential
         self._counters = TextProgressCounters()
         self._chapters_processed = 0
         self._total_chapters: int | None = None
@@ -110,6 +111,8 @@ class TranslationProgress:
         return f"{self._chapter_label()} {index}/{total}: {_shorten(name)}"
 
     def _chapter_label(self) -> str:
+        if self._local_sequential:
+            return f"Chapters ({self._workers} workers configured; sequential local analysis)"
         if self._workers > 1:
             return f"Chapters ({self._workers} workers, EPUB order)"
         return "Chapters"

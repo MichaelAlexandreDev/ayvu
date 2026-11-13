@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -109,6 +110,32 @@ def _check_language_pair(language_pair: LanguagePair) -> None:
             "Use códigos de idioma não vazios em --source e --target, por exemplo --source en --target pt.",
             detail=str(exc),
         ) from exc
+
+
+def run_local_translation_preflight(*, epub_path, glossary_path, language_pair, translator_name,
+                                    url, timeout, retries, requests_per_second, retry_backoff, retry_backoff_max):
+    """Offline modality: validate locally without provider/session or cache probes."""
+    _check_language_pair(language_pair)
+    try:
+        validate_translator_name(translator_name)
+        RetryPolicy(retries, retry_backoff, retry_backoff_max)
+        if requests_per_second is not None:
+            RequestRateLimiter(requests_per_second)
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("invalid_timeout")
+        if any(not math.isfinite(value) for value in (retries, retry_backoff, retry_backoff_max)):
+            raise ValueError("invalid_retry_settings")
+        if requests_per_second is not None and not math.isfinite(requests_per_second):
+            raise ValueError("invalid_rate_limit")
+        decision = resolve_network_policy(None, url)  # Public pure parser, no DNS.
+        if not decision.allowed:
+            raise ValueError(decision.reason)
+    except (TranslatorError, ValueError) as error:
+        raise PreflightError("Invalid local translator configuration.",
+            "Check the translator URL, timeout and retry settings.", detail=str(error)) from None
+    glossary = _load_checked_glossary(glossary_path)
+    _check_epub(epub_path)
+    return TranslationPreflightResult(None, glossary)
 
 
 def _load_checked_glossary(glossary_path: Path | None) -> Glossary:
