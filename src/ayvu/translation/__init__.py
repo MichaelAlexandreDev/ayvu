@@ -21,6 +21,10 @@ from .errors import (
 )
 from .pipeline import LegacyTextPipelineFacade, LinguisticSource
 from .plan import resolve_plan
+from .local_cache_plan import (
+    CanonicalCacheRecordsPort, LocalCachePlanIntent, LocalCachePlanResolution,
+    LocalCachePlanResolver, LocalCachePlanState,
+)
 from .project import TranslateProject
 from .project_contracts import (
     AcceptedOutputPlan, ContinuationTicket, INTERRUPTED, INTERRUPTED_AFTER_PUBLICATION, OUTPUT_ROLE,
@@ -50,6 +54,7 @@ __all__ = [
     "TranslateProjectCommand", "TranslateProjectPorts", "TranslateProjectResult",
     "TranslationDryRunCancelled", "TranslationEngine", "TranslationExecutionError", "TranslationResources",
     "TranslationReport", "TranslationRuntime", "UnitExecution", "UnitSource", "resolve_execution_plan", "resolve_plan",
-    "select_resume_stage",
+    "CanonicalCacheRecordsPort", "LocalCachePlanIntent", "LocalCachePlanResolution",
+    "LocalCachePlanResolver", "LocalCachePlanState", "select_resume_stage",
     "to_html_stats", "to_report",
 ]

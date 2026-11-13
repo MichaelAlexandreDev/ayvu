@@ -3,6 +3,7 @@
 from .architecture_cache_edges import CACHE_EDGES
 
 ALLOWED_INTERNAL_EDGES = {
+    *(("ayvu.translation.local_cache_plan", f"ayvu.{name}") for name in ("knowledge.cache.cache_only", "knowledge.cache.entries", "knowledge.cache.identity", "knowledge.cache.identity_values", "knowledge.cache.scope", "provenance.model", "providers.ports", "translation.plan")),
     *((f"ayvu.knowledge.cache.{a}", f"ayvu.knowledge.cache.{b}") for a, names in (
        ("read_only", "entries identity_values read_only_queries scope schema"),
        ("read_only_queries", "entries identity_values repository scope")) for b in names.split()),

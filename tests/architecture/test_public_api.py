@@ -16,7 +16,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from tests.support.public_api_support import ADAPTER_MODULES, ALLOWED, SOURCE, violations, write
+from tests.support.public_api_support import ADAPTER_MODULES, ALLOWED, PURE_API_EXPORTS, SOURCE, exported, violations, write
+
+
+def test_pure_local_resolution_uses_package_exports():
+    for package, names in PURE_API_EXPORTS.items():
+        assert set(names) <= exported(SOURCE, package.replace(".", "/"))
+        assert package not in ADAPTER_MODULES
 
 
 def test_no_module_reaches_into_another_package():

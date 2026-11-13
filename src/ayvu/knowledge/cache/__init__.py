@@ -26,9 +26,9 @@ from .cache_only import (
 )
 from .entries import (
     CacheLookupState, CacheMissReason, CacheProvenanceMetadata, CanonicalCacheRecord, ExactCacheEntry, ExactCacheLookup,
-    ExactEntryKey, PutIfAbsentResult, PutIfAbsentState, exact_entry_key,
+    ExactEntryKey, PutIfAbsentResult, PutIfAbsentState, exact_entry_key, source_content_digest,
 )
-from .identity import SemanticOperationV2
+from .identity import SemanticOperationV2, semantic_operation_from_canonical
 from .legacy_schema import SCHEMA as LEGACY_SCHEMA
 
 __all__ = [
@@ -47,5 +47,5 @@ __all__ = [
     "PreviewImport", "PutIfAbsentResult", "PutIfAbsentState", "ResolvedCacheExecutionIdentity",
     "LEGACY_SCHEMA", "SemanticOperationV2", "SemanticRouteHop", "TRANSLATION_STAGE_AGGREGATE", "_invalid",
     "candidate_matches_query", "checkpoint", "exact_entry_key", "report", "resolve_compatible_identities",
-    "validate_payload",
+    "semantic_operation_from_canonical", "source_content_digest", "validate_payload",
 ]
