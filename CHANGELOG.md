@@ -15,6 +15,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- REF-18 (#286), passo 2: resolvedor local de planos por intenção e evidência canônica do cache v2,
+  com identidade única, ambiguidade e falhas tipadas; ainda sem ligação à produção ou mudança na CLI.
+
 - REF-18 (#286), passo 2: leitor interno somente leitura do cache v2, com consultas exatas e enumeração limitada de
   registros canônicos validados; ainda sem ligação à produção e sem efeito visível na CLI.
 

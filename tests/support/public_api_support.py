@@ -8,6 +8,13 @@ from tests.support.paths import PROJECT_ROOT
 
 SOURCE = PROJECT_ROOT / "src" / "ayvu"
 
+# Pure local resolution stays on the package API, outside ADAPTER_MODULES.
+PURE_API_EXPORTS = {
+    "translation": ("CanonicalCacheRecordsPort", "LocalCachePlanIntent", "LocalCachePlanResolution",
+                    "LocalCachePlanResolver", "LocalCachePlanState"),
+    "knowledge.cache": ("semantic_operation_from_canonical", "source_content_digest"),
+}
+
 
 # Violations that exist today, each with the issue that removes it. An entry that no longer matches fails,
 # so this list can only shrink.

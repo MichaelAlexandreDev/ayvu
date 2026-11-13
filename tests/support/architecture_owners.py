@@ -136,6 +136,7 @@ OWNERS = {
     "ayvu.content.protection": Owner("domain", "Translation"),
     "ayvu.translation.pipeline": Owner("application", "Translation"),
     "ayvu.translation.plan": Owner("domain", "Translation"),
+    "ayvu.translation.local_cache_plan": Owner("application", "Translation"),
     "ayvu.translation.document": Owner("application", "Translation"),
     "ayvu.translation.document_bindings": Owner("application", "Translation"),
     "ayvu.translation.document_contracts": Owner("application", "Translation"),

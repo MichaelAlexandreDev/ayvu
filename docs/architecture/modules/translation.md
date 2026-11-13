@@ -147,6 +147,8 @@ The standalone cache has a v2 boundary and repository; CLI runs without a declar
 
 ## The resolved plan
 
+`LocalCachePlanResolver` resolves per-unit plans from authorized canonical cache evidence and local intent without discovery; it is not yet wired to production.
+
 `resolve_plan` is pure, and it yields no plan unless the required capabilities are plainly accepted.
 Its artifact and cache identities split at the glossary:
 
