@@ -8,6 +8,8 @@ from ...translation import ItemOutcome
 from .contracts import ValidationResult
 from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, validate_output, _translate_without_project as execute_translate_without_project, _translate_in_project as execute_translate_in_project
 from ...translation import ResumeStateError
+from ...composition.cli import translation_modality
+from .progress import TranslationProgress
 
 from .render import console
 
@@ -68,3 +70,17 @@ def _checkpoint_action(action, *args, **kwargs):
         console.print(f"[red]Resume state check failed:[/red] {exc}")
         console.print("Choose a writable processing directory or fix permissions for Documentos/Livros/Processando.")
         raise typer.Exit(code=1) from exc
+
+
+def cache_coverage_blocked(book, report):
+    """Only labeled dry runs measure full coverage independently of publication."""
+    options = book.options
+    incomplete = (report.texts_missing > 0 if translation_modality(
+        options.dry_run, book.translator_models, book.translator_name) == "transient_dry_run" else not report.output_written)
+    return options.cache_only and options.require_full_cache and incomplete
+
+
+def translation_progress(progress, options, config, translator_name):
+    modality = translation_modality(options.dry_run, config.translator_models, translator_name)
+    return TranslationProgress(progress, dry_run=options.dry_run, workers=options.workers,
+                               local_sequential=modality == "transient_dry_run")

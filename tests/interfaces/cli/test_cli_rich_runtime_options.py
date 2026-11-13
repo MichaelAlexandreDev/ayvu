@@ -6,7 +6,7 @@ import ayvu.composition.builders.translate_project as composition
 from ayvu.jobs.model import JobState
 from ayvu.preferences.model import PreferencesError
 from ayvu.preferences.service import PreferencesSnapshot
-from tests.support.cli_translate_project_support import _book, _jobs
+from tests.support.cli_translate_project_support import _book, _jobs, _args
 from ayvu.kernel import JobWarning
 from tests.support.cli_rich_runtime_support import Transport, config, invoke, isolate
 from tests.support.cli_rich_runtime_support import runner, text
@@ -58,11 +58,21 @@ def test_runtime_warning_reaches_the_cli(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("arguments", [["--dry-run"], ["--dry-run", "--workers", "2"]])
-def test_declared_model_does_not_select_rich_for_dry_run(tmp_path, monkeypatch, arguments):
+def test_declared_model_selects_transient_rich_for_dry_run(tmp_path, monkeypatch, arguments):
+    from ayvu.composition.builders import translate_transient
+    from tests.support.transient_translation_support import effect_guard
     config(tmp_path)
-    result, session = invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), *arguments)
+    source = _book(tmp_path / "book.epub")
+    selected = []
+    original = translate_transient.translate
+    def translate(book, hooks, label, **kwargs):
+        selected.append(label)
+        return original(book, hooks, label, **kwargs)
+    monkeypatch.setattr(translate_transient, "translate", translate)
+    with effect_guard(monkeypatch, tmp_path):
+        result = runner.invoke(cli.app, _args(tmp_path, source, *arguments))
     assert result.exit_code == 0, text(result)
-    assert session.requests == [] and not composition.v2_cache_path(tmp_path / "cache.sqlite").exists()
+    assert selected == ["local-model-2026"] and not composition.v2_cache_path(tmp_path / "cache.sqlite").exists()
     assert _jobs(tmp_path) == []
 
 

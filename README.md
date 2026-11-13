@@ -942,9 +942,13 @@ chamar o tradutor nem o cache, quando prova que nada mudou: modelo, rota, capaci
 configuração, livro e versão do pipeline. Se algo mudou, ela traduz de novo e avisa o que foi,
 por exemplo `Aviso da tradução: raw_results_changed_provider`.
 
-Sem rótulo, o runtime `legacy/v1`, suas mensagens, continuação após erros e cache-only com
-EPUB parcial continuam os mesmos. Remover o rótulo também permite voltar ao cache v1 intacto
-em novas traduções. Dry run, preview e outros fluxos sem projeto permanecem no v1.
+Without a label, `legacy/v1` keeps its messages, continuation after errors and partial cache-only EPUBs.
+Removing the label restores the intact v1 cache for new translations. Preview and unlabeled dry runs
+retain v1. With a model label, `--dry-run` uses
+an offline transient rich runtime: no network, project/job creation or cache writes; exact v2 hits
+require an existing matching project. `--dry-run --cache-only --require-full-cache` exits 1 only
+when texts are missing. Configured workers/high are retained, with sequential local analysis stated
+in progress and reports. Preview and non-dry cache-only behavior are unchanged.
 As políticas HTTP continuam as mesmas, sem novas requisições de descoberta.
 
 ## Configuração

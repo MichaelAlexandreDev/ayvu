@@ -29,6 +29,7 @@ def _print_translation_plan(
     retries: int = 2,
     retry_backoff: float = DEFAULT_RETRY_BACKOFF,
     retry_backoff_max: float = DEFAULT_RETRY_BACKOFF_MAX,
+    local_sequential: bool = False,
 ) -> None:
     table = Table(title="Translation plan")
     table.add_column("Field")
@@ -51,7 +52,7 @@ def _print_translation_plan(
         retry_backoff=retry_backoff,
         retry_backoff_max=retry_backoff_max,
     ):
-        table.add_row(label, value)
+        table.add_row(label, f"{workers} configured; sequential local analysis" if local_sequential and label == "Workers" else value)
     console.print(table)
     if source_inferred and mode == UserMode.COMMON:
         console.print(f"[dim]Idioma de origem detectado do EPUB: {language_pair.source}[/dim]")

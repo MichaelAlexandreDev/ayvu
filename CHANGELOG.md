@@ -9,6 +9,11 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 2: `--dry-run` com rótulo de modelo usa execução rica transitória, sem rede,
+  projeto/job ou escrita de cache. Lê somente o cache v2 autorizado por projeto existente; `--cache-only`
+  preserva os originais ausentes e `--require-full-cache` avalia faltas. Workers configurados são mantidos,
+  com análise local sequencial explícita. Sem rótulo, preview e cache-only fora de dry run seguem como antes.
+
 - REF-18 (#286), extração R3: esquema SQL, codec JSON-v1 e administração legada por streaming
   passam de `v1/` para `knowledge/cache/`, com os imports e testes dedicados atualizados.
   O ciclo Knowledge/v1 desaparece; comportamento, mensagens, namespace e identidades são preservados.

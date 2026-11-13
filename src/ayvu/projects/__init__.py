@@ -4,8 +4,8 @@ adapter modules projects.store and projects.schema.
 from __future__ import annotations
 
 from .model import ProjectError, ProjectManifest, ProjectSourceError
-from .service import resolve_project
+from .service import resolve_project, select_project
 
 __all__ = [
-    "ProjectError", "ProjectManifest", "ProjectSourceError", "resolve_project",
+    "ProjectError", "ProjectManifest", "ProjectSourceError", "resolve_project", "select_project",
 ]

@@ -61,7 +61,7 @@ The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and enters identity as
 `declared:<label>`, declared by the user; `unknown` remains ineligible.
 **Changing the server model without changing the label reuses old results.**
 There is no model discovery or new HTTP request. Without a label, `translate_text`
-retains signature, results, messages and v1 key; dry run and preview also stay on v1.
+retains signature, results, messages and v1 key. Preview stays on v1; labeled dry runs use the transient route below.
 See [runtime selection](translation-project.md#explicit-runtime-selection-252).
 
 | Module | Layer | Responsibility |
@@ -130,8 +130,37 @@ cover publication and worker behavior.
 
 Production uses the engine inside `TranslateProject` in both runtimes. In rich,
 `TranslationResources.prepare_document` runs `DocumentTranslator` before the engine
-consumes units; a failure there stops the book. Dry run and preview stay in the
-project-free flow because they have no identity to supply to the adapter.
+consumes units; a failure there stops the book. Preview and unlabeled dry runs retain the
+predecessor project-free flow. Labeled dry runs use `TransientTranslation`.
+
+## Offline transient dry runs (REF-18 G3)
+
+`composition.cli` chooses `transient_dry_run` only when `selected_model` returns a valid label,
+before preparation or stores. `prepare_translation` receives that modality explicitly and calls
+the local preflight, which validates languages, glossary, endpoint, timeout and retry settings without
+DNS, transport, a provider/session or the v1 write probe. Preview and non-dry cache-only selection are unchanged.
+
+`composition/builders/translate_transient.py` reads `ProjectJsonRepository.read_catalog`, calls
+`select_project`, and revalidates the single selected manifest with `load_read_only`. An absent
+catalog or no matching intention grants no persistent cache scope. An unreadable/incomplete catalog,
+ambiguous match or changed source fails explicitly. No project, job, lease, checkpoint, raw result or
+provenance is created. The invocation-only UUID used for extraction cannot authorize persistent reads.
+
+`TransientTranslation` extracts through Formats and processes documents in order without the normal
+engine or any reconstruction/publication port. `TransientUnits` shares `LinguisticStages`, protection
+and semantic identity through `LocalCachePlanResolver`. Each unit resolves its own canonical plan,
+then performs an exact lookup through `ReadOnlyExactCache` at `v2_cache_path(--cache)`.
+A resolved lookup hit counts as cache reuse and receives the current non-native glossary without
+rewriting its raw entry. Miss, ambiguous or unsupported evidence counts as work to do. Corruption,
+invalid stored protection tokens and candidate overflow fail the whole invocation.
+
+Typed cache-only takes precedence over the dry-run classification: exact hits are hits; every other
+ordinary result preserves the readable original as missing, without fuzzy, TM or artifact replay.
+The existing report converters and missing-text/Markdown renderers remain in use. Only this rich
+dry-run branch evaluates full-cache by `texts_missing > 0`; complete coverage exits 0 without an EPUB.
+Configured workers remain unchanged, including high; documents currently run sequentially. Progress,
+terminal reports and Markdown explicitly state both the configured count and sequential local analysis.
+These cache/product differences remain pending owner acceptance in the G3 decision row.
 
 ## The legacy facade
 
@@ -147,7 +176,7 @@ The standalone cache has a v2 boundary and repository; CLI runs without a declar
 
 ## The resolved plan
 
-`LocalCachePlanResolver` resolves per-unit plans from authorized canonical cache evidence and local intent without discovery; it is not yet wired to production.
+`LocalCachePlanResolver` resolves per-unit plans from authorized canonical cache evidence and local intent without discovery; labeled transient dry runs use it in production. Durable cache-only integration remains deferred.
 
 `resolve_plan` is pure, and it yields no plan unless the required capabilities are plainly accepted.
 Its artifact and cache identities split at the glossary:
