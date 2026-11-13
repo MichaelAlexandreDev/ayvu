@@ -279,4 +279,4 @@ report with exit 1. Preview offers no Markdown and creates no project,
 job or checkpoint. Provider errors return 1 with previous output intact; keyboard interruption
 retains the CLI cancellation exit. Without a label, preview messages, requests and v1 cache
 behavior are preserved, including preparation before progress starts. G2's cache/partial-output
-differences remain pending owner acceptance.
+differences were accepted on 2026-11-13.

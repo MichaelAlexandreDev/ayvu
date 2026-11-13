@@ -156,7 +156,7 @@ units succeed. The local composition adapter owns staging, final EPUB validation
 checks and replace; Translation implements neither ZIP nor rename. Unselected members and
 previews with no results keep their original member bytes. Provider failure leaves the destination
 intact. Preview publishes no Markdown, project/job, lease, checkpoint, raw-results or review package.
-The persistent-cache and partial-output differences remain pending owner acceptance in G2.
+The persistent-cache and partial-output differences were accepted on 2026-11-13 (G2).
 
 ## Offline transient dry runs (REF-18 G3)
 
@@ -185,7 +185,7 @@ The existing report converters and missing-text/Markdown renderers remain in use
 dry-run branch evaluates full-cache by `texts_missing > 0`; complete coverage exits 0 without an EPUB.
 Configured workers remain unchanged, including high; documents currently run sequentially. Progress,
 terminal reports and Markdown explicitly state both the configured count and sequential local analysis.
-These cache/product differences remain pending owner acceptance in the G3 decision row.
+These cache/product differences were accepted on 2026-11-13 (G3 decision row).
 
 ## The legacy facade
 
