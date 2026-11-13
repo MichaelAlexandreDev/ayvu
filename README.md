@@ -897,7 +897,7 @@ O rótulo aparece nos dados operacionais de proveniência e identidade do cache;
 eventos, relatório de terminal ou checkpoint. Não coloque dados pessoais no rótulo.
 O checkpoint rico registra apenas a revisão de execução, para vincular a retomada ao job.
 
-With a valid model label, `--cache-only --workers 1` creates the normal project/job and
+With a valid model label, `--cache-only` creates the normal project/job and
 reconstructs from authorized exact entries in `<--cache>.v2.sqlite`, without DNS,
 provider/session/discovery or cache writes. Each unit recovers its own compatible canonical
 identity, including stored bridge routes. A missing database is empty; incompatible or ambiguous
@@ -906,7 +906,7 @@ overflow and unsafe storage fail without an EPUB or a misleading missing-text fi
 `--require-full-cache` blocks reconstruction before staging when any text is missing, preserves
 previous output and exits 1; complete coverage reconstructs and validates with exit 0.
 Cache-only excludes translation memory, fuzzy reuse and raw-results replay, and creates no new
-raw-results even on complete hits. Parallel rich execution still requires `--workers 1`.
+raw-results even on complete hits. Durable cache-only accepts `--workers N` without clamping, including the `high` default of four and explicit overrides. Whole documents run concurrently; units, reported results, events and progress remain in book order; no checkpoint file is written. The admission window includes completed documents awaiting consolidation. Online rich execution still requires `--workers 1`; parallel governed memory remains refused, including with `high`. Cancellation or a document failure stops admission and joins started workers before the job ends.
 Without a model label, cache-only retains the v1 behavior.
 
 Com o rótulo configurado, `--translation-memory` seleciona o repositório governado

@@ -9,7 +9,8 @@ from .batch import (
 )
 from .cache_only_execution import CacheOnlyDocumentExecutor
 from .document import DocumentTranslator
-from .document_contracts import ExecutionContext, SAFE_POINTS, TranslationExecutionError, UnitSource
+from .document_work import DocumentWork, DocumentWorkResult
+from .document_contracts import ExecutionContext, SAFE_POINTS, TranslationCancelled, TranslationExecutionError, UnitSource
 from .raw_results import RAW_RESULTS_ROLE
 from .engine import (
     ALT_TEXT_KIND, EngineObserver, EngineRequest, EngineResult, ExecutorPool, METADATA_KIND,
@@ -47,7 +48,7 @@ from .resume_reuse import (
 __all__ = [
     "ALT_TEXT_KIND", "AcceptedOutputPlan", "ArtifactIntegrity", "BatchCancellationCommand",
     "BatchCancellationNotice", "BatchCommand", "BatchItem", "BatchOutputError", "BatchValidationError",
-    "CacheOnlyDocumentExecutor", "BookRefused", "ContinuationTicket", "DocumentTranslator", "EngineObserver", "EngineRequest",
+    "CacheOnlyDocumentExecutor", "BookRefused", "ContinuationTicket", "DocumentTranslator", "DocumentWork", "DocumentWorkResult", "EngineObserver", "EngineRequest",
     "EngineResult", "ExecutionContext", "ExecutorPool", "HtmlTranslationStats", "INTEGRITY_REASONS", "INTERRUPTED",
     "INTERRUPTED_AFTER_PUBLICATION", "ItemOutcome", "ItemStatus", "LegacyTextPipelineFacade",
     "LinguisticSource", "METADATA_KIND", "OUTPUT_ROLE", "OWN_JOB_STATES", "OutputValidation",
@@ -57,7 +58,7 @@ __all__ = [
     "STATUS_MISSING", "STATUS_TRANSLATED", "StageEvidence", "StageSelection", "TRANSLATE_COMMAND_TYPE",
     "TextStats", "TextTranslationResult", "TranslateBatch", "TranslateCommandError", "TranslateObserver", "TranslateProject",
     "TranslateProjectCommand", "TranslateProjectPorts", "TranslateProjectResult",
-    "TranslationDryRunCancelled", "TranslationEngine", "TranslationExecutionError", "TranslationResources",
+    "TranslationCancelled", "TranslationDryRunCancelled", "TranslationEngine", "TranslationExecutionError", "TranslationResources",
     "TranslationReport", "TranslationRuntime", "UnitExecution", "UnitSource", "resolve_execution_plan", "resolve_plan",
     "CanonicalCacheRecordsPort", "LocalCachePlanIntent", "LocalCachePlanResolution",
     "LocalCachePlanResolver", "LocalCachePlanState", "select_resume_stage",

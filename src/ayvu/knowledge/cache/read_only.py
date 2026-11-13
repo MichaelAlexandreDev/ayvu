@@ -17,7 +17,7 @@ from .entries import CanonicalCacheRecord, CacheLookupState, CacheMissReason, Ex
 from .identity_values import CacheIdentityError, CacheValueKind
 from .read_only_queries import candidate_records, exact_record, validate_resolution
 from .scope import AuthorizedCacheScope
-from .read_only_journal import journal_refusal
+from .read_only_journal import journal_refusal, header_refusal
 from .schema import (
     CacheSchemaError, SchemaState, _connect, _error, _identity, _location, _state,
     _supported, fcntl,
@@ -39,21 +39,7 @@ def _validate(path, expected, artifacts):
         if expected is not None and artifacts[2] is not None and not any(artifacts[:2] + artifacts[3:-1]):
             raise CacheSchemaError(journal_refusal(path, expected))
         raise CacheSchemaError("cache_recovery_required")
-    if expected is None:
-        return
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-    try:
-        info = os.fstat(descriptor)
-        if (info.st_dev, info.st_ino) != expected:
-            raise CacheSchemaError("cache_identity_changed")
-        header = os.read(descriptor, 100)
-    finally:
-        os.close(descriptor)
-    if len(header) != 100 or header[:16] != b"SQLite format 3\x00":
-        raise CacheSchemaError("cache_corrupt")
-    # SQLite header read/write versions of 2 mean WAL, even without sidecars.
-    if header[18:20] != b"\x01\x01":
-        raise CacheSchemaError("cache_recovery_required")
+
 
 
 @contextmanager
@@ -90,6 +76,10 @@ def _read_connection(path, authorized_directory):
                 yield None
                 _validate(path, expected, artifacts)
                 return
+            refusal = header_refusal(path, expected)
+            if refusal is not None:
+                raise CacheSchemaError(refusal)
+            _validate(path, expected, artifacts)
             connection = _connect(path)  # URI mode=ro, never immutable=1.
             try:
                 _validate(path, expected, artifacts)

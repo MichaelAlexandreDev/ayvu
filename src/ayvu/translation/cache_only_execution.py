@@ -40,11 +40,12 @@ class CacheOnlyDocumentExecutor:
     """
 
     def __init__(self, reader, intent, context, provenance, readable_original, apply_glossary, *,
-                 clock, request=CacheOnlyRequest.resolve_compatible(), resolve_pin=None, map_execution=lambda unit, result: result):
+                 clock, checkpoint=lambda: None, begin_unit=lambda index: None, request=CacheOnlyRequest.resolve_compatible(), resolve_pin=None, map_execution=lambda unit, result: result):
         if type(request) is not CacheOnlyRequest:
             raise CacheIdentityError("cache_only_mode_required")
         self.context, self.provenance, self.clock = context, provenance, clock
         self.map_execution = map_execution
+        self.checkpoint, self.begin_unit = checkpoint, begin_unit
         self._sequence = 0
         self.source_locale = intent.source_locale
         self.scope = CacheAuthorizationPolicy(context.job.request.project_id).resolve()
@@ -66,6 +67,7 @@ class CacheOnlyDocumentExecutor:
         return "CacheOnlyDocumentExecutor()"
 
     def _checkpoint(self, stage):
+        self.checkpoint()
         job = self.context.current_job() if self.context.current_job is not None else self.context.job
         if (job.state is not JobState.RUNNING or job.lease is None
                 or self.context.job.lease is None or job.job_id != self.context.job.job_id
@@ -77,7 +79,7 @@ class CacheOnlyDocumentExecutor:
         if source is not None and source.token.checkpoint(point) is not None:
             raise TranslationCancelled()
 
-    def prepare_document(self, document):
+    def execute_document(self, document, index=0):
         self._executions = {}
         self._checkpoint("unit_whitespace")
         if document.project_id != self.scope.project_id:
@@ -87,7 +89,9 @@ class CacheOnlyDocumentExecutor:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INPUT, "locale_conflicts_with_plan"))
         executions = {}
         try:
-            for unit in document.units:
+            for unit_index, unit in enumerate(document.units):
+                self.begin_unit(unit_index)
+                self._checkpoint("unit_whitespace")
                 readable = _expand if unit.content.kind.name in {"title", "alt_text"} else None
                 result = self.units.execute(unit, readable_original=readable)
                 if result.status == STATUS_MISSING and not result.missing_text.strip():
@@ -96,6 +100,7 @@ class CacheOnlyDocumentExecutor:
         except CacheIdentityError as error:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTEGRITY, error.code)) from None
         self._executions = executions
+        return tuple(executions[unit.unit_id] for unit in document.units)
 
     def _record_hit(self, unit, resolution):
         self._checkpoint("reuse_provenance")

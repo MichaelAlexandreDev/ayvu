@@ -39,7 +39,7 @@ def _counters(stats: TextStats, chapters: int, validation: OutputValidation | No
 
 
 class _Run:
-    """One execution, from a job with a lease to its terminal outcome. Everything runs on one thread."""
+    """One execution, from a job with a lease to its terminal outcome. Only the coordinator emits global events and terminalizes the job."""
 
     def __init__(self, ports: TranslateProjectPorts, command: TranslateProjectCommand,
                  project: ProjectManifest, plan: ExecutionPlan, job: TranslationJob, cancellation: CancellationSource,
@@ -126,10 +126,10 @@ class _Run:
         publication = ports.publications.publication(self._request, self._token, self._validate_staged)
         context = RuntimeContext(self._job, self._cancellation, self,
                                  current_job=lambda: ports.jobs.get(self._job.job_id).job,
-                                 reusable_jobs=self._continuation_chain())
+                                 reusable_jobs=self._continuation_chain(), lease_lost=self._keeper.lost.is_set)
         with ports.runtime.resources(context) as resources:
             engine = TranslationEngine(ports.formats, resources.executor, pool=resources.pool, observer=self._engine_observer(),
-                                       cancellation=self._cancellation.token, prepare_document=resources.prepare_document)
+                                       cancellation=self._cancellation.token, documents=resources.documents)
             self._engine = engine.run(EngineRequest(
                 self._command.adapter_id, ports.source, publication, self._command.project_id, ports.runtime.facts(),
                 options.translate_metadata, options.translate_alt_text, options.chapter_selection, options.fail_fast,
@@ -179,6 +179,8 @@ class _Run:
             if self._observer.on_validation_progress:
                 self._observer.on_validation_progress(index, total, name)
 
+        if self._command.execution_revision == 2 and self._keeper.lost.is_set():
+            raise JobError("lease_not_held")
         try:
             self._validation = self._ports.validator.validate(staged, on_progress)
         except Exception:
@@ -187,6 +189,8 @@ class _Run:
         else:
             if self._validation.warnings or not self._validation.ok:
                 self._emit(JobWarning("validation_warnings"))
+        if self._command.execution_revision == 2 and self._keeper.lost.is_set():
+            raise JobError("lease_not_held")
         self._progress("publishing", "step", 0, 1)
         if self._command.accepted_output is not None:
             self._command.accepted_output.publication_guard()

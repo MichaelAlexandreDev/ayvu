@@ -12,14 +12,15 @@ from ..kernel import JobError
 class _LeaseKeeper:
     """Renews from its own thread, since one chapter or one blocked call can outlast any safe point.
 
-    Losing the lease stops nothing by itself: the artifact store checks it, so a run that lost it can
-    never publish. A store that is busy for a moment is simply tried again on the next round.
+    Definitive loss is observable by rich workers and the coordinator. Artifact publication also
+    checks durable ownership. A store that is busy for a moment is simply tried again on the next round.
     """
 
     def __init__(self, renew: Callable[[], None], interval: timedelta) -> None:
         self._renew = renew
         self._interval = interval.total_seconds()
         self._stop = Event()
+        self.lost = Event()
         self._thread = Thread(target=self._run, name="ayvu-lease", daemon=True)
 
     def start(self) -> None:
@@ -35,6 +36,7 @@ class _LeaseKeeper:
             try:
                 self._renew()
             except JobLeaseError:
+                self.lost.set()
                 return
             except JobError:
                 continue

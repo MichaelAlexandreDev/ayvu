@@ -80,7 +80,7 @@ class Runtime:
         return None
 
     def resources(self, context):
-        return nullcontext(SimpleNamespace(executor=object(), pool=None, prepare_document=None))
+        return nullcontext(SimpleNamespace(executor=object(), pool=None, documents=None))
 
     def facts(self):
         return None

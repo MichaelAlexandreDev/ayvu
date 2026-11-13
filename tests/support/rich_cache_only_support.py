@@ -46,7 +46,7 @@ def offline_guard(monkeypatch):
             "ayvu.translation.document.DocumentTranslator._replay",
             "ayvu.translation.stages.MemoryRetrieval.__init__",
             "ayvu.translation.stages.LegacyCacheCompatibility.__init__",
-            "ayvu.composition.builders.translate_project.open_approved_memory",
+            "ayvu.composition.builders.rich_workers.open_approved_memory",
             "ayvu.knowledge.cache.repository.SQLiteExactCache.__init__",
             "ayvu.knowledge.cache.repository.SQLiteExactCache.put_if_absent",
             "ayvu.composition.cli.TranslationCache", "ayvu.composition.cli.verify_cache_writable",

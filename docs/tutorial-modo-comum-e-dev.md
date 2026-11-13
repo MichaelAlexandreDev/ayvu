@@ -429,13 +429,13 @@ os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume li
 Mantenha o rótulo durante a retomada; um job legado exige sua ausência. A incompatibilidade
 entre `legacy/v1` e `rich/v2` é recusada antes de chamar o tradutor.
 
-For labeled durable translations, `--cache-only --workers 1` reconstructs from the authorized
+For labeled durable translations, `--cache-only` reconstructs from the authorized
 exact v2 cache without network, sessions, discovery, cache writes, translation memory or replay.
 It creates the normal project/job. Missing or ambiguous entries keep the source and save the
 existing missing-text file. `--require-full-cache` blocks reconstruction before staging on a
 miss and exits 1, preserving previous output. Complete hits reconstruct and validate with exit 0.
 Corruption, overflow or unsafe storage fail without EPUB/TXT publication. No new raw-results
-are published, including on complete hits. Rich workers greater than 1 remain refused.
+are published, including on complete hits. Durable cache-only accepts `--workers N`, `--performance-profile high` (four workers), and explicit worker overrides without clamping. Each task handles a complete document; results and progress are consumed in book order. Cancellation or fatal failure stops admission and drains started tasks before ending the job. Online rich workers greater than 1 and parallel governed memory remain refused.
 Without a label, existing cache-only behavior is preserved.
 Without a model label, preview stays on v1. With a label, root and guided previews use
 the transient rich runtime with real authorized discovery and translation. The default

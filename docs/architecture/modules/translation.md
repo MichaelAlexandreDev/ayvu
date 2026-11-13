@@ -360,3 +360,27 @@ records only itself.
 - Conservative retrieval: [policy](../../../tests/translation/stages/test_memory_retrieval_policy.py),
   [queries](../../../tests/translation/stages/test_memory_retrieval_queries.py), and
   [pipeline](../../../tests/translation/stages/test_memory_retrieval_pipeline.py).
+
+### Ordered durable cache-only documents (REF-18 G8, batch 4)
+
+`TranslationResources.documents` replaces rich `prepare_document` callbacks with a
+complete document execution port. `DocumentWorkResult` contains per-unit executions,
+translations, stats, statuses and bounded local warnings. `DocumentScheduler` admits
+at most N documents, including finished results awaiting ordered consumption. Units
+inside each document stay sequential. Book enumeration supplies the work index;
+metadata occupies index zero and retains its separate title-error policy. Selected
+chapter callbacks retain their selected ordinal.
+
+The coordinator consumes document/unit/local-event order and alone calls observers,
+saves checkpoints, emits global `_Run` sequences and reconstructs the EPUB. A rich
+document error stops the book even without fail-fast. Cancellation, factory failure
+and definitive lease loss stop admission; queued tasks are cancelled and started
+tasks are joined before resources or lease are released. Acknowledged cancellation
+keeps `_Run._fail` precedence over concurrent failure. Complete durable artifacts
+remain resumable independently of unconsumed callbacks; partial documents receive
+no completion credit. Cache-only creates no new raw-results and never replays them.
+
+`rich_workers.py` owns resource composition; `engine.py` keeps the unchanged v1
+parallel pool. High and overrides preserve the effective N only in durable offline
+execution in this batch. Online concurrency, shared rate limiting and duplicate-key
+arbitration remain batch 5; governed memory with multiple workers remains refused.

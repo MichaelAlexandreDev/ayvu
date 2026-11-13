@@ -301,3 +301,14 @@ supplies authorization. Each exact read uses the full discovered semantic finger
 A separate invocation overlay in Translation stores raw provider text before glossary
 application and is discarded at the end. It is never a persistent scope or cache writer;
 previews create no cache database, directory, lock, journal, WAL/SHM, backup or marker.
+
+For concurrent readers, inode and marker checks use metadata-only stat operations.
+The initial header check runs in an isolated child process, just like the journal
+lock probe. A healthy verdict is remembered per file state (device, inode, size,
+modification and change times), so the child runs again only after the file
+changes; refusals are never remembered. Opening and closing a raw database descriptor in the parent could
+release every POSIX record lock that process holds on the inode, including another
+thread's SQLite SHARED lock. The child cannot release parent locks. Every SQLite
+read transaction remains short and thread-owned. The two-reader thread regression
+uses an external writer to prove that a sibling's checks and connection close
+leave the first reader's SHARED lock intact.

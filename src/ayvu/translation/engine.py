@@ -2,8 +2,8 @@
 
 The adapter owns the structure and the executor owns the language work, so nothing here parses
 markup or calls a provider. A unit failure keeps the legacy continuation rules unless fail-fast
-is selected. An optional document preparation port can fail before unit consumption and stop the
-book. The composition owns the executor; ``ayvu.translate_project`` owns the durable job.
+is selected. A complete rich document port owns scheduling, fatal failures and ordered consumption.
+The legacy pool retains its own continuation rules. The composition owns the executor; ``ayvu.translate_project`` owns the durable job.
 """
 from __future__ import annotations
 
@@ -63,9 +63,9 @@ class ExecutorPool(Protocol):
 
 @dataclass(frozen=True, repr=False)
 class TranslationResources:
-    executor: UnitExecutor
+    executor: UnitExecutor | None
     pool: ExecutorPool | None = None
-    prepare_document: Callable[[ContentDocument], None] | None = None
+    documents: object | None = None
 
     def __repr__(self) -> str:
         return "TranslationResources()"
@@ -162,6 +162,7 @@ class _Chapter:
     index: int
     name: str
     document: ContentDocument
+    document_index: int = 0
 
 
 @dataclass(repr=False)
@@ -177,16 +178,9 @@ class _Cancelled(Exception):
 
 
 def _scopes(request: EngineRequest) -> frozenset[ContentScope]:
-    scopes = {ContentScope.BODY}
-    if request.translate_metadata:
-        scopes |= {ContentScope.METADATA, ContentScope.NAVIGATION}
-    if request.translate_alt_text:
-        scopes.add(ContentScope.IMAGE_ALT_TEXT)
-    return frozenset(scopes)
-
-
-def _is_metadata(document: ContentDocument) -> bool:
-    return any(unit.content.kind.name == METADATA_KIND for unit in document.units)
+    return frozenset({ContentScope.BODY}
+        | ({ContentScope.METADATA, ContentScope.NAVIGATION} if request.translate_metadata else set())
+        | ({ContentScope.IMAGE_ALT_TEXT} if request.translate_alt_text else set()))
 
 
 def _translate_chapter(executor: UnitExecutor, chapter: _Chapter, *, fail_fast: bool, on_status: Callable[[str], None],
@@ -217,13 +211,13 @@ def _translate_chapter(executor: UnitExecutor, chapter: _Chapter, *, fail_fast: 
 class TranslationEngine:
     def __init__(self, formats: FormatService, executor: UnitExecutor, *, pool: ExecutorPool | None = None,
                  observer: EngineObserver | None = None, cancellation: CancellationToken | None = None,
-                 prepare_document: Callable[[ContentDocument], None] | None = None) -> None:
+                 documents: object | None = None) -> None:
         self._formats = formats
         self._executor = executor
         self._pool = pool
         self._observer = observer or EngineObserver()
         self._cancellation = cancellation
-        self._prepare_document = prepare_document
+        self._documents = documents
 
     def __repr__(self) -> str:
         return "TranslationEngine()"
@@ -238,7 +232,7 @@ class TranslationEngine:
 
     def run(self, request: EngineRequest) -> EngineResult:
         """Nothing is sent to a provider before the book has been read and the selection resolved."""
-        if request.workers < 1 or (request.workers > 1 and self._pool is None):
+        if request.workers < 1 or (request.workers > 1 and self._pool is None and self._documents is None):
             raise ValueError("a worker pool is required for more than one worker")
         result = EngineResult()
         try:
@@ -254,7 +248,7 @@ class TranslationEngine:
         if extraction.failure is not None:
             result.failure = extraction.failure
             return
-        title = next((document for document in extraction.documents if _is_metadata(document)), None)
+        title = next((document for document in extraction.documents if any(unit.content.kind.name == METADATA_KIND for unit in document.units)), None)
         chapters = self._chapters(request, [document for document in extraction.documents if document is not title], result)
         if chapters is None:
             return
@@ -264,8 +258,9 @@ class TranslationEngine:
         if request.translate_metadata:
             self._checkpoint(ENGINE_BEFORE_UNIT)
             self._translate_title(request, title, result, materialized, translations, unit_sources)
-        run_chapters = self._run_parallel if request.workers > 1 else self._run_sequential
-        for chapter, outcome in run_chapters(request, chapters, result):
+        outcomes = (self._documents.run(request, chapters, result, self._observer, self._checkpoint) if self._documents is not None else
+                    (self._run_parallel if request.workers > 1 else self._run_sequential)(request, chapters, result))
+        for chapter, outcome in outcomes:
             materialized.append(chapter.document)
             translations.extend(outcome.translations)
             unit_sources.extend(outcome.unit_sources)
@@ -300,7 +295,7 @@ class TranslationEngine:
                         if selection.matches(item[0], item[1], item[2].logical_key, titles.get(item[2].logical_key))]
             if not numbered:
                 raise ChapterSelectionError(f"no chapters matched selection: {selection.source}")
-        return [_Chapter(index, name, document) for index, (_, name, document) in enumerate(numbered, start=1)]
+        return [_Chapter(index, name, document, book_index) for index, (book_index, name, document) in enumerate(numbered, start=1)]
 
     def _translate_title(self, request: EngineRequest, title: ContentDocument | None, result: EngineResult,
                          materialized: list[ContentDocument], translations: list[UnitTranslation],
@@ -317,10 +312,10 @@ class TranslationEngine:
         if title is None:
             return
         unit = title.units[0]
-        if self._prepare_document is not None:
-            self._prepare_document(title)
+        execution = self._documents.title(title) if self._documents is not None else None
         try:
-            execution = self._executor.execute(unit)
+            if execution is None:
+                execution = self._executor.execute(unit)
         except Exception as error:
             failed(error)
             return
@@ -347,9 +342,6 @@ class TranslationEngine:
         for chapter in chapters:
             self._checkpoint(ENGINE_BEFORE_CHAPTER)
             self._start(chapter, len(chapters))
-            if self._prepare_document is not None:
-                self._checkpoint(ENGINE_BEFORE_UNIT)
-                self._prepare_document(chapter.document)
             try:
                 outcome = _translate_chapter(self._executor, chapter, fail_fast=request.fail_fast, on_status=self._status,
                                              checkpoint=self._checkpoint)

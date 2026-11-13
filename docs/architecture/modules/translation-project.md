@@ -29,7 +29,7 @@ provider preparation. Durable cache-only instead runs the explicit local preflig
 [`rich_document_executor.py`](../../../src/ayvu/composition/builders/rich_document_executor.py) to
 wire [`CacheOnlyDocumentExecutor`](../../../src/ayvu/translation/cache_only_execution.py), with
 normal project/job/lease authority and per-unit exact reuse provenance. Neither branch opens
-or migrates v1. Rich durable execution still requires `--workers 1`; full-cache requires cache-only.
+or migrates v1. Rich online execution still requires `--workers 1`; durable cache-only accepts the effective worker count without clamping. Full-cache requires cache-only.
 The engine's coverage gate precedes reconstruction/staging/publication. Gaps under full-cache
 end `PARTIALLY_COMPLETED/cache_incomplete`; the existing report and missing-text renderer still run.
 No cache-only path opens TM, fuzzy, replay or provider ports, or publishes raw-results.
@@ -233,3 +233,16 @@ publish no partial EPUB.
   [composition](../../../tests/composition/test_translate_batch_composition.py),
   [output policy](../../../tests/translation/test_batch_output_policy.py), and
   [publication races](../../../tests/translation/test_batch_publication_race.py).
+
+### Ordered durable offline workers (REF-18 G8, batch 4)
+
+`rich_workers.py` builds task-owned exact readers, executors and provenance adapters
+over the already prepared project database. Connections belong to one operation and
+one thread; workers do not migrate storage or acquire independent job leases.
+The coordinator retains the single `_LeaseKeeper` through work and drain. Its
+observable loss event and fresh job reads stop admission/effects and block publication.
+Only the coordinator calls observers, in book order. Cache-only writes no
+compatibility checkpoint, as before; running it again repeats exact local
+resolution. It neither replays nor publishes raw-results, and existing completed
+raw artifacts remain available to authorized online continuations, which
+rediscover them through the durable job chain.
