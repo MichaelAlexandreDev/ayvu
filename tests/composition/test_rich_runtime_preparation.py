@@ -13,8 +13,7 @@ from ayvu.translation import BookRefused
 from tests.support.rich_runtime_support import PAIR, runtime
 
 
-@pytest.mark.parametrize("changes,message", [({"workers": 2}, "--workers 1"),
-    ({"require_full_cache": True}, "--require-full-cache")])
+@pytest.mark.parametrize("changes,message", [({"require_full_cache": True}, "--require-full-cache")])
 def test_each_unsupported_option_is_the_actual_gate_before_cache_and_provider(tmp_path, changes, message):
     calls = []
     subject = runtime(tmp_path, options=TranslationOptions(language_pair=PAIR, **changes), prepare=lambda: calls.append("provider"))
@@ -172,3 +171,12 @@ def test_offline_mapping_shares_rich_normalization_and_preserves_missing_source(
     assert map_offline_execution(unit, cached).reconstruction_text == "PT:Hello\nworld"
     missing = UnitExecution("original\r\n", "missing", "original", "original", missing_text="original")
     assert map_offline_execution(unit, missing) is missing
+
+
+@pytest.mark.parametrize("label,workers,expected", [
+    (None, 4, {}), ("model", 1, {}), ("model", 2, {"busy_timeout": 2.0}), ("model", 4, {"busy_timeout": 2.0})])
+def test_coordinator_stores_wait_like_workers_only_when_labeled_workers_share_the_database(label, workers, expected):
+    from types import SimpleNamespace
+    from ayvu.composition.builders.rich_workers import project_store_options
+    translation = SimpleNamespace(model_label=label, options=TranslationOptions(language_pair=PAIR, workers=workers))
+    assert project_store_options(translation) == expected

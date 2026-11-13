@@ -46,12 +46,3 @@ def test_parallel_governed_memory_is_refused_before_stores_and_network(tmp_path,
         result = invoke(tmp_path, source, "--translation-memory", *arguments)
     assert result.exit_code == 1 and "incompatível" in text(result)
     assert not (tmp_path / "processing").exists()
-
-
-@pytest.mark.parametrize("arguments", [["--workers", "2"], ["--performance-profile", "high"]])
-def test_online_workers_keep_the_original_refusal(tmp_path, monkeypatch, arguments):
-    from tests.support.cli_rich_runtime_support import invoke as online
-    config(tmp_path)
-    result, transport = online(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), *arguments)
-    assert result.exit_code == 1 and "O runtime rich/v2 requer --workers 1." in text(result)
-    assert transport.requests == []
