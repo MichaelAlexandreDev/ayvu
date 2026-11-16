@@ -75,6 +75,7 @@ COMPANIONS = {
     "decisions/rights-purpose-grants.md": "decisions/rights-purpose-governance.md",
     "decisions/rights-purpose-retention.md": "decisions/rights-purpose-governance.md",
     "decisions/rights-purpose-examples.md": "decisions/rights-purpose-governance.md",
+    "decisions/v1-retirement-matrix.md": "decisions/v1-retirement.md",
 }
 
 

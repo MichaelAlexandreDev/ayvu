@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 3: a matriz de compatibilidade entre o v1 e o runtime rico fica registrada
+  em `docs/architecture/decisions/v1-retirement-matrix.md`, com testes da tradução guiada com
+  rótulo, do relatório Markdown e de um lote com falha. Nenhum comportamento muda.
+
 - REF-18 (#286), passo 3: com rótulo, a falha do provedor para o livro sem EPUB parcial com ou sem
   `--fail-fast` e com qualquer número de workers; testes travam essa matriz e a retomada. A recusa
   interna de `--require-full-cache` sem `--cache-only` passa a usar a mensagem em português da CLI.
