@@ -318,6 +318,17 @@ def _print_rich_memory_notices(
                       "sem ela, a memória aproximada fica só como sugestão.[/yellow]")
 
 
+def _check_runtime_options(translation_memory, config, translator_name, *, workers, cache_only, mode,
+                           explicit_apply_threshold) -> None:
+    """Options whose meaning depends on the runtime the model label selects: refusals first, then notices."""
+    _validate_worker_options(workers, translation_memory, mode)
+    if workers > 1 and cache_only and translation_modality(False, config.translator_models, translator_name) != "rich":
+        _print_expected_error("--cache-only com mais de um worker exige um rótulo de modelo.",
+                              "Use --workers 1 com --cache-only, ou declare o rótulo do modelo em Configurações (opção 5).", mode)
+        raise typer.Exit(code=1)
+    _print_rich_memory_notices(translation_memory, config, translator_name, explicit_apply_threshold=explicit_apply_threshold)
+
+
 def _validate_worker_options(
     workers: int,
     translation_memory: TranslationMemoryOptions | None,

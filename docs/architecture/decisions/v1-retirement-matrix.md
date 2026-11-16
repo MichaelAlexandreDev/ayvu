@@ -17,7 +17,7 @@ not change here; that is step 4.
 - **A(n)**: an intentional difference accepted by answer *n* of the
   [acceptance record](v1-retirement.md#acceptance-record) (2026-11-12).
 - **A(s2-n)**: accepted by answer *n* of the [step 2 acceptance](v1-retirement.md#step-2-acceptance) (2026-11-13).
-- **R(A)**: follows the recommendation of step 3 design question A, applied while the owner's answer is pending.
+- **A(s3-A)**: accepted by the owner's answer to step 3 design question A (2026-11-16; see the end of this record).
 
 ## Matrix
 
@@ -33,7 +33,7 @@ All test paths are under `tests/interfaces/cli/`.
 | `--dry-run` | A(s2-1), A(s2-3), A(s2-4) | `test_cli_rich_dry_run.py` |
 | `--cache-only`, `--require-full-cache`, `--missing-output` | A(s2-2), A(s2-3) | `test_cli_rich_cache_only.py`, `test_cli_rich_missing_output.py` |
 | `--workers` and performance profiles | A(s2-5), A(s2-6) | `test_cli_rich_workers.py`, `test_cli_rich_cache_only_workers.py` |
-| Translation memory flags | G9, A(7): governed approved memory, fuzzy is a suggestion unless `--tm-conservative-auto-apply` at 0.98 or more; the v1 cache is not memory. R(A): the CLI says so, and warns when `--tm-apply-threshold` is given without the conservative flag. | `test_cli_rich_runtime_policy.py`, `test_cli_rich_memory_notices.py` |
+| Translation memory flags | G9, A(7): governed approved memory, fuzzy is a suggestion unless `--tm-conservative-auto-apply` at 0.98 or more; the v1 cache is not memory. A(s3-A): the CLI says so, and warns when `--tm-apply-threshold` is given without the conservative flag. | `test_cli_rich_runtime_policy.py`, `test_cli_rich_memory_notices.py` |
 | Provider failure | G10, A(7): the book always stops without a partial EPUB, whatever `--fail-fast` and the worker count say, and resumes from its completed documents | `test_cli_rich_failure_matrix.py` |
 | `resume` and the resume offer | = through the durable chain; a job resumes only with the runtime and label it started with | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py` |
 | Review export and apply | = through the rich review package | `test_cli_rich_runtime_execution.py` |
@@ -44,5 +44,12 @@ All test paths are under `tests/interfaces/cli/`.
 
 - **Step 4** switches the default: without a label, translation is refused clearly before any
   provider call (answer 4), and setup offers the guided option. Until then, an unlabeled run keeps v1.
-- **Design question A** (the threshold warning) is applied as recommended; the owner may still choose
-  a refusal instead.
+
+The owner answered the step 3 design questions on 2026-11-16 (translated quotation: "A. The
+recommended one. B the recommended one. C the recommended one"):
+
+- **A:** an explicit `--tm-apply-threshold` without `--tm-conservative-auto-apply` warns and the run
+  continues, as already shipped.
+- **B:** without a label, `--cache-only` with more than one worker is refused clearly instead of
+  crashing (#365); v1 never supported it.
+- **C:** no separate command sets the model label; guided settings and `config.json` cover it.

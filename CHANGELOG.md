@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- #365: sem rótulo de modelo, `--cache-only` com mais de um worker (inclusive pelo perfil `high`)
+  passa a ser recusado com uma mensagem clara, em vez de terminar com um erro técnico. Com rótulo,
+  nada muda.
+
 - REF-18 (#286), passo 3: a matriz de compatibilidade entre o v1 e o runtime rico fica registrada
   em `docs/architecture/decisions/v1-retirement-matrix.md`, com testes da tradução guiada com
   rótulo, do relatório Markdown e de um lote com falha. Nenhum comportamento muda.

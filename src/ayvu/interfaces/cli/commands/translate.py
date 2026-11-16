@@ -198,13 +198,8 @@ def translate(
         chunk_limit=chunk_limit,
         mode=mode,
     )
-    translate_options._validate_worker_options(
-        workers=execution_controls.workers,
-        translation_memory=tm_options,
-        mode=mode,
-    )
-    translate_options._print_rich_memory_notices(
-        tm_options, config, translator_name,
+    translate_options._check_runtime_options(
+        tm_options, config, translator_name, workers=execution_controls.workers, cache_only=cache_only, mode=mode,
         explicit_apply_threshold=getattr(ctx.get_parameter_source("tm_apply_threshold"), "name", "DEFAULT") not in _DEFAULT_SOURCES,
     )
 
