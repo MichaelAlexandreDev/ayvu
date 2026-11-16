@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 3: as configurações do modo guiado ganham a opção 5 para declarar, trocar
+  ou remover (com `-`) o rótulo de modelo `translator_models.libretranslate`, validado antes de
+  salvar. Nada é inventado nem copiado do servidor; sem rótulo, tudo segue no runtime legado.
+
 - REF-18 (#286), passo 2: tradução online rica com rótulo aceita `--workers N` e o perfil high
   sem reduzir N. Cada worker tem sessão, provedor e adaptadores próprios, com um único limitador
   de taxa por livro; um texto repetido entre documentos é traduzido uma só vez. Falha ou

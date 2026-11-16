@@ -863,6 +863,9 @@ Em `Reader app`, informe o executável e suas opções, sem interpretador de com
 
 ## Pipeline rico e cache v2 (opcional)
 
+In guided mode, open Settings (option 4) and choose `5. Change translator model label`: it validates
+the label with the rules below before saving, and `-` removes it.
+
 Para ativar em `translate`, tradução guiada e cada livro de um lote, adicione manualmente
 este campo ao **arquivo de configuração existente**, preservando os demais campos:
 

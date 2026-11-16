@@ -69,3 +69,12 @@ def test_absence_keeps_the_existing_configuration_payload_and_runtime_selection(
     assert composition.selected_model({}, "libretranslate") is None
     assert composition.selected_model({"libretranslate": "local-v1"}, " LIBRETRANSLATE ") == "local-v1"
     assert composition.selected_model({"libretranslate": "local-v1"}, "other") is None
+
+
+@pytest.mark.parametrize("label,valid", [("a", True), ("model-2026_11", True), ("a" * 48, True), ("a" * 49, False),
+                                         ("Bad", False), ("-x", False), ("with space", False), ("http://x", False), ("", False)])
+def test_is_valid_model_label_matches_the_saved_rule(label, valid):
+    from ayvu.preferences import is_valid_model_label
+    assert is_valid_model_label(label) is valid
+    if valid:
+        assert AyvuConfig.from_dict({"translator_models": {"libretranslate": label}}).translator_models == {"libretranslate": label}

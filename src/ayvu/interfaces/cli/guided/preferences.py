@@ -1,4 +1,4 @@
-"""Guided settings: default language, books folder, folder names and reader app."""
+"""Guided settings: default language, books folder, folder names, reader app and model label."""
 from __future__ import annotations
 from .language import _prompt_target_language_code
 from .. import settings
@@ -7,7 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 import typer
 from rich.table import Table
-from ....preferences import AyvuConfig, ConfigError, FolderNames, config_from_preferences
+from ....preferences import AyvuConfig, ConfigError, FolderNames, config_from_preferences, is_valid_model_label
 from ..contracts import ConfigStore
 
 from ..render import console
@@ -23,6 +23,15 @@ SETTINGS_FOLDERS_OPTION = "3"
 
 
 SETTINGS_READER_OPTION = "4"
+
+
+SETTINGS_MODEL_LABEL_OPTION = "5"
+
+
+MODEL_LABEL_TRANSLATOR = "libretranslate"
+
+
+REMOVE_VALUE = "-"
 
 
 SETTINGS_EXIT_OPTION = "0"
@@ -63,11 +72,14 @@ def _run_guided_settings(config: AyvuConfig) -> None:
         if choice == SETTINGS_READER_OPTION:
             current = _update_guided_settings(store, current, _settings_with_reader_app(current))
             continue
+        if choice == SETTINGS_MODEL_LABEL_OPTION:
+            current = _update_guided_settings(store, current, _settings_with_model_label(current))
+            continue
         if choice == SETTINGS_EXIT_OPTION:
             console.print("Settings closed.")
             return
 
-        console.print("[red]Invalid setting.[/red] Choose 1, 2, 3, 4, or 0.")
+        console.print("[red]Invalid setting.[/red] Choose 1, 2, 3, 4, 5, or 0.")
 
 
 def _print_settings(config: AyvuConfig) -> None:
@@ -82,6 +94,7 @@ def _print_settings(config: AyvuConfig) -> None:
     table.add_row("Reports folder", config.folders.reports)
     table.add_row("Processing folder", config.folders.processing)
     table.add_row("Reader app", config.reader_app or "-")
+    table.add_row("Translator model label", config.translator_models.get(MODEL_LABEL_TRANSLATOR) or "-")
     table.add_row("Translation profiles", _format_profile_names(config))
     console.print(table)
 
@@ -91,6 +104,7 @@ def _print_settings_menu() -> None:
     console.print(f"{SETTINGS_BOOKS_DIR_OPTION}. Change books folder")
     console.print(f"{SETTINGS_FOLDERS_OPTION}. Change feature folder names")
     console.print(f"{SETTINGS_READER_OPTION}. Change reader app")
+    console.print(f"{SETTINGS_MODEL_LABEL_OPTION}. Change translator model label")
     console.print(f"{SETTINGS_EXIT_OPTION}. Back")
 
 
@@ -142,6 +156,29 @@ def _settings_with_reader_app(config: AyvuConfig) -> AyvuConfig:
     if reader_app == config.reader_app:
         return config
     return replace(config, reader_app=reader_app)
+
+
+def _settings_with_model_label(config: AyvuConfig) -> AyvuConfig:
+    """The owner declares the model; Ayvu never invents or copies one from the server."""
+    current = config.translator_models.get(MODEL_LABEL_TRANSLATOR)
+    console.print("O rótulo identifica o modelo que o seu servidor LibreTranslate usa; ele não é verificado no servidor.")
+    console.print(f"Digite {REMOVE_VALUE} para remover o rótulo.")
+    value = typer.prompt("Translator model label", default=current or "").strip()
+    label = None if value in ("", REMOVE_VALUE) else value
+    if value == "" and current is not None:
+        label = current
+    if label == current:
+        return config
+    if label is not None and not is_valid_model_label(label):
+        console.print("[red]Rótulo de modelo inválido.[/red] Use letras minúsculas, números, - ou _, "
+                      "começando por letra ou número, com até 48 caracteres.")
+        return config
+    if current is not None:
+        console.print("Um job rico só pode ser retomado com o rótulo com que começou.")
+    if label is None:
+        console.print("Sem rótulo, as traduções novas usam o runtime legado.")
+        return replace(config, translator_models={})
+    return replace(config, translator_models={MODEL_LABEL_TRANSLATOR: label})
 
 
 def _format_profile_names(config: AyvuConfig) -> str:

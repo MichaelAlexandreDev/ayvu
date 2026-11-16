@@ -132,6 +132,15 @@ class GlobalPreferences:
                 raise PreferencesError('invalid', 'translator_models') from None
 
 
+def is_valid_model_label(label: str) -> bool:
+    """The rule ``translator_models`` enforces, for a caller that asks before saving."""
+    try:
+        declared_model(label)
+    except ProvenanceValidationError:
+        return False
+    return True
+
+
 def preferences_from_mapping(data: object) -> tuple[GlobalPreferences, bool]:
     """Validate known v1 keys; unknown values never enter the returned object."""
     if not isinstance(data, dict):
