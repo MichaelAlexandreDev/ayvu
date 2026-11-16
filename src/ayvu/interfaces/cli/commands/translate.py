@@ -8,8 +8,11 @@ import typer
 from ....kernel import DEFAULT_PERFORMANCE_PROFILE, UserMode
 from ....network import NetworkPolicy
 
-from ..render import _print_expected_error
 from ..options import DEFAULT_CACHE_PATH, DEFAULT_TRANSLATOR_URL, NETWORK_POLICY_HELP, _selected_network_policy
+
+# Typer ships its own click, so the parameter source is compared by name. An explicit value
+# comes from the command line or the environment.
+_DEFAULT_SOURCES = frozenset({"DEFAULT", "DEFAULT_MAP"})
 
 
 def translate(
@@ -160,25 +163,12 @@ def translate(
     """Translate EPUB visible text while preserving EPUB structure."""
     mode = ctx.obj.get("mode", UserMode.DEVELOPER)
     epub_list = list(epub_paths)
-    if len(epub_list) > 100:
-        _print_expected_error(
-            "Um lote aceita no máximo 100 EPUBs.",
-            "Divida os arquivos em lotes de até 100 EPUBs.",
-            mode,
-        )
-        raise typer.Exit(code=1)
-    if len(epub_list) > 1 and missing_output is not None:
-        _print_expected_error(
-            "Não é possível usar --missing-output com múltiplos EPUBs.",
-            "Remova --missing-output para usar os arquivos automáticos de cada EPUB.",
-            mode,
-        )
-        raise typer.Exit(code=1)
     translate_options._validate_translate_command_options(
         epub_paths=epub_list,
         output=output,
         output_dir=output_dir,
         review_output=review_output,
+        missing_output=missing_output,
         mode=mode,
     )
     config = settings._load_existing_config_or_default()
@@ -212,6 +202,10 @@ def translate(
         workers=execution_controls.workers,
         translation_memory=tm_options,
         mode=mode,
+    )
+    translate_options._print_rich_memory_notices(
+        tm_options, config, translator_name,
+        explicit_apply_threshold=getattr(ctx.get_parameter_source("tm_apply_threshold"), "name", "DEFAULT") not in _DEFAULT_SOURCES,
     )
 
     if len(epub_list) > 1:

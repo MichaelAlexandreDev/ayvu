@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 from ...preferences import AyvuConfig, TranslationProfile
 from .contracts import SelectedChapter
-from ...composition.cli import default_glossaries_dir, detect_epub_language, resolve_chapter_selection
+from ...composition.cli import default_glossaries_dir, detect_epub_language, resolve_chapter_selection, translation_modality
 from ...kernel import ChapterSelection, ChapterSelectionError, DEFAULT_PERFORMANCE_PROFILE, PERFORMANCE_PROFILES, PerformanceProfile, TranslationMemoryError, TranslationMemoryOptions, TranslationOptions, UserMode
 
 from .render import _print_epub_read_error, _print_expected_error, console
@@ -190,7 +190,22 @@ def _validate_translate_command_options(
     output_dir: Path | None,
     review_output: Path | None,
     mode: UserMode,
+    missing_output: Path | None = None,
 ) -> None:
+    if len(epub_paths) > 100:
+        _print_expected_error(
+            "Um lote aceita no máximo 100 EPUBs.",
+            "Divida os arquivos em lotes de até 100 EPUBs.",
+            mode,
+        )
+        raise typer.Exit(code=1)
+    if len(epub_paths) > 1 and missing_output is not None:
+        _print_expected_error(
+            "Não é possível usar --missing-output com múltiplos EPUBs.",
+            "Remova --missing-output para usar os arquivos automáticos de cada EPUB.",
+            mode,
+        )
+        raise typer.Exit(code=1)
     if not epub_paths:
         _print_expected_error(
             "Nenhum EPUB informado para tradução.",
@@ -285,6 +300,22 @@ def _build_translation_memory_options(
         )
         raise typer.Exit(code=1) from exc
     return options
+
+
+def _print_rich_memory_notices(
+    translation_memory: TranslationMemoryOptions | None,
+    config: AyvuConfig,
+    translator_name: str,
+    *,
+    explicit_apply_threshold: bool,
+) -> None:
+    """With a model label, say how the memory flags behave; unlabeled runs print nothing."""
+    if translation_memory is None or translation_modality(False, config.translator_models, translator_name) != "rich":
+        return
+    console.print("[dim]Memória no runtime rich/v2: o cache v1 não é usado como memória.[/dim]")
+    if explicit_apply_threshold and not translation_memory.conservative_auto_apply:
+        console.print("[yellow]--tm-apply-threshold só vale com --tm-conservative-auto-apply; "
+                      "sem ela, a memória aproximada fica só como sugestão.[/yellow]")
 
 
 def _validate_worker_options(

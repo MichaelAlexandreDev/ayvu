@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 3: com rótulo e `--translation-memory`, a CLI avisa que o cache v1 não é
+  usado como memória e, quando `--tm-apply-threshold` é passado sem `--tm-conservative-auto-apply`,
+  que a memória aproximada fica só como sugestão. A execução segue; sem rótulo, nada muda.
+
 - REF-18 (#286), passo 3: as configurações do modo guiado ganham a opção 5 para declarar, trocar
   ou remover (com `-`) o rótulo de modelo `translator_models.libretranslate`, validado antes de
   salvar. Nada é inventado nem copiado do servidor; sem rótulo, tudo segue no runtime legado.
