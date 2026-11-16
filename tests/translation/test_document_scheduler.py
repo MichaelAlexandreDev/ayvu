@@ -168,3 +168,42 @@ def test_worker_resources_never_repeat_migration_or_cache_preparation(tmp_path, 
     monkeypatch.setattr("ayvu.knowledge.cache.repository.SQLiteExactCache.__init__", forbidden)
     monkeypatch.setattr("ayvu.projects.schema.open_provenance_repository", forbidden)
     assert scene.run().stats.from_cache == 4
+
+
+def test_a_sibling_failing_while_the_coordinator_consumes_surfaces_its_own_cause():
+    """Document 2 fails after document 1 was handed over: the coordinator's next check reports document 2's error."""
+    scheduler, release = DocumentScheduler(), Event()
+    items = [SimpleNamespace(index=i) for i in (1, 2)]
+
+    def execute(item, check):
+        if item.index == 2:
+            assert release.wait(5)
+            raise RuntimeError("document_failure_2")
+        return item.index
+
+    ordered = scheduler.ordered(items, 2, execute)
+    try:
+        assert next(ordered) == (items[0], 1)
+        release.set()
+        assert scheduler.stopping.wait(5)
+        with pytest.raises(RuntimeError, match="document_failure_2"):
+            scheduler.observe()
+    finally:
+        ordered.close()
+
+
+def test_observe_without_a_recorded_failure_still_stops_and_lets_cancellation_through():
+    scheduler = DocumentScheduler()
+    scheduler.observe()
+    scheduler.stopping.set()
+    from ayvu.translation.document_scheduler import DocumentWorkStopped
+    with pytest.raises(DocumentWorkStopped):
+        scheduler.observe()
+
+    class Cancelled(Exception):
+        pass
+
+    def cancelled():
+        raise Cancelled()
+    with pytest.raises(Cancelled):
+        DocumentScheduler(checkpoint=cancelled).observe()
