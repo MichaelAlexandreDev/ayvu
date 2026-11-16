@@ -105,7 +105,7 @@ class DocumentWork:
 
         with closing(self.scheduler.ordered(chapters, request.workers, execute, admit)) as ordered:
             for chapter, outcome in ordered:
-                self.scheduler.check()
+                self.scheduler.observe()
                 self.consume(outcome, observer.on_text_processed or (lambda _: None))
                 result.stats.merge(outcome.stats)
                 result.chapters_processed += 1

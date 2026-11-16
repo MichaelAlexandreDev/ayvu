@@ -28,6 +28,18 @@ class DocumentScheduler:
         if self.stopping.is_set():
             raise DocumentWorkStopped()
 
+    def observe(self):
+        """The coordinator's check between results: a stop surfaces as the failure that caused it.
+
+        The coordinator consumes each result outside ``ordered``. A sibling that fails meanwhile
+        must stop the book with its own cause, not with the bare ``DocumentWorkStopped`` that
+        tells a worker to leave.
+        """
+        try:
+            self.check()
+        except DocumentWorkStopped:
+            self._raise_failure()
+
     def _work(self, item, execute):
         try:
             self.check()
