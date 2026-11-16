@@ -468,6 +468,8 @@ uv run ayvu translate livro.epub --translation-memory \
   --tm-conservative-auto-apply --tm-apply-threshold 0.98
 ```
 
+Passed alone, `--tm-apply-threshold` prints a warning and the run continues with suggestions only.
+
 A estrutura e os placeholders precisam ser compatíveis, com origem conferível no
 mesmo documento. Alterar glossário, perfil ou pipeline impede a aplicação de valores
 finais com revisões anteriores. Esses resultados podem aparecer como sugestões sem

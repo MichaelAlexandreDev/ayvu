@@ -300,8 +300,9 @@ def translation_checkpoint():
 
 
 def translation_modality(dry_run, models, translator_name):
-    """Select without opening resources; unlabeled runs retain the predecessor path."""
-    return ("transient_dry_run" if dry_run and selected_model(models, translator_name) is not None else "standard")
+    """Select without opening resources; unlabeled runs retain the predecessor path, labeled ones the rich runtime."""
+    labeled = selected_model(models, translator_name) is not None
+    return "standard" if not labeled else "transient_dry_run" if dry_run else "rich"
 
 
 def prepare_translation(*, epub_path, options, cache_path, glossary_path, translator_name,

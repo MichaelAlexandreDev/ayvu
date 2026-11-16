@@ -935,6 +935,9 @@ A compatibilidade com candidatos do cache exige, separadamente,
 são aceitos; linhas v1 não têm esses metadados e são excluídas. A mera presença do
 arquivo antigo ou o uso anterior de `--translation-memory` não habilita essa política.
 Os dois novos seletores requerem o rótulo de modelo e `--translation-memory`.
+With a model label, `--translation-memory` prints a line saying that the v1 cache is not used
+as memory, and an explicit `--tm-apply-threshold` without `--tm-conservative-auto-apply` prints a
+warning that fuzzy matches stay suggestions. The run continues; nothing changes without a label.
 
 O CLI informa `memory_review_suggestions` e conta sugestões e textos de memória no
 relatório existente. A consulta de concordância é uma API de aplicação para chamadores
