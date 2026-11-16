@@ -244,6 +244,9 @@ arquivo de textos ausentes com nome automático nessa pasta. No `--dry-run`,
 o relatório e o arquivo de textos ausentes continuam sendo salvos, mas o EPUB
 não é publicado. Uma tradução parcial por falhas de trechos ou ausências no cache,
 sem `--fail-fast` e com validação aceita, não conta como falha do item.
+With a model label, a provider failure always stops that book without a partial EPUB, with or
+without `--fail-fast` and with any number of workers; in a batch, `--fail-fast` still stops the
+batch after the first failed book, and the failed book resumes from its completed documents.
 Se os nomes automáticos disponíveis se esgotarem, o item falha e a opção
 `--continue-on-error` determina se os demais continuam. As verificações de
 destino reduzem riscos, mas alterações concorrentes nos caminhos ainda podem
