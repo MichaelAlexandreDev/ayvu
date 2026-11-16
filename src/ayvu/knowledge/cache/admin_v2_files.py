@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .admin import checkpoint
 from .admin_store import CacheStorageError, _NO_HARD_LINKS
-from .schema import _SUFFIXES
+from .protocol_names import _SUFFIXES
 
 
 def _safe_file(path, cache, *, allow_owned=False):

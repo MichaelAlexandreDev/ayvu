@@ -306,3 +306,36 @@ def test_permissions_after_migration(tmp_path):
     schema.prepare_cache(p)
     for artifact in (p, schema._backup(p), p.with_name(p.name + ".lock")):
         assert stat.S_IMODE(artifact.stat().st_mode) == 0o600
+
+
+def _lstat_reporting(monkeypatch, target, nlink):
+    """lstat of ``target`` reports a regular file with ``nlink`` links, as during a concurrent unlink."""
+    real = type(target).lstat
+
+    def lstat(path):
+        if os.fspath(path) == os.fspath(target):
+            import stat as stat_module
+            return os.stat_result((stat_module.S_IFREG | 0o600, 1234, 1, nlink, os.getuid(), os.getgid(), 0, 0, 0, 0))
+        return real(path)
+    monkeypatch.setattr(type(target), "lstat", lstat)
+
+
+def test_a_journal_unlinked_while_checked_reads_as_absent(tmp_path, monkeypatch):
+    p = tmp_path / "cache.sqlite"
+    make_v1(p)
+    schema.prepare_cache(p)
+    # SQLite deletes the rollback journal at commit; another worker's lstat can catch it with no links left.
+    _lstat_reporting(monkeypatch, p.with_name(p.name + "-journal"), nlink=0)
+    with schema.participating_connection(p) as connection:
+        assert connection.execute("SELECT count(*) FROM cache_entries_v2").fetchone() == (0,)
+
+
+def test_a_hard_linked_journal_is_still_refused(tmp_path, monkeypatch):
+    p = tmp_path / "cache.sqlite"
+    make_v1(p)
+    schema.prepare_cache(p)
+    _lstat_reporting(monkeypatch, p.with_name(p.name + "-journal"), nlink=2)
+    with pytest.raises(schema.CacheSchemaError) as exc:
+        with schema.participating_connection(p):
+            pass
+    assert exc.value.code == "unsafe_cache_path"

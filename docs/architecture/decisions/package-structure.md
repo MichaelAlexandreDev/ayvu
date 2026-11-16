@@ -252,7 +252,7 @@ src/ayvu/
   jobs/            model, events, execution, service, store
   artifacts/       model, service, store, destination
   formats/         contracts, service, local; epub/ (archive, adapter, io, reader, html_structure, validation); markdown/
-  knowledge/       cache/ (identity, schema, legacy_schema, legacy_format, legacy_stream, legacy_admin_store, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
+  knowledge/       cache/ (identity, schema, protocol_names, legacy_schema, legacy_format, legacy_stream, legacy_admin_store, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
                    memory/ (fuzzy; approved/ model, service, store); glossary/ (rules, catalog, catalog_store)
   providers/       ports, capabilities, discovery, service, network, session;
                    libretranslate/ (client, adapter)

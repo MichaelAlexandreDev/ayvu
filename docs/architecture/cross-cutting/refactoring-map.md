@@ -46,7 +46,7 @@ REF-15 break up by reason to change after they move.
 | `validation.py` | `formats/epub/validation.py` |  |
 | `markdown_writer.py` | `formats/markdown/writer.py` |  |
 | `cache_identity.py` | `knowledge/cache/{identity_values,identity,scope,entries,cache_only,compatible_memory}.py` | split |
-| `cache_schema.py` | `knowledge/cache/schema.py` |  |
+| `cache_schema.py` | `knowledge/cache/schema.py`, `protocol_names.py` |  |
 | `cache_repository.py` | `knowledge/cache/repository.py` |  |
 | `cache_interchange.py` | `knowledge/cache/interchange.py` |  |
 | `cache_admin.py` | `knowledge/cache/admin.py` |  |

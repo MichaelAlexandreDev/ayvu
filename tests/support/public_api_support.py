@@ -29,6 +29,7 @@ ADAPTER_MODULES = frozenset({
     "network.http", "preferences.store", "preferences.config_facade", "provenance.store", "jobs.store",
     "artifacts.store", "artifacts.destination", "projects.store", "projects.schema", "projects.profiles.store",
     "projects.profiles.glossary_store", "library.adapters", "recovery.store", "recovery.checkpoint", "recovery.checkpoint_scan", "knowledge.cache.schema",
+    "knowledge.cache.protocol_names",
     "knowledge.cache.repository", "knowledge.cache.read_only", "knowledge.cache.read_only_queries", "knowledge.cache.read_only_journal",
     "knowledge.cache.interchange", "knowledge.cache.admin_store",
     "knowledge.cache.admin_v2_queries", "knowledge.cache.admin_v2_files", "knowledge.cache.admin_v2_export",

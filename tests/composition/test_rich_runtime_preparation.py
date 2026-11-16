@@ -173,10 +173,18 @@ def test_offline_mapping_shares_rich_normalization_and_preserves_missing_source(
     assert map_offline_execution(unit, missing) is missing
 
 
-@pytest.mark.parametrize("label,workers,expected", [
-    (None, 4, {}), ("model", 1, {}), ("model", 2, {"busy_timeout": 2.0}), ("model", 4, {"busy_timeout": 2.0})])
-def test_coordinator_stores_wait_like_workers_only_when_labeled_workers_share_the_database(label, workers, expected):
+@pytest.mark.parametrize("label,workers,shared", [(None, 4, False), ("model", 1, False), ("model", 2, True), ("model", 4, True)])
+def test_coordinator_stores_take_the_run_turns_only_when_labeled_workers_share_the_database(label, workers, shared):
     from types import SimpleNamespace
-    from ayvu.composition.builders.rich_workers import project_store_options
+    from ayvu.composition.builders.rich_workers import _run_turns, project_store_options
+    from ayvu.projects.turns import ProjectDatabaseTurns
     translation = SimpleNamespace(model_label=label, options=TranslationOptions(language_pair=PAIR, workers=workers))
-    assert project_store_options(translation) == expected
+    runtime, other = SimpleNamespace(_database="/projects/a/project.sqlite"), SimpleNamespace(_database="/projects/b/project.sqlite")
+    options = project_store_options(translation, runtime)
+    if not shared:
+        assert options == {}
+        return
+    assert options["busy_timeout"] == 2.0 and isinstance(options["turns"], ProjectDatabaseTurns)
+    # The workers of the same run find the same turns while the coordinator's stores hold them;
+    # another project database gets its own.
+    assert _run_turns(runtime) is options["turns"] and _run_turns(other) is not options["turns"]

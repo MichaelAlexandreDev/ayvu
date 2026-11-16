@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover - exercised through the capability gate
     fcntl = None
 
 from .legacy_schema import SCHEMA as LEGACY_SCHEMA
+from .protocol_names import _SUFFIXES, _backup, _marker, _next_marker, _partial_backup, _partial_backup_files
 
 V2_SCHEMA = """CREATE TABLE cache_entries_v2 (
     scope_kind TEXT NOT NULL, scope_id TEXT NOT NULL, value_kind TEXT NOT NULL,
@@ -47,8 +48,6 @@ V2_COLUMNS = (
 COMPATIBLE_INDEX = """CREATE INDEX cache_entries_v2_compatible ON cache_entries_v2
     (scope_kind, scope_id, value_kind, source_digest, semantic_fingerprint)"""
 PHASES = ("classified", "backup-verified", "migration-pending", "v2-built", "integrity-verified", "committed")
-_SUFFIXES = ("-wal", "-shm", "-journal", ".lock", ".migration", ".migration-next", ".v1-backup.sqlite",
-             ".v1-backup.sqlite.partial")
 _V1_COLUMNS = ("id", "source_lang", "target_lang", "original_text_hash", "original_text", "translated_text", "created_at")
 
 
@@ -93,6 +92,9 @@ def _identity(path: Path, *, absent=False):
         if absent:
             return None
         raise CacheSchemaError("cache_identity_changed") from None
+    if absent and info.st_nlink == 0:
+        # Unlinked while we looked, as SQLite deletes a journal at commit: no name points at it any more.
+        return None
     if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not info.st_ino:
         raise CacheSchemaError("unsafe_cache_path")
     return info.st_dev, info.st_ino
@@ -270,27 +272,6 @@ def _application_lock(path: Path, *, exclusive=False, create=False):
         yield verify_ownership
     finally:
         os.close(descriptor)
-
-
-def _marker(path):
-    return path.with_name(path.name + ".migration")
-
-
-def _next_marker(path):
-    return path.with_name(path.name + ".migration-next")
-
-
-def _backup(path):
-    return path.with_name(path.name + ".v1-backup.sqlite")
-
-
-def _partial_backup(path):
-    return path.with_name(path.name + ".v1-backup.sqlite.partial")
-
-
-def _partial_backup_files(path):
-    partial = _partial_backup(path)
-    return (partial, *(partial.with_name(partial.name + sidecar) for sidecar in ("-wal", "-shm", "-journal")))
 
 
 def _discard_partial_backup(path):

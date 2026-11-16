@@ -10,7 +10,7 @@
     "src/ayvu/formats/use_cases.py": 586,
     "src/ayvu/kernel/sqlite/migrations.py": 439,
     "src/ayvu/knowledge/cache/admin.py": 605,
-    "src/ayvu/knowledge/cache/schema.py": 617,
+    "src/ayvu/knowledge/cache/schema.py": 598,
     "src/ayvu/knowledge/memory/approved/store.py": 466,
     "src/ayvu/projects/profiles/model.py": 460,
     "src/ayvu/projects/store.py": 629,

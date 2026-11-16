@@ -1,4 +1,4 @@
-"""Reviewed document scheduling and task resource dependencies (REF-18 G8)."""
+"""Reviewed document scheduling and task resource dependencies, including the run's database turns (REF-18 G8)."""
 WORKER_EDGES = {
     ('ayvu.composition.builders.rich_workers', 'ayvu.artifacts.service'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.artifacts.store'),
@@ -22,6 +22,7 @@ WORKER_EDGES = {
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.stages.memory_retrieval'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.worker_cache_keys'),
     ('ayvu.composition.builders.translate_project', 'ayvu.composition.builders.rich_workers'),
+    ('ayvu.projects.schema', 'ayvu.projects.turns'),
     ('ayvu.translation.document_work', 'ayvu.formats.contracts'),
     ('ayvu.translation.document_work', 'ayvu.jobs.events'),
     ('ayvu.translation.document_work', 'ayvu.jobs.execution'),
