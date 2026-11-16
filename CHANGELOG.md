@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 3: com rótulo, a falha do provedor para o livro sem EPUB parcial com ou sem
+  `--fail-fast` e com qualquer número de workers; testes travam essa matriz e a retomada. A recusa
+  interna de `--require-full-cache` sem `--cache-only` passa a usar a mensagem em português da CLI.
+
 - REF-18 (#286), passo 3: com rótulo e `--translation-memory`, a CLI avisa que o cache v1 não é
   usado como memória e, quando `--tm-apply-threshold` é passado sem `--tm-conservative-auto-apply`,
   que a memória aproximada fica só como sugestão. A execução segue; sem rótulo, nada muda.

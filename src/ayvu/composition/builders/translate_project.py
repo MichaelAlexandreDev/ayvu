@@ -448,7 +448,7 @@ def check_rich_options(options: TranslationOptions) -> None:
     if options.translation_memory is not None:
         memory_policy(options.translation_memory)
     if options.require_full_cache and not options.cache_only:
-        raise PreflightError("--require-full-cache requires --cache-only.", "Add --cache-only.")
+        raise PreflightError("--require-full-cache exige --cache-only.", "Adicione --cache-only.")
 
 
 class RichTranslationRuntime:
