@@ -101,12 +101,17 @@ class WorkerAuthority:
 
 
 class WorkerProvenance:
+    """Checks the job's authority before each write; reads, such as resume's replay, pass through."""
+
     def __init__(self, repository, check):
         self.repository, self.check = repository, check
 
     def append(self, request):
         self.check()
         return self.repository.append(request)
+
+    def __getattr__(self, name):
+        return getattr(self.repository, name)
 
 
 def offline_work(runtime, context):

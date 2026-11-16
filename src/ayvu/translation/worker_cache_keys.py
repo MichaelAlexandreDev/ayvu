@@ -17,6 +17,19 @@ from threading import Event, Lock, get_ident
 from ..knowledge.cache import CacheLookupState
 
 
+class _WaitInterrupted(BaseException):
+    """Carries an error out of a wait past adapters that wrap every ``Exception``.
+
+    The exact-cache binding turns any repository exception into ``cache_repository_failed``;
+    the owner's failure or a cancellation observed while waiting must keep its own identity.
+    ``worker()`` unwraps it at the task boundary.
+    """
+
+    def __init__(self, error: BaseException) -> None:
+        super().__init__()
+        self.error = error
+
+
 class _Claim:
     def __init__(self) -> None:
         self.done = Event()
@@ -68,9 +81,12 @@ class ArbitratedExactCache:
         # Cancellation, lease loss and sibling failures stay observable while waiting.
         while not claim.done.wait(self._poll):
             if check is not None:
-                check()
+                try:
+                    check()
+                except Exception as error:
+                    raise _WaitInterrupted(error) from None
         if claim.error is not None:
-            raise claim.error
+            raise _WaitInterrupted(claim.error)
 
     def _release(self, thread: int, error: BaseException | None = None) -> None:
         with self._lock:
@@ -88,6 +104,9 @@ class ArbitratedExactCache:
             self._checks[thread] = check
         try:
             yield self
+        except _WaitInterrupted as interrupted:
+            self._release(thread, interrupted.error)
+            raise interrupted.error from None
         except BaseException as error:
             self._release(thread, error)
             raise

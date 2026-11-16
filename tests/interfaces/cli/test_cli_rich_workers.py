@@ -201,3 +201,22 @@ def test_four_workers_survive_a_busy_project_database(tmp_path, monkeypatch):
         stop.set()
     assert result.exit_code == 0, text(result)
     assert _jobs(tmp_path)[-1].state is JobState.VALIDATED
+
+
+@pytest.mark.parametrize("workers", ["2", "4"])
+def test_a_failed_parallel_book_resumes_by_replaying_completed_documents(tmp_path, monkeypatch, workers):
+    """Resume replays raw results through each worker's provenance, which must also read."""
+    from ayvu.interfaces.cli import app as cli
+    from tests.support.cli_rich_runtime_support import runner
+    config(tmp_path)
+    source = preview_book(tmp_path / "book.epub")
+    failed, _ = run(tmp_path, monkeypatch, source, "--workers", workers, sessions=Sessions(failing="Document 05."))
+    assert failed.exit_code == 1, text(failed)
+    parent = _jobs(tmp_path)[-1]
+    assert parent.state is JobState.FAILED
+    sessions = Sessions()
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", sessions)
+    resumed = runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)])
+    assert resumed.exit_code == 0, text(resumed)
+    assert "Document 05." in sessions.posts
+    assert any(job.continuation_of == parent.job_id and job.state is JobState.VALIDATED for job in _jobs(tmp_path))

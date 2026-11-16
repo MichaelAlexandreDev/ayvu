@@ -419,6 +419,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Corrigido
 
+- REF-18 (#286): retomar uma tradução rica com mais de um worker falhava com
+  `'WorkerProvenance' object has no attribute 'list_by_artifact'`; a proveniência de cada worker
+  agora também lê, e os documentos completos são reaproveitados.
+- REF-18 (#286): com vários workers, o erro de quem produzia um texto repetido, ou uma parada
+  observada durante a espera, aparecia como `cache_repository_failed`; agora a causa original é mantida.
+
 - Glossários gerenciados: duas criações simultâneas do mesmo nome em grafias
   diferentes (por exemplo `Café.json` e `CAFE` com acento combinante) podiam ambas
   vencer em overlayfs, usado pelo Docker, porque a listagem usava um descritor aberto

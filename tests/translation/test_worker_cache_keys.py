@@ -206,3 +206,56 @@ def test_delegates_identity_resolution_untouched():
     assert calls == [("pinned", "ref", "scope"), ("compatible", "scope", "kind", "digest", 3)]
     with pytest.raises(AttributeError):
         cache.clear
+
+
+class Wrapping:
+    """Like the exact-cache binding: every repository Exception becomes a generic failure."""
+
+    def __init__(self, cache):
+        self.cache = cache
+
+    def lookup(self, key):
+        try:
+            return self.cache.lookup(key)
+        except Exception:
+            raise RuntimeError("cache_repository_failed") from None
+
+
+def test_owner_failure_keeps_its_identity_through_an_adapter_that_wraps_exceptions():
+    cache = ArbitratedExactCache(Store(), poll_seconds=0.01)
+    claimed, release = Event(), Event()
+    failure = ValueError("provider_failed")
+
+    def failing(cache):
+        assert cache.lookup("k").state is CacheLookupState.MISS
+        claimed.set()
+        assert release.wait(5)
+        raise failure
+
+    owner = Worker(cache, failing)
+    owner.start()
+    assert claimed.wait(5)
+    sibling = Worker(cache, lambda cache: Wrapping(cache).lookup("k"))
+    sibling.start()
+    release.set()
+    owner.join(5), sibling.join(5)
+    assert sibling.error is failure
+
+
+def test_a_check_failure_while_waiting_keeps_its_identity_through_the_adapter():
+    cache = ArbitratedExactCache(Store(), poll_seconds=0.01)
+    claimed, release = Event(), Event()
+    lost = RuntimeError("lease_not_held")
+
+    def check():
+        raise lost
+
+    owner = Worker(cache, produce("k", "first", claimed=claimed, release=release))
+    owner.start()
+    assert claimed.wait(5)
+    sibling = Worker(cache, lambda cache: Wrapping(cache).lookup("k"), check=check)
+    sibling.start()
+    sibling.join(5)
+    release.set()
+    owner.join(5)
+    assert sibling.error is lost and owner.result == "produced"
