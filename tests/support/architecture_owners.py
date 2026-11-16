@@ -100,6 +100,7 @@ OWNERS = {
     "ayvu.v1": Owner("surface", "v1"), "ayvu.v1.cache": Owner("knowledge", "Exact cache"), "ayvu.v1.cache_check": Owner("knowledge", "Exact cache"),
     "ayvu.knowledge.cache.legacy_schema": Owner("domain", "Legacy cache schema"),
     "ayvu.knowledge.cache.schema": Owner("knowledge", "Standalone cache migrations"),
+    "ayvu.knowledge.cache.protocol_names": Owner("knowledge", "Standalone cache migrations"),
     "ayvu.knowledge.cache.repository": Owner("knowledge", "Exact cache"),
     **{f"ayvu.knowledge.cache.{name}": Owner("knowledge", "Read-only exact cache")
        for name in ("read_only", "read_only_queries")},

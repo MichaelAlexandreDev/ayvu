@@ -9,7 +9,8 @@ from ...knowledge.cache.admin_store import LocalCacheFiles, SQLiteCacheStore
 from ...knowledge.cache.admin_v2_store import SQLiteCacheV2Store
 from ...knowledge.cache.legacy_admin_store import SQLiteLegacyStreamingStore
 from ...knowledge.cache import admin_store as legacy_store
-from ...knowledge.cache.schema import SchemaState, classify_cache_waiting, _SUFFIXES
+from ...knowledge.cache.protocol_names import _SUFFIXES
+from ...knowledge.cache.schema import SchemaState, classify_cache_waiting
 from pathlib import Path
 from dataclasses import replace
 from ...knowledge.cache import CacheAdminError, CacheNamespace, checkpoint
