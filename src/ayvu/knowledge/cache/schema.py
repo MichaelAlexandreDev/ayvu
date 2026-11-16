@@ -92,6 +92,9 @@ def _identity(path: Path, *, absent=False):
         if absent:
             return None
         raise CacheSchemaError("cache_identity_changed") from None
+    if absent and info.st_nlink == 0:
+        # Unlinked while we looked, as SQLite deletes a journal at commit: no name points at it any more.
+        return None
     if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not info.st_ino:
         raise CacheSchemaError("unsafe_cache_path")
     return info.st_dev, info.st_ino
