@@ -404,6 +404,9 @@ Use o modo desenvolvedor quando quiser execução previsível por terminal, auto
 
 ### Ativar o pipeline rico em uma tradução
 
+The simplest way is guided mode: Settings (option 4), then `5. Change translator model label`.
+The label is checked before saving, and `-` removes it. You can also edit the file by hand:
+
 Edite o `config.json` existente em `$XDG_CONFIG_HOME/ayvu/config.json` (ou
 `~/.config/ayvu/config.json`), mantendo suas outras preferências, e adicione:
 

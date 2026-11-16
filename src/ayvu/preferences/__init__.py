@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .model import (
     AyvuConfig, ConfigError, DEFAULT_BOOKS_DIR, FolderNames, GlobalPreferences, NamedPreferenceProfile,
-    PreferencesError, TranslationProfile, config_from_preferences,
+    PreferencesError, TranslationProfile, config_from_preferences, is_valid_model_label,
 )
 from .service import PreferencesRepository, PreferencesSnapshot, UpdatePreferencesResult, get_preferences
 
@@ -13,4 +13,5 @@ __all__ = [
     "AyvuConfig", "ConfigError", "DEFAULT_BOOKS_DIR", "FolderNames", "GlobalPreferences",
     "NamedPreferenceProfile", "PreferencesError", "PreferencesRepository", "PreferencesSnapshot",
     "TranslationProfile", "UpdatePreferencesResult", "config_from_preferences", "get_preferences",
+    "is_valid_model_label",
 ]
