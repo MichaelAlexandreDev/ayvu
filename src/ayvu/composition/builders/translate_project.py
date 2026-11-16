@@ -36,7 +36,7 @@ from ...recovery.store import LocalRecoveryEvidence
 from ...v1.translation import LegacyExecutorPool, LegacyUnitExecutor
 from ...formats.epub.reader import read_package
 from ...projects import ProjectError
-from ...projects.schema import open_artifact_service, open_job_repository, open_provenance_repository
+from ...projects.schema import ProjectDatabaseTurns, open_artifact_service, open_job_repository, open_provenance_repository
 from ...projects.store import ProjectJsonRepository
 from ...provenance import ProvenanceError, declared_model
 from ...providers import ProviderRoute, Capability, ProviderRequirements
@@ -253,16 +253,16 @@ def interrupted_translations(recovery: JobRecovery) -> InterruptedTranslations:
 def open_translate_project(processing_dir: Path, project_id: str, source_path: Path, destination: Path, *, overwrite: bool,
                            runtime: TranslationRuntime, clock: Callable[[], datetime] = _utc_now,
                            ops: DestinationFileOps | None = None, before_publish: Callable[[], None] | None = None,
-                           busy_timeout: float = 0.5, **tuning: object) -> TranslateProject:
+                           busy_timeout: float = 0.5, turns: ProjectDatabaseTurns | None = None, **tuning: object) -> TranslateProject:
     """``tuning`` is the optional new_id and lease timing of the use case. ``ops`` lets a test break the file system."""
     projects = ProjectJsonRepository(processing_dir)
     paths = projects.resolve_database_paths(project_id)
     root = projects.resolve_artifact_root(project_id)
     payloads = LocalDestinationPayloads(root, destination=destination, replace_existing=overwrite, ops=ops,
                                         before_publish=before_publish)
-    jobs = open_job_repository(paths.database, paths.backups, project_id, clock=clock, busy_timeout=busy_timeout)
-    artifacts = open_artifact_service(paths.database, paths.backups, root, project_id, payloads=payloads, clock=clock, busy_timeout=busy_timeout)
-    provenance = open_provenance_repository(paths.database, paths.backups, project_id, clock=clock, busy_timeout=busy_timeout)
+    jobs = open_job_repository(paths.database, paths.backups, project_id, clock=clock, busy_timeout=busy_timeout, turns=turns)
+    artifacts = open_artifact_service(paths.database, paths.backups, root, project_id, payloads=payloads, clock=clock, busy_timeout=busy_timeout, turns=turns)
+    provenance = open_provenance_repository(paths.database, paths.backups, project_id, clock=clock, busy_timeout=busy_timeout, turns=turns)
     def recorded_producer(job):
         if job.request.command_version == 1:
             return None
@@ -391,7 +391,7 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
             if translation.translation_context is not None:
                 execution['context_revision'] = translation.translation_context.job_revision
         guard = translation.accepted_output.publication_guard if translation.accepted_output is not None else translation.before_publish
-        publication_options = {**({} if guard is None else {"before_publish": guard}), **project_store_options(translation)}
+        publication_options = {**({} if guard is None else {"before_publish": guard}), **project_store_options(translation, runtime)}
         use_case = open_translate_project(translation.processing_dir, translation.project_id, translation.source_path, destination,
                                           overwrite=overwrite, runtime=runtime, **publication_options)
     except (ProjectError, JobError, ArtifactError, ProvenanceError, ContextError, OSError, sqlite3.Error) as error:

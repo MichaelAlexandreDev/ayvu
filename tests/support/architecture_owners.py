@@ -129,6 +129,7 @@ OWNERS = {
     "ayvu.preferences.service": Owner("application", "Preferences"),
     "ayvu.preferences.store": Owner("infrastructure", "Preferences"),
     "ayvu.projects.schema": Owner("infrastructure", "Storage migrations"),
+    "ayvu.projects.turns": Owner("infrastructure", "Storage migrations"),
     "ayvu.jobs.model": Owner("domain", "Jobs"),
     "ayvu.jobs.service": Owner("application", "Jobs"),
     "ayvu.jobs.store": Owner("infrastructure", "Jobs"),

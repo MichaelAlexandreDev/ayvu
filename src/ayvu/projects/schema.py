@@ -15,6 +15,7 @@ from ..jobs.store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
 from ..provenance import ProvenanceStoreError
 from ..provenance.store import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
 from ..kernel.sqlite import SqliteMigration, SqliteMigrationRunner
+from .turns import ProjectDatabaseTurns, TurnTakingRunner
 
 PROJECT_MIGRATIONS = (
     SqliteMigration(1),
@@ -24,18 +25,21 @@ PROJECT_MIGRATIONS = (
 )
 
 
-def project_migration_runner(*, busy_timeout: float = 0.5) -> SqliteMigrationRunner:
-    """``busy_timeout`` lets concurrent document workers wait longer for the shared project database."""
-    return SqliteMigrationRunner(PROJECT_MIGRATIONS, busy_timeout=busy_timeout)
+def project_migration_runner(*, busy_timeout: float = 0.5,
+                             turns: ProjectDatabaseTurns | None = None) -> SqliteMigrationRunner | TurnTakingRunner:
+    """``busy_timeout`` lets concurrent document workers wait longer for the shared project database;
+    with ``turns``, every connection of the run waits its turn in-process instead (``projects.turns``)."""
+    runner = SqliteMigrationRunner(PROJECT_MIGRATIONS, busy_timeout=busy_timeout)
+    return runner if turns is None else turns.runner(runner)
 
 
 def open_job_repository(database: Path, backups: Path, project_id: str, *, busy_timeout: float = 0.5,
-                        **factories) -> SqliteJobRepository:
+                        turns: ProjectDatabaseTurns | None = None, **factories) -> SqliteJobRepository:
     """Bootstrap or upgrade the database explicitly, then expose its jobs.
 
     ``factories`` are the optional clock/new_id/new_token of the repository.
     """
-    runner = project_migration_runner(busy_timeout=busy_timeout)
+    runner = project_migration_runner(busy_timeout=busy_timeout, turns=turns)
     result = runner.migrate(database, backups)
     if not result.ok:
         raise JobStoreError(result.error or "io")
@@ -44,13 +48,14 @@ def open_job_repository(database: Path, backups: Path, project_id: str, *, busy_
 
 def open_artifact_service(database: Path, backups: Path, artifact_root: Path, project_id: str, *,
                           ops: ArtifactFileOps | None = None, payloads: ArtifactPayloadStore | None = None,
-                          busy_timeout: float = 0.5, **factories) -> ArtifactService:
+                          busy_timeout: float = 0.5, turns: ProjectDatabaseTurns | None = None,
+                          **factories) -> ArtifactService:
     """Bootstrap or upgrade the database explicitly, then expose the project's artifacts.
 
     ``factories`` are the optional clock/new_id of the repository. ``payloads`` replaces the project's
     own files, for an output the user chose. ``ops`` then belongs to that store, not to this call.
     """
-    runner = project_migration_runner(busy_timeout=busy_timeout)
+    runner = project_migration_runner(busy_timeout=busy_timeout, turns=turns)
     result = runner.migrate(database, backups)
     if not result.ok:
         raise ArtifactStoreError(result.error or "io")
@@ -59,12 +64,12 @@ def open_artifact_service(database: Path, backups: Path, artifact_root: Path, pr
 
 
 def open_provenance_repository(database: Path, backups: Path, project_id: str, *, busy_timeout: float = 0.5,
-                               **factories) -> SqliteProvenanceRepository:
+                               turns: ProjectDatabaseTurns | None = None, **factories) -> SqliteProvenanceRepository:
     """Bootstrap or upgrade the database explicitly, then expose the project's lineage.
 
     ``factories`` are the optional clock/new_id of the repository.
     """
-    runner = project_migration_runner(busy_timeout=busy_timeout)
+    runner = project_migration_runner(busy_timeout=busy_timeout, turns=turns)
     result = runner.migrate(database, backups)
     if not result.ok:
         raise ProvenanceStoreError(result.error or "io")

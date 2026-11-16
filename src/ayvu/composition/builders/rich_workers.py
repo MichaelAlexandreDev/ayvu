@@ -9,8 +9,10 @@ repeated key is produced once per invocation.
 """
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
 from threading import Lock
+from weakref import WeakValueDictionary
 from dataclasses import replace
 
 from ...formats.epub import review_text_from_template
@@ -25,7 +27,7 @@ from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
 from ...providers.libretranslate.adapter import LibreTranslateProvider
 from ...providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator
 from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
-from ...projects.schema import project_migration_runner
+from ...projects.schema import ProjectDatabaseTurns, project_migration_runner
 from ...provenance.store import SqliteProvenanceRepository
 from ...translation import (
     ArbitratedExactCache, CacheOnlyDocumentExecutor, DocumentTranslator, DocumentWork, LocalCachePlanIntent,
@@ -33,54 +35,34 @@ from ...translation import (
 )
 from .rich_document_executor import RichDocumentExecutor, map_offline_execution
 
-# Workers and the coordinator write one project database at once. On a slow disk the default
-# half second is shorter than the queue, so every party waits up to the runner's maximum.
+# Workers and the coordinator share one project database. Their connections take turns
+# in-process (``projects.turns``), one turn per run, so SQLite only sees other processes;
+# for those, every party waits up to the runner's maximum instead of half a second.
 WORKER_BUSY_TIMEOUT = 2.0
 
+# The turns of each project database, held weakly: alive while any store of a run uses them,
+# so the coordinator's stores and the workers' of one run share them.
+_DATABASE_TURNS: WeakValueDictionary = WeakValueDictionary()
+_DATABASE_TURNS_GUARD = Lock()
 
 
-class _SerializedWrites:
-    """Worker repositories take turns to write, waiting in-process without a deadline.
-
-    SQLite then sees at most one worker at a time, next to the coordinator, so its
-    busy timeout covers one write rather than the whole queue. Reads stay concurrent.
-    """
-
-    def __init__(self) -> None:
-        self._runner, self._lock = project_migration_runner(busy_timeout=WORKER_BUSY_TIMEOUT), Lock()
-
-    def connect(self, database, *, readonly: bool):
-        if readonly:
-            return self._runner.connect(database, readonly=True)
-        self._lock.acquire()
-        try:
-            return _ReleasingConnection(self._runner.connect(database, readonly=False), self._lock)
-        except BaseException:
-            self._lock.release()
-            raise
+def _run_turns(runtime) -> ProjectDatabaseTurns:
+    key = os.path.abspath(runtime._database)
+    with _DATABASE_TURNS_GUARD:
+        turns = _DATABASE_TURNS.get(key)
+        if turns is None:
+            turns = _DATABASE_TURNS[key] = ProjectDatabaseTurns()
+        return turns
 
 
-class _ReleasingConnection:
-    """Delegates to the SQLite connection and hands the write turn on when it closes."""
+def _worker_runner(runtime):
+    return project_migration_runner(busy_timeout=WORKER_BUSY_TIMEOUT, turns=_run_turns(runtime))
 
-    def __init__(self, connection, lock) -> None:
-        self._connection, self._lock = connection, lock
 
-    def __getattr__(self, name):
-        return getattr(self._connection, name)
-
-    def close(self) -> None:
-        try:
-            self._connection.close()
-        finally:
-            lock, self._lock = self._lock, None
-            if lock is not None:
-                lock.release()
-
-def project_store_options(translation) -> dict:
-    """Coordinator stores wait like the workers whenever several labeled workers share the database."""
+def project_store_options(translation, runtime) -> dict:
+    """Coordinator stores take the run's turns whenever several labeled workers share the database."""
     if translation.model_label is not None and translation.options.workers > 1:
-        return {"busy_timeout": WORKER_BUSY_TIMEOUT}
+        return {"busy_timeout": WORKER_BUSY_TIMEOUT, "turns": _run_turns(runtime)}
     return {}
 
 
@@ -118,7 +100,7 @@ def offline_work(runtime, context):
     options, prepared = runtime._options, runtime._prepared
     intent = LocalCachePlanIntent(options.source, options.target, runtime.producer, options.chunk_limit,
         glossary_ref=effective_glossary_reference(prepared.glossary))
-    authority, runner = WorkerAuthority(context, runtime._clock), _SerializedWrites()
+    authority, runner = WorkerAuthority(context, runtime._clock), _worker_runner(runtime)
 
     @contextmanager
     def factory(events, check):
@@ -168,7 +150,7 @@ def _parallel_online(runtime, context, plan):
     if factory_of is None:
         raise TranslationExecutionError(JobFailure(JobFailureFamily.RESOURCE, "worker_factory_unavailable"))
     cache, authority = ArbitratedExactCache(runtime._cache), WorkerAuthority(context, runtime._clock)
-    runner = _SerializedWrites()
+    runner = _worker_runner(runtime)
 
     @contextmanager
     def factory(events, check):
