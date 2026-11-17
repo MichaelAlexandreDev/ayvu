@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Ayvu Change"
+  short_description: "Audit Ayvu changes across four risk lenses"
+  default_prompt: "Use $review-ayvu-change to review this Ayvu change before commit."

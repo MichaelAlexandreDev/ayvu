@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate Ayvu Change"
+  short_description: "Run the right checks for an Ayvu change and report them"
+  default_prompt: "Use $ayvu-validate to validate this change."

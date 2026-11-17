@@ -40,3 +40,8 @@ GEMINI*.md
 # Personal agent notes; the shared rules are AGENTS.md and CLAUDE.md
 CLAUDE.local.md
 AGENTS.local.md
+
+# Local Claude Code state; the shared skills and hooks are versioned
+.claude/settings.local.json
+.claude/skills/graphify/
+.claude/CLAUDE.md

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Ayvu Issue"
+  short_description: "Draft and validate implementation-ready Ayvu issues"
+  default_prompt: "Use $create-ayvu-issue to draft one implementation-ready Ayvu issue for local review."

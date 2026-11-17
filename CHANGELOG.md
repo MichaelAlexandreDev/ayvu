@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Skills de agentes versionadas em `.agents/skills/` (ligadas em `.claude/skills/`): as seis
+  existentes atualizadas para a arquitetura atual e quatro novas (`ayvu-place-code`,
+  `ayvu-add-provider`, `ayvu-validate` e `ayvu-ship-pr`).
+
 - Regras para agentes de IA e contribuidores versionadas em inglês (`AGENTS.md`, com `CLAUDE.md`
   importando dele), template de PR em inglês e o portão rápido `scripts/check-fast.sh`
   (contratos de import, ratchet de tamanho, testes de arquitetura e `git diff --check`).
