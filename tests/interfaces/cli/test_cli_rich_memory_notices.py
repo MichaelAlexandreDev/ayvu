@@ -1,7 +1,8 @@
-"""With a model label, the memory flags say how they behave on the rich runtime; without one, nothing new is printed."""
+"""Model-label admission precedes the notices about rich translation memory."""
 from __future__ import annotations
 import pytest
 from tests.support.cli_translate_project_support import _book
+from tests.support.model_label_support import assert_refused, snapshot
 from tests.support.cli_rich_runtime_support import config, invoke, isolate, text  # noqa: F401
 
 V1_CACHE_NOTICE = "o cache v1 não é usado como memória"
@@ -51,10 +52,13 @@ def test_the_threshold_with_conservative_apply_is_not_warned(tmp_path, monkeypat
     ("--translation-memory",),
     ("--translation-memory", "--tm-apply-threshold", "0.9"),
 ])
-def test_unlabeled_runs_print_no_memory_notice(tmp_path, monkeypatch, arguments):
+def test_unlabeled_runs_refuse_before_memory_notices(tmp_path, monkeypatch, arguments):
     config(tmp_path, label=None)
-    result, _ = invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), *arguments)
-    assert result.exit_code == 0, text(result)
+    source = _book(tmp_path / "book.epub")
+    before = snapshot(tmp_path)
+    result, transport = invoke(tmp_path, monkeypatch, source, *arguments)
+    assert_refused(result)
+    assert transport.requests == [] and snapshot(tmp_path) == before
     assert V1_CACHE_NOTICE not in flat(result)
     assert THRESHOLD_WARNING not in flat(result)
 

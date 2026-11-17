@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 import json
 from ayvu.interfaces.cli.app import app
 from tests.support.cli_support import _mock_translation_pipeline
@@ -33,6 +34,7 @@ def test_translate_command_uses_profile_target_and_glossary(
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--profile", "technical"],
@@ -77,6 +79,7 @@ def test_translate_command_explicit_target_and_glossary_override_profile(
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [

@@ -1,4 +1,5 @@
 """Tests for the extracted CLI translation workflow."""
+from tests.support.cli_rich_runtime_support import declare_model
 from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
@@ -8,7 +9,7 @@ from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 
 
-def test_translate_command_batch_writes_outputs_and_markdown_reports(tmp_path, monkeypatch):
+def test_translate_command_batch_writes_outputs_and_markdown_reports(tmp_path, monkeypatch, isolated_config):
     first_epub = tmp_path / "first.epub"
     second_epub = tmp_path / "second.epub"
     output_dir = tmp_path / "translated"
@@ -42,6 +43,7 @@ def test_translate_command_batch_writes_outputs_and_markdown_reports(tmp_path, m
         lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1),
     )
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [
@@ -111,7 +113,7 @@ def test_translate_command_batch_rejects_review_output(tmp_path):
     assert "Traceback" not in result.output
 
 
-def test_translate_command_batch_rejects_existing_output_without_overwrite(tmp_path, monkeypatch):
+def test_translate_command_batch_rejects_existing_output_without_overwrite(tmp_path, monkeypatch, isolated_config):
     first_epub = tmp_path / "first.epub"
     second_epub = tmp_path / "second.epub"
     output_dir = tmp_path / "translated"
@@ -126,6 +128,7 @@ def test_translate_command_batch_rejects_existing_output_without_overwrite(tmp_p
 
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [
@@ -145,7 +148,7 @@ def test_translate_command_batch_rejects_existing_output_without_overwrite(tmp_p
     assert "Traceback" not in result.output
 
 
-def test_translate_command_batch_continues_after_failure_when_requested(tmp_path, monkeypatch):
+def test_translate_command_batch_continues_after_failure_when_requested(tmp_path, monkeypatch, isolated_config):
     first_epub = tmp_path / "first.epub"
     second_epub = tmp_path / "second.epub"
     output_dir = tmp_path / "translated"
@@ -183,6 +186,7 @@ def test_translate_command_batch_continues_after_failure_when_requested(tmp_path
         lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1),
     )
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [

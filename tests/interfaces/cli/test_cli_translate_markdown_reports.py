@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
@@ -8,7 +9,7 @@ from tests.support.cli_support import FakeCache, _fake_translation
 from tests.support.cli_support import isolated_config, runner
 
 
-def test_translate_command_offers_and_saves_markdown_report(tmp_path, monkeypatch):
+def test_translate_command_offers_and_saves_markdown_report(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     reports_dir = tmp_path / "reports"
@@ -34,6 +35,7 @@ def test_translate_command_offers_and_saves_markdown_report(tmp_path, monkeypatc
     monkeypatch.setattr("ayvu.interfaces.cli.report._default_reports_dir", lambda: reports_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, ["--mode", "common", "translate", str(epub_path), "--output", str(output_path)], input="y\n")
 
     report_path = reports_dir / "book-pt-report.md"
@@ -58,7 +60,7 @@ def test_translate_command_offers_and_saves_markdown_report(tmp_path, monkeypatc
     assert not resume_state.overwrite
 
 
-def test_translate_command_puts_validation_warnings_in_report_and_markdown(tmp_path, monkeypatch):
+def test_translate_command_puts_validation_warnings_in_report_and_markdown(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     reports_dir = tmp_path / "reports"
@@ -88,6 +90,7 @@ def test_translate_command_puts_validation_warnings_in_report_and_markdown(tmp_p
     monkeypatch.setattr("ayvu.interfaces.cli.report._default_reports_dir", lambda: reports_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app, ["--mode", "common", "translate", str(epub_path), "--output", str(output_path)], input="y\n"
     )

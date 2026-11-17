@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,7 +11,7 @@ from tests.support.cli_support import FakeCache, _fake_translation
 from tests.support.cli_support import isolated_config, runner
 
 
-def test_translate_command_stops_when_preflight_fails(tmp_path, monkeypatch):
+def test_translate_command_stops_when_preflight_fails(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake epub")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
@@ -24,6 +25,7 @@ def test_translate_command_stops_when_preflight_fails(tmp_path, monkeypatch):
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
     _fake_translation(monkeypatch, fail_translate)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, ["--mode", "common", "translate", str(epub_path)], input="y\n")
 
     assert result.exit_code == 1
@@ -72,6 +74,7 @@ def test_translate_command_uses_configured_output_and_processing_dirs(isolated_c
     )
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, ["--mode", "common", "translate", str(epub_path)], input="y\n")
 
     output_path = books_dir / "PT" / "book-pt.epub"
@@ -85,7 +88,7 @@ def test_translate_command_uses_configured_output_and_processing_dirs(isolated_c
     assert resume_state.output_path == output_path.resolve()
 
 
-def test_translate_command_uses_output_dir_for_single_epub(tmp_path, monkeypatch):
+def test_translate_command_uses_output_dir_for_single_epub(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_dir = tmp_path / "translated"
     processing_dir = tmp_path / "processing"
@@ -110,6 +113,7 @@ def test_translate_command_uses_output_dir_for_single_epub(tmp_path, monkeypatch
     )
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "common", "translate", str(epub_path), "--output-dir", str(output_dir)],

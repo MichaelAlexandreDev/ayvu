@@ -176,7 +176,8 @@ imports the values downwards; no layer exception and no group cycle are added.
   diagnostics stay unchanged. A future launcher should select `free` inside composition.
 
 ### D7. The v1 runtime in quarantine
-- v1 is today's default when no model label is set. Its files move to `v1/`.
+- REF-18 step 4 requires a model label for new translations. `v1/` remains quarantined for existing
+  jobs and old standalone checkpoints until step 6 removes it.
 - Implemented in REF-06 (#274). `v1` is a required layer below `composition`, and a contract keeps the
   interfaces from importing it. The modules below it that still import v1 do so under ignores owned by the
   issue that removes each one; their cycles with `v1` are listed below. Each v1 module is public by itself,

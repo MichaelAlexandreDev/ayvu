@@ -31,12 +31,13 @@ def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_pat
     assert minimal_epub_path.read_bytes() == original
 
 
-def test_project_storage_failure_prevents_preflight(minimal_epub_path, tmp_path, monkeypatch):
+def test_project_storage_failure_prevents_preflight(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     processing = tmp_path / 'blocked-processing'
     processing.write_bytes(b'blocked')
     monkeypatch.setattr('ayvu.interfaces.cli.settings._processing_dir', lambda _config: processing)
     calls = []
     monkeypatch.setattr('ayvu.interfaces.cli.run.run_translation_preflight', lambda **kw: calls.append(kw))
+    declare_model(isolated_config)
     result = runner.invoke(app, ['translate', str(minimal_epub_path), '--source', 'en',
                                  '--output', str(tmp_path / 'translated.epub')])
     assert result.exit_code == 1
@@ -45,9 +46,10 @@ def test_project_storage_failure_prevents_preflight(minimal_epub_path, tmp_path,
     assert not (tmp_path / 'translated.epub').exists()
 
 
-def test_project_rejects_secret_endpoint_without_reflecting_it(minimal_epub_path, tmp_path, monkeypatch):
+def test_project_rejects_secret_endpoint_without_reflecting_it(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     calls = []
     monkeypatch.setattr('ayvu.interfaces.cli.run.run_translation_preflight', lambda **kw: calls.append(kw))
+    declare_model(isolated_config)
     result = runner.invoke(app, ['translate', str(minimal_epub_path), '--source', 'en',
                                  '--url', 'http://user:secret-canary@localhost',
                                  '--output', str(tmp_path / 'translated.epub')])
@@ -73,7 +75,7 @@ def test_dry_run_does_not_require_project_storage(minimal_epub_path, tmp_path, m
     assert processing.read_bytes() == b'blocked'
 
 
-def test_translate_command_handles_keyboard_interrupt_cleanly(tmp_path, monkeypatch):
+def test_translate_command_handles_keyboard_interrupt_cleanly(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     cache_path = tmp_path / "cache.sqlite"
@@ -96,6 +98,7 @@ def test_translate_command_handles_keyboard_interrupt_cleanly(tmp_path, monkeypa
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, interrupt_translation)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [

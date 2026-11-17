@@ -166,7 +166,7 @@ def test_translate_command_rejects_high_performance_profile_with_translation_mem
     assert "Traceback" not in result.output
 
 
-def test_translate_command_reports_unknown_profile_without_traceback(minimal_epub_path, monkeypatch):
+def test_translate_command_reports_unknown_profile_without_traceback(minimal_epub_path, monkeypatch, isolated_config):
     called = False
 
     def fail_preflight(**_kwargs: object) -> object:
@@ -176,6 +176,7 @@ def test_translate_command_reports_unknown_profile_without_traceback(minimal_epu
 
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--profile", "missing"],
@@ -205,12 +206,13 @@ def test_translate_chapters_option_reports_invalid_expression(minimal_epub_path,
     assert "Traceback" not in result.output
 
 
-def test_translate_chapters_option_reports_unmatched_selection(minimal_epub_path, monkeypatch):
+def test_translate_chapters_option_reports_unmatched_selection(minimal_epub_path, monkeypatch, isolated_config):
     def fail_preflight(**_kwargs: object) -> object:
         raise AssertionError("preflight should not run when no chapter matches")
 
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--chapters", "999"],

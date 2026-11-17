@@ -130,25 +130,19 @@ def test_batch_workers_bound_provider_concurrency_and_do_not_overlap_books(tmp_p
     assert max(first_positions) < min(second_positions)
 
 
-def test_real_failed_text_is_partial_and_batch_continues(tmp_path, monkeypatch):
+def test_unlabeled_batch_is_refused_without_partial_outputs_or_jobs(tmp_path, monkeypatch):
+    from tests.support.cli_rich_runtime_support import Transport
+    from tests.support.model_label_support import assert_refused, snapshot
     config(tmp_path, label=None)
-    from tests.support.cli_translate_project_support import _jobs
-    from tests.support.workflow_characterization_support import FailingSession, _read_member
-
     first = _write_epub(tmp_path / "first.epub", chapter_two='<p id="two">Fail only this text.</p>')
     second = _write_epub(tmp_path / "second.epub")
-    session = FailingSession(_direct_languages(), "Fail only this text.")
+    session = Transport(failing="Fail only this text.")
     _install_cli_environment(monkeypatch, tmp_path, session)
-    output = tmp_path / "out"
-
-    result = _run(first, second, output, "--cache", str(tmp_path / "cache.sqlite"),
+    before = snapshot(tmp_path)
+    result = _run(first, second, tmp_path / "out", "--cache", str(tmp_path / "cache.sqlite"),
                   "--url", "http://localhost:5000", "--retries", "0")
-
-    assert result.exit_code == 0, result.output
-    assert "Fail only this text." in _read_member(output / "first-pt.epub", "OEBPS/text/chapter2.xhtml")
-    assert (output / "second-pt.epub").is_file()
-    assert any(job.state.value == "partially_completed" and job.terminal_summary.reason_code == "texts_failed"
-               for job in _jobs(tmp_path))
+    assert_refused(result)
+    assert snapshot(tmp_path) == before and session.requests == []
 
 
 def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_path, monkeypatch):

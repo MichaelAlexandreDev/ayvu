@@ -33,12 +33,15 @@ def test_guided_translation_with_a_label_runs_the_rich_runtime(tmp_path, monkeyp
     assert any(method == "POST" for method, _, _ in session.requests)
 
 
-def test_guided_translation_without_a_label_keeps_the_legacy_runtime(tmp_path, monkeypatch):
+def test_guided_translation_without_a_label_cancels_on_enter(tmp_path, monkeypatch):
+    from tests.support.model_label_support import assert_refused, snapshot
     config(tmp_path, label=None)
-    result, _ = guided(tmp_path, monkeypatch)
-    assert result.exit_code == 0, text(result)
-    assert (tmp_path / "books" / "Traduzidos" / "book-pt.epub").is_file()
-    assert all(job.request.command_version == 1 for job in _jobs(tmp_path))
+    session = Transport()
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
+    before = snapshot(tmp_path)
+    result = runner.invoke(cli.app, [], input="1\n\n")
+    assert_refused(result)
+    assert snapshot(tmp_path) == before and session.requests == []
 
 
 def test_guided_markdown_report_with_a_label_matches_the_terminal_report(tmp_path, monkeypatch):

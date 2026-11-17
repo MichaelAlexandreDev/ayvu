@@ -122,6 +122,7 @@ def run_translation_preflight(**configuration):
 
 
 def prepare_preview(*, translator_models, translator_name, **configuration):
+    require_translation_model(translator_models, translator_name)
     return translate_transient.prepare_preview(label=rich_provider.selected_model(translator_models, translator_name),
                                               translator_name=translator_name, rich_preflight=_preflight, **configuration)
 
@@ -182,9 +183,10 @@ def validate_output(*args, **kwargs):
     return translate_project.validate_output(*args, **kwargs)
 
 
-def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
-    """Dry run, and a resume file that recomputes to no job. See ``translate_without_project``."""
-    if (book.options.dry_run or book.preview) and rich_provider.selected_model(book.translator_models, book.translator_name) is not None:
+def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True, legacy_resume: bool = False) -> _BookOutcome:
+    """Transient translation, or an explicitly authorized old checkpoint resume."""
+    require_translation_model(book.translator_models, book.translator_name, legacy_resume=legacy_resume)
+    if not legacy_resume:
         return _BookOutcome(report=translate_transient.translate(book, hooks,
             rich_provider.selected_model(book.translator_models, book.translator_name),
             formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))
@@ -211,6 +213,7 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
+    require_translation_model(book.translator_models, book.translator_name, continuation=book.continuation)
     def prepare() -> LegacyResources:
         preflight = book.prepare()
         return LegacyResources(preflight.translator, preflight.glossary, getattr(preflight, "translator_factory", None))
@@ -265,8 +268,12 @@ def translation_checkpoint():
     return checkpoint.TranslationCheckpoint()
 
 
+def require_translation_model(models, translator_name, **continuation):
+    return rich_provider.require_model(models, translator_name, **continuation)
+
+
 def translation_modality(dry_run, models, translator_name):
-    """Select without opening resources; unlabeled runs retain the predecessor path, labeled ones the rich runtime."""
+    """Select without resources; unlabeled execution is reserved for existing v1 work."""
     labeled = rich_provider.selected_model(models, translator_name) is not None
     return "standard" if not labeled else "transient_dry_run" if dry_run else "rich"
 

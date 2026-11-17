@@ -8,10 +8,12 @@ from ...translation import ItemOutcome
 from .contracts import ValidationResult
 from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, validate_output, _translate_without_project as execute_translate_without_project, _translate_in_project as execute_translate_in_project
 from ...translation import ResumeStateError
-from ...composition.cli import translation_modality
+from ...composition.cli import require_translation_model, translation_modality
+from . import settings
+from ...translation import PreflightError
 from .progress import TranslationProgress
 
-from .render import console
+from .render import _print_expected_error, console
 
 
 class _BatchItemExit(typer.Exit):
@@ -55,8 +57,8 @@ def _validate_with_progress(output_path: Path) -> ValidationResult:
         return validate_output(output_path, on_progress=on_progress)
 
 
-def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
-    return execute_translate_without_project(book, hooks, validate=validate)
+def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True, legacy_resume: bool = False) -> _BookOutcome:
+    return execute_translate_without_project(book, hooks, validate=validate, legacy_resume=legacy_resume)
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
@@ -84,3 +86,15 @@ def translation_progress(progress, options, config, translator_name):
     modality = translation_modality(options.dry_run, config.translator_models, translator_name)
     return TranslationProgress(progress, dry_run=options.dry_run, workers=options.workers,
                                local_sequential=modality == "transient_dry_run")
+
+
+def translation_configuration(config, translator_name, mode, continuation, resolve_managed_project):
+    """Refuse before project resolution; only the resume runner disables managed resolution."""
+    config = config or settings._load_existing_config_or_default()
+    try:
+        require_translation_model(config.translator_models, translator_name,
+            continuation=continuation, legacy_resume=not resolve_managed_project)
+    except PreflightError as error:
+        _print_expected_error(error.summary, error.next_step, mode, detail=error.detail)
+        raise typer.Exit(code=1) from None
+    return config

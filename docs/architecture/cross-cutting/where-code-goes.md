@@ -41,7 +41,7 @@ rules below. Each link opens the module's current API or the decision that expla
 | --- | --- |
 | 1 | [interfaces](../../../src/ayvu/interfaces/__init__.py): CLI and desktop presentation; server is planned, not created. |
 | 2 | [composition](../../../src/ayvu/composition/__init__.py): roots and [builders](../../../src/ayvu/composition/builders/__init__.py) select and construct adapters (D5). Editions belong here (D6, pending REF-17); modules never check editions. |
-| 3 | [v1](../../../src/ayvu/v1/__init__.py): quarantined default runtime without a model label, pending retirement in REF-18 (D7). Not a home for new capabilities. |
+| 3 | [v1](../../../src/ayvu/v1/__init__.py): quarantined runtime for existing v1 continuations, pending removal in REF-18 (D7). Not a home for new capabilities. |
 | 4 | [recovery](../../../src/ayvu/recovery/__init__.py): resume/recovery orchestration, its evidence store and shared checkpoint adapters. Pure translation reuse rules stay in [translation/resume_reuse.py](../../../src/ayvu/translation/resume_reuse.py). |
 | 5 | [review](../../../src/ayvu/review/__init__.py): applying and exchanging reviews. It may read translation results; translation never reads review. |
 | 6 | [translation](../../../src/ayvu/translation/__init__.py): plans, pipeline, document/project/batch orchestration and [context](../../../src/ayvu/translation/context/__init__.py). Memory retrieval is a [pipeline stage](../../../src/ayvu/translation/stages/memory_retrieval.py), not knowledge. |
