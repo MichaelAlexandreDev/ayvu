@@ -52,9 +52,12 @@ uv run ayvu translate book.epub --target pt
 The guided menu asks for your default language and books folder on first use, then offers to translate
 a book, generate a preview, open your library, manage glossaries and change settings.
 
-To use the rich translation runtime (durable jobs with provenance, the v2 cache and governed memory),
-declare the model label your server uses: open **Settings → 5. Change translator model label** in the
-guided menu. See [Model label, rich runtime and v2 cache](docs/guide/rich-runtime.md).
+Every new translation requires a model label declared by you, including batches, previews, dry runs
+and cache-only rebuilds. Open **Settings (option 4) → 5. Change translator model label** in the guided
+menu, or set `translator_models.libretranslate` in `config.json`. Guided translation and preview ask for
+the label in place, save it and continue; Enter cancels. Without it, direct commands exit 1 before any
+provider call, project, cache or output. Ayvu never invents a label or copies one from the server.
+See [Model label, rich runtime and v2 cache](docs/guide/rich-runtime.md).
 
 ## Common commands
 

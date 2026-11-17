@@ -7,7 +7,13 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ## Nao publicado
 
+
 ### Alterado
+
+- Toda tradução nova exige um rótulo de modelo declarado, inclusive lote, preview, dry-run e cache-only.
+  Sem ele, a CLI encerra com saída 1 antes de rede, projeto, cache ou saída, indicando a opção 5 das
+  Configurações ou `translator_models.libretranslate` no `config.json`. O guiado pede o rótulo no lugar,
+  salva e segue; Enter cancela. Jobs v1 e checkpoints antigos continuam retomando no runtime original.
 
 - Hooks de agentes versionados (`scripts/agent_hooks/ayvu_hook.py`, ligados em
   `.claude/settings.json`): bloqueiam merge com `--admin`, push forçado na `main` e alterações em

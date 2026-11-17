@@ -14,8 +14,8 @@ uv run ayvu translate book.epub \
 Segments already translated are reused automatically. The resume checkpoint keeps the translator's
 execution options, such as timeout, workers, retries, requests per second and backoff.
 
-Translation without a model label uses the legacy v1 cache; the rich runtime has its own independent v2
-cache. The migration keeps the v1 data without turning it into exact v2 hits. Cache administration accepts
+New translations require a model label and use the independent v2 cache. Existing v1 jobs and old
+standalone checkpoints still resume with the legacy v1 cache. The migration keeps the v1 data without turning it into exact v2 hits. Cache administration accepts
 explicit namespaces; without a selection, it keeps the legacy behaviour. See the
 [standalone v2 cache](../architecture/modules/knowledge-cache.md).
 
@@ -166,5 +166,6 @@ Compared with a normal resume: a resume runs the translation again and **calls t
 segments not cached yet, and writes state in `~/Documentos/Livros/Processando`. Cache-only never calls the
 translator, creates no resume state and needs no running server.
 
-Without a model label, cache-only runs with one worker: `--workers` above 1, or a profile such as `high`, is
-refused with a clear message. With a label, cache-only runs with several workers.
+Without a model label, every new cache-only run is
+refused before any project, cache, job, output or provider call. Declare it through Settings option 5
+or `translator_models.libretranslate` in `config.json`. With a label, cache-only runs with several workers.

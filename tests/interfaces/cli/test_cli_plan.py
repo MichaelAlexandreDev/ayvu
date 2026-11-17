@@ -1,4 +1,5 @@
 """Tests for the extracted CLI translation workflow."""
+from tests.support.cli_rich_runtime_support import declare_model
 from types import SimpleNamespace
 import pytest
 import typer
@@ -75,12 +76,13 @@ def _mock_pipeline_with_route(monkeypatch, route):
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
 
-def test_translate_developer_mode_prints_direct_route(minimal_epub_path, tmp_path, monkeypatch):
+def test_translate_developer_mode_prints_direct_route(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     from ayvu.providers.libretranslate.client import TranslationRoute
 
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     _mock_pipeline_with_route(monkeypatch, TranslationRoute(source="en", target="pt"))
 
+    declare_model(isolated_config)
     result = runner.invoke(app, ["--mode", "developer", "translate", str(minimal_epub_path)])
 
     assert result.exit_code == 0
@@ -89,7 +91,7 @@ def test_translate_developer_mode_prints_direct_route(minimal_epub_path, tmp_pat
 
 
 def test_translate_developer_mode_prints_intermediate_route_with_warning(
-    minimal_epub_path, tmp_path, monkeypatch
+    minimal_epub_path, tmp_path, monkeypatch, isolated_config
 ):
     from ayvu.providers.libretranslate.client import TranslationRoute
 
@@ -98,6 +100,7 @@ def test_translate_developer_mode_prints_intermediate_route_with_warning(
         monkeypatch, TranslationRoute(source="fr", target="pt", intermediate="en")
     )
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--source", "fr"],
@@ -109,7 +112,7 @@ def test_translate_developer_mode_prints_intermediate_route_with_warning(
 
 
 def test_translate_common_mode_warns_about_intermediate_route(
-    minimal_epub_path, tmp_path, monkeypatch
+    minimal_epub_path, tmp_path, monkeypatch, isolated_config
 ):
     from ayvu.providers.libretranslate.client import TranslationRoute
 
@@ -118,6 +121,7 @@ def test_translate_common_mode_warns_about_intermediate_route(
         monkeypatch, TranslationRoute(source="fr", target="pt", intermediate="en")
     )
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "common", "translate", str(minimal_epub_path), "--source", "fr"],

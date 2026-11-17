@@ -57,11 +57,12 @@ def test_root_command_uses_configured_processing_dir(isolated_config, tmp_path):
     assert "Canceled." in result.output
 
 
-def test_root_command_in_developer_mode_skips_guided_prompts(tmp_path, monkeypatch):
+def test_root_command_in_developer_mode_skips_guided_prompts(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake")
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
 
+    declare_model(isolated_config)
     result = runner.invoke(app, ["--mode", "developer", "--preview", str(epub_path)])
 
     assert "Generate a translation preview?" not in result.output

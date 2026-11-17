@@ -1,14 +1,16 @@
+from tests.support.cli_rich_runtime_support import declare_model
 from ebooklib import epub
 from ayvu.interfaces.cli.app import app
 from tests.support.cli_support import _mock_translation_pipeline
 from tests.support.cli_support import isolated_config, runner
 
 
-def test_translate_auto_detects_source_language_from_epub(minimal_epub_path, tmp_path, monkeypatch):
+def test_translate_auto_detects_source_language_from_epub(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, ["--mode", "developer", "translate", str(minimal_epub_path)])
 
     assert result.exit_code == 0
@@ -17,11 +19,12 @@ def test_translate_auto_detects_source_language_from_epub(minimal_epub_path, tmp
     assert "inferido do EPUB" in result.output
 
 
-def test_translate_explicit_source_overrides_epub_metadata(minimal_epub_path, tmp_path, monkeypatch):
+def test_translate_explicit_source_overrides_epub_metadata(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--source", "fr"],
@@ -32,11 +35,12 @@ def test_translate_explicit_source_overrides_epub_metadata(minimal_epub_path, tm
     assert "inferido do EPUB" not in result.output
 
 
-def test_translate_metadata_flag_reaches_translation_options(minimal_epub_path, tmp_path, monkeypatch):
+def test_translate_metadata_flag_reaches_translation_options(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--translate-metadata"],
@@ -46,11 +50,12 @@ def test_translate_metadata_flag_reaches_translation_options(minimal_epub_path, 
     assert calls["options"].translate_metadata
 
 
-def test_translate_alt_text_flag_reaches_translation_options(minimal_epub_path, tmp_path, monkeypatch):
+def test_translate_alt_text_flag_reaches_translation_options(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--translate-alt-text"],
@@ -61,12 +66,13 @@ def test_translate_alt_text_flag_reaches_translation_options(minimal_epub_path, 
 
 
 def test_translate_chapters_option_reaches_translation_options_and_prints_selection(
-    minimal_epub_path, tmp_path, monkeypatch
+    minimal_epub_path, tmp_path, monkeypatch, isolated_config
 ):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "developer", "translate", str(minimal_epub_path), "--chapters", "2"],
@@ -81,7 +87,7 @@ def test_translate_chapters_option_reaches_translation_options_and_prints_select
     assert "text/chapter2.xhtml" in result.output
 
 
-def test_translate_warns_when_epub_language_metadata_is_missing(tmp_path, monkeypatch):
+def test_translate_warns_when_epub_language_metadata_is_missing(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "no-lang.epub"
     book = epub.EpubBook()
     book.set_identifier("ayvu-no-lang")
@@ -99,6 +105,7 @@ def test_translate_warns_when_epub_language_metadata_is_missing(tmp_path, monkey
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, ["--mode", "developer", "translate", str(epub_path)])
 
     assert result.exit_code == 0
@@ -106,11 +113,12 @@ def test_translate_warns_when_epub_language_metadata_is_missing(tmp_path, monkey
     assert calls["options"].source == "en"
 
 
-def test_translate_common_mode_shows_detected_source_hint(minimal_epub_path, tmp_path, monkeypatch):
+def test_translate_common_mode_shows_detected_source_hint(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         ["--mode", "common", "translate", str(minimal_epub_path)],

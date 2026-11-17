@@ -58,7 +58,7 @@ def test_root_command_allows_guided_preview_target_from_languages(isolated_confi
     assert (preview_dir / "book-preview.epub").is_file()
 
 
-def test_root_command_starts_guided_translation(tmp_path, monkeypatch):
+def test_root_command_starts_guided_translation(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_dir = tmp_path / "Traduzidos"
     processing_dir = tmp_path / "Processando"
@@ -82,6 +82,7 @@ def test_root_command_starts_guided_translation(tmp_path, monkeypatch):
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, [], input=f"1\n{epub_path}\n1\ny\n")
 
     options = calls["options"]
@@ -125,6 +126,7 @@ def test_root_command_selects_saved_glossary_for_guided_translation(isolated_con
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, [], input=f"1\n{epub_path}\n1\n1\ny\n")
 
     assert result.exit_code == 0
@@ -179,6 +181,7 @@ def test_root_command_selects_profile_for_guided_translation(isolated_config, tm
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
+    declare_model(isolated_config)
     result = runner.invoke(app, [], input=f"1\n{epub_path}\n1\n1\ny\n")
 
     preflight = calls["preflight"]

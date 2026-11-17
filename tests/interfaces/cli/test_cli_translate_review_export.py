@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 import hashlib
 from datetime import UTC, datetime
 from types import SimpleNamespace
@@ -12,7 +13,7 @@ from ayvu.translation.project_contracts import OutputValidation, TranslateProjec
 from tests.support.cli_support import isolated_config, runner
 
 
-def test_translate_command_delegates_v2_review_export_from_exact_project_result(tmp_path, monkeypatch):
+def test_translate_command_delegates_v2_review_export_from_exact_project_result(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     review_path = tmp_path / "book-review.csv"
@@ -68,6 +69,7 @@ def test_translate_command_delegates_v2_review_export_from_exact_project_result(
     monkeypatch.setattr("ayvu.interfaces.cli.run.open_review_use_cases", lambda *_args, **_kwargs: FakeUseCases())
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [
@@ -89,7 +91,7 @@ def test_translate_command_delegates_v2_review_export_from_exact_project_result(
     assert captured["command"].overwrite is False
 
 
-def test_translate_command_rejects_existing_review_output_without_overwrite(tmp_path, monkeypatch):
+def test_translate_command_rejects_existing_review_output_without_overwrite(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     review_path = tmp_path / "book-review.csv"
@@ -101,6 +103,7 @@ def test_translate_command_rejects_existing_review_output_without_overwrite(tmp_
 
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [
@@ -121,7 +124,7 @@ def test_translate_command_rejects_existing_review_output_without_overwrite(tmp_
     assert "Traceback" not in result.output
 
 
-def test_translate_command_rejects_review_output_with_dry_run(tmp_path, monkeypatch):
+def test_translate_command_rejects_review_output_with_dry_run(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     review_path = tmp_path / "book-review.csv"
     epub_path.write_bytes(b"fake epub")
@@ -131,6 +134,7 @@ def test_translate_command_rejects_review_output_with_dry_run(tmp_path, monkeypa
 
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fail_preflight)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [

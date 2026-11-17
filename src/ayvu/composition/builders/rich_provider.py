@@ -14,8 +14,8 @@ from ...knowledge.glossary import effective_glossary_reference
 from ...provenance import ProducerIdentity, declared_model
 from ...providers import Capability, ProviderRequirements, ProviderRoute
 from ...providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
-from ...providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator
-from ...translation import resolve_plan
+from ...providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator, TranslatorError, validate_translator_name
+from ...translation import PreflightError, resolve_plan
 
 
 def _base(translator: object) -> object:
@@ -30,6 +30,24 @@ def selected_model(models: dict[str, str], translator_name: str) -> str | None:
     label = models[name]
     declared_model(label)
     return label
+
+
+def require_model(models, translator_name, *, continuation=None, legacy_resume=False):
+    """Admit new work only with a declared identity, before acquiring any resource."""
+    try:
+        validate_translator_name(translator_name)
+    except TranslatorError as error:
+        raise PreflightError("Não foi possível preparar o tradutor.",
+                             "Use --translator libretranslate.", detail=str(error)) from None
+    if continuation is not None or legacy_resume:
+        return
+    if selected_model(models, translator_name) is None:
+        name = translator_name.strip().lower()
+        raise PreflightError(
+            "To translate, declare your translator's model label.",
+            'Open Settings (option 4) and choose "5. Change translator model label", '
+            f"or add translator_models.{name} to config.json.",
+        )
 
 
 class LibreTranslateBinding:

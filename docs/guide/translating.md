@@ -1,5 +1,10 @@
 # Translating books
 
+Every new translation requires a declared model label, including previews, dry runs and cache-only
+rebuilds. In the guided menu, open **Settings (option 4) → 5. Change translator model label**, or set
+`translator_models.libretranslate` in `config.json`. Menus 1 and 2 also ask for a missing label in place;
+Enter cancels. See [model labels](rich-runtime.md#declaring-the-model-label) for the format and example.
+
 ## Modes
 
 Ayvu has two modes that balance ease of use with direct control:

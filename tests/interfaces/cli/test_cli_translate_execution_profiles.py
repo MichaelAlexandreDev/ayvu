@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 from ayvu.interfaces.cli.app import app
 from ayvu.recovery.checkpoint import ResumeStateStore
 from tests.support.cli_support import _mock_translation_pipeline
@@ -7,7 +8,7 @@ from tests.support.cli_support import isolated_config, runner
 def test_translate_command_passes_execution_controls_to_preflight_and_resume(
     minimal_epub_path,
     tmp_path,
-    monkeypatch,
+    monkeypatch, isolated_config,
 ):
     processing_dir = tmp_path / "Processando"
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
@@ -15,6 +16,7 @@ def test_translate_command_passes_execution_controls_to_preflight_and_resume(
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [
@@ -56,12 +58,13 @@ def test_translate_command_passes_execution_controls_to_preflight_and_resume(
 def test_translate_command_uses_low_performance_profile(
     minimal_epub_path,
     tmp_path,
-    monkeypatch,
+    monkeypatch, isolated_config,
 ):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [
@@ -92,12 +95,13 @@ def test_translate_command_uses_low_performance_profile(
 def test_translate_command_explicit_execution_flags_override_performance_profile(
     minimal_epub_path,
     tmp_path,
-    monkeypatch,
+    monkeypatch, isolated_config,
 ):
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
     calls: dict[str, object] = {}
     _mock_translation_pipeline(monkeypatch, calls)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [

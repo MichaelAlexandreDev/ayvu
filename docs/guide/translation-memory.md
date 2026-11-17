@@ -16,9 +16,10 @@ uv run ayvu translate book.epub \
 `--translation-memory` currently requires `--workers 1`. For a parallel run, drop `--translation-memory`;
 to use translation memory, keep the sequential default.
 
-## Without a model label
+## Existing v1 jobs
 
-Without `translator_models.libretranslate`, the memory keeps its legacy behaviour and uses the same
+New translations require `translator_models.libretranslate` and use governed approved memory, as
+described below. Only existing v1 jobs retain the legacy memory behaviour when resumed, using the same
 original/translated pairs already stored in the SQLite cache on disk. For each new segment with no exact
 match, Ayvu looks for similar candidates in the same language pair and measures their similarity. Two
 similarity thresholds (between 0 and 1) control what happens:

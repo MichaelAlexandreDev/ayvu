@@ -173,7 +173,7 @@ def test_legacy_resource_is_closed_when_translation_raises(tmp_path, monkeypatch
         raise RuntimeError('exception-canary')
     monkeypatch.setattr(root, 'translate_without_project', fail)
     with pytest.raises(RuntimeError, match='exception-canary'):
-        root._translate_without_project(request(tmp_path, project_id=None, translator_models={}), hooks())
+        root._translate_without_project(request(tmp_path, project_id=None, translator_models={}), hooks(), legacy_resume=True)
     assert lifecycle == ['open', 'close']
 
 

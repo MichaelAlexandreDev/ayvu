@@ -33,7 +33,9 @@ The initial format:
 }
 ```
 
-The model label lives in `translator_models`; see
+Every new translation requires a model label in `translator_models.libretranslate`. Set it through
+Settings (option 4), option 5, or edit the existing configuration. Guided translation and preview also
+ask in place, save and continue; Enter cancels. See
 [Model label, rich runtime and v2 cache](rich-runtime.md).
 
 ## Translation profiles
