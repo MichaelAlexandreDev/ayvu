@@ -30,7 +30,7 @@ ALLOWED_INTERNAL_EDGES = {
     *(('ayvu.interfaces.cli.run_support', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'translation.batch', 'translation.errors')), *(('ayvu.interfaces.cli.translate_options', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.render', 'preferences.model')),
     *(("ayvu.composition.builders.translate_project", f"ayvu.{name}") for name in (
        "translation.errors", "translation.context.execution", "translation.context.model",
-       "translation.stages.memory_retrieval", "knowledge.cache.schema",
+       "composition.builders.rich_options", "knowledge.cache.schema",
        "knowledge.cache.repository",
        "translation.document_contracts", "translation.raw_results",
        "jobs.execution", "recovery.checkpoint", "recovery.service", "recovery.store", "artifacts.model",
@@ -43,7 +43,7 @@ ALLOWED_INTERNAL_EDGES = {
        "interfaces.cli.render")),
     *(("ayvu.interfaces.cli.commands.translator", f"ayvu.{name}") for name in (
        "composition.cli", "interfaces.cli.options", "interfaces.cli.render", "network.policy",
-       "providers.discovery", "providers.errors")),
+       "providers.discovery", "providers.errors", "interfaces.cli.settings")),
     *((f"ayvu.interfaces.cli.{a}", f"ayvu.{b}") for a, b in (('commands.content', 'composition.cli'), ('commands.content', 'interfaces.cli.render'),
       ('app', 'interfaces.cli.commands.cache'), *(('commands.cache', b) for b in ('composition.cli', 'interfaces.cli.commands.cache_output',
       'interfaces.cli.options', 'interfaces.cli.render', 'knowledge.cache.admin')),

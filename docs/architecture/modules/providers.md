@@ -371,6 +371,9 @@ default binding.
 **Privacy.** Requests, responses, templates and hints have redacted `repr`; parse errors and failures carry
 codes only.
 
+The first model adapter, Ollama ([#376](https://github.com/MichaelAlexandreDev/ayvu/issues/376)), has its own
+contract: [Ollama provider](providers-ollama.md).
+
 ## Enforced contracts
 
 - [test_libretranslate_capabilities](../../../tests/providers/libretranslate/test_libretranslate_capabilities.py).

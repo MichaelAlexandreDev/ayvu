@@ -19,3 +19,22 @@ def test_composition_refuses_before_preparation_or_storage(tmp_path, entry):
     with pytest.raises(PreflightError, match=REFUSAL):
         entry(book, hooks)
     assert prepared == [] and snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("name", ["ollama", " Ollama "])
+def test_a_translator_with_a_discovered_identity_is_admitted_without_a_label(name):
+    """Ollama's identity is the digest its preflight discovers; that preflight refuses a missing model."""
+    assert root.require_translation_model({}, name) is None
+    assert root.require_translation_model({"libretranslate": "local-v1"}, name) is None
+
+
+def test_libretranslate_without_a_label_is_still_refused():
+    with pytest.raises(PreflightError, match=REFUSAL):
+        root.require_translation_model({"ollama": "qwen2.5:7b"}, "libretranslate")
+
+
+def test_an_unknown_translator_still_gets_its_own_error():
+    with pytest.raises(PreflightError) as raised:
+        root.require_translation_model({"ollama": "qwen2.5:7b"}, "unknown")
+    assert raised.value.summary == "Não foi possível preparar o tradutor."
+    assert raised.value.detail.startswith("Unsupported translator: unknown.")

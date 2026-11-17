@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ..provenance import ProvenanceValidationError, declared_model
+from ..provenance import ProvenanceValidationError, declared_model, valid_observed_model_name
 
 FOLDER_KEYS = ('original', 'translated', 'preview', 'reports', 'processing')
 TOP_KEYS = ('version', 'default_target_language', 'books_dir', 'folders', 'reader_app', 'profiles', 'translator_models')
@@ -121,15 +121,15 @@ class GlobalPreferences:
             if name != name.strip() or name in seen or type(profile) is not NamedPreferenceProfile:
                 raise PreferencesError('invalid', 'profiles')
             seen.add(name)
-        if (type(self.translator_models) is not tuple or len(self.translator_models) > 1
-                or any(type(pair) is not tuple or len(pair) != 2 or pair[0] != 'libretranslate'
-                       for pair in self.translator_models)):
+        if (type(self.translator_models) is not tuple or len(self.translator_models) > len(MODEL_TRANSLATORS)
+                or any(type(pair) is not tuple or len(pair) != 2 or type(pair[0]) is not str
+                       or pair[0] not in MODEL_TRANSLATORS
+                       for pair in self.translator_models)
+                or len({name for name, _ in self.translator_models}) != len(self.translator_models)):
             raise PreferencesError('invalid', 'translator_models')
-        for _, label in self.translator_models:
-            try:
-                declared_model(label)
-            except ProvenanceValidationError:
-                raise PreferencesError('invalid', 'translator_models') from None
+        for name, value in self.translator_models:
+            if not MODEL_TRANSLATORS[name](value):
+                raise PreferencesError('invalid', 'translator_models')
 
 
 def is_valid_model_label(label: str) -> bool:
@@ -139,6 +139,10 @@ def is_valid_model_label(label: str) -> bool:
     except ProvenanceValidationError:
         return False
     return True
+
+
+# What each translator's entry names: LibreTranslate a declared label, Ollama an installed model's name.
+MODEL_TRANSLATORS = {'libretranslate': is_valid_model_label, 'ollama': valid_observed_model_name}
 
 
 def preferences_from_mapping(data: object) -> tuple[GlobalPreferences, bool]:

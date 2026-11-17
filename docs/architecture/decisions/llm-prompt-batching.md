@@ -45,9 +45,10 @@ turns its plain semantics into the plan's values and binds it to the rich runtim
   `execute_batch` is the contract for multi-unit requests; feeding it several units of a document is a
   pipeline change left to a later issue.
 - Token usage is not recorded: `ProviderUsage` has no token fields yet.
-- The rich runtime's parallel path still requires the prepared translator factory, so a bound LLM with more
-  than one worker fails with `worker_factory_unavailable` until an adapter issue bounds its parallelism.
-- No CLI flag selects the core yet; the first adapter ([#376](https://github.com/MichaelAlexandreDev/ayvu/issues/376)) adds selection.
+- The rich runtime's parallel path requires a translator factory. The Ollama adapter
+  ([#376](https://github.com/MichaelAlexandreDev/ayvu/issues/376)) gives it an empty one, since its binding
+  creates each worker's model, and bounds the workers by a configured parallelism (default 1).
+- `--translator ollama` selects the core with its first adapter (#376); the other selection paths are #377.
 
 ## Operational contract
 

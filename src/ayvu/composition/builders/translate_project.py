@@ -15,10 +15,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
-from ...translation.stages import RetrievalPolicy
 from ...artifacts import ArtifactError
 from ...artifacts.destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
 from .rich_document_executor import prepare_offline
+from .rich_options import check_rich_options, memory_policy
 from .rich_provider import LibreTranslateBinding
 from .rich_workers import offline_work, online_work, project_store_options
 from ...knowledge.cache import CacheIdentityError
@@ -331,6 +331,7 @@ class ProjectTranslation:
     cache_path: Path | None = None
     translation_context: ContextExecution | None = None
     prepare_offline: Callable[[], object] | None = None
+    binding: object | None = None  # the rich runtime's provider binding; LibreTranslate's when None
 
     def __repr__(self) -> str:
         return f"ProjectTranslation(project_id={self.project_id!r})"
@@ -382,7 +383,8 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
             runtime = RichTranslationRuntime(translation.source_path, translation.options, translation.prepare,
                 translation.cache_path, translation.model_label, paths.database, paths.backups,
                 projects.resolve_artifact_root(translation.project_id), translation.project_id,
-                translation_context=translation.translation_context, prepare_offline=translation.prepare_offline)
+                translation_context=translation.translation_context, prepare_offline=translation.prepare_offline,
+                binding=translation.binding)
             execution = {"execution_revision": 2, "producer": runtime.producer,
                          "additional_output_roles": () if translation.options.cache_only else (RAW_RESULTS_ROLE,)}
             if translation.translation_context is not None:
@@ -415,27 +417,6 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
 def v2_cache_path(legacy: Path) -> Path:
     """Append, rather than replace a suffix: cache.sqlite -> cache.sqlite.v2.sqlite."""
     return legacy.with_name(legacy.name + ".v2.sqlite")
-
-
-def memory_policy(options) -> RetrievalPolicy:
-    try:
-        return RetrievalPolicy(fuzzy_auto_apply=options.conservative_auto_apply,
-            suggest_threshold=options.suggest_threshold,
-            apply_threshold=options.apply_threshold if options.conservative_auto_apply else max(0.98, options.apply_threshold),
-            legacy_cache_enabled=options.legacy_cache_compatibility)
-    except ValueError:
-        raise PreflightError("Política de memória inválida no runtime rich/v2.",
-            "Use --tm-apply-threshold 0.98 ou maior com --tm-conservative-auto-apply; fuzzy é sugestão por padrão.") from None
-
-
-def check_rich_options(options: TranslationOptions) -> None:
-    if options.workers > 1 and options.translation_memory is not None:
-        raise PreflightError("--workers é incompatível com --translation-memory nesta versão.",
-                             "Use --workers 1 com --translation-memory, ou remova --translation-memory para executar em paralelo.")
-    if options.translation_memory is not None:
-        memory_policy(options.translation_memory)
-    if options.require_full_cache and not options.cache_only:
-        raise PreflightError("--require-full-cache exige --cache-only.", "Adicione --cache-only.")
 
 
 class RichTranslationRuntime:

@@ -177,10 +177,12 @@ def _settings_with_model_label(config: AyvuConfig) -> AyvuConfig:
         return config
     if current is not None:
         console.print("Resuming a rich job with another label translates its documents again.")
+    # Other translators' entries, such as translator_models.ollama, are kept as they are.
+    others = {name: value for name, value in config.translator_models.items() if name != MODEL_LABEL_TRANSLATOR}
     if label is None:
         console.print("Without a model label, new translations are refused.")
-        return replace(config, translator_models={})
-    return replace(config, translator_models={MODEL_LABEL_TRANSLATOR: label})
+        return replace(config, translator_models=others)
+    return replace(config, translator_models={**others, MODEL_LABEL_TRANSLATOR: label})
 
 
 def _format_profile_names(config: AyvuConfig) -> str:

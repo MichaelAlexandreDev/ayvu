@@ -83,6 +83,10 @@ OWNERS = {
     "ayvu.composition.builders.rich_workers": Owner("composition", "Translation"),
     "ayvu.composition.builders.rich_provider": Owner("composition", "Providers"),
     "ayvu.composition.builders.llm": Owner("composition", "Providers"),
+    "ayvu.composition.builders.ollama": Owner("composition", "Providers"),
+    # Ollama's HTTP client, its chat model port over the LLM core, and its discovery (#376).
+    **{f"ayvu.providers.ollama{part}": Owner("provider", "Providers") for part in ("", ".client", ".chat", ".discovery")},
+    "ayvu.composition.builders.rich_options": Owner("composition", "Translation"),
     # The LLM core performs no I/O: as application code it may not import an HTTP client or a socket.
     **{f"ayvu.providers.llm{part}": Owner("application", "Providers") for part in (
         "", ".model", ".prompt", ".batching", ".output", ".failures", ".facts", ".settings", ".core")},

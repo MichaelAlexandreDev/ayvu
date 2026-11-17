@@ -316,6 +316,14 @@ def test_frozen_post_predecessor_cli_contract_with_explicit_159_and_162_addition
         assert added[0]['opts'] == ['--network-policy'] and added[0]['choices'] == ['none', 'loopback']
         assert added[0]['default'] is None and added[0]['required'] is False
         command['parameters'].remove(added[0])
+    # #376 adds the translator choice to the two discovery commands, and the model to the test.
+    for name, removed in (('languages', ('translator_name',)), ('test-translator', ('translator_name', 'model'))):
+        parameters = current['commands'][name]['parameters']
+        added = [parameter for parameter in parameters if parameter['name'] in removed]
+        assert [parameter['opts'] for parameter in added] == [['--translator'], ['--model']][:len(removed)]
+        assert all(parameter['required'] is False for parameter in added)
+        for parameter in added:
+            parameters.remove(parameter)
     # #162 explicitly changes these policy selectors and their help; the historical fixture stays frozen.
     translate = current['commands']['translate']['parameters']
     for name, option, help_text in (

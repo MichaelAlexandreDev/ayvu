@@ -23,7 +23,9 @@ project resolution, cache acquisition or provider calls. Both execution entries 
 continuation tickets and the resume runner's explicit old-checkpoint route are exempt. Existing v1
 composition and fingerprints remain the same. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
 `declared:<label>`; `unknown` has not been made eligible. **Changing the server model
-without updating the label reuses old results under the same declaration.**
+without updating the label reuses old results under the same declaration.** With `--translator ollama`,
+the entry names an installed model, and the rich runtime gets the [Ollama binding](providers-ollama.md),
+prepared before the job so that the producer names the model's digest.
 
 Online rich execution prepares `SQLiteExactCache` at `<--cache name>.v2.sqlite` before
 provider preparation. Durable cache-only instead runs the explicit local preflight and opens
@@ -82,6 +84,7 @@ the same ports as the legacy path, preserving the original EPUB.
 | `ayvu.translation.engine` | Application | One book through a format adapter and a unit executor |
 | `ayvu.artifacts.destination` | Infrastructure | Publishing to the file the user chose, and the way back to it after a crash |
 | `ayvu.composition.builders.translate_project` | Composition | The current language work and validator behind the ports, and the assembled use case |
+| `ayvu.composition.builders.rich_options` | Composition | The rich runtime's option checks before it prepares anything, and its translation-memory policy |
 
 ## What happens, in order
 

@@ -69,6 +69,7 @@ The operating contracts of each module.
 | [Projects](modules/projects.md) |
 | [Provenance](modules/provenance.md) |
 | [Providers](modules/providers.md) |
+| [Ollama provider](modules/providers-ollama.md) |
 | [Recovery](modules/recovery.md) |
 | [Review exchange and application](modules/review.md) |
 | [Translation context](modules/translation-context.md) |

@@ -19,7 +19,7 @@ from .engine import (
     TranslationEngine, TranslationResources, UnitExecution,
 )
 from .errors import (
-    BatchOutputError, BookRefused, PreflightError, ProjectTranslationUnavailable, ResumeStateError,
+    BatchOutputError, BookRefused, PreflightError, PreflightPolicyError, ProjectTranslationUnavailable, ResumeStateError,
     TranslationDryRunCancelled,
 )
 from .pipeline import LegacyTextPipelineFacade, LinguisticSource
@@ -53,7 +53,7 @@ __all__ = [
     "EngineResult", "ExecutionContext", "ExecutorPool", "HtmlTranslationStats", "INTEGRITY_REASONS", "INTERRUPTED",
     "INTERRUPTED_AFTER_PUBLICATION", "ItemOutcome", "ItemStatus", "LegacyTextPipelineFacade",
     "LinguisticSource", "METADATA_KIND", "OUTPUT_ROLE", "OWN_JOB_STATES", "OutputValidation",
-    "PUBLICATION_UNCOMMITTED", "PreflightError", "ProjectTranslationUnavailable", "RAW_RESULTS_ROLE",
+    "PUBLICATION_UNCOMMITTED", "PreflightError", "PreflightPolicyError", "ProjectTranslationUnavailable", "RAW_RESULTS_ROLE",
     "RECONSTRUCT_STAGE", "RECONSTRUCT_STAGE_VERSION", "REUSE_DIMENSIONS", "RecoveryReason", "ResumeStage",
     "ResumeStateError", "RuntimeContext", "SAFE_POINTS", "STATUS_CACHE", "STATUS_ERROR", "STATUS_MEMORY",
     "STATUS_MISSING", "STATUS_TRANSLATED", "StageEvidence", "StageSelection", "TRANSLATE_COMMAND_TYPE",

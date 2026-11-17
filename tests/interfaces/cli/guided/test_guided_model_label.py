@@ -75,6 +75,16 @@ def test_changing_the_label_warns_about_resuming_earlier_jobs(isolated_config):
     assert saved(isolated_config)["translator_models"] == {"libretranslate": "second-model"}
 
 
+@pytest.mark.parametrize("answer,expected", [("second-model", {"libretranslate": "second-model"}), ("-", {})])
+def test_editing_the_label_keeps_the_ollama_model(isolated_config, answer, expected):
+    data = saved(isolated_config)
+    data["translator_models"] = {"libretranslate": "first-model", "ollama": "qwen2.5:7b"}
+    isolated_config.write_text(json.dumps(data), encoding="utf-8")
+    result = runner.invoke(app, [], input=f"4\n5\n{answer}\n0\n")
+    assert result.exit_code == 0, result.output
+    assert saved(isolated_config)["translator_models"] == {**expected, "ollama": "qwen2.5:7b"}
+
+
 def test_removing_when_there_is_no_label_changes_nothing(isolated_config):
     before = isolated_config.read_bytes()
     result = runner.invoke(app, [], input="4\n5\n-\n0\n")

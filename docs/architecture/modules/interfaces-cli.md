@@ -218,7 +218,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UI-004` | `_RouteView`, `TranslationRunResult`, `BatchTranslationResult`, `_BatchItemExit`, `ExecutionControls` |
 | `AYVU-UI-004` | `main`, `create_app` |
 | `AYVU-UC-001` | `inspect` |
-| `AYVU-UC-002` | `test_translator` |
+| `AYVU-UC-002` | `test_translator`, `_ollama_model`, `_next_step` |
 | `AYVU-UC-003` | `languages` |
 | `AYVU-UC-010`, `AYVU-UC-011`, `AYVU-UC-012`, `AYVU-UC-013` | `_cache_namespace`, `_cache_scope_map`, `_cache_warnings`, `cache_inspect`, `cache_clean`, `_cache_failure_hint`, `cache_export`, `cache_import` |
 | `AYVU-UC-004`, `AYVU-UC-005` | `translate` |

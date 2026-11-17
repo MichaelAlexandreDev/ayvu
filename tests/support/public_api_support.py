@@ -38,6 +38,7 @@ ADAPTER_MODULES = frozenset({
     "formats.local", "formats.epub.archive", "formats.epub.io", "formats.epub.adapter", "formats.epub.validation",
     "formats.epub.reader",
     "formats.markdown.writer", "providers.libretranslate.client", "providers.libretranslate.adapter",
+    "providers.ollama.client", "providers.ollama.chat", "providers.ollama.discovery",
     "providers.session", "translation.preflight", "translation.batch_output", "review.exchange_files",
     "review.local_files", "review.local_context", "review.local_packages", "review.local_start",
     "review.local_operations"})
