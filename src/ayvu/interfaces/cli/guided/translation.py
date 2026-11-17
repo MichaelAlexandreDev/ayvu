@@ -2,6 +2,7 @@
 from __future__ import annotations
 from .glossaries import _list_glossary_files, _load_guided_glossary, _prompt_saved_glossary_path
 from .language import _choose_guided_target_language
+from .preferences import _ensure_guided_model_label
 
 from .. import preview as previews, run as translation_run, translate_options
 from pathlib import Path
@@ -19,6 +20,7 @@ PROFILE_NO_PROFILE_OPTION = "0"
 
 
 def _run_guided_translation(config: AyvuConfig) -> None:
+    config = _ensure_guided_model_label(config)
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
     profile_name, profile = _choose_guided_translation_profile(config)
     target = _choose_guided_target_language(
@@ -54,6 +56,7 @@ def _run_guided_translation(config: AyvuConfig) -> None:
 
 
 def _run_guided_preview(config: AyvuConfig) -> None:
+    config = _ensure_guided_model_label(config)
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
     target = _choose_guided_target_language(config.default_target_language)
     previews._run_preview(epub_path, target=target, mode=UserMode.COMMON, config=config)

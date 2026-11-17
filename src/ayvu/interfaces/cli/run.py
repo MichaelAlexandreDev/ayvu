@@ -87,7 +87,7 @@ def _run_translation(
             raise run_support._BatchItemExit(normalized)
         raise typer.Exit(code=1)
 
-    config = config or settings._load_existing_config_or_default()
+    config = run_support.translation_configuration(config, translator_name, mode, continuation, resolve_managed_project)
     resolved_profile_name, profile = translate_options._resolve_requested_profile(config, profile_name, mode=mode)
     resolved_target = translate_options._resolve_target_language(target, profile)
     resolved_glossary_path = translate_options._resolve_glossary_path(glossary_path, profile)
@@ -228,7 +228,7 @@ def _run_translation(
     try:
         try:
             outcome = (
-                run_support._translate_without_project(book, hooks)
+                run_support._translate_without_project(book, hooks, legacy_resume=not resolve_managed_project)
                 if project_id is None
                 else run_support._translate_in_project(book, hooks)
             )

@@ -1,4 +1,5 @@
 from tests.support.cli_support import isolated_config
+from tests.support.cli_rich_runtime_support import declare_model
 from pathlib import Path
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
@@ -8,7 +9,8 @@ from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import FakeCache, _fake_translation, runner
 
 
-def test_translate_command_confirms_default_output_location(tmp_path, monkeypatch):
+def test_translate_command_confirms_default_output_location(tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     original_dir = tmp_path / "Original"
     epub_path = original_dir / "book.epub"
     output_dir = tmp_path / "Traduzidos"
@@ -55,7 +57,8 @@ def test_translate_command_confirms_default_output_location(tmp_path, monkeypatc
     assert resume_state.output_path == output_path.resolve()
 
 
-def test_translate_command_allows_custom_output_path_from_default_prompt(tmp_path, monkeypatch):
+def test_translate_command_allows_custom_output_path_from_default_prompt(tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     output_dir = tmp_path / "Traduzidos"
     custom_output = tmp_path / "Escolhidos" / "custom-name"
@@ -87,7 +90,8 @@ def test_translate_command_allows_custom_output_path_from_default_prompt(tmp_pat
     assert calls["output_path"] == output_path
 
 
-def test_translate_command_asks_how_to_handle_existing_output_and_cancels(tmp_path):
+def test_translate_command_asks_how_to_handle_existing_output_and_cancels(tmp_path, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     epub_path.write_bytes(b"not a real epub")
@@ -108,7 +112,8 @@ def test_translate_command_asks_how_to_handle_existing_output_and_cancels(tmp_pa
     assert "Traceback" not in result.output
 
 
-def test_translate_command_allows_another_name_when_output_exists(tmp_path, monkeypatch):
+def test_translate_command_allows_another_name_when_output_exists(tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     renamed_output = tmp_path / "book-custom"
@@ -151,7 +156,8 @@ def test_translate_command_allows_another_name_when_output_exists(tmp_path, monk
     assert output_path.read_text(encoding="utf-8") == "already here"
 
 
-def test_translate_command_rejects_another_existing_output_name(tmp_path):
+def test_translate_command_rejects_another_existing_output_name(tmp_path, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     other_output = tmp_path / "already-used.epub"
@@ -175,7 +181,8 @@ def test_translate_command_rejects_another_existing_output_name(tmp_path):
     assert "Traceback" not in result.output
 
 
-def test_translate_command_developer_mode_requires_overwrite_for_existing_output(tmp_path):
+def test_translate_command_developer_mode_requires_overwrite_for_existing_output(tmp_path, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     epub_path.write_bytes(b"not a real epub")
@@ -191,7 +198,7 @@ def test_translate_command_developer_mode_requires_overwrite_for_existing_output
     assert "Traceback" not in result.output
 
 
-def test_translate_command_continues_when_existing_output_is_confirmed(tmp_path):
+def test_unknown_translator_refuses_without_touching_existing_output(tmp_path):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     epub_path.write_bytes(b"not a real epub")
@@ -204,7 +211,7 @@ def test_translate_command_continues_when_existing_output_is_confirmed(tmp_path)
     )
 
     assert result.exit_code == 1
-    assert "Overwrite existing EPUB" in result.output
+    assert "Overwrite existing EPUB" not in result.output
     assert "Não foi possível preparar o tradutor." in result.output
     assert "Use --translator libretranslate." in result.output
     assert "Detalhe técnico:" not in result.output

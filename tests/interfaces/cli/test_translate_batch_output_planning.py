@@ -11,6 +11,7 @@ from tests.interfaces.cli.translate_batch_integration_support import _run, isola
 
 
 def test_final_conflict_rejects_before_first_item(tmp_path, monkeypatch):
+    config(tmp_path)
     first = _write_epub(tmp_path / "first.epub")
     second = _write_epub(tmp_path / "second.epub")
     originals = [first.read_bytes(), second.read_bytes()]
@@ -110,6 +111,7 @@ def test_existing_output_alias_to_any_source_rejected(tmp_path, monkeypatch, ali
 
 
 def test_common_mode_cancel_conflict_on_final_item_starts_nothing(tmp_path, monkeypatch):
+    config(tmp_path)
     first = _write_epub(tmp_path / "first.epub")
     second = _write_epub(tmp_path / "second.epub")
     output = tmp_path / "out"

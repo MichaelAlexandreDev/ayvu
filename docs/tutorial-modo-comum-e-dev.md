@@ -104,6 +104,10 @@ No primeiro uso, o Ayvu pergunta o idioma padrão de leitura/tradução e a past
 
 Se houver perfis de tradução no arquivo de configuração, a tradução guiada mostra esses perfis antes da escolha do idioma de destino. Um perfil pode fornecer um idioma padrão diferente e um glossário associado.
 
+Before translating or previewing, declare the translator model label. Menus 1 and 2 ask for a missing
+label before the EPUB path, save it and continue; Enter cancels. Settings (option 4), option 5 and
+`translator_models.libretranslate` in `config.json` provide the same declaration.
+
 ### Gerar um preview
 
 O preview é o primeiro teste recomendado para um livro novo. Ele traduz uma amostra inicial do EPUB e preserva a estrutura do restante do arquivo.
@@ -402,9 +406,11 @@ Se o Ayvu não detectar um leitor padrão do sistema, abra `Settings` e preencha
 
 Use o modo desenvolvedor quando quiser execução previsível por terminal, automação ou scripts.
 
-### Ativar o pipeline rico em uma tradução
+### Declare the required translator model label
 
-The simplest way is guided mode: Settings (option 4), then `5. Change translator model label`.
+Every new translation requires a model label, including batches, previews, dry runs and cache-only
+rebuilds. Guided menus 1 and 2 ask in place, save and continue; Enter cancels. You can also open
+Settings (option 4), then `5. Change translator model label`.
 The label is checked before saving, and `-` removes it. You can also edit the file by hand:
 
 Edite o `config.json` existente em `$XDG_CONFIG_HOME/ayvu/config.json` (ou
@@ -429,8 +435,9 @@ no primeiro uso rico. A proveniência registra `declared:<rótulo>`, informado p
 
 O modo rico para na primeira falha do provedor, não publica EPUB parcial e conserva
 os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume livro.epub`.
-Mantenha o rótulo durante a retomada; um job legado exige sua ausência. A incompatibilidade
-entre `legacy/v1` e `rich/v2` é recusada antes de chamar o tradutor.
+A resume keeps the runtime its job started with: existing v1 jobs finish on v1 with or without
+a label, and old standalone checkpoints still resume. Rich jobs require a label; changing it
+translates their documents again and prints `raw_results_changed_provider`.
 
 For labeled durable translations, `--cache-only` reconstructs from the authorized
 exact v2 cache without network, sessions, discovery, cache writes, translation memory or replay.
@@ -439,8 +446,9 @@ existing missing-text file. `--require-full-cache` blocks reconstruction before 
 miss and exits 1, preserving previous output. Complete hits reconstruct and validate with exit 0.
 Corruption, overflow or unsafe storage fail without EPUB/TXT publication. No new raw-results
 are published, including on complete hits. Durable cache-only accepts `--workers N`, `--performance-profile high` (four workers), and explicit worker overrides without clamping. Each task handles a complete document; results and progress are consumed in book order. Cancellation or fatal failure stops admission and drains started tasks before ending the job. Labeled online translation accepts the same workers, with one shared rate limiter and a single request for text repeated across documents. Parallel governed memory remains refused.
-Without a label, existing cache-only behavior is preserved.
-Without a model label, preview stays on v1. With a label, root and guided previews use
+Without a label, new translations exit 1 before any provider call, project, cache or output,
+with instructions for Settings option 5 or `translator_models.libretranslate` in `config.json`.
+Root and guided previews use
 the transient rich runtime with real authorized discovery and translation. The default
 limit remains 12 documents, with the configured Preview folder and overwrite confirmation.
 No project/job, Markdown, raw-results or persistent cache writes are created. Exact v2
@@ -451,7 +459,7 @@ runtime: no provider/session/discovery, project/job creation or cache writes. Ex
 a matching existing project and compatible canonical v2 evidence. Cache-only misses preserve the
 original and use the existing missing-text file; full-cache fails only for missing texts in this
 branch. Workers/high keep their configured count, with explicitly sequential local analysis.
-Without a label, dry-run output and exit behavior remain unchanged.
+Dry runs also require a declared model label.
 
 Com `translator_models.libretranslate` configurado, habilite a memória governada
 por projeto com `--translation-memory`. O cache exato v2 vem primeiro. Em seguida,

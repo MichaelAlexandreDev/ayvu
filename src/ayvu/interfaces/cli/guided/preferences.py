@@ -11,6 +11,8 @@ from ....preferences import AyvuConfig, ConfigError, FolderNames, config_from_pr
 from ..contracts import ConfigStore
 
 from ..render import console
+from ....composition.cli import require_translation_model
+from ....translation import PreflightError
 
 
 SETTINGS_LANGUAGE_OPTION = "1"
@@ -174,11 +176,11 @@ def _settings_with_model_label(config: AyvuConfig) -> AyvuConfig:
                       "começando por letra ou número, com até 48 caracteres.")
         return config
     if current is not None:
-        console.print("Um job rico só pode ser retomado com o rótulo com que começou.")
+        console.print("Resuming a rich job with another label translates its documents again.")
     # Other translators' entries, such as translator_models.ollama, are kept as they are.
     others = {name: value for name, value in config.translator_models.items() if name != MODEL_LABEL_TRANSLATOR}
     if label is None:
-        console.print("Sem rótulo, as traduções novas usam o runtime legado.")
+        console.print("Without a model label, new translations are refused.")
         return replace(config, translator_models=others)
     return replace(config, translator_models={**others, MODEL_LABEL_TRANSLATOR: label})
 
@@ -204,3 +206,19 @@ def _prompt_folder_name(prompt: str, current: str) -> str:
 def _prompt_optional_text(prompt: str, current: str | None) -> str | None:
     value = typer.prompt(prompt, default=current or "").strip()
     return value or None
+
+
+def _ensure_guided_model_label(config: AyvuConfig) -> AyvuConfig:
+    """Ask in place, using the same validation and persistence as settings option 5."""
+    try:
+        require_translation_model(config.translator_models, MODEL_LABEL_TRANSLATOR)
+        return config
+    except PreflightError as error:
+        console.print(error.summary)
+        console.print(error.next_step)
+    console.print("Enter cancels.")
+    updated = _settings_with_model_label(config)
+    if not updated.translator_models.get(MODEL_LABEL_TRANSLATOR):
+        console.print("Canceled.")
+        raise typer.Exit(code=1)
+    return _update_guided_settings(settings.configuration_store(), config, updated)

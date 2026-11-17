@@ -10,16 +10,18 @@ framework, store, format or provider: it receives them as ports from a compositi
 
 `translate` and the guided translation run through it, one book at a time, and so does each book of a batch, and a
 [resume](recovery.md) of a job it left behind. Dry run, preview and a resume file that recomputes to no job have no
-durable project execution. Unlabeled previews and dry runs keep the predecessor path behind
-`translate_without_project`; labeled dry runs use the [offline transient route](translation.md#offline-transient-dry-runs-ref-18-g3),
+durable project execution. New translations require a declared model label; old standalone checkpoints
+alone retain the predecessor path behind `translate_without_project`. Dry runs use the [offline transient route](translation.md#offline-transient-dry-runs-ref-18-g3),
 and labeled previews use the [online transient route](translation.md#online-transient-previews-ref-18-g2).
 
 ## Explicit runtime selection (#252)
 
 `ayvu.composition.cli` resolves `translator_models` for the selected translator and
 `ayvu.composition.builders.translate_project` constructs `LegacyTranslationRuntime` or
-`RichTranslationRuntime`. Without a label, legacy composition and fingerprint remain
-the same. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
+`RichTranslationRuntime`. Composition's `rich_provider.require_model` refuses new unlabeled work before
+project resolution, cache acquisition or provider calls. Both execution entries enforce it too; only
+continuation tickets and the resume runner's explicit old-checkpoint route are exempt. Existing v1
+composition and fingerprints remain the same. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
 `declared:<label>`; `unknown` has not been made eligible. **Changing the server model
 without updating the label reuses old results under the same declaration.** With `--translator ollama`,
 the entry names an installed model, and the rich runtime gets the [Ollama binding](providers-ollama.md),
@@ -83,7 +85,6 @@ the same ports as the legacy path, preserving the original EPUB.
 | `ayvu.artifacts.destination` | Infrastructure | Publishing to the file the user chose, and the way back to it after a crash |
 | `ayvu.composition.builders.translate_project` | Composition | The current language work and validator behind the ports, and the assembled use case |
 | `ayvu.composition.builders.rich_options` | Composition | The rich runtime's option checks before it prepares anything, and its translation-memory policy |
-| `ayvu.composition.builders.translation_checkpoint` | Composition | The compatibility checkpoint a CLI translation keeps while it runs |
 
 ## What happens, in order
 

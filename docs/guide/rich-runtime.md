@@ -2,10 +2,12 @@
 
 ## Declaring the model label
 
-The rich translation runtime (`rich/v2`) runs when you declare the model label of your translator. The
-simplest way is the guided menu: open **Settings (option 4)** and choose
+Every new translation uses the rich runtime (`rich/v2`) and requires you to declare the model label of
+your translator. This includes batches, previews, dry runs and cache-only rebuilds. The simplest way is the guided menu: open **Settings (option 4)** and choose
 **`5. Change translator model label`**. The label is checked with the rules below before it is saved, and
-`-` removes it.
+`-` removes it, which prevents new translations until you declare a label again.
+Guided translation (menu 1) and preview (menu 2) ask in place when it is missing, save your answer and
+continue. Enter cancels without changing configuration or creating translation files.
 
 You can also add the field by hand to the **existing configuration file**, keeping its other fields:
 
@@ -105,7 +107,7 @@ the model label and `--translation-memory`.
 
 With a model label, `--translation-memory` prints a line saying that the v1 cache is not used as memory, and
 an explicit `--tm-apply-threshold` without `--tm-conservative-auto-apply` prints a warning that fuzzy
-matches stay suggestions. The run continues; nothing changes without a label.
+matches stay suggestions. Without a label, new translations are refused before these notices.
 
 The CLI reports `memory_review_suggestions`, and counts suggestions and memory texts in the existing
 report. The concordance query is an application API for authorised callers. To create or approve
@@ -126,9 +128,11 @@ changed, it translates again and says what, for example `Aviso da tradução: ra
 
 ## Without a label, previews and dry runs
 
-- **Without a label,** `legacy/v1` keeps its messages, continuation after errors and partial cache-only
-  EPUBs. Removing the label restores the intact v1 cache for new translations. Unlabeled previews and dry
-  runs stay on v1.
+- **Without a label,** new translations exit 1 with instructions to declare it in Settings option 5
+  or `translator_models.libretranslate` in `config.json`, before any provider call, project, cache or
+  output. Existing v1 jobs still finish on v1, with or without a label, and old standalone checkpoints
+  still resume. `inspect`, `extract`, `languages`, `test-translator`, cache administration and review
+  application do not require a label.
 - **Previews with a label** (root and guided) use the transient rich runtime:
   - authorised discovery and translation of the first 12 documents;
   - the configured Preview folder and the overwrite confirmation;

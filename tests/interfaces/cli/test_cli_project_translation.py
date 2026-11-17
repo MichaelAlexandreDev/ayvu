@@ -1,5 +1,6 @@
 from __future__ import annotations
-from tests.support.cli_rich_runtime_support import labeled_runtime, config
+from tests.support.cli_rich_runtime_support import labeled_runtime, config, Transport
+from tests.support.model_label_support import assert_refused, snapshot
 from zipfile import ZipFile
 from ayvu.composition.builders import translate_project as composition
 from ayvu.translation.preflight import PreflightError
@@ -38,13 +39,14 @@ def test_validation_warnings_keep_the_output_and_end_partially_completed(tmp_pat
     assert len(state) == 1
 
 
-def test_a_failed_text_keeps_the_exit_code_and_ends_partially_completed(tmp_path, monkeypatch):
+def test_unlabeled_translation_is_refused_before_a_job_or_partial_output(tmp_path, monkeypatch):
     config(tmp_path, label=None)
-    result, _ = _run(tmp_path, monkeypatch, session=Session(failing="Goodbye reader."))
-
-    assert result.exit_code == 0, result.output
-    job = _only_job(tmp_path)
-    assert (job.state.value, job.terminal_summary.reason_code) == ("partially_completed", "texts_failed")
+    source = _book(tmp_path / "book.epub")
+    before = snapshot(tmp_path)
+    transport = Transport(failing="Goodbye reader.")
+    result, _ = _run(tmp_path, monkeypatch, source=source, session=transport)
+    assert_refused(result)
+    assert transport.requests == [] and snapshot(tmp_path) == before
 
 
 def test_require_full_cache_ends_without_an_output_or_a_failed_job(tmp_path, monkeypatch):

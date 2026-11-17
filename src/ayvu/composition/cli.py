@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from . import editions, surface_rules
 from .builders import cache_admin, content, glossary, providers, review, rich_provider, translate_project, translate_transient
-from .builders import translation_checkpoint as translation_checkpoints
 from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation
@@ -24,6 +23,7 @@ from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
 from ..translation.preflight import check_book_resources
+from .builders import checkpoint
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
@@ -124,6 +124,7 @@ def run_translation_preflight(**configuration):
 
 
 def prepare_preview(*, translator_models, translator_name, **configuration):
+    require_translation_model(translator_models, translator_name)
     return translate_transient.prepare_preview(label=rich_provider.selected_model(translator_models, translator_name),
                                               translator_name=translator_name, rich_preflight=_preflight, **configuration)
 
@@ -184,9 +185,10 @@ def validate_output(*args, **kwargs):
     return translate_project.validate_output(*args, **kwargs)
 
 
-def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
-    """Dry run, and a resume file that recomputes to no job. See ``translate_without_project``."""
-    if (book.options.dry_run or book.preview) and rich_provider.selected_model(book.translator_models, book.translator_name) is not None:
+def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True, legacy_resume: bool = False) -> _BookOutcome:
+    """Transient translation, or an explicitly authorized old checkpoint resume."""
+    require_translation_model(book.translator_models, book.translator_name, legacy_resume=legacy_resume)
+    if not legacy_resume:
         return _BookOutcome(report=translate_transient.translate(book, hooks,
             rich_provider.selected_model(book.translator_models, book.translator_name),
             formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))
@@ -213,6 +215,7 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
+    require_translation_model(book.translator_models, book.translator_name, continuation=book.continuation)
     # A model translator is prepared now, before its job: the job records a producer naming the model's digest.
     model = rich_provider.prepare_model_translation(book.translator_name, book.prepare)
 
@@ -268,11 +271,15 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
 
 
 def translation_checkpoint():
-    return translation_checkpoints.TranslationCheckpoint()
+    return checkpoint.TranslationCheckpoint()
+
+
+def require_translation_model(models, translator_name, **continuation):
+    return rich_provider.require_model(models, translator_name, **continuation)
 
 
 def translation_modality(dry_run, models, translator_name):
-    """Select without opening resources; unlabeled runs retain the predecessor path, labeled ones the rich runtime."""
+    """Select without resources; unlabeled execution is reserved for existing v1 work."""
     labeled = rich_provider.selected_model(models, translator_name) is not None
     return "standard" if not labeled else "transient_dry_run" if dry_run else "rich"
 

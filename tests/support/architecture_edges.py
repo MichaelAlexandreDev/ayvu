@@ -4,8 +4,10 @@ from .architecture_transient_edges import TRANSIENT_EDGES
 from .architecture_cache_only_edges import CACHE_ONLY_EDGES
 from .architecture_worker_edges import WORKER_EDGES
 from .architecture_llm_edges import LLM_EDGES
+from .architecture_checkpoint_edges import CHECKPOINT_EDGES
+from .architecture_model_label_edges import MODEL_LABEL_EDGES
 ALLOWED_INTERNAL_EDGES = {
-    *TRANSIENT_EDGES, *CACHE_ONLY_EDGES, *WORKER_EDGES, *LLM_EDGES,
+    *MODEL_LABEL_EDGES, *CHECKPOINT_EDGES, *TRANSIENT_EDGES, *CACHE_ONLY_EDGES, *WORKER_EDGES, *LLM_EDGES,
     *(("ayvu.translation.local_cache_plan", f"ayvu.{name}") for name in ("knowledge.cache.cache_only", "knowledge.cache.entries", "knowledge.cache.identity", "knowledge.cache.identity_values", "knowledge.cache.scope", "provenance.model", "providers.ports", "translation.plan")),
     *((f"ayvu.knowledge.cache.{a}", f"ayvu.knowledge.cache.{b}") for a, names in (
        ("read_only", "entries identity_values read_only_queries read_only_journal scope schema"),
@@ -54,7 +56,6 @@ ALLOWED_INTERNAL_EDGES = {
     ('ayvu.formats.epub.io', 'ayvu.formats.epub.html_structure'), ('ayvu.formats.epub.validation', 'ayvu.formats.epub.html_structure'),
     ('ayvu.v1.epub', 'ayvu.formats.epub.archive'), ('ayvu.v1.epub', 'ayvu.formats.epub.io'),
     ('ayvu.v1.epub', 'ayvu.knowledge.memory.fuzzy'), ('ayvu.v1.epub', 'ayvu.v1.html_translate'),
-    ("ayvu.recovery.checkpoint", "ayvu.translation.errors"),
     ("ayvu.composition.builders.providers", "ayvu.providers.errors"),
     ("ayvu.translation.preflight", "ayvu.translation.errors"),
     ("ayvu.translation.batch_output", "ayvu.translation.errors"),
@@ -142,7 +143,6 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.artifacts.store", "ayvu.artifacts.service"),
     ("ayvu.artifacts.store", "ayvu.jobs.model"),
     ("ayvu.artifacts.store", "ayvu.jobs.store"),
-    ("ayvu.recovery.checkpoint_scan", "ayvu.recovery.checkpoint"),
     ("ayvu.providers.ports", "ayvu.content.model"),
     ("ayvu.providers.ports", "ayvu.provenance.model"),
     ("ayvu.formats.contracts", "ayvu.artifacts.model"),
@@ -240,13 +240,11 @@ ALLOWED_INTERNAL_EDGES = {
     ("ayvu.recovery.store", "ayvu.recovery.service"),
     ("ayvu.recovery.store", "ayvu.jobs.service"),
     ("ayvu.recovery.store", "ayvu.jobs.store"),
-    ("ayvu.recovery.store", "ayvu.recovery.checkpoint_scan"),
     ("ayvu.recovery.store", "ayvu.projects.model"),
     ("ayvu.recovery.store", "ayvu.projects.schema"),
     ("ayvu.recovery.store", "ayvu.projects.store"),
     ("ayvu.recovery.store", "ayvu.provenance.model"),
     ("ayvu.recovery.store", "ayvu.provenance.store"),
-    ("ayvu.recovery.store", "ayvu.recovery.checkpoint"),
     ("ayvu.recovery.store", "ayvu.translation.project_contracts"),
     ("ayvu.artifacts.destination", "ayvu.artifacts.model"),
     ("ayvu.artifacts.destination", "ayvu.artifacts.service"),
@@ -364,7 +362,7 @@ ALLOWED_INTERNAL_EDGES = {
        "composition.builders.translate_project", "kernel.failures", "kernel.values", "library.adapters",
        "library.service", "preferences.config_facade", "projects.service", "projects.store",
        "translation.batch_output", "translation.engine", "translation.preflight",
-       "translation.project_contracts", "v1.cache", "v1.cache_check", "composition.builders.translation_checkpoint",)),
+       "translation.project_contracts", "v1.cache", "v1.cache_check",)),
     *(("ayvu.composition.builders.review", f"ayvu.{name}") for name in (
        "review.local_operations", "review.local_packages",
        "review.local_start", "formats.epub.adapter", "formats.local", "formats.service",

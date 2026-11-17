@@ -8,8 +8,7 @@ Issue: [#286 — REF-18](https://github.com/MichaelAlexandreDev/ayvu/issues/286)
 Companion of the [v1 retirement decision](v1-retirement.md). It closes step 3 of its
 [ordered implementation](v1-retirement.md#ordered-implementation-after-approval): every user surface,
 what it does without a model label (v1, the reference) and with one (the rich runtime), and the CLI
-tests that hold the difference in place. Written on 2026-11-16, when step 3 closed. The default does
-not change here; that is step 4.
+tests that hold the difference in place. Written on 2026-11-16, when step 3 closed. The table records the step 3 baseline; step 4 admission is now implemented as recorded below.
 
 ## Legend
 
@@ -25,7 +24,7 @@ All test paths are under `tests/interfaces/cli/`.
 
 | Surface | With a label, compared with v1 | CLI tests with a label |
 | --- | --- | --- |
-| Setting the label | G1: guided settings option 5 declares, changes or removes it, validated with the saved rule; nothing is invented or copied from the server. v1 has no label. | `guided/test_guided_model_label.py` |
+| Setting the label | G1: new translations without a model label are refused before provider calls or files. Guided menus 1 and 2 ask in place, save and continue; Enter cancels. Settings option 5 uses the same validation; nothing is invented or copied from the server. | `guided/test_guided_model_label.py`, `guided/test_guided_translation_model_label.py`, `test_cli_model_label_gate.py` |
 | `translate`, one book | A(7): no partial EPUB; raw results and review package | `test_cli_rich_runtime_execution.py` |
 | Guided translation (menu 1) | = through the durable route (job revision 2, `declared:<label>` producer) | `test_cli_rich_surfaces.py` |
 | Batch (several EPUBs) | = durable per book. A failed book publishes no partial EPUB; by default and with `--fail-fast` the batch stops after it, and `--continue-on-error` goes on. | `test_cli_rich_surfaces.py`, `test_cli_rich_missing_output.py` |
@@ -42,7 +41,9 @@ All test paths are under `tests/interfaces/cli/`.
 
 ## What stays open
 
-- **Step 4** switches the default, as accepted below. Until it ships, an unlabeled run keeps v1.
+- **Step 4 has shipped:** new translations require a model label and use the rich runtime.
+  G1 refuses unlabeled work before any provider call or file; existing v1 work may still resume.
+  Step 4f records the broader exit comparisons; old-data notices and removal remain steps 5 and 6.
 
 The owner answered the step 3 design questions on 2026-11-16 (translated quotation: "A. The
 recommended one. B the recommended one. C the recommended one"):

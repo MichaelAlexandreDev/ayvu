@@ -1,6 +1,8 @@
 """REF-18 step 4, answer P1: a resume keeps the runtime its job started with."""
 from __future__ import annotations
 
+import pytest
+
 from ayvu.interfaces.cli import app as cli
 from ayvu.jobs import JobState
 from tests.support.cli_rich_runtime_support import Transport, config, invoke, isolate, records, runner, text  # noqa: F401
@@ -31,10 +33,11 @@ def interrupted(tmp_path, monkeypatch, label):
     return _jobs(tmp_path)[-1]
 
 
-def test_a_v1_job_finishes_on_v1_after_a_label_is_declared(tmp_path, monkeypatch):
+@pytest.mark.parametrize("label", [None, "local-model-2026"], ids=["without-label", "with-label"])
+def test_a_v1_job_finishes_on_v1_after_a_label_is_declared(tmp_path, monkeypatch, label):
     parent = interrupted(tmp_path, monkeypatch, None)
     assert parent.request.command_version == 1
-    config(tmp_path, label="local-model-2026")
+    config(tmp_path, label=label)
     result, session = resume(tmp_path, monkeypatch)
     assert result.exit_code == 0, text(result)
     child = next(job for job in _jobs(tmp_path) if job.continuation_of == parent.job_id)

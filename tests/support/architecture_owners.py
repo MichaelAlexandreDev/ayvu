@@ -17,6 +17,7 @@ EDITION_DATA_MODULES = frozenset({
 })
 
 OWNERS = {
+    "ayvu.composition.builders.checkpoint": Owner("composition", "Recovery"),
     **{name: Owner("composition", "Edition definitions") for name in EDITION_DATA_MODULES},
     "ayvu": Owner("surface", "Package"),
     **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "report", "output", "plan", "translate_options", "run", "run_support", "run_messages", "batch", "preview", "commands",
@@ -86,7 +87,6 @@ OWNERS = {
     # Ollama's HTTP client, its chat model port over the LLM core, and its discovery (#376).
     **{f"ayvu.providers.ollama{part}": Owner("provider", "Providers") for part in ("", ".client", ".chat", ".discovery")},
     "ayvu.composition.builders.rich_options": Owner("composition", "Translation"),
-    "ayvu.composition.builders.translation_checkpoint": Owner("composition", "Jobs"),
     # The LLM core performs no I/O: as application code it may not import an HTTP client or a socket.
     **{f"ayvu.providers.llm{part}": Owner("application", "Providers") for part in (
         "", ".model", ".prompt", ".batching", ".output", ".failures", ".facts", ".settings", ".core")},

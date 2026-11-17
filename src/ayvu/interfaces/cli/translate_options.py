@@ -4,9 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import typer
+from ...translation import PreflightError
 from ...preferences import AyvuConfig, TranslationProfile
 from .contracts import SelectedChapter
-from ...composition.cli import default_glossaries_dir, detect_epub_language, resolve_chapter_selection, translation_modality
+from ...composition.cli import require_translation_model, default_glossaries_dir, detect_epub_language, resolve_chapter_selection, translation_modality
 from ...kernel import ChapterSelection, ChapterSelectionError, DEFAULT_PERFORMANCE_PROFILE, PERFORMANCE_PROFILES, PerformanceProfile, TranslationMemoryError, TranslationMemoryOptions, TranslationOptions, UserMode
 
 from .render import _print_epub_read_error, _print_expected_error, console
@@ -322,10 +323,11 @@ def _check_runtime_options(translation_memory, config, translator_name, *, worke
                            explicit_apply_threshold) -> None:
     """Options whose meaning depends on the runtime the model label selects: refusals first, then notices."""
     _validate_worker_options(workers, translation_memory, mode)
-    if workers > 1 and cache_only and translation_modality(False, config.translator_models, translator_name) != "rich":
-        _print_expected_error("--cache-only com mais de um worker exige um rótulo de modelo.",
-                              "Use --workers 1 com --cache-only, ou declare o rótulo do modelo em Configurações (opção 5).", mode)
-        raise typer.Exit(code=1)
+    try:
+        require_translation_model(config.translator_models, translator_name)
+    except PreflightError as error:
+        _print_expected_error(error.summary, error.next_step, mode, detail=error.detail)
+        raise typer.Exit(code=1) from None
     _print_rich_memory_notices(translation_memory, config, translator_name, explicit_apply_threshold=explicit_apply_threshold)
 
 

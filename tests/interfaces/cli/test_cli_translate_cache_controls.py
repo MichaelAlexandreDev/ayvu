@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
@@ -6,7 +7,7 @@ from tests.support.cli_support import FakeCache, _fake_translation
 from tests.support.cli_support import isolated_config, runner
 
 
-def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeypatch):
+def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     missing_path = tmp_path / "missing.txt"
@@ -33,7 +34,7 @@ def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeyp
         captured["preflight_kwargs"] = kwargs
         return SimpleNamespace(translator=object(), glossary=None, route=None)
 
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fake_preflight)
+    monkeypatch.setattr("ayvu.composition.cli._local_preflight", fake_preflight)
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate_epub)
     monkeypatch.setattr(
@@ -41,6 +42,7 @@ def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeyp
         lambda _path, on_progress=None: ValidationResult(ok=True, warnings=[], document_count=1),
     )
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [
@@ -57,7 +59,8 @@ def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeyp
     assert result.exit_code == 0
     assert "Texts missing" in result.output
     assert captured["options"].cache_only is True
-    assert captured["preflight_kwargs"]["cache_only"] is True
+    assert captured["preflight_kwargs"]["translator_name"] == "libretranslate"
+    assert "cache_path" not in captured["preflight_kwargs"]
     assert missing_path.exists()
     content = missing_path.read_text(encoding="utf-8")
     assert "Missing texts: 2" in content
@@ -65,7 +68,7 @@ def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeyp
     assert "Another line." in content
 
 
-def test_translate_command_cache_only_require_full_cache_blocks_output(tmp_path, monkeypatch):
+def test_translate_command_cache_only_require_full_cache_blocks_output(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     missing_path = tmp_path / "missing.txt"
@@ -83,7 +86,7 @@ def test_translate_command_cache_only_require_full_cache_blocks_output(tmp_path,
         target_language="pt",
     )
     monkeypatch.setattr(
-        "ayvu.interfaces.cli.run.run_translation_preflight",
+        "ayvu.composition.cli._local_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
     monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
@@ -94,6 +97,7 @@ def test_translate_command_cache_only_require_full_cache_blocks_output(tmp_path,
 
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", fail_validate)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [

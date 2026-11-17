@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
@@ -114,7 +115,7 @@ def test_root_command_without_processing_state_has_no_processing_noise(tmp_path,
     assert "Invalid processing state files were found." not in result.output
 
 
-def test_translate_command_records_chapter_checkpoint(tmp_path, monkeypatch):
+def test_translate_command_records_chapter_checkpoint(tmp_path, monkeypatch, isolated_config):
     epub_path = tmp_path / "book.epub"
     output_path = tmp_path / "book-pt.epub"
     cache_path = tmp_path / "cache.sqlite"
@@ -143,6 +144,7 @@ def test_translate_command_records_chapter_checkpoint(tmp_path, monkeypatch):
     )
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
+    declare_model(isolated_config)
     result = runner.invoke(
         app,
         [

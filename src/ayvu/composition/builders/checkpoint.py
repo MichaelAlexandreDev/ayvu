@@ -1,4 +1,4 @@
-"""The compatibility checkpoint a CLI translation keeps while it runs, written through the recovery store."""
+"""Compatibility checkpoint adapter for the CLI translation workflow."""
 from __future__ import annotations
 
 from ...recovery.checkpoint import ResumeStateStore, TranslationResumeState
