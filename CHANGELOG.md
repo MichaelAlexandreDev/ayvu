@@ -9,6 +9,12 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Hooks de agentes versionados (`scripts/agent_hooks/ayvu_hook.py`, ligados em
+  `.claude/settings.json`): bloqueiam merge com `--admin`, push forçado na `main` e alterações em
+  livros, caches e dados privados; pedem confirmação antes de descartar trabalho local ou editar o
+  v1; e avisam na hora quando um arquivo Python passa do limite de tamanho ou importa o v1 fora da
+  composição.
+
 - Skills de agentes versionadas em `.agents/skills/` (ligadas em `.claude/skills/`): as seis
   existentes atualizadas para a arquitetura atual e quatro novas (`ayvu-place-code`,
   `ayvu-add-provider`, `ayvu-validate` e `ayvu-ship-pr`).
