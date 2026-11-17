@@ -78,3 +78,20 @@ def records(tmp_path, job):
     paths = ProjectJsonRepository(tmp_path / "processing").resolve_database_paths(job.request.project_id)
     return [node.record.request for node in open_provenance_repository(paths.database, paths.backups,
         job.request.project_id, clock=lambda: datetime.now(UTC)).list_by_job(job.job_id, limit=1024).nodes]
+
+
+@pytest.fixture(autouse=True)
+def labeled_runtime(tmp_path, _isolated_from_the_user):
+    """Declare the runtime while retaining each CLI suite's isolated defaults."""
+    path = tmp_path / "config" / "ayvu" / "config.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = json.loads(path.read_text()) if path.exists() else {}
+    data["translator_models"] = {"libretranslate": "local-model-2026"}
+    path.write_text(json.dumps(data))
+
+
+def declare_model(path, label="local-model-2026", **values):
+    """Add an explicit model to an existing isolated configuration."""
+    data = json.loads(path.read_text())
+    data.update(values, translator_models={"libretranslate": label})
+    path.write_text(json.dumps(data))

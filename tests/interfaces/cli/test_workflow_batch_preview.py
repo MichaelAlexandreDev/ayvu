@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime
 from pathlib import Path
 from ayvu.interfaces.cli.app import app
 from tests.support.workflow_characterization_support import FakeLibreTranslateSession, _direct_languages, _install_cli_environment, _isolated_from_the_user

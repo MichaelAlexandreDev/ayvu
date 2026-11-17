@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime
 from dataclasses import replace
 from ayvu.interfaces.cli.app import app
 from ayvu.review import decode_review_package, encode_review_package

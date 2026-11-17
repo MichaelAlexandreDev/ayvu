@@ -39,6 +39,9 @@ class FakeLibreTranslateSession:
         self.gets: list[tuple[str, float]] = []
         self.posts: list[dict[str, str]] = []
 
+    def close(self) -> None:
+        pass
+
     def get(self, url: str, *, timeout: float, allow_redirects: bool = False) -> requests.Response:
         assert allow_redirects is False
         self.gets.append((url, timeout))

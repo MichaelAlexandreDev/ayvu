@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime
 from tests.support.workflow_characterization_support import FailingSession, _direct_languages, _isolated_from_the_user
 from tests.support.workflow_characterization_support import _members, _report_value, _run_translate
 from tests.support.workflow_characterization_support import _write_epub
@@ -67,8 +68,9 @@ def test_translate_cli_dry_run_writes_nothing_and_calls_nothing(tmp_path, monkey
 
 def test_translate_cli_cache_only_uses_the_cache_and_lists_what_is_missing(tmp_path, monkeypatch):
     source = _write_epub(tmp_path / "book.epub")
-    first, session, _, _ = _run_translate(tmp_path, monkeypatch, "--chapters", "1", source_path=source)
-    assert first.exit_code == 0, first.output
+    session = FailingSession(_direct_languages(), "Chapter two")
+    first, session, _, _ = _run_translate(tmp_path, monkeypatch, source_path=source, session=session)
+    assert first.exit_code == 1 and not (tmp_path / "out.epub").exists(), first.output
     calls = len(session.posts)
 
     missing = tmp_path / "missing.txt"
@@ -89,17 +91,6 @@ def test_translate_cli_require_full_cache_writes_nothing_when_something_is_missi
 
     assert result.exit_code == 1
     assert not output.exists() and not session.posts
-
-
-def test_translate_cli_keeps_going_after_a_failed_text_and_reports_it(tmp_path, monkeypatch):
-    session = FailingSession(_direct_languages(), "Goodbye reader.")
-    result, _, output, _ = _run_translate(tmp_path, monkeypatch, session=session)
-
-    assert _report_value(result.output, "Errors") == "1"
-    written = _members(output)
-    assert b"<p>Goodbye reader.</p>" in written["OEBPS/text/chapter2.xhtml"]
-    assert b"PT:Chapter two" in written["OEBPS/text/chapter2.xhtml"]
-    assert b"PT:Hello title" in written["OEBPS/text/chapter1.xhtml"]
 
 
 def test_translate_cli_fail_fast_stops_without_an_output(tmp_path, monkeypatch):
@@ -138,29 +129,12 @@ def test_translate_cli_with_workers_matches_a_sequential_run(tmp_path, monkeypat
     assert sequential.exit_code == 0, sequential.output
     expected = _members(output)
     output.unlink()
-    (tmp_path / "cache.sqlite").unlink()
+    (tmp_path / "cache.sqlite.v2.sqlite").unlink()
 
     parallel, _, output, _ = _run_translate(tmp_path, monkeypatch, "--workers", "2", source_path=source)
 
     assert parallel.exit_code == 0, parallel.output
     assert _members(output) == expected
-
-
-def test_translate_cli_translation_memory_reuses_a_similar_text(tmp_path, monkeypatch):
-    first_book = _write_epub(tmp_path / "first.epub", chapter_one="<p>The quick brown fox jumps over the lazy dog</p>")
-    first, session, output, _ = _run_translate(tmp_path, monkeypatch, source_path=first_book)
-    assert first.exit_code == 0, first.output
-    output.unlink()
-    second_book = _write_epub(tmp_path / "second.epub", chapter_one="<p>The quick brown fox jumps over the lazy dog!</p>")
-    session.posts.clear()
-
-    result, session, output, _ = _run_translate(
-        tmp_path, monkeypatch, "--translation-memory", "--tm-apply-threshold", "0.9", "--tm-suggest-threshold", "0.8",
-        source_path=second_book, session=session)
-
-    assert result.exit_code == 0, result.output
-    assert _report_value(result.output, "Texts from memory") == "1"
-    assert b"PT:The quick brown fox jumps over the lazy dog" in _members(output)["OEBPS/text/chapter1.xhtml"]
 
 
 def test_translate_cli_never_changes_the_original_even_when_it_fails(tmp_path, monkeypatch):

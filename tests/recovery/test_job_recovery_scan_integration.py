@@ -107,7 +107,9 @@ def test_a_profile_is_found_only_from_a_file_that_records_it(tmp_path, monkeypat
     path = default_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     ConfigStore(path).save(AyvuConfig(profiles={"tec": TranslationProfile(target_language="pt", style="technical")}))
-    entry = _interrupt_real_cli(tmp_path, monkeypatch, _args(tmp_path, source, "--profile", "tec"))
+    legacy = Scene(tmp_path, source=source, profile="tec")
+    legacy.interrupted_state()
+    entry = legacy.only_entry()
     assert entry.compatibility is CompatibilityStatus.DURABLE
     state_file = next((tmp_path / "processing").glob("*.ayvu-state.json"))
     data = json.loads(state_file.read_text())
@@ -121,7 +123,9 @@ def test_a_changed_glossary_is_a_different_configuration_and_a_missing_one_is_sa
     source = _book(tmp_path / "book.epub")
     glossary = tmp_path / "g.json"
     glossary.write_text('{"Hello": "Ola"}')
-    entry = _interrupt_real_cli(tmp_path, monkeypatch, _args(tmp_path, source, "--glossary", str(glossary)))
+    legacy = Scene(tmp_path, source=source, glossary=glossary)
+    legacy.interrupted_state()
+    entry = legacy.only_entry()
     assert entry.compatibility is CompatibilityStatus.DURABLE
     glossary.write_text('{"Hello": "Oi"}')
     changed = open_job_recovery(tmp_path / "processing").list_interrupted.execute().entries[0]
