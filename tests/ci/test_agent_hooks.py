@@ -126,6 +126,25 @@ def test_the_session_context_names_the_branch_and_the_checks():
     assert "Follow AGENTS.md" in context and "scripts/check-fast.sh" in context
 
 
+@pytest.mark.parametrize("command", [
+    "cat >> notes.md <<'EOF'\nThe merge with gh pr merge 5 --admin was denied; the cache.sqlite stays.\nEOF\necho ok",
+    "gh pr create --body-file - <<EOF\nNever rm book.epub or git push --force origin main.\nEOF",
+    "python3 - <<'PY'\nprint('glossary.json and x.sqlite are private')\nPY",
+])
+def test_text_inside_a_heredoc_for_a_non_shell_command_is_not_a_command(command):
+    assert decision(bash(command)) == "allow"
+
+
+@pytest.mark.parametrize("command", [
+    "bash <<'EOF'\nrm -f book.epub\nEOF",
+    "cat <<'EOF' | sh\nrm -f x.sqlite\nEOF",
+    "cat > notes.md <<'EOF'\nfine\nEOF\nrm .cache/x.sqlite",
+    "cd somewhere\nrm book.epub",
+])
+def test_a_heredoc_fed_to_a_shell_or_a_command_after_it_is_still_checked(command):
+    assert decision(bash(command)) == "deny"
+
+
 def test_bad_input_never_breaks_the_agent():
     for mode in ("pretool", "posttool", "session", "unknown"):
         result = subprocess.run([sys.executable, str(HOOK), mode], input="not json", capture_output=True,
