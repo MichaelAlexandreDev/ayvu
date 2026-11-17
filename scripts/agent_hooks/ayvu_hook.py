@@ -34,7 +34,8 @@ DISCARD_WORK = (
 )
 DESTRUCTIVE_SHELL = re.compile(
     r"(?:^|[;&|]\s*)(?:sudo\s+)?(?:rm|unlink|shred|truncate|mv|cp)\b"
-    r"|\bsed\b[^\n]*\s-i(?:\s|$)|\bdd\b[^\n]*\bof=|(?:^|\s)>>?(?:\s|$)"
+    r"|\bsed\b[^\n]*\s-i(?:\s|$)|\bdd\b[^\n]*\bof=|(?:^|\s)>>?(?:\s|$)",
+    re.MULTILINE,  # A command on a later line of a multi-line script is still a command.
 )
 SENSITIVE_IN_COMMAND = re.compile(
     r"(?:\.ayvu-pessoal[/\\]|(?:^|[\s'\"/])\.cache[/\\]|glossary\.json\b|[^\s'\"]+\.(?:epub|pdf|sqlite3?|db)\b)",
@@ -80,7 +81,31 @@ def ask(reason: str) -> dict:
     return answer("PreToolUse", permissionDecision="ask", permissionDecisionReason=reason)
 
 
+HEREDOC_START = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+SHELLS = re.compile(r"(?:^|[|;&]\s*|\s)(?:sudo\s+)?(?:bash|sh|zsh|dash|ksh|eval)\b")
+
+
+def without_heredoc_text(command: str) -> str:
+    """Drops heredoc bodies that are only text for a non-shell command, such as notes, PR bodies or code.
+
+    A body fed to a shell is code that runs, so it is kept and checked like the rest of the command.
+    """
+    lines, kept, index = command.split("\n"), [], 0
+    while index < len(lines):
+        line = lines[index]
+        kept.append(line)
+        index += 1
+        for match in HEREDOC_START.finditer(line):
+            if SHELLS.search(line[:match.start()]) or SHELLS.search(line[match.end():]):
+                continue
+            while index < len(lines) and lines[index].strip() != match.group(2):
+                index += 1
+            index += 1
+    return "\n".join(kept)
+
+
 def bash_decision(command: str) -> dict | None:
+    command = without_heredoc_text(command)
     if ADMIN_MERGE.search(command):
         return deny("Ayvu never merges with --admin. Update the branch, wait for CI and merge normally.")
     if FORCE_PUSH.search(command) and MAIN_REF.search(command):
