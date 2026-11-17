@@ -27,10 +27,9 @@ ALLOWED_INTERNAL_EDGES = {
     *(('ayvu.interfaces.cli.run_support', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'translation.batch', 'translation.errors')), *(('ayvu.interfaces.cli.translate_options', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.render', 'preferences.model')),
     *(("ayvu.composition.builders.translate_project", f"ayvu.{name}") for name in (
        "translation.errors", "translation.context.execution", "translation.context.model",
-       "translation.stages.memory_retrieval", "translation.plan", "providers.capabilities", "providers.ports",
-       "knowledge.glossary.rules", "knowledge.cache.schema",
+       "translation.stages.memory_retrieval", "knowledge.cache.schema",
        "knowledge.cache.repository",
-       "translation.document_contracts", "translation.raw_results", "providers.libretranslate.adapter",
+       "translation.document_contracts", "translation.raw_results",
        "jobs.execution", "recovery.checkpoint", "recovery.service", "recovery.store", "artifacts.model",
        "artifacts.destination", "jobs.model", "projects.model", "provenance.model", "formats.epub.adapter",
        "formats.epub.io", "formats.local", "formats.service", "v1.translation", "projects.schema",
