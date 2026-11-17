@@ -15,6 +15,9 @@ from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 
 from .policy import NetworkDecision, NetworkPolicyError
 
+# The paths a session may reach under its decision's base URL. LibreTranslate's are the default.
+LIBRETRANSLATE_ENDPOINTS = ("/translate", "/languages")
+
 
 @dataclass(frozen=True, repr=False)
 class ValidatedAddress:
@@ -89,8 +92,10 @@ class NetworkAuthorization:
 class PinnedLoopbackAdapter(HTTPAdapter):
     """Only the validated sockaddr reaches connect(); urllib3 never resolves host."""
 
-    def __init__(self, decision: NetworkDecision, address: ValidatedAddress) -> None:
+    def __init__(self, decision: NetworkDecision, address: ValidatedAddress,
+                 endpoints: tuple[str, ...] = LIBRETRANSLATE_ENDPOINTS) -> None:
         self._decision = decision
+        self._urls = frozenset(decision.base_url + path for path in endpoints)
 
         class PinnedConnection(HTTPConnection):
             def _new_conn(self):
@@ -126,7 +131,7 @@ class PinnedLoopbackAdapter(HTTPAdapter):
 
     def send(self, request, **kwargs):
         # Never let a mutated request/session introduce a different hop or credentials.
-        if (request.url not in (self._decision.base_url + "/translate", self._decision.base_url + "/languages")
+        if (request.url not in self._urls
                 or kwargs.get("proxies") or kwargs.get("cert") or "Authorization" in request.headers
                 or "Proxy-Authorization" in request.headers):
             raise NetworkPolicyError(self._decision, "provider", "unsupported_destination")
@@ -137,8 +142,9 @@ class PinnedLoopbackAdapter(HTTPAdapter):
         super().close()
 
 
-def create_http_session(decision: NetworkDecision, address: ValidatedAddress) -> requests.Session:
+def create_http_session(decision: NetworkDecision, address: ValidatedAddress,
+                        endpoints: tuple[str, ...] = LIBRETRANSLATE_ENDPOINTS) -> requests.Session:
     session = requests.Session()
     session.trust_env = False
-    session.mount("http://", PinnedLoopbackAdapter(decision, address))
+    session.mount("http://", PinnedLoopbackAdapter(decision, address, endpoints))
     return session

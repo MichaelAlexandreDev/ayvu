@@ -150,6 +150,7 @@ remain presentation concerns.
         "--retry-backoff": "application-policy",
         "--retry-backoff-max": "application-policy",
         "--timeout": "application-policy",
+        "--translator": "adapter-configuration",
         "--url": "adapter-configuration"
       },
       "subcommands": {}
@@ -165,6 +166,7 @@ remain presentation concerns.
     "test-translator": {
       "use_cases": ["AYVU-UC-002"],
       "options": {
+        "--model": "adapter-configuration",
         "--network-policy": "application-policy",
         "--requests-per-second": "application-policy",
         "--retries": "application-policy",
@@ -173,6 +175,7 @@ remain presentation concerns.
         "--source": "domain-input",
         "--target": "domain-input",
         "--timeout": "application-policy",
+        "--translator": "adapter-configuration",
         "--url": "adapter-configuration"
       },
       "subcommands": {}

@@ -46,6 +46,8 @@ be sensitive.
 identifier, `unknown` or `not_applicable`. There is no `reproducible` field.
 `fully_identified` is false when any value is `unknown`, and even when true it only
 describes what is known, because a known model does not promise the same result.
+A model is an identifier, a `declared:<label>` the owner states (`declared_model`), or `<name>@<sha256>`
+that a server reported (`observed_model`, used by [Ollama](providers-ollama.md)).
 
 **Subjects are opaque.** They are supplied by the caller and compared exactly. Nothing
 here generates or parses them, and current `c####-s####` review numbering is not an

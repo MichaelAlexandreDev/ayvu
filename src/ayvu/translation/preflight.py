@@ -119,10 +119,23 @@ def _check_language_pair(language_pair: LanguagePair) -> None:
         ) from exc
 
 
+def check_book_resources(*, epub_path: Path, cache_path: Path, glossary_path: Path | None,
+                         language_pair: LanguagePair, cache_check: Callable[[Path], None]) -> Glossary:
+    """The provider-independent checks of a translation's preflight, with their established wording."""
+    _check_language_pair(language_pair)
+    glossary = _load_checked_glossary(glossary_path)
+    _check_cache(cache_path, cache_check)
+    _check_epub(epub_path)
+    return glossary
+
+
 def run_local_translation_preflight(*, epub_path, glossary_path, language_pair, translator_name,
                                     url, timeout, retries, requests_per_second, retry_backoff, retry_backoff_max):
     """Offline modality: validate locally without provider/session or cache probes."""
     _check_language_pair(language_pair)
+    if translator_name == "ollama":
+        raise PreflightError("Dry runs, previews and cache-only runs are not available with Ollama yet.",
+                             "Run the translation without --dry-run or --cache-only, or use --translator libretranslate.")
     try:
         validate_translator_name(translator_name)
         RetryPolicy(retries, retry_backoff, retry_backoff_max)

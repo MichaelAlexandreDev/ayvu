@@ -210,8 +210,8 @@ def _print_content_failure(code: str, mode: UserMode) -> None:
         _print_epub_read_error(code, mode)
 
 
-def _print_languages(languages: tuple[DiscoveredLanguage, ...]) -> None:
-    table = Table(title="LibreTranslate languages")
+def _print_languages(languages: tuple[DiscoveredLanguage, ...], title: str = "LibreTranslate languages") -> None:
+    table = Table(title=title)
     table.add_column("Language")
     table.add_column("Code")
     table.add_column("State")

@@ -21,7 +21,9 @@ and labeled previews use the [online transient route](translation.md#online-tran
 `RichTranslationRuntime`. Without a label, legacy composition and fingerprint remain
 the same. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
 `declared:<label>`; `unknown` has not been made eligible. **Changing the server model
-without updating the label reuses old results under the same declaration.**
+without updating the label reuses old results under the same declaration.** With `--translator ollama`,
+the entry names an installed model, and the rich runtime gets the [Ollama binding](providers-ollama.md),
+prepared before the job so that the producer names the model's digest.
 
 Online rich execution prepares `SQLiteExactCache` at `<--cache name>.v2.sqlite` before
 provider preparation. Durable cache-only instead runs the explicit local preflight and opens

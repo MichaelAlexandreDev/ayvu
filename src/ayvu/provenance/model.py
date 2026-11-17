@@ -24,6 +24,9 @@ NOT_APPLICABLE = "not_applicable"
 _OPAQUE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
 _PRODUCER = re.compile(r"[a-z0-9][a-z0-9._+@-]{0,63}")
 _MODEL_LABEL = re.compile(r"[a-z0-9][a-z0-9_-]{0,47}")
+# A model as a server names it, such as Ollama's ``qwen2.5:7b``, pinned by the digest of its weights.
+_OBSERVED_MODEL_NAME = r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}"
+_OBSERVED_MODEL = re.compile(_OBSERVED_MODEL_NAME + r"@[0-9a-f]{64}")
 _CONFIGURATION_REFERENCE = re.compile(r"[a-z][a-z0-9_-]{0,31}:[0-9a-f]{64}")
 
 
@@ -56,6 +59,21 @@ def declared_model(label: str) -> str:
     if not isinstance(label, str) or _MODEL_LABEL.fullmatch(label) is None:
         raise ProvenanceValidationError("invalid_model_label")
     return f"declared:{label}"
+
+
+def valid_observed_model_name(name: str) -> bool:
+    """The names ``observed_model`` accepts. Disjoint from declared labels, which start with ``declared:``."""
+    return (isinstance(name, str) and re.fullmatch(_OBSERVED_MODEL_NAME, name) is not None
+            and not name.startswith("declared:"))
+
+
+def observed_model(name: str, digest: str) -> str:
+    """A model the server reported, as ``<name>@<sha256 hex>``: new weights give a new identity."""
+    if not valid_observed_model_name(name):
+        raise ProvenanceValidationError("invalid_model_name")
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        raise ProvenanceValidationError("invalid_model_digest")
+    return f"{name}@{digest}"
 
 
 class ProvenanceStoreError(ProvenanceError):
@@ -123,7 +141,8 @@ class ProducerIdentity:
                 raise ProvenanceValidationError("invalid_producer")
         if isinstance(self.model, str) and self.model.startswith("declared:"):
             declared_model(self.model.removeprefix("declared:"))
-        elif not isinstance(self.model, str) or not _PRODUCER.fullmatch(self.model):
+        elif not isinstance(self.model, str) or not (_PRODUCER.fullmatch(self.model)
+                                                     or _OBSERVED_MODEL.fullmatch(self.model)):
             raise ProvenanceValidationError("invalid_producer")
 
     def __repr__(self) -> str:

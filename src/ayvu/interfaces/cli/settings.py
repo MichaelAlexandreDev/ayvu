@@ -26,6 +26,7 @@ def _refuse_invalid_translator_models(snapshot) -> None:
     if snapshot.error is not None and snapshot.error.field == "translator_models":
         console.print("[red]Rótulo de modelo inválido em translator_models.[/red]")
         console.print("Use de 1 a 48 caracteres: letras minúsculas, números, _ ou -, começando por letra ou número.")
+        console.print("For translator_models.ollama, use the name of an installed model, such as qwen2.5:7b.")
         raise typer.Exit(code=1)
 
 

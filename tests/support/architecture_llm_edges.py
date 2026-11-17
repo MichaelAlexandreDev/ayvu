@@ -1,5 +1,22 @@
-"""Reviewed dependencies of the provider-neutral LLM core (#375) and its rich-runtime binding."""
+"""Reviewed dependencies of the provider-neutral LLM core (#375), its rich-runtime binding, and Ollama (#376)."""
+OLLAMA_EDGES = {
+    *(('ayvu.composition.builders.ollama', f"ayvu.{name}") for name in (
+        'composition.builders.llm', 'knowledge.glossary.rules', 'network.http', 'network.policy', 'providers.errors',
+        'providers.libretranslate.client', 'providers.llm.settings', 'providers.ollama.chat', 'providers.ollama.client',
+        'providers.ollama.discovery', 'providers.session', 'translation.errors')),
+    ('ayvu.composition.builders.providers', 'ayvu.composition.builders.ollama'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.composition.builders.ollama'),
+    ('ayvu.providers.ollama.chat', 'ayvu.providers.llm.model'),
+    ('ayvu.providers.ollama.chat', 'ayvu.providers.ollama.client'),
+    ('ayvu.providers.ollama.client', 'ayvu.network.http'),
+    ('ayvu.providers.ollama.client', 'ayvu.network.policy'),
+    *(('ayvu.providers.ollama.discovery', f"ayvu.{name}") for name in (
+        'provenance.model', 'providers.capabilities', 'providers.discovery', 'providers.errors', 'providers.llm.core',
+        'providers.llm.facts', 'providers.llm.model', 'providers.llm.settings', 'providers.ollama.chat',
+        'providers.ollama.client', 'providers.ports')),
+}
 LLM_EDGES = {
+    *OLLAMA_EDGES,
     ('ayvu.composition.builders.llm', 'ayvu.knowledge.cache.identity_values'),
     ('ayvu.composition.builders.llm', 'ayvu.knowledge.glossary.rules'),
     ('ayvu.composition.builders.llm', 'ayvu.provenance.model'),

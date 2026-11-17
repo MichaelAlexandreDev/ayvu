@@ -6,7 +6,7 @@ from __future__ import annotations
 from .model import (
     ActorKind, ConfigurationRef, ContextProvenance, NOT_APPLICABLE, ProducerIdentity, ProvenanceError,
     ProvenanceRequest, ProvenanceStoreError, ProvenanceValidationError, SourceKind, SubjectRef, UNKNOWN,
-    declared_model,
+    declared_model, observed_model, valid_observed_model_name,
 )
 from .service import ProvenanceRepository
 
@@ -14,4 +14,5 @@ __all__ = [
     "ActorKind", "ConfigurationRef", "ContextProvenance", "NOT_APPLICABLE", "ProducerIdentity",
     "ProvenanceError", "ProvenanceRepository", "ProvenanceRequest", "ProvenanceStoreError",
     "ProvenanceValidationError", "SourceKind", "SubjectRef", "UNKNOWN", "declared_model",
+    "observed_model", "valid_observed_model_name",
 ]

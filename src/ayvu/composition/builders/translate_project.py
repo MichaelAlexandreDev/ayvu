@@ -331,6 +331,7 @@ class ProjectTranslation:
     cache_path: Path | None = None
     translation_context: ContextExecution | None = None
     prepare_offline: Callable[[], object] | None = None
+    binding: object | None = None  # the rich runtime's provider binding; LibreTranslate's when None
 
     def __repr__(self) -> str:
         return f"ProjectTranslation(project_id={self.project_id!r})"
@@ -382,7 +383,8 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
             runtime = RichTranslationRuntime(translation.source_path, translation.options, translation.prepare,
                 translation.cache_path, translation.model_label, paths.database, paths.backups,
                 projects.resolve_artifact_root(translation.project_id), translation.project_id,
-                translation_context=translation.translation_context, prepare_offline=translation.prepare_offline)
+                translation_context=translation.translation_context, prepare_offline=translation.prepare_offline,
+                binding=translation.binding)
             execution = {"execution_revision": 2, "producer": runtime.producer,
                          "additional_output_roles": () if translation.options.cache_only else (RAW_RESULTS_ROLE,)}
             if translation.translation_context is not None:

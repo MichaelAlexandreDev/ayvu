@@ -90,6 +90,16 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Adicionado
 
+- AI-02 (#376): tradução com um modelo local servido pelo Ollama, pelo runtime rico. Basta nomear o
+  modelo instalado em `translator_models.ollama` e usar `--translator ollama` (a `--url` padrão passa a
+  ser `http://localhost:11434`). Antes de qualquer trabalho no livro, o Ayvu lista os modelos instalados
+  e recusa com clareza um modelo ausente. O produtor fica `ollama` com o modelo `<nome>@<digest>`: pesos
+  novos sob o mesmo nome não reaproveitam o cache antigo. Só HTTP de loopback, `--network-policy none`
+  recusa antes de qualquer socket, e o padrão é um worker. `test-translator` e `languages` aceitam
+  `--translator ollama`; a lista de idiomas do Ollama é declarada pelo Ayvu, porque um modelo não tem
+  lista fixa. Dry run, preview e cache-only com Ollama ainda são recusados. Guia: "Translating with
+  Ollama" (`docs/guide/ollama.md`).
+
 - REF-18 (#286), passo 2: resolvedor local de planos por intenção e evidência canônica do cache v2,
   com identidade única, ambiguidade e falhas tipadas; ainda sem ligação à produção ou mudança na CLI.
 

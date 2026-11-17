@@ -1,7 +1,8 @@
 # Ayvu
 
 Ayvu is a local-first command-line tool that translates EPUB books through a translation server running
-on your own machine (any LibreTranslate-compatible HTTP endpoint). It translates only the text a reader
+on your own machine: any LibreTranslate-compatible HTTP endpoint, or a language model served by
+[Ollama](docs/guide/ollama.md). It translates only the text a reader
 sees, and keeps everything else as it was: HTML structure, CSS, images, links, table of contents and
 internal file names. The original EPUB is never modified; the translation is written to a new file.
 
@@ -56,6 +57,9 @@ To use the rich translation runtime (durable jobs with provenance, the v2 cache 
 declare the model label your server uses: open **Settings → 5. Change translator model label** in the
 guided menu. See [Model label, rich runtime and v2 cache](docs/guide/rich-runtime.md).
 
+To translate with a model installed in Ollama instead, name it under `translator_models.ollama` and add
+`--translator ollama`. See [Translating with Ollama](docs/guide/ollama.md).
+
 ## Common commands
 
 | Command | What it does |
@@ -70,7 +74,7 @@ guided menu. See [Model label, rich runtime and v2 cache](docs/guide/rich-runtim
 | `ayvu extract book.epub --output dir/` | Extracts the visible text to Markdown |
 | `ayvu apply-review book.epub review.csv` | Applies a reviewed CSV package and writes a reviewed EPUB |
 | `ayvu cache inspect\|clean\|export\|import` | Manages the translation cache |
-| `ayvu languages` | Lists the languages your server offers |
+| `ayvu languages` | Lists the languages your server offers; for Ollama (`--translator ollama`), the list Ayvu declares, since a model has no fixed one |
 
 Run `uv run ayvu --help` or `uv run ayvu <command> --help` for every option.
 

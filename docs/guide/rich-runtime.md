@@ -17,6 +17,9 @@ You can also add the field by hand to the **existing configuration file**, keepi
 }
 ```
 
+For a model served by Ollama, the entry is `"ollama"` and its value is the installed model's name; see
+[Translating with Ollama](ollama.md).
+
 The file is `$XDG_CONFIG_HOME/ayvu/config.json`, or `~/.config/ayvu/config.json` when the variable is not
 set. A label has 1 to 48 ASCII characters: lowercase letters, digits, `_` and `-`, starting with a letter
 or digit. URLs, paths, spaces and free text are refused before the translator is called. There is no

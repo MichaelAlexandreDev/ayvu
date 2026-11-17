@@ -23,6 +23,7 @@ from ..library import LibraryService
 from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
+from ..translation.preflight import check_book_resources
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
@@ -118,7 +119,8 @@ def read_review_input(path):
 
 
 def run_translation_preflight(**configuration):
-    return _preflight(**{"cache_check": verify_cache_writable, **configuration})
+    return rich_provider.translation_preflight(_preflight, check_book_resources,
+                                               **{"cache_check": verify_cache_writable, **configuration})
 
 
 def prepare_preview(*, translator_models, translator_name, **configuration):
@@ -211,8 +213,11 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
+    # A model translator is prepared now, before its job: the job records a producer naming the model's digest.
+    model = rich_provider.prepare_model_translation(book.translator_name, book.prepare)
+
     def prepare() -> LegacyResources:
-        preflight = book.prepare()
+        preflight = model or book.prepare()
         return LegacyResources(preflight.translator, preflight.glossary, getattr(preflight, "translator_factory", None))
 
     run = translate_project.translate_in_project(
@@ -233,6 +238,7 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
             rich_provider.selected_model(book.translator_models, book.translator_name),
             book.cache_path,
             prepare_offline=book.prepare,
+            binding=getattr(model, "binding", None),
         ),
         TranslateObserver(
             EngineObserver(hooks.on_chapter_start, hooks.on_chapter_done, hooks.on_text_processed),
@@ -299,7 +305,8 @@ def prepare_translation(*, epub_path, options, cache_path, glossary_path, transl
         translator_name=translator_name, url=url, timeout=timeout, retries=retries,
         requests_per_second=requests_per_second, retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
         language_pair=options.language_pair, dry_run=options.dry_run, cache_only=options.cache_only,
-        network_policy=network_policy, **cache_options)
+        network_policy=network_policy, **cache_options,
+        **rich_provider.model_selection(translator_models if rich else None, translator_name, options))
     on_route(prepared.route)
     if not options.dry_run and not options.cache_only:
         save_checkpoint(epub_path=epub_path, output_path=output_path, cache_path=cache_path,

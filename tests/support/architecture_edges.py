@@ -41,7 +41,7 @@ ALLOWED_INTERNAL_EDGES = {
        "interfaces.cli.render")),
     *(("ayvu.interfaces.cli.commands.translator", f"ayvu.{name}") for name in (
        "composition.cli", "interfaces.cli.options", "interfaces.cli.render", "network.policy",
-       "providers.discovery", "providers.errors")),
+       "providers.discovery", "providers.errors", "interfaces.cli.settings")),
     *((f"ayvu.interfaces.cli.{a}", f"ayvu.{b}") for a, b in (('commands.content', 'composition.cli'), ('commands.content', 'interfaces.cli.render'),
       ('app', 'interfaces.cli.commands.cache'), *(('commands.cache', b) for b in ('composition.cli', 'interfaces.cli.commands.cache_output',
       'interfaces.cli.options', 'interfaces.cli.render', 'knowledge.cache.admin')),

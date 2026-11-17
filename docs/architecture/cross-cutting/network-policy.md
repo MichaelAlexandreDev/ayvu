@@ -54,8 +54,9 @@ All real sessions use `trust_env=False`; environment proxies, `.netrc` and
 ambient credentials do not participate in sending. Explicit proxy and credentials
 still have no contract and are not supported inputs. GET and POST use
 `allow_redirects=False`; any 3xx is `provider_redirect_refused`, without a second
-request, even to the same host. Only GET `/languages` and
-POST `/translate` continue to exist, with existing timeout, retry and rate limit controls.
+request, even to the same host. A session reaches only its provider's endpoints: GET `/languages` and
+POST `/translate` for LibreTranslate, with existing timeout, retry and rate limit controls, and GET
+`/api/tags` and POST `/api/chat` for [Ollama](../modules/providers-ollama.md).
 
 Refusals expose operation, policy, class, reason and default/explicit origin,
 without URL, book text, response, credential or `.netrc` material. The CLI

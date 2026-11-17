@@ -19,12 +19,14 @@ What each identity keys (checked against its callers at 5796e49):
 - provider network binding: ties a network decision to one provider, configuration and operation;
 - approved memory command fingerprint: ``tm_operations.command_hash`` in the memory store;
 - raw-results reuse dimension: the raw-results payload v2 (#242);
-- LLM prompt digest: the snapshot reference of the LLM core's prompt revision, inside the v2 fingerprint (#375).
+- LLM prompt digest: the snapshot reference of the LLM core's prompt revision, inside the v2 fingerprint (#375);
+- Ollama capability fingerprint: binds the installed model's digest into every v2 cache key of an Ollama run (#376).
 """
 
 from __future__ import annotations
 
 import ast
+from datetime import UTC, datetime
 from decimal import Decimal
 from functools import cache as memoize
 from pathlib import Path
@@ -46,6 +48,9 @@ from ayvu.knowledge.cache.identity_values import CanonicalValue, SemanticRouteHo
 from ayvu.knowledge.cache.identity import SemanticOperationV2
 from ayvu.provenance.model import ProducerIdentity
 from ayvu.providers.llm import PROMPT_V1
+from ayvu.providers import capability_fingerprint
+from ayvu.providers.ollama.client import InstalledModel
+from ayvu.providers.ollama.discovery import ollama_snapshot
 
 from tests.support.paths import PROJECT_ROOT
 SOURCE = PROJECT_ROOT / "src" / "ayvu"
@@ -159,6 +164,10 @@ GOLDEN = {
     "llm prompt v1 digest": (
         lambda: PROMPT_V1.digest,
         "029c56321119ead6f898905c7d1202a972c6dce88e4f5319387d10c2360aec0e"),
+    "ollama capability fingerprint": (
+        lambda: capability_fingerprint(ollama_snapshot(InstalledModel("qwen2.5:7b", "a" * 64),
+                                                       datetime(2026, 1, 1, tzinfo=UTC), timeout_seconds=30.0)),
+        "capfp:v1:542070a534e4f7c72ce5a4f348db0be817ea00491f3b7dfc510a92ec945bcb5f"),
     "raw-results reuse dimension": (
         lambda: translation_raw_results._dimension_digest({"input": ["rev-1", "sha256:x", "en"], "title": "Capítulo"}),
         "sha256:aca5b426889afe54ec666956d99cafb27f364e79b2fb3ef16c44e8bff8ea9792"),

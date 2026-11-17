@@ -14,6 +14,7 @@ Start with the [README](../README.md) for what Ayvu is and a quick start. This p
 | [Translation memory](guide/translation-memory.md) | Reusing similar sentences, thresholds and suggestions |
 | [Library](guide/library.md) | Listing originals and translations and opening them in a reader |
 | [Model label, rich runtime and v2 cache](guide/rich-runtime.md) | Declaring the model label, durable jobs, the v2 cache, approved memory and failure behaviour |
+| [Translating with Ollama](guide/ollama.md) | Translating with a local language model: setup, model identity, declared languages, workers, privacy and limits |
 | [Configuration](guide/configuration.md) | The configuration file, its fields, profiles and limits |
 | [HTTP network policy](guide/network-policy.md) | `--network-policy none` and `loopback`, and what each one blocks |
 

@@ -9,11 +9,18 @@ from ...network import NetworkPolicy, resolve_network_policy
 from ...providers.session import CliProviderSession
 from ...providers import ProviderSetupError
 from ...providers.libretranslate.client import LibreTranslateTranslator, TranslatorError
+from .ollama import OLLAMA, ollama_provider_session
 
 
 def cli_provider_session(*, url: str, timeout: float, retries: int, requests_per_second: float | None = None,
                          retry_backoff: float = 0.5, retry_backoff_max: float = 8.0,
-                         network_policy: NetworkPolicy | str | None = None) -> CliProviderSession:
+                         network_policy: NetworkPolicy | str | None = None, translator_name: str = "libretranslate",
+                         model: str | None = None) -> CliProviderSession:
+    if translator_name == OLLAMA:
+        return ollama_provider_session(url=url, timeout=timeout, requests_per_second=requests_per_second,
+                                       network_policy=network_policy, model=model)
+    if translator_name != "libretranslate":
+        raise ProviderSetupError("unsupported_translator")
     try:
         translator = LibreTranslateTranslator(
             url=url, timeout=timeout, retries=retries, requests_per_second=requests_per_second,

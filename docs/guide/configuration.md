@@ -34,7 +34,8 @@ The initial format:
 ```
 
 The model label lives in `translator_models`; see
-[Model label, rich runtime and v2 cache](rich-runtime.md).
+[Model label, rich runtime and v2 cache](rich-runtime.md). The `ollama` entry names an installed Ollama
+model instead; see [Translating with Ollama](ollama.md).
 
 ## Translation profiles
 
