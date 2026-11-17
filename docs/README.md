@@ -7,7 +7,7 @@ Start with the [README](../README.md) for what Ayvu is and a quick start. This p
 | Page | What it covers |
 | --- | --- |
 | [Installation and setup](guide/installation.md) | Requirements, installing with uv or pip, the optional desktop extra, and running a LibreTranslate server |
-| [Translating books](guide/translating.md) | Guided and developer modes, `translate` and its options, batches, chapter selection, metadata and alt text, review packages, previews and language routes |
+| [Translating books](guide/translating.md) | Guided and developer modes, `translate` and its options, batches, output location, dry runs, the final report, text extraction, chapter selection, metadata and alt text, review packages, previews and language routes |
 | [Performance and request control](guide/performance.md) | Performance profiles, workers, rate limits and retries |
 | [Glossary](guide/glossary.md) | Glossary files, the guided glossary flow and how terms are applied |
 | [Cache, resume and cache-only](guide/cache-and-resume.md) | The translation cache and its administration, resuming interrupted books, and rebuilding from the cache |

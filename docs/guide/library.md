@@ -1,17 +1,12 @@
 # Library
 
-> **Translation in progress:** this page still holds the original Portuguese text of the former
-> README, moved here unchanged. An English version replaces it shortly.
-
-## Biblioteca
-
-A biblioteca inicial usa a pasta base configurada, por padrão:
+The library uses the configured base folder, by default:
 
 ```text
 ~/Documentos/Livros
 ```
 
-Com os nomes padrão, os EPUBs ficam organizados assim:
+With the default names, EPUBs are organised like this:
 
 ```text
 ~/Documentos/Livros/
@@ -19,12 +14,11 @@ Com os nomes padrão, os EPUBs ficam organizados assim:
 └── Traduzidos/
 ```
 
-Coloque EPUBs originais em `Original` e traduções finais em `Traduzidos`. Ao escolher
-`Open library` no menu comum, o Ayvu lista os livros em ordem alfabética, mostra se existe
-original e quais traduções foram encontradas, permite ver informações do livro e abre a versão
-selecionada no app leitor. Se nenhum leitor padrão for detectado, configure o comando do leitor em
-`Settings` no campo `Reader app`.
+Put original EPUBs in `Original` and final translations in `Traduzidos`. When you choose `Open library` in
+the common menu, Ayvu lists the books alphabetically, shows whether the original exists and which
+translations were found, lets you see the book's details, and opens the selected version in the reader app.
+If no default reader is detected, set the reader command in `Settings`, in the `Reader app` field.
 
-Ao abrir uma versão, o Ayvu verifica novamente se o EPUB continua o mesmo e dentro da pasta de
-livros. Links para fora dessa pasta não entram na biblioteca; itens ignorados geram um aviso.
-Em `Reader app`, informe o executável e suas opções, sem interpretador de comandos como `sh`.
+When opening a version, Ayvu checks again that the EPUB is still the same and still inside the books
+folder. Links outside that folder are not part of the library, and skipped items produce a notice. In
+`Reader app`, enter the executable and its options, without a shell such as `sh`.

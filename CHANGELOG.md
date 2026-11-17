@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Documentação: as páginas de `docs/guide/` foram traduzidas para inglês e reorganizadas por
+  assunto (saída, relatório e extração foram para a página de tradução; o glossário ficou numa só
+  página). Nenhum comportamento muda.
+
 - Documentação: o README passa a ser curto e em inglês (o que é, início rápido, comandos e
   links). O conteúdo detalhado do README antigo foi para `docs/guide/`, uma página por assunto,
   com o índice em `docs/README.md`. A tradução dessas páginas para inglês vem em seguida.

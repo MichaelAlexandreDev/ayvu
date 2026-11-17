@@ -1,25 +1,20 @@
 # Configuration
 
-> **Translation in progress:** this page still holds the original Portuguese text of the former
-> README, moved here unchanged. An English version replaces it shortly.
-
-## Configuração
-
-O Ayvu define um formato inicial para preferências locais. No modo comum, o primeiro uso pergunta o
-idioma padrão e salva a configuração. Depois, a opção `Settings` permite alterar idioma padrão,
-pasta base dos livros, nomes das pastas das funcionalidades e app leitor de EPUB. O arquivo fica em:
+Ayvu keeps local preferences in a configuration file. In common mode, the first run asks for the default
+language and saves the configuration. Afterwards, `Settings` lets you change the default language, the base
+books folder, the feature folder names, the EPUB reader app and the translator model label. The file is:
 
 ```text
 $XDG_CONFIG_HOME/ayvu/config.json
 ```
 
-Quando `XDG_CONFIG_HOME` não estiver definido, o fallback é:
+When `XDG_CONFIG_HOME` is not set, the fallback is:
 
 ```text
 ~/.config/ayvu/config.json
 ```
 
-Formato inicial:
+The initial format:
 
 ```json
 {
@@ -38,7 +33,12 @@ Formato inicial:
 }
 ```
 
-Perfis podem ser adicionados manualmente em `profiles`:
+The model label lives in `translator_models`; see
+[Model label, rich runtime and v2 cache](rich-runtime.md).
+
+## Translation profiles
+
+Profiles can be added by hand under `profiles`:
 
 ```json
 {
@@ -52,40 +52,44 @@ Perfis podem ser adicionados manualmente em `profiles`:
 }
 ```
 
-`target_language` define o idioma de destino padrão quando `--target` não for informado.
-`glossary` aceita caminho absoluto ou caminho relativo à pasta local de glossários. `style`
-aceita `neutral`, `technical`, `literary` ou `academic`, mas no backend LibreTranslate atual
-serve apenas como metadado do perfil; ele não muda o prompt nem o comportamento do tradutor.
+- **`target_language`** sets the default target language when `--target` is not given.
+- **`glossary`** accepts an absolute path, or a path relative to the local glossaries folder.
+- **`style`** accepts `neutral`, `technical`, `literary` or `academic`. With the current LibreTranslate
+  backend it is only profile metadata: it changes neither the prompt nor the translator's behaviour.
 
-O contrato de [perfis versionados do projeto](../architecture/modules/projects-profiles.md)
-permite migração explícita por chamadores da aplicação. A CLI continua usando os perfis
-globais v1 nesta janela de compatibilidade; não existe comando novo de migração nem
-migração automática. A migração exige glossário do catálogo gerenciado e preserva o perfil global.
+The contract of [versioned project profiles](../architecture/modules/projects-profiles.md) allows an
+explicit migration by application callers. The CLI keeps using the global v1 profiles in this
+compatibility window; there is no new migration command and no automatic migration. The migration requires
+a glossary from the managed catalog and keeps the global profile.
 
-A precedência para campos cobertos por perfis de tradução é:
+For the fields that translation profiles cover, the precedence is:
 
 ```text
-argumentos da CLI > perfil selecionado > arquivo de configuração > padrões internos
+CLI arguments > selected profile > configuration file > built-in defaults
 ```
 
-Sem caminhos explícitos, a pasta base e os nomes de pastas configurados definem onde o Ayvu salva
-previews, traduções, relatórios Markdown e estados de processamento, além das pastas usadas pela
-biblioteca. O campo `reader_app` define o comando usado para abrir EPUBs pela biblioteca quando o
-leitor padrão do sistema não for suficiente.
+## Folders and the reader
 
-Glossários criados pelo modo comum ficam ao lado da configuração, em `glossaries/`, e podem ser
-selecionados antes de iniciar uma tradução guiada.
+Without explicit paths, the base folder and the configured folder names decide where Ayvu saves previews,
+translations, Markdown reports and processing state, and which folders the library uses. `reader_app` sets
+the command used to open EPUBs from the library when the system's default reader is not enough.
 
-A configuração continua no formato v1. Leituras não regravam o arquivo; alterações
-usam gravação atômica e uma revisão para impedir que duas sessões sobrescrevam
-mudanças uma da outra. Campos desconhecidos permitem leitura com aviso, mas
-bloqueiam gravações até revisão explícita do arquivo, evitando perda de dados.
-Se uma gravação falhar, o menu informa que os valores valem apenas para a sessão
-atual. Em conflito de revisão, recarregue a configuração antes de tentar salvar
-novamente. Comandos do leitor com opções de credenciais, como `--token` ou
-`--password`, são recusados; a configuração não é um armazenamento de segredos.
-Consulte o [contrato de preferências](../architecture/modules/preferences.md)
-para limites, resultados de erro, compatibilidade e permissões.
-Arquivos inválidos, futuros ou acima dos limites são preservados: guardar uma
-cópia privada e corrigir explicitamente o arquivo é necessário antes de salvar
-novamente. O menu não substitui esses arquivos pela configuração padrão.
+Glossaries created in common mode live next to the configuration, in `glossaries/`, and can be selected
+before a guided translation starts.
+
+## How the file is written
+
+The configuration stays in the v1 format.
+
+- **Reads never rewrite the file.** Changes use an atomic write and a revision, so two sessions cannot
+  overwrite each other's changes. On a revision conflict, reload the configuration before saving again.
+- **Unknown fields** allow reading with a notice, but block writes until the file is reviewed explicitly,
+  so no data is lost.
+- **If a write fails,** the menu says that the values only apply to the current session.
+- **Reader commands** with credential options, such as `--token` or `--password`, are refused: the
+  configuration is not a secret store.
+- **Invalid, future or oversized files** are preserved. Keep a private copy and fix the file explicitly
+  before saving again; the menu never replaces them with the default configuration.
+
+See the [preferences contract](../architecture/modules/preferences.md) for limits, error results,
+compatibility and permissions.

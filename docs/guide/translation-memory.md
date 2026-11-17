@@ -1,57 +1,51 @@
 # Translation memory
 
-> **Translation in progress:** this page still holds the original Portuguese text of the former
-> README, moved here unchanged. An English version replaces it shortly.
-
-## Memória de Tradução
-
-O cache normal só reaproveita traduções de trechos **idênticos**. A memória de
-tradução é uma camada opcional que também reaproveita trechos **parecidos**, útil
-em livros técnicos, séries e textos com frases repetidas. Ela fica **desligada por
-padrão** e é ativada com `--translation-memory`:
+The normal cache only reuses translations of **identical** segments. Translation memory is an optional
+layer that also reuses **similar** segments, which helps with technical books, series and texts with
+repeated sentences. It is **off by default** and turned on with `--translation-memory`:
 
 ```bash
-uv run ayvu translate livro.epub \
-  --output livro-ptbr.epub \
-  --cache .cache/traducoes.sqlite \
+uv run ayvu translate book.epub \
+  --output book-pt.epub \
+  --cache .cache/translations.sqlite \
   --translation-memory \
   --tm-apply-threshold 0.95 \
   --tm-suggest-threshold 0.80
 ```
 
-Sem `translator_models.libretranslate`, a memória mantém o comportamento legado
-e usa os mesmos pares original/traduzido já guardados no cache SQLite, em disco. Para cada trecho novo sem correspondência exata, o Ayvu busca candidatos
-parecidos do mesmo par de idiomas e mede a similaridade. O comportamento é em
-camadas, controlado por dois limiares de similaridade (entre 0 e 1):
+`--translation-memory` currently requires `--workers 1`. For a parallel run, drop `--translation-memory`;
+to use translation memory, keep the sequential default.
 
-No momento, `--translation-memory` exige `--workers 1`. Para execução paralela,
-remova `--translation-memory`; para usar memória de tradução, mantenha o padrão
-sequencial.
+## Without a model label
 
-- **Similaridade ≥ `--tm-apply-threshold`** (padrão `0.95`): a tradução guardada é
-  reaproveitada direto, sem chamar o tradutor. Conta como `Texts from memory` no
-  relatório.
-- **Similaridade em `[--tm-suggest-threshold, --tm-apply-threshold)`** (padrão
-  `0.80` a `0.95`): o trecho é traduzido normalmente, mas a correspondência
-  parecida é registrada como sugestão de revisão e contada em `Memory
-  suggestions`.
-- **Similaridade abaixo de `--tm-suggest-threshold`**: nada muda, o trecho segue o
-  fluxo normal de tradução.
+Without `translator_models.libretranslate`, the memory keeps its legacy behaviour and uses the same
+original/translated pairs already stored in the SQLite cache on disk. For each new segment with no exact
+match, Ayvu looks for similar candidates in the same language pair and measures their similarity. Two
+similarity thresholds (between 0 and 1) control what happens:
 
-Por segurança, a memória atua **somente em trechos de texto puro**: blocos com
-tags inline (como `<em>` ou `<a>`) não reaproveitam memória, e correspondências
-que envolvam marcação são descartadas, para nunca injetar a formatação de outro
-trecho. A reutilização **não** é regravada no cache sob o novo texto.
+- **Similarity ≥ `--tm-apply-threshold`** (`0.95` by default): the stored translation is reused directly,
+  without calling the translator. It counts as `Texts from memory` in the report.
+- **Similarity in `[--tm-suggest-threshold, --tm-apply-threshold)`** (`0.80` to `0.95` by default): the
+  segment is translated normally, and the similar match is recorded as a review suggestion, counted in
+  `Memory suggestions`.
+- **Similarity below `--tm-suggest-threshold`:** nothing changes, and the segment follows the normal
+  translation flow.
 
-Os pares reaproveitáveis são os do próprio cache, então o formato exportável já
-existente serve à memória: use `ayvu cache export` para salvar os pares
-original/traduzido em JSON.
+For safety, memory acts **only on plain-text segments**: blocks with inline tags (such as `<em>` or `<a>`)
+never reuse memory, and matches that involve markup are discarded, so another segment's formatting is never
+injected. A reuse is **not** written back to the cache under the new text.
 
-> **Risco de qualidade (falsos positivos).** Trechos parecidos podem ter
-> significados diferentes (negações, números, nomes, pequenas trocas de palavra).
-> Quanto menor o limiar de aplicação, maior o risco de reaproveitar uma tradução
-> errada. Por isso a memória é opt-in e usa limiares altos por padrão; o nível de
-> sugestão existe justamente para que correspondências menos seguras sejam
-> revisadas em vez de aplicadas automaticamente. Para um livro novo e sensível,
-> prefira manter a memória desligada ou usar `--review-output` para conferir o
-> resultado.
+The reusable pairs are the cache's own, so the existing export format already serves the memory: use
+`ayvu cache export` to save the original/translated pairs as JSON.
+
+> **Quality risk (false positives).** Similar segments can mean different things: negations, numbers,
+> names, small word swaps. The lower the apply threshold, the higher the risk of reusing a wrong
+> translation. That is why memory is opt-in and uses high thresholds by default; the suggestion level
+> exists so that less certain matches are reviewed instead of applied automatically. For a new or sensitive
+> book, keep memory off, or use `--review-output` to check the result.
+
+## With a model label
+
+With a model label, `--translation-memory` uses governed approved memory instead of the v1 cache, and fuzzy
+matches are suggestions unless conservative auto-apply is selected. See
+[Model label, rich runtime and v2 cache](rich-runtime.md).

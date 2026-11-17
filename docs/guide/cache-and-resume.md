@@ -1,173 +1,170 @@
 # Cache, resume and cache-only
 
-> **Translation in progress:** this page still holds the original Portuguese text of the former
-> README, moved here unchanged. An English version replaces it shortly.
+## The translation cache
 
-## Cache e Retomada
-
-As traduções são armazenadas em SQLite. Se o processo for interrompido, rode o mesmo comando novamente usando o mesmo arquivo de cache:
+Translations are stored in SQLite. If the process is interrupted, run the same command again with the same
+cache file:
 
 ```bash
-uv run ayvu translate livro.epub \
-  --output livro-ptbr.epub \
-  --cache .cache/traducoes.sqlite
+uv run ayvu translate book.epub \
+  --output book-pt.epub \
+  --cache .cache/translations.sqlite
 ```
 
-Trechos já traduzidos serão reaproveitados automaticamente.
-O checkpoint de retomada preserva as opções de execução do tradutor, como
-timeout, workers, retries, limite de requisições por segundo e backoff.
+Segments already translated are reused automatically. The resume checkpoint keeps the translator's
+execution options, such as timeout, workers, retries, requests per second and backoff.
 
-A tradução pela CLI usa o cache legado v1; o caminho rico dispõe de cache v2 independente. A migração preserva os dados v1 sem transformá-los em acertos exatos v2. A administração aceita namespaces explícitos; sem seleção, mantém o comportamento legado. Veja [cache standalone v2](../architecture/modules/knowledge-cache.md).
+Translation without a model label uses the legacy v1 cache; the rich runtime has its own independent v2
+cache. The migration keeps the v1 data without turning it into exact v2 hits. Cache administration accepts
+explicit namespaces; without a selection, it keeps the legacy behaviour. See the
+[standalone v2 cache](../architecture/modules/knowledge-cache.md).
 
-O cache pode ser inspecionado, limpo, exportado e importado separadamente dos
-comandos de tradução:
+## Administering the cache
+
+The cache can be inspected, cleaned, exported and imported separately from the translation commands:
 
 ```bash
-uv run ayvu cache inspect --cache .cache/traducoes.sqlite
-uv run ayvu cache clean --cache .cache/traducoes.sqlite --source en --target pt --dry-run
-uv run ayvu cache clean --cache .cache/traducoes.sqlite --source en --target pt --yes
-uv run ayvu cache export cache-ayvu.json --cache .cache/traducoes.sqlite
-uv run ayvu cache import cache-ayvu.json --cache .cache/traducoes.sqlite
+uv run ayvu cache inspect --cache .cache/translations.sqlite
+uv run ayvu cache clean --cache .cache/translations.sqlite --source en --target pt --dry-run
+uv run ayvu cache clean --cache .cache/translations.sqlite --source en --target pt --yes
+uv run ayvu cache export ayvu-cache.json --cache .cache/translations.sqlite
+uv run ayvu cache import ayvu-cache.json --cache .cache/translations.sqlite
 ```
 
-`cache inspect` agrupa entradas por idioma de origem, idioma de destino,
-quantidade e datas da primeira e última entrada. `cache clean` aceita filtros
-por `--source`, `--target` e `--before`; para limpar tudo, use `--all`. A
-remoção real exige `--yes`, e `--dry-run` mostra quantas entradas seriam
-apagadas sem modificar o SQLite. `cache export` grava JSON legível e
-`cache import` lê esse JSON; entradas existentes são puladas por padrão e podem
-ser substituídas com `--replace`.
+- **`cache inspect`** groups entries by source language, target language, count, and the dates of the
+  first and last entry.
+- **`cache clean`** accepts the filters `--source`, `--target` and `--before`; to clean everything, use
+  `--all`. Real removal requires `--yes`, and `--dry-run` shows how many entries would be deleted without
+  changing the SQLite file. A selection that changed between the preview and the removal is rejected; run
+  the command again in that case.
+- **`cache export`** writes readable JSON, and **`cache import`** reads it. Existing entries are skipped by
+  default and can be replaced with `--replace`.
 
-Se o cache ainda não existir, `inspect` mostra zero entradas e `export` grava
-um JSON vazio sem criar o cache nem sua pasta. A limpeza rejeita uma seleção
-que mudou entre a prévia e a remoção; nesse caso, execute o comando novamente.
-Erros detalhados usam códigos curtos, sem incluir conteúdo das entradas.
-O destino da exportação deve ser um arquivo diferente do próprio cache SQLite.
-No formato legado v1, exportação e importação têm limite de 512 MiB e 1.000.000
-de entradas; acima disso, exporte em partes com `--source`, `--target` ou
-`--before`. O formato v2 tem limites e filtros próprios descritos em
-[administração de cache](../architecture/modules/knowledge-cache.md).
+If the cache does not exist yet, `inspect` shows zero entries and `export` writes an empty JSON, without
+creating the cache or its folder. Detailed errors use short codes and never include entry contents. The
+export destination must be a different file from the SQLite cache itself.
 
-O arquivo exportado inclui texto original e texto traduzido. Trate esse JSON
-como conteúdo privado do livro, da mesma forma que o EPUB e o cache SQLite.
+In the legacy v1 format, export and import are limited to 512 MiB and 1,000,000 entries; above that, export
+in parts with `--source`, `--target` or `--before`. The v2 format has its own limits and filters, described
+in [cache administration](../architecture/modules/knowledge-cache.md).
 
-`cache import` prepara as entradas num arquivo temporário ao lado do cache,
-`.ayvu-cache-import-legacy-*.sqlite`, e só depois altera o cache. Um Ctrl+C
-apaga esse arquivo. Se o processo for morto à força ou o computador desligar no
-meio, o cache fica como estava, mas o arquivo temporário sobra: ele contém
-textos do livro e pode ser apagado quando nenhum import estiver rodando.
+The exported file contains original and translated text. Treat that JSON as private book content, like the
+EPUB and the SQLite cache.
 
-A administração de cache v2 aceita seleção explícita de namespace e importação com mapa externo e previsão. Veja [administração de cache](../architecture/modules/knowledge-cache.md) para exemplos, autorização de escopos e limites. Arquivos de exportação e recuperação podem conter textos sensíveis.
+`cache import` stages the entries in a temporary file next to the cache,
+`.ayvu-cache-import-legacy-*.sqlite`, and only then changes the cache. Ctrl+C deletes that file. If the
+process is killed or the computer shuts down midway, the cache stays as it was, but the temporary file is
+left behind: it contains book text and can be deleted when no import is running.
 
-Traduções diretas, guiadas e em lote criam ou reutilizam automaticamente um
-projeto local em `<pasta de processamento>/projects/<UUID>/project.json`.
-O manifesto guarda identidade, referência e hash do original, idiomas e
-referências de configuração. Ele contém metadados privados, não o texto do livro
-nem credenciais. Mudar idioma ou configuração cria outro projeto, preservando
-o anterior. Prompts, nomes de saída e o EPUB original permanecem preservados.
-`--cache-only` também resolve um projeto; `--dry-run`, previews e a retomada de
-checkpoints antigos continuam sem exigir manifesto. A pasta de processamento
-padrão é `~/Documentos/Livros/Processando`.
+v2 cache administration accepts an explicit namespace selection and imports with an external map and a
+preview. See [cache administration](../architecture/modules/knowledge-cache.md) for examples, scope
+authorisation and limits. Export and recovery files may contain sensitive text.
 
-Falhas de persistência ou ambiguidades interrompem a tradução antes do
-preflight do tradutor. Não há limpeza automática: remover estado de projeto
-nunca apaga automaticamente originais, saídas, cache ou glossários, mas perde
-a identidade e as referências necessárias ao futuro histórico/retomada por
-projeto. Links simbólicos e fontes com hardlinks são recusados nesse fluxo.
-Para schema, limites e recuperação de escrita interrompida, consulte o
-[contrato do manifesto local](../architecture/modules/projects.md).
-O repositório também oferece uma API explícita para resolver o banco local
-`projects/<UUID>/project.sqlite` e seus backups em `backups/schema/`.
-O bootstrap SQLite e as migrações são chamados pela composição quando necessários;
-a tradução com projeto cria esse banco no primeiro uso. O manifesto v1
-e o cache independente permanecem preservados. Consulte o
-[protocolo de migração e recuperação](../architecture/modules/projects-storage.md)
-para backup verificado, conflitos, queda de processo e recuperação manual.
-Esse banco também tem o [registro durável de jobs](../architecture/modules/jobs.md),
-o [registro de artefatos e checkpoints](../architecture/modules/artifacts.md) e o
-[registro de proveniência](../architecture/modules/provenance.md). Cada tradução com projeto
-vira um job nesse banco, do começo ao resultado final, e o
-[caso de uso](../architecture/modules/translation-project.md) explica o que acontece em cada caso.
-Dry-run e preview não têm projeto e não criam job.
-Nesse fluxo, a URL do tradutor deve estar livre de usuário/senha, parâmetros de
-consulta e fragmentos. Autenticação por referências de credenciais é trabalho
-futuro; fingerprints do manifesto continuam sendo metadados privados.
+## Local projects
 
-Durante traduções reais, o Ayvu também grava um checkpoint local da execução em
-`~/Documentos/Livros/Processando`, ou na pasta de processamento configurada
-(arquivo `*.ayvu-state.json`). Além dos caminhos e opções da execução, esse
-checkpoint é atualizado **a cada capítulo** e registra o progresso: total de
-capítulos, o capítulo atual, os capítulos concluídos, os capítulos com falha e
-quantos segmentos falharam. Ele não substitui o cache e não é apagado
-automaticamente.
+Direct, guided and batch translations create or reuse a local project automatically, in
+`<processing folder>/projects/<UUID>/project.json`.
 
-Para retomar uma tradução interrompida sem redigitar as opções, use o comando
-`resume`:
+- **The manifest** stores the original's identity, reference and hash, the languages, and the
+  configuration references. It holds private metadata, never the book's text or credentials.
+- **Changing** the language or the configuration creates another project and keeps the previous one.
+  Prompts, output names and the original EPUB are preserved.
+- **`--cache-only`** also resolves a project; `--dry-run`, previews and resuming old checkpoints still
+  need no manifest.
+- **The default processing folder** is `~/Documentos/Livros/Processando`.
+
+Persistence failures or ambiguities stop the translation before the translator's preflight. There is no
+automatic cleanup: removing project state never deletes originals, outputs, the cache or glossaries, but it
+loses the identity and references that history and per-project resume rely on. Symbolic links and sources
+with hard links are refused in this flow. For the schema, limits and recovery from an interrupted write,
+see the [local manifest contract](../architecture/modules/projects.md).
+
+Each project also has a SQLite database, `projects/<UUID>/project.sqlite`, with its backups in
+`backups/schema/`. Composition bootstraps and migrates it when needed, and a project translation creates
+it on first use; the v1 manifest and the independent cache are preserved. See the
+[migration and recovery protocol](../architecture/modules/projects-storage.md) for verified backups,
+conflicts, process crashes and manual recovery.
+
+That database holds the [durable job record](../architecture/modules/jobs.md), the
+[artifact and checkpoint record](../architecture/modules/artifacts.md) and the
+[provenance record](../architecture/modules/provenance.md). Each project translation becomes a job there,
+from start to final result, and the [use case](../architecture/modules/translation-project.md) explains
+what happens in each case. Dry runs and previews have no project and create no job.
+
+In this flow, the translator URL must not contain a username, password, query parameters or fragments.
+Authentication through credential references is future work; manifest fingerprints remain private
+metadata.
+
+## Checkpoints
+
+During real translations, Ayvu also writes a local checkpoint of the run in `~/Documentos/Livros/Processando`,
+or in the configured processing folder (a `*.ayvu-state.json` file). Besides the run's paths and options,
+the checkpoint is updated **after each chapter** and records the progress: the total chapters, the
+current chapter, the completed chapters, the failed chapters and how many segments failed. It does not
+replace the cache and is not deleted automatically.
+
+## Resuming a translation
+
+To resume an interrupted translation without retyping its options, use `resume`:
 
 ```bash
 uv run ayvu resume
-uv run ayvu resume livro.epub --target pt
+uv run ayvu resume book.epub --target pt
 ```
 
-Sem argumentos, `resume` continua a única tradução em andamento; havendo mais de
-uma, informe o EPUB e o `--target` para escolher. O comando mostra o checkpoint
-(até onde foi), os controles de execução salvos (`Workers`, `Rate limit` e
-`Retry policy`) e reexecuta a tradução com as opções salvas. Ao executar apenas
-`uv run ayvu`, o modo comum também procura estados em andamento e oferece retomar
-a execução detectada, mostrando o mesmo resumo de checkpoint.
+Without arguments, `resume` continues the only translation in progress; when there are several, give the
+EPUB and `--target` to choose. The command shows the checkpoint (how far it got) and the saved execution
+controls (`Workers`, `Rate limit` and `Retry policy`), and runs the translation again with the saved
+options. Running just `uv run ayvu` in common mode also looks for translations in progress and offers to
+resume the one it finds, with the same checkpoint summary.
 
-Uma retomada nunca reabre um job que terminou: ela encerra o job interrompido, se
-ainda não tiver um resultado, e cria um novo ligado a ele. Ela é recusada se a mesma
-tradução ainda estiver rodando em outro processo, se o livro tiver mudado desde o
-começo ou se o livro for recusado por política. Um arquivo de estado antigo, sem job
-correspondente, continua funcionando como sempre, sem criar projeto nem job. Veja
-[recuperação de traduções](../architecture/modules/recovery.md).
+A resume never reopens a job that ended: it closes the interrupted job, if it has no result yet, and
+creates a new one linked to it. It is refused if the same translation is still running in another
+process, if the book changed since it started, or if the book is refused by policy. An old state file
+without a matching job still works as before, without creating a project or a job. See
+[translation recovery](../architecture/modules/recovery.md).
 
-O tradutor pode ser chamado de novo para um trecho que estava em andamento quando a
-execução foi interrompida. O cache evita repetir o que já foi concluído, mas ainda não
-prova qual provedor ou modelo produziu um texto, então toda retomada reprocessa o livro
-inteiro em vez de reaproveitar etapas.
+A resume keeps the runtime its job started with: a v1 job finishes on v1 even after a model label is
+declared, and a rich job needs a label. See [Model label, rich runtime and v2 cache](rich-runtime.md).
 
-Checkpoint e cache se complementam: o **cache** guarda cada trecho já traduzido e
-evita retraduzi-lo, enquanto o **checkpoint** registra o progresso e as falhas.
-Como o EPUB de saída só é escrito por inteiro ao final, a retomada reprocessa
-todos os capítulos, mas, graças ao cache, apenas os segmentos ainda não cacheados
-(os que faltaram ou falharam antes) chamam de fato o tradutor — ou seja, a
-retomada já reprocessa só o que ficou pendente. Por isso o checkpoint e o cache
-devem usar os mesmos caminhos entre as execuções.
+The translator may be called again for a segment that was in progress when the run was interrupted. On the
+legacy runtime, the cache avoids repeating finished work but cannot prove which provider or model produced
+a text, so every resume reprocesses the whole book instead of reusing stages.
 
-### Modo cache-only
+The checkpoint and the cache complement each other: the **cache** keeps each translated segment so it is
+never translated again, while the **checkpoint** records progress and failures. Because the output EPUB is
+only written whole at the end, a resume reprocesses every chapter; thanks to the cache, only the segments
+not cached yet (the ones that were missing or failed before) actually call the translator. That is why the
+checkpoint and the cache must use the same paths across runs.
 
-O modo `--cache-only` reconstrói o EPUB usando **apenas** o que já está no cache e
-**nunca** chama o tradutor. Ele serve para testar a reconstrução, reaproveitar
-trabalho anterior de forma controlada e evitar chamadas acidentais ao tradutor.
-Como não há tráfego de rede, não é preciso um servidor LibreTranslate ativo.
+## Cache-only mode
+
+`--cache-only` rebuilds the EPUB using **only** what is already in the cache, and **never** calls the
+translator. It is useful to test the reconstruction, to reuse earlier work in a controlled way, and to
+avoid accidental calls to the translator. Since there is no network traffic, no LibreTranslate server needs
+to be running.
 
 ```bash
-uv run ayvu translate livro.epub \
-  --output livro-ptbr.epub \
-  --cache .cache/traducoes.sqlite \
+uv run ayvu translate book.epub \
+  --output book-pt.epub \
+  --cache .cache/translations.sqlite \
   --cache-only \
-  --missing-output faltantes.txt
+  --missing-output missing.txt
 ```
 
-Comportamento:
+- **Cached segments** are applied, with the glossary when one is configured.
+- **Segments missing from the cache** stay in the original language and are counted as `Texts missing` in
+  the report.
+- **Partial coverage:** by default, the EPUB is generated even with partial coverage. Use
+  `--require-full-cache` to generate it only when every segment is cached; if anything is missing,
+  nothing is written and the command fails.
+- **`--missing-output PATH`** saves the original segments missing from the cache. Without it, a cache-only
+  run with missing segments writes the file automatically in the Reports folder. The file is written even
+  when `--require-full-cache` blocks the output, to show what still needs translating.
 
-- Trechos presentes no cache são aplicados (com glossário, quando configurado).
-- Trechos ausentes do cache ficam no idioma original e são contados como
-  `Texts missing` no relatório.
-- Por padrão, o EPUB é gerado mesmo com cobertura parcial. Use
-  `--require-full-cache` para gerar somente quando todos os trechos estiverem no
-  cache; se faltar algum, nada é escrito e o comando falha.
-- `--missing-output CAMINHO` salva os trechos originais ausentes do cache. Sem
-  essa opção, em cache-only com faltantes, o arquivo é gravado automaticamente na
-  pasta de Relatórios. O arquivo é gerado mesmo quando `--require-full-cache`
-  bloqueia a saída, para mostrar o que precisa ser traduzido.
+Compared with a normal resume: a resume runs the translation again and **calls the translator** for the
+segments not cached yet, and writes state in `~/Documentos/Livros/Processando`. Cache-only never calls the
+translator, creates no resume state and needs no running server.
 
-Diferença para a retomada normal: a retomada reexecuta a tradução e **chama o
-tradutor** para os trechos ainda não cacheados, gravando estado em
-`~/Documentos/Livros/Processando`. O cache-only nunca chama o tradutor, não cria
-estado de retomada e não exige servidor ativo.
-
-Without a model label, cache-only runs with one worker: `--workers` above 1, or a profile such as
-`high`, is refused with a clear message. With a label, cache-only runs with several workers.
+Without a model label, cache-only runs with one worker: `--workers` above 1, or a profile such as `high`, is
+refused with a clear message. With a label, cache-only runs with several workers.

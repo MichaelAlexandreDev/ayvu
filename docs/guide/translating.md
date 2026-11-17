@@ -1,249 +1,336 @@
 # Translating books
 
-> **Translation in progress:** this page still holds the original Portuguese text of the former
-> README, moved here unchanged. An English version replaces it shortly.
+## Modes
 
-## Modos de Uso
+Ayvu has two modes that balance ease of use with direct control:
 
-O Ayvu possui dois modos de execução que equilibram facilidade de uso com eficiência técnica:
+- **Common mode** is guided. It offers to resume interrupted translations, invites you to generate
+  previews, and asks for confirmation before important actions such as overwriting files. It is the
+  default when you run just `ayvu`.
+- **Developer mode** is direct and suited to automation. It skips interactive questions and uses the
+  defaults or the arguments you pass. It is the default for subcommands such as `translate` or `inspect`.
 
-- **Modo Comum (common)**: Focado em uma experiência guiada. Oferece sugestões de retomada de traduções interrompidas, convites para gerar previews e solicita confirmações antes de ações importantes (como sobrescrever arquivos). É o modo padrão ao executar apenas `ayvu`.
-- **Modo Desenvolvedor (developer)**: Focado em execução direta e automação. Pula perguntas interativas e assume as configurações padrão ou passadas via argumentos. É o modo padrão ao utilizar subcomandos como `translate` ou `inspect`.
+For a step-by-step walkthrough of both, read the [tutorial](../tutorial-modo-comum-e-dev.md).
 
-Para um passo a passo dos dois fluxos, leia o
-[`tutorial de modo comum e modo desenvolvedor`](../tutorial-modo-comum-e-dev.md).
-
-Você pode forçar um modo específico usando a opção global `--mode`:
+You can force a mode with the global `--mode` option:
 
 ```bash
-uv run ayvu --mode common translate livro.epub
+uv run ayvu --mode common translate book.epub
 ```
 
-Liste os idiomas disponíveis no LibreTranslate local:
+List the languages your local LibreTranslate offers:
 
 ```bash
 uv run ayvu languages --url http://localhost:5000
 ```
 
-## Uso
-
-Inspecionar um EPUB:
+## Inspecting a book
 
 ```bash
-uv run ayvu inspect livro.epub
+uv run ayvu inspect book.epub
 ```
 
-O comando é somente de leitura: mostra caminho, título, autores, idioma e as
-contagens de documentos e itens, sem criar cache ou projeto. Livro protegido por
-DRM recebe só um aviso, sem título ou autores. `translate` e `extract` o recusam. Em erros de leitura,
-o modo desenvolvedor mostra um código de motivo seguro em vez do texto interno
-do parser.
+The command is read-only: it shows the path, title, authors, language and the document and item counts,
+without creating a cache or a project. A DRM-protected book only gets a notice, without title or authors;
+`translate` and `extract` refuse it. On read errors, developer mode shows a safe reason code instead of the
+parser's internal text.
 
-Traduzir um EPUB:
+## Translating a book
 
 ```bash
-uv run ayvu translate livro.epub \
+uv run ayvu translate book.epub \
   --target pt \
   --translator libretranslate \
   --url http://localhost:5000 \
-  --cache .cache/traducoes.sqlite
+  --cache .cache/translations.sqlite
 ```
 
-Traduzir usando um perfil salvo na configuração:
+Translate with a profile saved in the configuration:
 
 ```bash
-uv run ayvu translate livro.epub --profile technical
+uv run ayvu translate book.epub --profile technical
 ```
 
-Gerenciar o cache de traduções:
+Manage the translation cache (see [Cache, resume and cache-only](cache-and-resume.md)):
 
 ```bash
-uv run ayvu cache inspect --cache .cache/traducoes.sqlite
-uv run ayvu cache clean --cache .cache/traducoes.sqlite --source en --target pt --dry-run
-uv run ayvu cache export cache-ayvu.json --cache .cache/traducoes.sqlite
-uv run ayvu cache import cache-ayvu.json --cache .cache/traducoes.sqlite
+uv run ayvu cache inspect --cache .cache/translations.sqlite
+uv run ayvu cache clean --cache .cache/translations.sqlite --source en --target pt --dry-run
+uv run ayvu cache export ayvu-cache.json --cache .cache/translations.sqlite
+uv run ayvu cache import ayvu-cache.json --cache .cache/translations.sqlite
 ```
 
-Retomar uma tradução interrompida a partir do checkpoint salvo:
+Resume an interrupted translation from its saved checkpoint:
 
 ```bash
 uv run ayvu resume
-uv run ayvu resume livro.epub --target pt
+uv run ayvu resume book.epub --target pt
 ```
 
-Traduzir vários EPUBs em uma única execução:
+## Translating several books
 
 ```bash
-uv run ayvu translate livro-1.epub livro-2.epub livro-3.epub \
+uv run ayvu translate book-1.epub book-2.epub book-3.epub \
   --target pt \
-  --output-dir traduzidos/ \
+  --output-dir translated/ \
   --continue-on-error
 ```
 
-O comando aceita até 100 EPUBs e os processa sequencialmente, na ordem informada.
-Sem `--source`, o idioma de origem é identificado separadamente nos metadados
-de cada livro, que podem ter idiomas diferentes. Fora de `--dry-run`, cada livro
-gera um EPUB separado com o padrão
-`<nome>-<idioma>.epub` dentro de `--output-dir`. Se `--output-dir` não for
-informado, o Ayvu usa a pasta de traduzidos configurada. O comando para no
-primeiro erro por padrão; com `--continue-on-error`, continua nos livros
-restantes e termina com código 1 se algum item falhar. Saídas existentes não
-são sobrescritas sem confirmação no modo comum ou sem `--overwrite` no modo
-desenvolvedor. Destinos de EPUB duplicados são recusados antes do início; no
-modo comum, as escolhas para conflitos são feitas antes de processar os livros.
+The command accepts up to 100 EPUBs and processes them one after another, in the order given.
 
-As opções `--output`, `--review-output` e `--missing-output` são exclusivas do fluxo de um único
-EPUB, porque um caminho único de saída ou CSV não é suficiente para representar
-vários livros. O batch salva automaticamente um relatório Markdown separado por
-livro que chega à etapa de relatório, na pasta de relatórios configurada.
-Em `--cache-only`, quando há textos ausentes, cada livro também recebe um
-arquivo de textos ausentes com nome automático nessa pasta. No `--dry-run`,
-o relatório e o arquivo de textos ausentes continuam sendo salvos, mas o EPUB
-não é publicado. Uma tradução parcial por falhas de trechos ou ausências no cache,
-sem `--fail-fast` e com validação aceita, não conta como falha do item.
-With a model label, a provider failure always stops that book without a partial EPUB, with or
-without `--fail-fast` and with any number of workers; in a batch, `--fail-fast` still stops the
-batch after the first failed book, and the failed book resumes from its completed documents.
-Se os nomes automáticos disponíveis se esgotarem, o item falha e a opção
-`--continue-on-error` determina se os demais continuam. As verificações de
-destino reduzem riscos, mas alterações concorrentes nos caminhos ainda podem
-ocorrer entre a última verificação e a substituição ou criação exclusiva do arquivo.
-Uma interrupção encerra o lote sem iniciar o próximo livro e preserva o resultado
-dos itens iniciados. Se o relatório não puder ser salvo, o item falha; um EPUB
-já publicado continua no destino. Uma recusa antes da execução não mostra um
-resumo vazio.
+- **Source language:** without `--source`, the source language is read from each book's metadata
+  separately, so books may have different languages.
+- **Output:** outside `--dry-run`, each book gets its own EPUB, named `<name>-<language>.epub` inside
+  `--output-dir`. Without `--output-dir`, Ayvu uses the configured translated-books folder.
+- **Errors:** the batch stops at the first error by default. With `--continue-on-error`, it goes on with
+  the remaining books and exits with code 1 if any item failed.
+- **Existing outputs** are not overwritten without confirmation in common mode, or without
+  `--overwrite` in developer mode. Duplicate EPUB destinations are refused before the batch starts; in
+  common mode, every conflict is decided before any book is processed.
 
-Traduzir apenas capítulos selecionados:
+`--output`, `--review-output` and `--missing-output` only work with a single EPUB, because one output
+path or CSV cannot represent several books.
+
+- **Reports:** the batch saves a separate Markdown report for each book that reaches the report stage,
+  in the configured reports folder. With `--cache-only`, a book with missing texts also gets a
+  missing-texts file with an automatic name in that folder. With `--dry-run`, the report and the
+  missing-texts file are still saved, but no EPUB is published.
+- **Partial translations:** a translation left partial by failed segments or cache misses, without
+  `--fail-fast` and with an accepted validation, does not count as a failed item.
+- **With a model label,** a provider failure always stops that book without a partial EPUB, with or
+  without `--fail-fast` and with any number of workers. In a batch, `--fail-fast` still stops the batch
+  after the first failed book, and the failed book resumes from its completed documents.
+- **Names:** if the available automatic names run out, the item fails, and `--continue-on-error`
+  decides whether the others go on.
+- **Concurrency:** the destination checks reduce risk, but paths can still change concurrently
+  between the last check and the replacement or exclusive creation of the file.
+- **Interruption** ends the batch without starting the next book and keeps the results of the books
+  already started.
+- **Report failures:** if a report cannot be saved, the item fails; an EPUB already published stays at
+  its destination. A refusal before the run shows no empty summary.
+
+## Output location
+
+Without `--output`, Ayvu saves by default to:
+
+```text
+~/Documentos/Livros/Traduzidos/book-pt.epub
+```
+
+In **common mode**, Ayvu shows the default output folder and the computed name of the translated EPUB, and
+asks whether to keep that location before translating. To use another path, answer no and enter the path.
+In **developer mode**, use `--output` to choose the output path yourself:
 
 ```bash
-uv run ayvu translate livro.epub \
+uv run ayvu translate book.epub \
+  --output book-pt.epub
+```
+
+In **common mode**, if the output already exists, Ayvu shows the computed path and lets you overwrite it,
+choose another name, or cancel without touching the existing file. To skip the question and overwrite
+directly:
+
+```bash
+uv run ayvu translate book.epub \
+  --output book-pt.epub \
+  --overwrite
+```
+
+## Dry runs and cache-only rebuilds
+
+Simulate a translation without writing an EPUB:
+
+```bash
+uv run ayvu translate book.epub \
+  --output test.epub \
+  --dry-run
+```
+
+Rebuild from the cache only, without calling the translator (see
+[Cache, resume and cache-only](cache-and-resume.md#cache-only-mode)):
+
+```bash
+uv run ayvu translate book.epub \
+  --output test.epub \
+  --cache-only \
+  --missing-output missing.txt
+```
+
+## The final report
+
+At the end of a translation, Ayvu shows a report in the terminal with:
+
+- the original EPUB, the languages and the computed output;
+- the review file, when requested;
+- the chapters processed, texts translated and texts from the cache;
+- the texts reused from translation memory and the review suggestions, when memory is on;
+- the texts missing from the cache, in cache-only mode;
+- the errors;
+- a summary of glossary usage, when a glossary is configured.
+
+In **common mode**, it also asks whether to save the report as Markdown in `~/Documentos/Livros/Relatorios`.
+Batch translations save a separate Markdown report for each book automatically.
+
+## Extracting text
+
+Extract the visible text to Markdown:
+
+```bash
+uv run ayvu extract book.epub \
+  --output book-extracted/
+```
+
+Without `--overwrite`, a non-empty output directory is refused. With it, Ayvu replaces only the planned
+Markdown files and keeps every other file. Each Markdown file is published atomically; if a failure happens
+after some files were published, the message says how many were completed and how many were not.
+Publication is independent per file, with no transaction for the whole directory.
+
+## Selecting chapters
+
+```bash
+uv run ayvu translate book.epub \
   --target pt \
   --chapters "1-3,5,*chapter2*"
 ```
 
-`--chapters` aceita índices 1-based, faixas e padrões separados por vírgula.
-Padrões com `*`, `?` ou `[` usam glob simples; sem curinga, o Ayvu faz busca
-por trecho. A seleção é comparada com o título detectado, nome do item e caminho
-interno do documento no EPUB. Antes de traduzir, o Ayvu mostra a tabela
-`Selected chapters`. Capítulos não selecionados são copiados sem mudanças para o
-EPUB de saída.
+`--chapters` accepts 1-based indexes, ranges and patterns separated by commas. Patterns with `*`, `?` or
+`[` use simple globbing; without a wildcard, Ayvu matches a substring. The selection is compared with the
+detected title, the item name and the document's internal path in the EPUB. Before translating, Ayvu shows
+the `Selected chapters` table. Unselected chapters are copied unchanged to the output EPUB.
 
-Se `--source` não for informado, o Ayvu lê o idioma do EPUB nos metadados, exibe o
-plano da tradução (`From`/`To`) antes de começar e usa o idioma detectado como
-origem. Quando o metadado estiver ausente ou inválido, o Ayvu avisa e usa `en`
-como padrão; informe `--source` para escolher outro idioma de origem.
+## Source language
 
-Por padrão, o Ayvu preserva metadados do EPUB e o documento de navegação. Para
-traduzir também o título do livro no OPF e o texto do sumário EPUB3, use:
+Without `--source`, Ayvu reads the book's language from its metadata, shows the translation plan
+(`From`/`To`) before starting, and uses the detected language as the source. When the metadata is missing
+or invalid, Ayvu warns and uses `en`; pass `--source` to choose another source language.
+
+## Metadata and navigation
+
+By default, Ayvu keeps the EPUB's metadata and navigation document. To also translate the book title in
+the OPF and the EPUB 3 table of contents, use:
 
 ```bash
-uv run ayvu translate livro.epub \
+uv run ayvu translate book.epub \
   --target pt \
   --translate-metadata
 ```
 
-Essa opção é conservadora: traduz o primeiro `dc:title` e a navegação marcada no
-manifesto como `properties="nav"`, preservando identificadores, autores, editora
-e metadados técnicos. Alterar o título ou o sumário pode afetar a forma como
-leitores e bibliotecas organizam o livro; confira o EPUB gerado antes de usar a
-tradução como cópia principal.
+The option is conservative: it translates the first `dc:title` and the navigation marked in the manifest
+with `properties="nav"`, and keeps identifiers, authors, publisher and technical metadata. Changing the
+title or the table of contents can affect how readers and libraries organise the book, so check the
+generated EPUB before using the translation as your main copy.
 
-Por padrão, o Ayvu preserva o texto alternativo (`alt`) das imagens. Para também
-traduzir essas descrições de acessibilidade, use:
+## Image alternative text
+
+By default, Ayvu keeps the alternative text (`alt`) of images. To also translate these accessibility
+descriptions, use:
 
 ```bash
-uv run ayvu translate livro.epub \
+uv run ayvu translate book.epub \
   --target pt \
   --translate-alt-text
 ```
 
-Essa opção traduz apenas o atributo `alt` das tags `<img>`, preservando a imagem,
-o `src` e os demais atributos. Imagens decorativas (`alt=""`) são ignoradas. O
-relatório passa a mostrar quantos textos alternativos foram traduzidos. Ler o
-texto que está dentro da imagem (OCR) está fora do escopo e fica para uma feature
-futura.
+The option translates only the `alt` attribute of `<img>` tags, and keeps the image, its `src` and its
+other attributes. Decorative images (`alt=""`) are skipped. The report then shows how many alternative
+texts were translated. Reading text inside images (OCR) is out of scope.
 
-Gerar um CSV opcional para revisão humana externa:
+## Human review
+
+Generate an optional CSV for external human review:
 
 ```bash
-uv run ayvu translate livro.epub \
+uv run ayvu translate book.epub \
   --target pt \
-  --review-output livro-review.csv
+  --review-output book-review.csv
 ```
 
-`--review-output` gera um pacote CSV v2 vinculado ao projeto, à fonte exata, ao
-artefato da tradução automática e às unidades estáveis. O pacote contém texto
-sensível do livro e deve ficar em armazenamento local protegido. Se o CSV já
-existir, use `--overwrite` ou escolha outro caminho. A opção não funciona com
-`--dry-run`, porque o dry-run não gera texto traduzido revisável.
+`--review-output` produces a v2 CSV package bound to the project, the exact source, the machine
+translation artifact and the stable units. The package contains the book's text, which is sensitive, so
+keep it in protected local storage. If the CSV already exists, use `--overwrite` or choose another path.
+The option does not work with `--dry-run`, because a dry run produces no translated text to review.
 
-Para revisar, abra o CSV em um editor ou planilha. Nas linhas que quiser corrigir,
-altere `reviewed_text`, que já vem com a tradução automática, e mude `review_status`
-de `pending` para `reviewed`. As demais linhas podem ficar como estão e mantêm a
-tradução automática. Se editar uma linha sem marcá-la, o pacote é recusado, para a
-correção não se perder. Marcadores `__AYVU_REVIEW_PART_...__` indicam tags do EPUB:
-mantenha cada um, na mesma ordem. As demais colunas ligam a linha ao livro e não
-podem mudar. Salvar pela planilha é aceito, com vírgula ou ponto e vírgula.
+To review, open the CSV in an editor or spreadsheet:
 
-Pacotes v1 antigos continuam disponíveis apenas para inspeção; `apply-review`
-recusa sua aplicação e pede uma nova exportação v2. Para verificar um pacote v2
-sem criar job, artefato ou EPUB, use `--validate-only`:
+- In the rows you want to correct, change `reviewed_text`, which starts with the machine translation,
+  and change `review_status` from `pending` to `reviewed`.
+- The other rows can stay as they are and keep the machine translation.
+- If you edit a row without marking it, the package is refused, so that the correction is not lost.
+- `__AYVU_REVIEW_PART_...__` markers stand for EPUB tags: keep each one, in the same order.
+- The other columns tie the row to the book and must not change.
+- Saving from a spreadsheet is accepted, with commas or semicolons.
+
+Old v1 packages remain available for inspection only; `apply-review` refuses to apply them and asks for a
+new v2 export. To check a v2 package without creating a job, artifact or EPUB, use `--validate-only`:
 
 ```bash
-uv run ayvu apply-review livro.epub livro-review.csv --validate-only
+uv run ayvu apply-review book.epub book-review.csv --validate-only
 ```
 
-Para aplicar, use o EPUB original e o pacote revisado. O padrão grava
-`<nome>-reviewed.epub`; se esse destino existir, a aplicação falha sem alterá-lo.
-`--overwrite` permite substituir um EPUB revisado anterior, nunca a fonte ou o
-artefato traduzido automaticamente. Repetir o mesmo pacote com o mesmo destino
-confirma o resultado já gravado; se esse arquivo foi apagado ou alterado, a
-aplicação roda de novo e segue as mesmas regras de destino:
+To apply, use the original EPUB and the reviewed package:
 
 ```bash
-uv run ayvu apply-review livro.epub livro-review.csv
+uv run ayvu apply-review book.epub book-review.csv
 ```
 
-O mapeamento v2 aceita texto simples e placeholders emitidos para o próprio
-pacote/unidade; o adaptador estrutural restaura os nós originais do EPUB. Veja
-[`docs/architecture/modules/review.md`](../architecture/modules/review.md).
+- **Destination:** the default writes `<name>-reviewed.epub`. If that destination exists, the
+  application fails without changing it.
+- **`--overwrite`** allows replacing an earlier reviewed EPUB, never the source or the machine
+  translation artifact.
+- **Repeating** the same package with the same destination confirms the result already written. If that
+  file was deleted or changed, the application runs again under the same destination rules.
 
-Gerar um preview traduzido:
+The v2 mapping accepts plain text and the placeholders issued for that package and unit; the structural
+adapter restores the EPUB's original nodes. See [`docs/architecture/modules/review.md`](../architecture/modules/review.md).
+
+## Previews
+
+Generate a translated preview:
 
 ```bash
-uv run ayvu --preview livro.epub
+uv run ayvu --preview book.epub
 ```
 
-O preview traduz os primeiros documentos internos do EPUB, preserva o restante da estrutura e
-salva por padrão em:
+The preview translates the first internal documents of the EPUB, keeps the rest of the structure, and is
+saved by default to:
 
 ```text
-~/Documentos/Livros/Preview/livro-preview.epub
+~/Documentos/Livros/Preview/book-preview.epub
 ```
 
-No primeiro uso do modo comum, o Ayvu pergunta o idioma padrão de leitura/tradução,
-a pasta base dos livros e mostra os nomes das pastas das funcionalidades. Você pode
-manter os nomes padrão ou alterá-los uma única vez antes de salvar a configuração.
-Nas próximas execuções esse idioma é usado como destino padrão em traduções e
-previews, e a pasta base organiza biblioteca, previews, relatórios e traduções, sem
-perguntar de novo.
+## The guided menu
 
-Ao executar apenas `uv run ayvu`, o Ayvu abre um primeiro menu guiado com opções para traduzir
-livro, gerar preview, abrir biblioteca, gerenciar glossários, acessar configurações, mostrar ajuda ou sair. A biblioteca
-lista EPUBs das pastas `Original` e `Traduzidos`, mostra as versões disponíveis de cada livro e
-permite abrir o original ou uma tradução no leitor configurado ou no leitor padrão detectado no
-sistema. A opção `Settings` permite ver e alterar idioma padrão, pasta base dos livros, nomes das
-pastas das funcionalidades, app leitor de EPUB e perfis de tradução configurados. Nos fluxos
-guiados de tradução e preview, o Ayvu mostra o idioma de destino padrão salvo como primeira
-opção. Ao escolher `Outro idioma`, ele lista os idiomas informados pelo LibreTranslate com nome,
-código e estado, permitindo selecionar pela opção exibida ou digitar um código.
-No modo desenvolvedor, o idioma de destino continua sendo definido por `--target`.
+On first use, common mode asks for your default reading and translation language and the base books
+folder, and shows the names of the feature folders. You can keep the default names or change them once
+before the configuration is saved. From then on, that language is the default target for translations and
+previews, and the base folder organises the library, previews, reports and translations, without asking
+again.
 
-Se perfis estiverem configurados, o fluxo guiado de tradução permite escolher um perfil antes do
-idioma de destino. O perfil pode fornecer um idioma padrão diferente e um glossário associado.
-No modo desenvolvedor, use `--profile nome`. Flags explícitas como `--target` e `--glossary`
-sobrescrevem os valores do perfil.
+Running just `uv run ayvu` opens the guided menu, with options to translate a book, generate a preview,
+open the library, manage glossaries, open the settings, show help or exit.
 
-Antes de iniciar a tradução, o Ayvu verifica internamente o par de idiomas, o glossário, o cache, o EPUB de entrada e, em traduções reais, o tradutor configurado. Se algo impedir a execução, o comando falha cedo com uma mensagem curta e um próximo passo.
+- **Library:** lists the EPUBs in the `Original` and `Traduzidos` folders, shows the versions available
+  for each book, and opens the original or a translation in the configured reader or the system's
+  default one.
+- **Settings:** shows and changes the default language, the base books folder, the feature folder names,
+  the EPUB reader app, the translator model label and the configured translation profiles.
+- **Target language:** in the guided translation and preview flows, the saved default target language is
+  the first option. Choosing `Outro idioma` lists the languages LibreTranslate reports, with name, code
+  and status, so you can pick an option or type a code. In developer mode, the target language is still
+  set with `--target`.
 
-O Ayvu também resolve a rota de tradução consultando os idiomas do LibreTranslate: se não houver caminho direto entre origem e destino, tenta uma rota intermediária via inglês (por exemplo `fr -> en -> pt`). Quando a rota intermediária é usada, o modo comum avisa que a tradução passará por 2 etapas e que a qualidade pode ficar comprometida; o modo desenvolvedor mostra a rota explicitamente. Se nenhuma rota estiver disponível, o comando falha antes de processar o EPUB.
+If profiles are configured, the guided translation flow lets you choose one before the target language. A
+profile can provide a different default language and an associated glossary. In developer mode, use
+`--profile name`. Explicit flags such as `--target` and `--glossary` override the profile's values.
+
+## Checks before translating
+
+Before a translation starts, Ayvu checks the language pair, the glossary, the cache, the input EPUB and, for
+real translations, the configured translator. If anything prevents the run, the command fails early with
+a short message and a next step.
+
+Ayvu also resolves the translation route from the languages LibreTranslate reports. If there is no direct
+path between source and target, it tries an intermediate route through English (for example
+`fr -> en -> pt`). When an intermediate route is used, common mode warns that the translation takes two
+steps and that quality may suffer, and developer mode shows the route explicitly. If no route is available,
+the command fails before processing the EPUB.
