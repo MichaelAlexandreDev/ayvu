@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Documentação: o README passa a ser curto e em inglês (o que é, início rápido, comandos e
+  links). O conteúdo detalhado do README antigo foi para `docs/guide/`, uma página por assunto,
+  com o índice em `docs/README.md`. A tradução dessas páginas para inglês vem em seguida.
+
 - REF-18 (#286), passo 4: a retomada usa o runtime com que o job começou. Um job v1 termina no v1
   mesmo depois que um rótulo de modelo é declarado; antes, era recusado por incompatibilidade.
 
