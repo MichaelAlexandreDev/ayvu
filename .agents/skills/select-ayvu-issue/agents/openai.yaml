@@ -1,0 +1,4 @@
+interface:
+  display_name: "Select Ayvu Issue"
+  short_description: "Choose the next implementation-ready Ayvu issue"
+  default_prompt: "Use $select-ayvu-issue to recommend the next implementation-ready Ayvu issue."

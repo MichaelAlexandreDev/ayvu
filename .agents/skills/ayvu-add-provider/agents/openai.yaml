@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Ayvu Provider"
+  short_description: "Add a translation provider through the provider contracts"
+  default_prompt: "Use $ayvu-add-provider to add this translation provider."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Ayvu Decision"
+  short_description: "Research one Ayvu decision from primary sources"
+  default_prompt: "Use $research-ayvu-decision to research this Ayvu decision without editing the repository."

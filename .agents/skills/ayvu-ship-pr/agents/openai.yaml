@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ship Ayvu PR"
+  short_description: "Commit, open and merge an authorised Ayvu PR"
+  default_prompt: "Use $ayvu-ship-pr to ship this authorised change."

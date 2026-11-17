@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagnose Ayvu Bug"
+  short_description: "Build safe root-cause evidence for an Ayvu defect"
+  default_prompt: "Use $diagnose-ayvu-bug to diagnose this Ayvu defect without implementing a fix."

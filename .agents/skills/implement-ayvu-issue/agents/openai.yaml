@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Ayvu Issue"
+  short_description: "Implement one Ayvu issue through explicit gates"
+  default_prompt: "Use $implement-ayvu-issue to implement this published Ayvu issue."

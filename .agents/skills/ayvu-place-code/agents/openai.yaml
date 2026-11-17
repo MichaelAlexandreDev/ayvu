@@ -1,0 +1,4 @@
+interface:
+  display_name: "Place Ayvu Code"
+  short_description: "Choose the layer and owner before writing code"
+  default_prompt: "Use $ayvu-place-code to decide where this code belongs."

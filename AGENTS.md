@@ -103,6 +103,26 @@ The architecture tests fail and name what is missing.
 - **Decisions.** Decision records stay `Proposed` until the maintainer accepts them in writing. An issue or
   a draft does not accept a decision.
 
+## Skills
+
+Shared skills live in `.agents/skills/` (read by Codex) and are linked into `.claude/skills/` (read by
+Claude Code). Use them for the matching work:
+
+| Skill | Use it to |
+| --- | --- |
+| `select-ayvu-issue` | choose the next issue that is really ready |
+| `implement-ayvu-issue` | implement one issue through the approval gates |
+| `ayvu-place-code` | decide the layer, owner and registrations before writing code |
+| `ayvu-add-provider` | add or change a translation provider |
+| `diagnose-ayvu-bug` | find the cause of a bug before fixing it |
+| `research-ayvu-decision` | research a decision with evidence |
+| `review-ayvu-change` | review a diff before committing |
+| `ayvu-validate` | choose, run and report the validation |
+| `ayvu-ship-pr` | commit, open and merge an authorised PR |
+| `create-ayvu-issue` | draft or rewrite an issue |
+
+Skills never widen authority: every approval in this file still applies.
+
 ## Validation
 
 Run what the change needs, in this order:
