@@ -9,10 +9,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from . import editions, surface_rules
-from .builders import cache_admin, content, glossary, providers, review, translate_project, translate_transient
+from .builders import cache_admin, content, glossary, providers, review, rich_provider, translate_project, translate_transient
 from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
-from .builders.translate_project import LegacyResources, ProjectTranslation, selected_model
+from .builders.translate_project import LegacyResources, ProjectTranslation
 from ..translation.batch_output import AcceptedItem, OutputIntent
 from ..v1.cache import TranslationCache
 from ..v1.cache_check import verify_cache_writable
@@ -122,7 +122,7 @@ def run_translation_preflight(**configuration):
 
 
 def prepare_preview(*, translator_models, translator_name, **configuration):
-    return translate_transient.prepare_preview(label=selected_model(translator_models, translator_name),
+    return translate_transient.prepare_preview(label=rich_provider.selected_model(translator_models, translator_name),
                                               translator_name=translator_name, rich_preflight=_preflight, **configuration)
 
 
@@ -184,9 +184,9 @@ def validate_output(*args, **kwargs):
 
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
     """Dry run, and a resume file that recomputes to no job. See ``translate_without_project``."""
-    if (book.options.dry_run or book.preview) and selected_model(book.translator_models, book.translator_name) is not None:
+    if (book.options.dry_run or book.preview) and rich_provider.selected_model(book.translator_models, book.translator_name) is not None:
         return _BookOutcome(report=translate_transient.translate(book, hooks,
-            selected_model(book.translator_models, book.translator_name),
+            rich_provider.selected_model(book.translator_models, book.translator_name),
             formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))
     preflight = book.prepare()
     with TranslationCache(book.cache_path) as cache:
@@ -230,7 +230,7 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
             book.operation_id,
             book.batch_plan.publication_guard if book.batch_plan is not None else None,
             book.batch_plan,
-            selected_model(book.translator_models, book.translator_name),
+            rich_provider.selected_model(book.translator_models, book.translator_name),
             book.cache_path,
             prepare_offline=book.prepare,
         ),
@@ -301,7 +301,7 @@ def translation_checkpoint():
 
 def translation_modality(dry_run, models, translator_name):
     """Select without opening resources; unlabeled runs retain the predecessor path, labeled ones the rich runtime."""
-    labeled = selected_model(models, translator_name) is not None
+    labeled = rich_provider.selected_model(models, translator_name) is not None
     return "standard" if not labeled else "transient_dry_run" if dry_run else "rich"
 
 
@@ -320,7 +320,7 @@ def prepare_translation(*, epub_path, options, cache_path, glossary_path, transl
             glossary_path=glossary_path, translator_name=translator_name, url=url, processing_dir=processing_dir, profile_name=profile_name)
         on_ready()
         return prepared
-    rich = project_backed and selected_model(translator_models or {}, translator_name) is not None
+    rich = project_backed and rich_provider.selected_model(translator_models or {}, translator_name) is not None
     if rich and options.cache_only:
         prepared = _local_preflight(epub_path=epub_path, glossary_path=glossary_path, language_pair=options.language_pair,
             translator_name=translator_name, url=url, timeout=timeout, retries=retries,

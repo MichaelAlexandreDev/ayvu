@@ -38,7 +38,7 @@ from ...formats.epub.reader import read_package
 from ...projects import ProjectError
 from ...projects.schema import ProjectDatabaseTurns, open_artifact_service, open_job_repository, open_provenance_repository
 from ...projects.store import ProjectJsonRepository
-from ...provenance import ProvenanceError, declared_model
+from ...provenance import ProvenanceError
 from ...recovery.checkpoint import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
     ResumeStateError,
@@ -410,16 +410,6 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
                            and runtime.preflight_error is None and result.state not in (JobState.FAILED, JobState.CANCELLED))
     report = runtime.report(result, destination) if ended_with_a_report else None
     return ProjectTranslationRun(result, report, runtime.preflight_error)
-
-
-def selected_model(models: dict[str, str], translator_name: str) -> str | None:
-    """Selection belongs here, never in the presenter, engine or domain."""
-    name = translator_name.strip().lower()
-    if name not in models:
-        return None
-    label = models[name]
-    declared_model(label)
-    return label
 
 
 def v2_cache_path(legacy: Path) -> Path:

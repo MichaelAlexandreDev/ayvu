@@ -21,6 +21,16 @@ def _base(translator: object) -> object:
     return translator._base if isinstance(translator, RoutedTranslator) else translator
 
 
+def selected_model(models: dict[str, str], translator_name: str) -> str | None:
+    """Selection belongs here, never in the presenter, engine or domain."""
+    name = translator_name.strip().lower()
+    if name not in models:
+        return None
+    label = models[name]
+    declared_model(label)
+    return label
+
+
 class LibreTranslateBinding:
     """The prepared LibreTranslate translator, as the rich runtime has always used it."""
 

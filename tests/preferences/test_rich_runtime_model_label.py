@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 import pytest
-import ayvu.composition.builders.translate_project as composition
+from ayvu.composition.builders import rich_provider
 from ayvu.knowledge.cache import CacheEligibilityState, CacheIneligibleReason
 from ayvu.preferences.config_facade import ConfigStore
 from ayvu.preferences.model import AyvuConfig, config_from_preferences, config_to_preferences
@@ -66,9 +66,9 @@ def test_namespace_is_only_accepted_for_the_model_and_unknown_stays_ineligible()
 def test_absence_keeps_the_existing_configuration_payload_and_runtime_selection():
     assert "translator_models" not in AyvuConfig().to_dict()
     assert "translator_models" not in preferences_to_mapping(GlobalPreferences())
-    assert composition.selected_model({}, "libretranslate") is None
-    assert composition.selected_model({"libretranslate": "local-v1"}, " LIBRETRANSLATE ") == "local-v1"
-    assert composition.selected_model({"libretranslate": "local-v1"}, "other") is None
+    assert rich_provider.selected_model({}, "libretranslate") is None
+    assert rich_provider.selected_model({"libretranslate": "local-v1"}, " LIBRETRANSLATE ") == "local-v1"
+    assert rich_provider.selected_model({"libretranslate": "local-v1"}, "other") is None
 
 
 @pytest.mark.parametrize("label,valid", [("a", True), ("model-2026_11", True), ("a" * 48, True), ("a" * 49, False),

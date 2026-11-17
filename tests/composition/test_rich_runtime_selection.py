@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import pytest
 import ayvu.composition.builders.translate_project as composition
+from ayvu.composition.builders import rich_provider
 from ayvu.provenance.model import ProvenanceValidationError
 from tests.support.translation_cache_v2_support import document
 from ayvu.kernel import TranslationOptions, OutputPlan, JobFailure, JobFailureFamily
@@ -13,7 +14,7 @@ from tests.support.paths import PROJECT_ROOT
 @pytest.mark.parametrize("label", [None, "https://private-model", False])
 def test_composition_refuses_a_present_invalid_label(label):
     with pytest.raises(ProvenanceValidationError, match="invalid_model_label"):
-        composition.selected_model({"libretranslate": label}, "libretranslate")
+        rich_provider.selected_model({"libretranslate": label}, "libretranslate")
 
 
 @pytest.mark.parametrize("label,expected,revision", [(None, composition.LegacyTranslationRuntime, 1),

@@ -29,6 +29,7 @@ WORKER_EDGES = {
     ('ayvu.composition.builders.rich_provider', 'ayvu.providers.ports'),
     ('ayvu.composition.builders.rich_provider', 'ayvu.translation.plan'),
     ('ayvu.composition.builders.translate_project', 'ayvu.composition.builders.rich_provider'),
+    ('ayvu.composition.cli', 'ayvu.composition.builders.rich_provider'),
     ('ayvu.projects.schema', 'ayvu.projects.turns'),
     ('ayvu.translation.document_work', 'ayvu.formats.contracts'),
     ('ayvu.translation.document_work', 'ayvu.jobs.events'),
