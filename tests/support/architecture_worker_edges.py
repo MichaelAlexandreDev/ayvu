@@ -1,4 +1,5 @@
-"""Reviewed document scheduling and task resource dependencies, including the run's database turns (REF-18 G8)."""
+"""Reviewed document scheduling and task resource dependencies, including the run's database turns (REF-18 G8)
+and the provider binding each task uses."""
 WORKER_EDGES = {
     ('ayvu.composition.builders.rich_workers', 'ayvu.artifacts.service'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.artifacts.store'),
@@ -11,8 +12,6 @@ WORKER_EDGES = {
     ('ayvu.composition.builders.rich_workers', 'ayvu.knowledge.memory.approved.store'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.projects.schema'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.provenance.store'),
-    ('ayvu.composition.builders.rich_workers', 'ayvu.providers.libretranslate.adapter'),
-    ('ayvu.composition.builders.rich_workers', 'ayvu.providers.libretranslate.client'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.cache_only_execution'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.document'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.document_contracts'),
@@ -22,6 +21,15 @@ WORKER_EDGES = {
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.stages.memory_retrieval'),
     ('ayvu.composition.builders.rich_workers', 'ayvu.translation.worker_cache_keys'),
     ('ayvu.composition.builders.translate_project', 'ayvu.composition.builders.rich_workers'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.knowledge.glossary.rules'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.provenance.model'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.providers.capabilities'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.providers.libretranslate.adapter'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.providers.libretranslate.client'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.providers.ports'),
+    ('ayvu.composition.builders.rich_provider', 'ayvu.translation.plan'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.composition.builders.rich_provider'),
+    ('ayvu.composition.cli', 'ayvu.composition.builders.rich_provider'),
     ('ayvu.projects.schema', 'ayvu.projects.turns'),
     ('ayvu.translation.document_work', 'ayvu.formats.contracts'),
     ('ayvu.translation.document_work', 'ayvu.jobs.events'),

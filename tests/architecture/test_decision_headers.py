@@ -28,6 +28,7 @@ RECORDS = {
     "decisions/html-structure.md": ("Accepted", "2026-11-04", "143"),
     "decisions/job-artifacts.md": ("Accepted", "2026-11-03", "137"),
     "decisions/job-lifecycle.md": ("Accepted", "2026-11-03", "136"),
+    "decisions/llm-prompt-batching.md": ("Proposed", "2026-11-17", "375"),
     "decisions/local-project-storage.md": ("Accepted", "2026-11-03", "135"),
     "decisions/modular-monolith-boundaries.md": ("Accepted", "2026-09-03", "125"),
     "decisions/product-threat-model.md": ("Accepted", "2026-09-29", "129"),
@@ -95,7 +96,7 @@ def test_transitional_inventory_includes_every_decision():
     discovered = {path for path in discovered if path.relative_to(ARCHITECTURE).as_posix() not in COMPANIONS}
     assert {path.relative_to(ARCHITECTURE).as_posix() for path in discovered} == set(RECORDS)
     actual = Counter(parse_header(path.read_text(encoding="utf-8"))["status"] for path in discovered)
-    assert actual == {"Accepted": 18, "Proposed": 3}
+    assert actual == {"Accepted": 18, "Proposed": 4}
 
 
 @pytest.mark.parametrize("relative", RECORDS)

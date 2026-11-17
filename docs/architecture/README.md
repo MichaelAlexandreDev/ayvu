@@ -26,6 +26,7 @@ Every record opens with `Status`, `Decision-Date`, `Owners` and `Issue`. A compa
 | [ADR: HTML structure](decisions/html-structure.md) | Accepted |
 | [ADR: Job checkpoints and derived artifacts](decisions/job-artifacts.md) | Accepted |
 | [ADR: Durable translation job lifecycle](decisions/job-lifecycle.md) | Accepted |
+| [ADR: LLM prompt, batching and structured-output contract](decisions/llm-prompt-batching.md) | Proposed |
 | [ADR: Local project SQLite storage and migration locations](decisions/local-project-storage.md) | Accepted |
 | [Modular-monolith boundary decision](decisions/modular-monolith-boundaries.md) | Accepted |
 | [Package structure and dependency rules](decisions/package-structure.md) | Accepted |

@@ -2,7 +2,7 @@
   "_comment": "D10 size ratchet (REF-03, #271). Entries may only shrink; see scripts/size_ratchet.py.",
   "files": {
     "src/ayvu/artifacts/store.py": 520,
-    "src/ayvu/composition/builders/translate_project.py": 537,
+    "src/ayvu/composition/builders/translate_project.py": 519,
     "src/ayvu/content/model.py": 639,
     "src/ayvu/formats/contracts.py": 579,
     "src/ayvu/formats/epub/html_structure.py": 626,

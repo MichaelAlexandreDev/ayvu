@@ -19,6 +19,7 @@ from ...translation.stages import RetrievalPolicy
 from ...artifacts import ArtifactError
 from ...artifacts.destination import DestinationFileOps, DestinationPublications, LocalDestinationPayloads
 from .rich_document_executor import prepare_offline
+from .rich_provider import LibreTranslateBinding
 from .rich_workers import offline_work, online_work, project_store_options
 from ...knowledge.cache import CacheIdentityError
 from ...knowledge.cache.repository import SQLiteExactCache
@@ -29,7 +30,6 @@ from ...formats.epub.io import SelectedChapter, detect_epub_language, resolve_ch
 from ...v1.epub import _validate_worker_options, translate_epub  # noqa: F401 - the same door, for v1
 from ...formats.local import LocalFormatSource, LocalOutputGuard
 from ...formats import BookFacts, FormatPublication, FormatRegistry, FormatService
-from ...knowledge.glossary import effective_glossary_reference
 from ...jobs import JobState, CancellationSource
 from ...recovery import InspectJobRecoverability, ListInterruptedJobs, RecoveryEntry, RequestJobResume
 from ...recovery.store import LocalRecoveryEvidence
@@ -38,9 +38,7 @@ from ...formats.epub.reader import read_package
 from ...projects import ProjectError
 from ...projects.schema import ProjectDatabaseTurns, open_artifact_service, open_job_repository, open_provenance_repository
 from ...projects.store import ProjectJsonRepository
-from ...provenance import ProvenanceError, declared_model
-from ...providers import ProviderRoute, Capability, ProviderRequirements
-from ...providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTranslateProvider, libretranslate_snapshot
+from ...provenance import ProvenanceError
 from ...recovery.checkpoint import (  # noqa: F401 - the CLI still keeps this file while it runs, through this door only
     InvalidResumeState,
     ResumeStateError,
@@ -66,8 +64,7 @@ from ...translation import (
     SAFE_POINTS as DOCUMENT_SAFE_POINTS, RAW_RESULTS_ROLE, TranslationExecutionError,
 )
 from ...knowledge.memory import TranslationMemory
-from ...translation import resolve_plan as resolve_translation_plan
-from ...providers.libretranslate.client import LibreTranslateTranslator, TranslatorError, RoutedTranslator
+from ...providers.libretranslate.client import TranslatorError
 from ...formats.epub.validation import ValidationResult, validate_output_epub
 from ...kernel import OutputPlan, TranslationOptions, JobError, JobFailure, JobFailureFamily
 from ...translation import BookRefused, PreflightError, ProjectTranslationUnavailable, TranslationDryRunCancelled
@@ -415,16 +412,6 @@ def translate_in_project(translation: ProjectTranslation, observer: TranslateObs
     return ProjectTranslationRun(result, report, runtime.preflight_error)
 
 
-def selected_model(models: dict[str, str], translator_name: str) -> str | None:
-    """Selection belongs here, never in the presenter, engine or domain."""
-    name = translator_name.strip().lower()
-    if name not in models:
-        return None
-    label = models[name]
-    declared_model(label)
-    return label
-
-
 def v2_cache_path(legacy: Path) -> Path:
     """Append, rather than replace a suffix: cache.sqlite -> cache.sqlite.v2.sqlite."""
     return legacy.with_name(legacy.name + ".v2.sqlite")
@@ -452,14 +439,16 @@ def check_rich_options(options: TranslationOptions) -> None:
 
 
 class RichTranslationRuntime:
-    """Only the composition knows the concrete repositories and LibreTranslate adapter."""
+    """Only the composition knows the concrete repositories; its binding knows the provider."""
     def __init__(self, source_path, options, prepare, cache_path, label, database, backups, artifact_root, project_id,
-                 *, clock=lambda: datetime.now(UTC), translation_context: ContextExecution | None = None, prepare_offline=None) -> None:
+                 *, binding=None, clock=lambda: datetime.now(UTC),
+                 translation_context: ContextExecution | None = None, prepare_offline=None) -> None:
         self._source_path, self._options, self._prepare = source_path, options, prepare
         self._cache_path = v2_cache_path(cache_path)
         self._database, self._backups, self._artifact_root = database, backups, artifact_root
         self._project_id, self._clock = project_id, clock
-        self.producer = replace(LIBRETRANSLATE_PRODUCER, model=declared_model(label))
+        self.binding = binding or LibreTranslateBinding(label, clock)
+        self.producer = self.binding.producer
         self.preflight_error = None
         self._prepared = None
         self._cache = None
@@ -509,17 +498,10 @@ class RichTranslationRuntime:
         if options.cache_only:
             yield offline_work(self, context)
             return
-        translator = prepared.translator
-        base = translator._base if isinstance(translator, RoutedTranslator) else translator
-        route = translator.route if isinstance(translator, RoutedTranslator) else None
-        plan = resolve_translation_plan(libretranslate_snapshot(base, self._clock()),
-            ProviderRequirements((Capability.PLAIN_TEXT_INPUT, Capability.PLAIN_TEXT_OUTPUT)), self.producer,
-            ProviderRoute(options.source, options.target, None if route is None else route.intermediate),
-            chunk_limit=options.chunk_limit, glossary_ref=effective_glossary_reference(prepared.glossary))
+        plan = self.binding.plan(prepared, options)
         artifacts = open_artifact_service(self._database, self._backups, self._artifact_root, self._project_id, clock=self._clock)
         provenance = open_provenance_repository(self._database, self._backups, self._project_id, clock=self._clock)
-        provider = LibreTranslateProvider(translator, producer=self.producer, clock=self._clock,
-            cleanup=base.close if isinstance(base, LibreTranslateTranslator) else None)
+        provider = self.binding.provider(prepared.translator, self.producer, prepared.glossary)
         try:
             yield online_work(self, context, plan, provider, artifacts, provenance, memory_policy)
         finally:

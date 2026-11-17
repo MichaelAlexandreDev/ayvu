@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from ayvu.composition import cli
-from ayvu.composition.builders import content, providers, review, translate_project
+from ayvu.composition.builders import content, providers, review, rich_provider, translate_project
 from ayvu.composition.desktop import desktop_surface
 from ayvu.formats import FormatRegistry
 from ayvu.formats.markdown.writer import MarkdownDirectoryWriter
@@ -109,7 +109,7 @@ def test_provider_id_matches_real_rich_runtime_acquisition_and_cleanup(edition_i
         acquired.append(provider)
         return provider
 
-    monkeypatch.setattr(translate_project, "LibreTranslateProvider", capture)
+    monkeypatch.setattr(rich_provider, "LibreTranslateProvider", capture)
     runtime = translate_project.RichTranslationRuntime(tmp_path / "book.epub",
         TranslationOptions(language_pair=LanguagePair("en", "pt")), lambda: None, tmp_path / "cache",
         "audit-model", tmp_path / "project.sqlite", tmp_path / "backups", tmp_path / "artifacts",

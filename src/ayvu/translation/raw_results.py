@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, is_dataclass
+from decimal import Decimal
 from enum import StrEnum
 
 from ..artifacts import ArtifactRequest
@@ -53,6 +54,9 @@ def _decision_metadata(decision: RetrievalDecision, source: UnitSource) -> dict:
 def _canonical_value(value: object) -> object:
     if isinstance(value, StrEnum):
         return value.value
+    if isinstance(value, Decimal):
+        # The cache identity's form; JSON has no exact decimal type.
+        return format(value, "f")
     if is_dataclass(value) and not isinstance(value, type):
         return {key: _canonical_value(item) for key, item in asdict(value).items()}
     if isinstance(value, dict):

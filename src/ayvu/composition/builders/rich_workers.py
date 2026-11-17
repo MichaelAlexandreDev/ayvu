@@ -24,8 +24,6 @@ from ...knowledge.memory.approved.store import open_approved_memory
 from ...translation.stages import MemoryRetrieval, RetrievalPolicy, LegacyCacheCompatibility
 from ...artifacts import ArtifactService
 from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
-from ...providers.libretranslate.adapter import LibreTranslateProvider
-from ...providers.libretranslate.client import LibreTranslateTranslator, RoutedTranslator
 from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
 from ...projects.schema import ProjectDatabaseTurns, project_migration_runner
 from ...provenance.store import SqliteProvenanceRepository
@@ -155,10 +153,7 @@ def _parallel_online(runtime, context, plan):
     @contextmanager
     def factory(events, check):
         check()
-        translator = factory_of()
-        base = translator._base if isinstance(translator, RoutedTranslator) else translator
-        provider = LibreTranslateProvider(translator, producer=plan.producer, clock=runtime._clock,
-            cleanup=base.close if isinstance(base, LibreTranslateTranslator) else None)
+        provider = runtime.binding.provider(factory_of(), plan.producer, runtime._prepared.glossary)
         try:
             artifacts = ArtifactService(SqliteArtifactRepository(runner, runtime._database, runtime._project_id,
                 clock=runtime._clock), LocalArtifactPayloads(runtime._artifact_root))
