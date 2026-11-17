@@ -9,6 +9,10 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Regras para agentes de IA e contribuidores versionadas em inglês (`AGENTS.md`, com `CLAUDE.md`
+  importando dele), template de PR em inglês e o portão rápido `scripts/check-fast.sh`
+  (contratos de import, ratchet de tamanho, testes de arquitetura e `git diff --check`).
+
 - Documentação: as páginas de `docs/guide/` foram traduzidas para inglês e reorganizadas por
   assunto (saída, relatório e extração foram para a página de tradução; o glossário ficou numa só
   página). Nenhum comportamento muda.

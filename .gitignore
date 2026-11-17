@@ -29,13 +29,14 @@ livro-extraido/
 # Local configuration and private files
 .codex
 glossary.json
-*AGENTS*.md
-CLAUDE.md
 GEMINI*.md
-.github/pull_request_template.md
 
 # Private project workspaces
 .ayvu-*/
 
 # import-linter cache
 .import_linter_cache/
+
+# Personal agent notes; the shared rules are AGENTS.md and CLAUDE.md
+CLAUDE.local.md
+AGENTS.local.md
