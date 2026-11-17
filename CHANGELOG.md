@@ -9,6 +9,9 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- REF-18 (#286), passo 4: a retomada usa o runtime com que o job começou. Um job v1 termina no v1
+  mesmo depois que um rótulo de modelo é declarado; antes, era recusado por incompatibilidade.
+
 - #365: sem rótulo de modelo, `--cache-only` com mais de um worker (inclusive pelo perfil `high`)
   passa a ser recusado com uma mensagem clara, em vez de terminar com um erro técnico. Com rótulo,
   nada muda.

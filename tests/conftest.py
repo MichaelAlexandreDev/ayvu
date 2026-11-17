@@ -173,6 +173,7 @@ CORE_TEST_FILES: dict[str, tuple[str, ...]] = {
         "interfaces/cli/test_cli_rich_memory_notices.py",
         "interfaces/cli/test_cli_rich_failure_matrix.py",
         "interfaces/cli/test_cli_rich_surfaces.py",
+        "interfaces/cli/test_cli_resume_runtime.py",
         "interfaces/cli/test_cli_rich_missing_output.py",
         "interfaces/cli/test_cli_rich_runtime_options.py",
         "interfaces/cli/test_cli_project_review_application.py",
