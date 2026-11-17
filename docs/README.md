@@ -25,4 +25,5 @@ A walkthrough of both modes, step by step, is in the
 - [Architecture guide](architecture/README.md): packages, module contracts, cross-cutting rules and
   decision records.
 - [Contributing](../CONTRIBUTING.md): workflow and pull requests.
+- [Rules for AI agents and contributors](../AGENTS.md): architecture rules, validation and the working agreement.
 - [Release workflow](release-workflow.md): issues, branches and releases.

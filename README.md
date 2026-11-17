@@ -81,6 +81,8 @@ Run `uv run ayvu --help` or `uv run ayvu <command> --help` for every option.
 - **[Architecture guide](docs/architecture/README.md):** how the code is organised, its module
   contracts and the decision records behind them.
 - **[Contributing](CONTRIBUTING.md):** workflow, local development and pull requests.
+- **[Rules for AI agents and contributors](AGENTS.md):** the architecture rules, validation steps and
+  working agreement that every change follows.
 
 ## Engineering
 
