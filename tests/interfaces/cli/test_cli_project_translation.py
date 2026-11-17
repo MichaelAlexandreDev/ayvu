@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime, config
 from zipfile import ZipFile
 from ayvu.composition.builders import translate_project as composition
 from ayvu.translation.preflight import PreflightError
@@ -38,6 +39,7 @@ def test_validation_warnings_keep_the_output_and_end_partially_completed(tmp_pat
 
 
 def test_a_failed_text_keeps_the_exit_code_and_ends_partially_completed(tmp_path, monkeypatch):
+    config(tmp_path, label=None)
     result, _ = _run(tmp_path, monkeypatch, session=Session(failing="Goodbye reader."))
 
     assert result.exit_code == 0, result.output
@@ -58,7 +60,7 @@ def test_fail_fast_says_what_happened_without_a_traceback(tmp_path, monkeypatch)
     result, _ = _run(tmp_path, monkeypatch, "--fail-fast", session=Session(failing="Goodbye reader."))
 
     assert result.exit_code == 1 and isinstance(result.exception, SystemExit)
-    assert "--fail-fast" in result.output and "cache" in result.output
+    assert "nenhum EPUB parcial" in result.output and "cache" in result.output
     assert not (tmp_path / "out.epub").exists() and not _leftovers(tmp_path)
     assert _only_job(tmp_path).state.value == "failed"
 
@@ -75,12 +77,12 @@ def test_a_failure_shows_its_text_only_to_a_developer(tmp_path, monkeypatch):
     source = _book(tmp_path / "book.epub")
     session = Session(failing="Goodbye reader.")
     developer, _ = _run(tmp_path, monkeypatch, "--fail-fast", source=source, session=session)
-    assert "HTTP error 500" in " ".join(developer.output.split())
+    assert "provider_server_error" in " ".join(developer.output.split())
 
     arguments = _args(tmp_path, source, "--fail-fast")
     arguments[1] = "common"
     common, _ = _run(tmp_path, monkeypatch, mode_args=arguments, session=Session(failing="Goodbye reader."))
-    assert common.exit_code == 1 and "--fail-fast" in common.output and "HTTP error 500" not in " ".join(common.output.split())
+    assert common.exit_code == 1 and "nenhum EPUB parcial" in common.output and "provider_server_error" not in " ".join(common.output.split())
 
 
 def test_overwrite_is_part_of_the_plan(tmp_path, monkeypatch):

@@ -22,7 +22,12 @@ def resume(tmp_path, monkeypatch):
 def interrupted(tmp_path, monkeypatch, label):
     # v1 without --fail-fast publishes a partial EPUB and leaves nothing to resume.
     config(tmp_path, label=label)
-    invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), "--fail-fast", session=Transport(failing=FAILING))
+    if label is None:
+        from tests.support.job_recovery_integration_support import Scene
+        scene = Scene(tmp_path, url="http://localhost:5000")
+        scene.interrupted_state()
+    else:
+        invoke(tmp_path, monkeypatch, _book(tmp_path / "book.epub"), "--fail-fast", session=Transport(failing=FAILING))
     return _jobs(tmp_path)[-1]
 
 

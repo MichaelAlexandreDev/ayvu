@@ -1,3 +1,6 @@
+from tests.support.cli_rich_runtime_support import Transport, declare_model
+from tests.support.cli_translate_project_support import _book
+from tests.support.workflow_characterization_support import FakeLibreTranslateSession
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,97 +12,50 @@ from ayvu.formats.epub.validation import ValidationResult
 from tests.support.cli_support import FakeCache, _fake_translation, isolated_config, runner
 
 
-def test_root_command_generates_guided_preview_when_confirmed(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
+def test_root_command_generates_guided_preview_when_confirmed(isolated_config, tmp_path, monkeypatch):
+    declare_model(isolated_config)
+    epub_path = _book(tmp_path / "book.epub")
     preview_dir = tmp_path / "Preview"
-    epub_path.write_bytes(b"fake epub")
-    calls: dict[str, object] = {}
-
-    def fake_translate(input_path: Path, output_path: Path, **kwargs: object) -> TranslationReport:
-        calls["input_path"] = input_path
-        calls["output_path"] = output_path
-        calls["options"] = kwargs["options"]
-        return TranslationReport(output_path=output_path, input_path=input_path, target_language="pt")
-
+    session = Transport()
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_preview_books_dir", lambda: preview_dir)
-    monkeypatch.setattr(
-        "ayvu.composition.builders.providers.LibreTranslateTranslator",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("languages should not be listed")),
-    )
-    monkeypatch.setattr(
-        "ayvu.interfaces.cli.run.run_translation_preflight",
-        lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
-    )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
-    _fake_translation(monkeypatch, fake_translate)
-    monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
 
     result = runner.invoke(app, [], input=f"2\n{epub_path}\n1\n")
 
-    options = calls["options"]
-    assert result.exit_code == 0
-    assert "Choose an option" in result.output
-    assert "Generate preview" in result.output
-    assert "EPUB path" in result.output
-    assert "Default target language:" in result.output
-    assert "Use default target language (pt)" in result.output
-    assert "Outro idioma" in result.output
-    assert "Choose target language" in result.output
-    assert "Preview output folder:" in result.output
-    assert "Preview EPUB name:" in result.output
-    assert "Preview salvo em:" in result.output
-    assert calls["input_path"] == epub_path
-    assert calls["output_path"] == preview_dir / "book-preview.epub"
-    assert options.max_documents == DEFAULT_PREVIEW_DOCUMENT_LIMIT
+    assert result.exit_code == 0, result.output
+    for message in ("Choose an option", "Generate preview", "EPUB path", "Default target language:",
+                    "Use default target language (pt)", "Outro idioma", "Choose target language",
+                    "Preview output folder:", "Preview EPUB name:", "Preview salvo em:"):
+        assert message in result.output
     assert "Usage:" not in result.output
+    assert (preview_dir / "book-preview.epub").is_file()
+    assert session.posts == ["T", "Hello title", "Hello reader.", "Goodbye reader."]
+    assert all(payload["target"] == "pt" for method, _, payload in session.requests if method == "POST")
+    assert not (tmp_path / "missing").exists()
 
 
-def test_root_command_allows_guided_preview_target_from_languages(tmp_path, monkeypatch):
-    epub_path = tmp_path / "book.epub"
+def test_root_command_allows_guided_preview_target_from_languages(isolated_config, tmp_path, monkeypatch):
+    declare_model(isolated_config)
+    epub_path = _book(tmp_path / "book.epub")
     preview_dir = tmp_path / "Preview"
-    epub_path.write_bytes(b"fake epub")
-    calls: dict[str, object] = {}
-
-    class FakeLanguageTranslator:
-        def __init__(self, *_args: object, **_kwargs: object) -> None:
-            return None
-
-        def list_languages(self) -> tuple[TranslatorLanguage, ...]:
-            return (
-                TranslatorLanguage(code="pt", name="Portuguese", targets=("en",)),
-                TranslatorLanguage(code="es", name="Spanish", targets=("en",)),
-            )
-
-    def fake_preflight(**kwargs: object) -> object:
-        calls["target"] = kwargs["language_pair"].target
-        return SimpleNamespace(translator=object(), glossary=None, route=None)
-
-    def fake_translate(_input_path: Path, _output_path: Path, **kwargs: object) -> TranslationReport:
-        calls["options"] = kwargs["options"]
-        return TranslationReport(output_path=_output_path, input_path=_input_path, target_language="es")
-
+    session = FakeLibreTranslateSession([
+        {"code": "en", "name": "English", "targets": ["pt", "es"]},
+        {"code": "pt", "name": "Portuguese", "targets": ["en"]},
+        {"code": "es", "name": "Spanish", "targets": ["en"]},
+    ])
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_preview_books_dir", lambda: preview_dir)
-    monkeypatch.setattr("ayvu.composition.builders.providers.LibreTranslateTranslator", FakeLanguageTranslator)
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fake_preflight)
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
-    _fake_translation(monkeypatch, fake_translate)
-    monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
 
-    result = runner.invoke(app, [], input=f"2\n{epub_path}\n2\n2\n")
+    result = runner.invoke(app, [], input=f"2\n{epub_path}\n2\nes\n")
 
-    options = calls["options"]
-    assert result.exit_code == 0
-    assert "Default target language:" in result.output
-    assert "Outro idioma" in result.output
-    assert "LibreTranslate languages" in result.output
-    assert "Option" in result.output
-    assert "Portuguese" in result.output
-    assert "Spanish" in result.output
-    assert "Target language option or code" in result.output
-    assert calls["target"] == "es"
-    assert options.target == "es"
+    assert result.exit_code == 0, result.output
+    for message in ("Default target language:", "Outro idioma", "LibreTranslate languages", "Option",
+                    "Portuguese", "Spanish", "Target language option or code"):
+        assert message in result.output
+    assert session.posts and all(payload["target"] == "es" for payload in session.posts)
+    assert (preview_dir / "book-preview.epub").is_file()
 
 
 def test_root_command_starts_guided_translation(tmp_path, monkeypatch):
@@ -237,33 +193,20 @@ def test_root_command_selects_profile_for_guided_translation(isolated_config, tm
 
 
 def test_root_command_uses_saved_default_language_in_guided_preview(isolated_config, tmp_path, monkeypatch):
-    isolated_config.write_text(
-        json.dumps({"version": 1, "default_target_language": "es"}) + "\n",
-        encoding="utf-8",
-    )
-    epub_path = tmp_path / "book.epub"
+    declare_model(isolated_config, default_target_language="es")
+    epub_path = _book(tmp_path / "book.epub")
     preview_dir = tmp_path / "Preview"
-    epub_path.write_bytes(b"fake epub")
-    calls: dict[str, object] = {}
-
-    def fake_preflight(**kwargs: object) -> object:
-        calls["target"] = kwargs["language_pair"].target
-        return SimpleNamespace(translator=object(), glossary=None, route=None)
-
-    def fake_translate(_input_path: Path, _output_path: Path, **kwargs: object) -> TranslationReport:
-        calls["options"] = kwargs["options"]
-        return TranslationReport(output_path=_output_path, input_path=_input_path, target_language="es")
-
+    session = FakeLibreTranslateSession([
+        {"code": "en", "name": "English", "targets": ["es"]},
+        {"code": "es", "name": "Spanish", "targets": ["en"]},
+    ])
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_preview_books_dir", lambda: preview_dir)
-    monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fake_preflight)
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
-    _fake_translation(monkeypatch, fake_translate)
-    monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
 
     result = runner.invoke(app, [], input=f"2\n{epub_path}\n1\n")
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.output
     assert "Default target language:" in result.output
-    assert calls["target"] == "es"
-    assert calls["options"].target == "es"
+    assert session.posts and all(payload["target"] == "es" for payload in session.posts)
+    assert (preview_dir / "book-preview.epub").is_file()

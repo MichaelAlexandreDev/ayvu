@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import config
 import json
 from typer.testing import CliRunner
 from ayvu.interfaces.cli import app as cli, report as cli_report
@@ -7,6 +8,7 @@ from tests.interfaces.cli.translate_batch_integration_support import _run, isola
 
 
 def test_real_validation_warning_keeps_artifact_and_continues_batch(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     from tests.support.cli_translate_project_support import _jobs
 
     first = _write_epub(tmp_path / "first.epub", chapter_two='<p><a href="gone.xhtml">Broken link</a></p>')
@@ -28,6 +30,7 @@ def test_real_validation_warning_keeps_artifact_and_continues_batch(tmp_path, mo
 
 
 def test_real_cache_only_batch_writes_outputs_and_missing_reports_without_provider_calls(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     from tests.support.workflow_characterization_support import _read_member
 
     first = _write_epub(tmp_path / "first.epub")
@@ -52,6 +55,7 @@ def test_real_cache_only_batch_writes_outputs_and_missing_reports_without_provid
 
 
 def test_interrupted_active_batch_item_can_resume_without_starting_next(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     from ayvu.recovery.checkpoint import ResumeStateStore
 
     first = _write_epub(tmp_path / "first.epub", chapter_one="<p>First chapter text.</p>",
@@ -79,6 +83,7 @@ def test_interrupted_active_batch_item_can_resume_without_starting_next(tmp_path
 
 
 def test_batch_workers_bound_provider_concurrency_and_do_not_overlap_books(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     import threading
 
     class InstrumentedSession(FakeLibreTranslateSession):
@@ -126,6 +131,7 @@ def test_batch_workers_bound_provider_concurrency_and_do_not_overlap_books(tmp_p
 
 
 def test_real_failed_text_is_partial_and_batch_continues(tmp_path, monkeypatch):
+    config(tmp_path, label=None)
     from tests.support.cli_translate_project_support import _jobs
     from tests.support.workflow_characterization_support import FailingSession, _read_member
 
@@ -146,6 +152,7 @@ def test_real_failed_text_is_partial_and_batch_continues(tmp_path, monkeypatch):
 
 
 def test_report_failure_after_publication_keeps_durable_facts_and_continues(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     import sqlite3
 
     from ayvu.projects.store import ProjectJsonRepository
