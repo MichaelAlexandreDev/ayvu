@@ -785,6 +785,9 @@ tradutor** para os trechos ainda não cacheados, gravando estado em
 `~/Documentos/Livros/Processando`. O cache-only nunca chama o tradutor, não cria
 estado de retomada e não exige servidor ativo.
 
+Without a model label, cache-only runs with one worker: `--workers` above 1, or a profile such as
+`high`, is refused with a clear message. With a label, cache-only runs with several workers.
+
 ## Memória de Tradução
 
 O cache normal só reaproveita traduções de trechos **idênticos**. A memória de
