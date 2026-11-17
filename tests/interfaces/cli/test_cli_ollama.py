@@ -102,6 +102,8 @@ def test_what_ollama_cannot_run_is_refused_before_any_request(tmp_path, fake_oll
     _book(tmp_path / "book.epub")
     result = translate(tmp_path, fake_ollama.url, *more)
     assert result.exit_code == 1 and expected in text(result), text(result)
+    # The declared-label gate admits Ollama: every refusal here is Ollama's own.
+    assert "declare your translator" not in text(result)
     assert fake_ollama.requests == []
 
 

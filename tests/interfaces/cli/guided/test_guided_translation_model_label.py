@@ -28,6 +28,16 @@ def test_guided_saves_the_declared_label_and_continues(tmp_path, monkeypatch, me
         assert not (tmp_path / "processing").exists()
 
 
+def test_guided_label_prompt_keeps_an_existing_ollama_model(tmp_path, monkeypatch):
+    path = config(tmp_path, label=None, translator_models={"ollama": "qwen2.5:7b"})
+    source = _book(tmp_path / "book.epub")
+    transport = Transport()
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
+    result = runner.invoke(app, [], input=f"2\nlocal-model\n{source}\n1\n")
+    assert result.exit_code == 0, text(result)
+    assert json.loads(path.read_text())["translator_models"] == {"ollama": "qwen2.5:7b", "libretranslate": "local-model"}
+
+
 @pytest.mark.parametrize("menu", ["1", "2"])
 @pytest.mark.parametrize("label", ["Bad Label", "UPPER", "-starts-with-dash", "x" * 49, "ünicode", "-"])
 def test_guided_uses_settings_validation_without_saving_invalid_labels(tmp_path, monkeypatch, menu, label):

@@ -32,6 +32,10 @@ The first model adapter on the [LLM core](providers.md#llm-core), from
 
 ## Before any book work
 
+The CLI's admission rule (`rich_provider.require_model`) asks `identity_source` where a translator's identity
+comes from. LibreTranslate needs a declared label; Ollama's identity is discovered, so it is admitted without
+one, and the checks below refuse what it cannot run. An unknown translator keeps its own error.
+
 `ollama_preflight` runs before the job, because the job records its producer when it starts:
 
 | Situation | Result |
