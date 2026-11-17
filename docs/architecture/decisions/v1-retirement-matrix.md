@@ -35,7 +35,7 @@ All test paths are under `tests/interfaces/cli/`.
 | `--workers` and performance profiles | A(s2-5), A(s2-6) | `test_cli_rich_workers.py`, `test_cli_rich_cache_only_workers.py` |
 | Translation memory flags | G9, A(7): governed approved memory, fuzzy is a suggestion unless `--tm-conservative-auto-apply` at 0.98 or more; the v1 cache is not memory. A(s3-A): the CLI says so, and warns when `--tm-apply-threshold` is given without the conservative flag. | `test_cli_rich_runtime_policy.py`, `test_cli_rich_memory_notices.py` |
 | Provider failure | G10, A(7): the book always stops without a partial EPUB, whatever `--fail-fast` and the worker count say, and resumes from its completed documents | `test_cli_rich_failure_matrix.py` |
-| `resume` and the resume offer | = through the durable chain; a job resumes only with the runtime and label it started with | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py` |
+| `resume` and the resume offer | = through the durable chain; a job resumes on the runtime it started with, and a rich job resumed with another label translates again with `raw_results_changed_provider` | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py`, `test_cli_resume_runtime.py` |
 | Review export and apply | = through the rich review package | `test_cli_rich_runtime_execution.py` |
 | `extract` | = (no translation runtime) | existing `extract` tests |
 | Terminal and Markdown reports | =, plus the workers line of the plan | `test_cli_rich_dry_run.py`, `test_cli_rich_surfaces.py` |
@@ -65,8 +65,11 @@ the rich runtime the default:
 - **The v1 cache does not speed up the first labeled translation:** texts are translated again into
   the v2 cache, as answer B of 2026-11-12 already accepted. The notice about old data is step 5.
 - **Question P1:** a resume uses the runtime its job started with. A v1 job finishes on v1, with or
-  without a label, until step 6 removes v1; a rich job needs the label it started with. This only
-  finishes existing work: no new translation reaches v1.
+  without a label, until step 6 removes v1; a rich job needs a label. This only finishes existing
+  work: no new translation reaches v1. *Correction (2026-11-17):* the design also said that a rich
+  job needs the label it started with. That described current behaviour wrongly: a rich job resumed
+  with another label already translates its documents again and warns
+  (`raw_results_changed_provider`), as the README documents. The answer to P1 did not change that.
 - **Question P2:** guided translation and preview without a label ask for the label in place, with
   the same validation as the settings option, save it and continue; an empty answer cancels.
 - **Question P3:** commands that do not translate do not change in step 4. These are cache

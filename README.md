@@ -954,9 +954,9 @@ não cria essas revisões. Limpar o cache não apaga a memória aprovada.
 
 Uma falha do provedor para o runtime rico na primeira ocorrência e não publica EPUB parcial.
 Os segmentos concluídos ficam em v2; corrija o problema e execute `uv run ayvu resume livro.epub`.
-A retomada exige o mesmo runtime do job: adicionar ou remover o rótulo entre a falha e o
-resume é recusado como incompatibilidade `legacy/v1`/`rich/v2`. Restaure a configuração
-anterior para retomar. A retomada reaproveita os documentos que o job anterior concluiu, sem
+A resume keeps the runtime its job started with: a v1 job finishes on v1 even after a label is
+declared, and a rich job needs a label (with another label it translates again and says why). A
+retomada reaproveita os documentos que o job anterior concluiu, sem
 chamar o tradutor nem o cache, quando prova que nada mudou: modelo, rota, capacidades,
 configuração, livro e versão do pipeline. Se algo mudou, ela traduz de novo e avisa o que foi,
 por exemplo `Aviso da tradução: raw_results_changed_provider`.

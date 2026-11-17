@@ -82,20 +82,20 @@ def test_rich_provider_failure_first_middle_last_is_resumable_without_partial_ep
     assert any(job.continuation_of == parent.job_id and job.state is JobState.VALIDATED for job in _jobs(tmp_path))
 
 
-@pytest.mark.parametrize("original_label,next_label", [(None, "model"), ("model", None)])
-def test_resume_across_runtimes_is_refused_and_names_both_before_any_request(tmp_path, monkeypatch, original_label, next_label):
-    config(tmp_path, original_label)
+def test_resuming_a_rich_job_without_a_label_is_refused_before_any_request(tmp_path, monkeypatch):
+    # A v1 job resumed after a label is declared finishes on v1 instead: test_cli_resume_runtime.py.
+    config(tmp_path, "model")
     source = _book(tmp_path / "book.epub")
     def interrupt(_):
         raise KeyboardInterrupt
     failed, _ = invoke(tmp_path, monkeypatch, source, session=Transport(on_post=interrupt))
     assert failed.exit_code == 1
     original_jobs = _jobs(tmp_path)
-    config(tmp_path, next_label)
+    config(tmp_path, None)
     transport = Transport()
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
     resumed = runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)])
     output = text(resumed)
-    assert resumed.exit_code == 1 and "legacy/v1" in output and "rich/v2" in output
+    assert resumed.exit_code == 1 and "Um job rich/v2 só pode ser retomado com um rótulo de modelo." in " ".join(output.split())
     assert transport.requests == []
     assert len(_jobs(tmp_path)) == len(original_jobs)

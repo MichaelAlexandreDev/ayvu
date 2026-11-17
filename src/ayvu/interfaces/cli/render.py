@@ -41,8 +41,8 @@ _BOOK_BROKEN = (
 
 _TRANSLATION_FAILURES: dict[str, tuple[str, str]] = {
     "runtime_mismatch": (
-        "Não é possível retomar entre runtimes diferentes: legacy/v1 e rich/v2.",
-        "Restaure a presença ou ausência do rótulo do modelo na configuração usada pelo job original.",
+        "Um job rich/v2 só pode ser retomado com um rótulo de modelo.",
+        "Declare um rótulo em Configurações (opção 5) ou em translator_models e repita.",
     ),
     "rich_translation_failed": (
         "A tradução rich/v2 parou; nenhum EPUB parcial foi publicado.",

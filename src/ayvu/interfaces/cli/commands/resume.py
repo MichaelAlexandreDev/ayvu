@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .. import plan, run as translation_run, run_messages, settings, translate_options
+from dataclasses import replace
 from pathlib import Path
 from typing import Optional
 import typer
@@ -98,6 +99,10 @@ class _ResumeRunner:
 
     def _run(self, **identity: object) -> translation_run.TranslationRunResult:
         state, mode = self._state, self._mode
+        config = settings._load_existing_config_or_default()
+        if state.execution_revision == 1:
+            # A v1 job finishes on v1, whatever label the configuration now declares; no new run reaches v1.
+            config = replace(config, translator_models={})
         return translation_run._run_translation(
             epub_path=state.input_path,
             output=state.output_path,
@@ -127,6 +132,7 @@ class _ResumeRunner:
             translate_alt_text=state.translate_alt_text,
             translation_memory=state.translation_memory_options(),
             project_profile_name=state.profile_name,
+            config=config,
             **identity,
         )
 
