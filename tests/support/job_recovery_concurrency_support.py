@@ -13,6 +13,7 @@ from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeR
 from ayvu.translation.resume_reuse import RecoveryReason
 from ayvu.recovery.store import _options
 from ayvu.projects.store import ProjectJsonRepository
+from tests.support.paths import PROJECT_ROOT
 from ayvu.translation.project_contracts import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
 from ayvu.composition.builders.translate_project import (
     LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
@@ -51,7 +52,19 @@ CHILD = textwrap.dedent('''
     ayvu.providers.libretranslate.client.requests.Session = Session
     processing = sys.argv[1]
     cli_settings._processing_dir = lambda _config: pathlib.Path(processing)
-    CliRunner().invoke(cli.app, sys.argv[2:])
+    if os.environ.get("AYVU_TEST_V1_JOB") == "1":
+        from tests.support.job_recovery_integration_support import Scene
+        scene = Scene(pathlib.Path(processing).parent, url="http://localhost:5000")
+        scene.save_state()
+        def block(text):
+            if "Goodbye" in text:
+                os.write(1, b"blocked\\n")
+                while True:
+                    time.sleep(60)
+        scene.translator.on_call = block
+        scene.translate()
+    else:
+        CliRunner().invoke(cli.app, sys.argv[2:])
 ''')
 
 
@@ -84,7 +97,10 @@ class Blocked:
 def _kill_a_real_run(tmp_path):
     source = _book(tmp_path / "book.epub")
     arguments = _args(tmp_path, source)
-    environment = {**os.environ, "HOME": str(tmp_path / "home"), "XDG_CONFIG_HOME": str(tmp_path / "config")}
+    # The child runs from tmp_path, so the repository root must be on its path to import tests.support.
+    python_path = os.pathsep.join(filter(None, (str(PROJECT_ROOT), os.environ.get("PYTHONPATH"))))
+    environment = {**os.environ, "AYVU_TEST_V1_JOB": "1", "PYTHONPATH": python_path, "HOME": str(tmp_path / "home"),
+                   "XDG_CONFIG_HOME": str(tmp_path / "config")}
     child = subprocess.Popen([sys.executable, "-c", CHILD, str(tmp_path / "processing"), *arguments], stdout=subprocess.PIPE,
                              stderr=subprocess.DEVNULL, env=environment, cwd=tmp_path)
     assert child.stdout.readline() == b"blocked\n"

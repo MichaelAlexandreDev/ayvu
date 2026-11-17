@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import declare_model
 import json
 from ayvu.interfaces.cli.app import app
 from ayvu.translation.preflight import PreflightError
@@ -67,7 +68,8 @@ def test_root_command_in_developer_mode_skips_guided_prompts(tmp_path, monkeypat
     assert "Não foi possível ler o EPUB informado." in result.output
 
 
-def test_common_mode_hides_technical_detail_for_expected_error(tmp_path, monkeypatch):
+def test_common_mode_hides_technical_detail_for_expected_error(tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake epub")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")
@@ -92,7 +94,8 @@ def test_common_mode_hides_technical_detail_for_expected_error(tmp_path, monkeyp
     assert "Traceback" not in result.output
 
 
-def test_developer_mode_shows_technical_detail_for_expected_error(tmp_path, monkeypatch):
+def test_developer_mode_shows_technical_detail_for_expected_error(tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake epub")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")

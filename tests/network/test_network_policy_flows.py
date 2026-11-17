@@ -17,6 +17,7 @@ from ayvu.network.policy import NetworkPolicy
 from ayvu.providers.discovery import DiscoveryOutcome
 from ayvu.providers.network import NetworkClass, ProviderOperation
 from ayvu.recovery.checkpoint import ResumeStateStore, TranslationResumeState
+from tests.support.cli_rich_runtime_support import config
 from tests.support.network_policy_support import WireSocket, answer, deny_network, wire_reply
 from ayvu.kernel import LanguagePair, TranslationOptions
 from ayvu.translation.errors import PreflightPolicyError
@@ -134,6 +135,7 @@ def test_guided_language_discovery_inherits_root_selection_and_does_not_persist_
 
 @pytest.mark.parametrize("policy", ["none", "loopback"])
 def test_preview_uses_real_preflight_and_policy(minimal_epub_path, tmp_path, provider_wire, policy):
+    config(tmp_path)
     original = minimal_epub_path.read_bytes()
     result = CliRunner().invoke(cli.app, ["--network-policy", policy, "--preview", str(minimal_epub_path)])
     if policy == "none":
@@ -149,6 +151,7 @@ def test_preview_uses_real_preflight_and_policy(minimal_epub_path, tmp_path, pro
 @pytest.mark.parametrize("policy", ["none", "loopback"])
 @pytest.mark.parametrize("batch", [False, True])
 def test_translate_and_batch_use_real_production_composition(minimal_epub_path, tmp_path, provider_wire, policy, batch):
+    config(tmp_path)
     books = [minimal_epub_path]
     if batch:
         other = tmp_path / "second.epub"

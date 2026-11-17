@@ -235,6 +235,8 @@ CHILD = textwrap.dedent('''\
 
 
 def _canned(tmp_path, monkeypatch, result, report=None):
+    from tests.support.cli_rich_runtime_support import config
+    config(tmp_path)
     output = tmp_path / "out.epub"
     run = ProjectTranslationRun(result, report(output) if report else None, None)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.translate_in_project", lambda _translation, _observer: run)

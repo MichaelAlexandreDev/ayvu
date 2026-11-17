@@ -1,4 +1,5 @@
 """Tests for the extracted CLI translation workflow."""
+from tests.support.cli_rich_runtime_support import declare_model
 import json
 from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
@@ -8,7 +9,8 @@ from ayvu.translation.preflight import PreflightError
 from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
 
 
-def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_path, tmp_path, monkeypatch):
+def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     processing = tmp_path / 'project-processing'
     monkeypatch.setattr('ayvu.interfaces.cli.settings._processing_dir', lambda _config: processing)
     calls = []
@@ -55,7 +57,8 @@ def test_project_rejects_secret_endpoint_without_reflecting_it(minimal_epub_path
     assert 'sem usuário' in result.output
 
 
-def test_dry_run_does_not_require_project_storage(minimal_epub_path, tmp_path, monkeypatch):
+def test_dry_run_does_not_require_project_storage(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     processing = tmp_path / 'blocked'
     processing.write_bytes(b'blocked')
     monkeypatch.setattr('ayvu.interfaces.cli.settings._processing_dir', lambda _config: processing)
@@ -63,7 +66,7 @@ def test_dry_run_does_not_require_project_storage(minimal_epub_path, tmp_path, m
     def stop(**kwargs):
         calls.append(kwargs)
         raise PreflightError('synthetic-dry-run-stop', 'test complete')
-    monkeypatch.setattr('ayvu.interfaces.cli.run.run_translation_preflight', stop)
+    monkeypatch.setattr('ayvu.composition.cli._local_preflight', stop)
     result = runner.invoke(app, ['translate', str(minimal_epub_path), '--source', 'en', '--dry-run'])
     assert len(calls) == 1
     assert 'synthetic-dry-run-stop' in result.output

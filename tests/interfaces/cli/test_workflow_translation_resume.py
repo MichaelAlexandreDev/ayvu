@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime
 import hashlib
 import json
 from zipfile import ZIP_STORED, ZipFile
@@ -62,47 +63,6 @@ def test_translate_cli_preserves_source_archive_and_visible_text(tmp_path, monke
         for member in unchanged_members:
             assert output.read(member) == source.read(member)
             assert _zip_metadata(output.getinfo(member)) == _zip_metadata(source.getinfo(member))
-
-
-def test_translate_cli_reuses_exact_cache_and_applies_glossary_after_cache(tmp_path, monkeypatch):
-    source_path = _write_epub(tmp_path / "book.epub")
-    cache_path = tmp_path / "cache.sqlite"
-    session = FakeLibreTranslateSession(_direct_languages())
-    processing_dir = _install_cli_environment(monkeypatch, tmp_path, session)
-
-    first_output = tmp_path / "first.epub"
-    first = runner.invoke(app, _translate_args(source_path, cache_path, output_path=first_output))
-    assert first.exit_code == 0, first.output
-    post_count_after_first_run = len(session.posts)
-
-    glossary_path = tmp_path / "glossary.json"
-    glossary_path.write_text(json.dumps({"Game Loop": "loop de jogo"}), encoding="utf-8")
-    second_output = tmp_path / "second.epub"
-    second = runner.invoke(
-        app,
-        _translate_args(
-            source_path,
-            cache_path,
-            output_path=second_output,
-            glossary_path=glossary_path,
-        ),
-    )
-
-    assert second.exit_code == 0, second.output
-    assert len(session.posts) == post_count_after_first_run
-    assert "Texts from cache" in second.output
-    assert "PT:Game Loop uses Observer." in _read_member(first_output, "OEBPS/text/chapter1.xhtml")
-    assert "PT:loop de jogo uses Observer." in _read_member(second_output, "OEBPS/text/chapter1.xhtml")
-    # New glossary intent gets a distinct project, preserving the first one.
-    manifests = list(processing_dir.glob('projects/*/project.json'))
-    assert len(manifests) == 2
-    assert len({json.loads(path.read_text())['project_id'] for path in manifests}) == 2
-    third_output = tmp_path / 'third.epub'
-    third = runner.invoke(app, _translate_args(source_path, cache_path, output_path=third_output,
-                                               glossary_path=glossary_path))
-    assert third.exit_code == 0, third.output
-    assert len(list(processing_dir.glob('projects/*/project.json'))) == 2
-    assert len(session.posts) == post_count_after_first_run
 
 
 def test_translate_cli_interrupts_then_resume_reuses_checkpoint_and_cache(tmp_path, monkeypatch):

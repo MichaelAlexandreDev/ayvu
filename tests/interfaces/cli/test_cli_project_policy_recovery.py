@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime
 import os
 import signal
 import subprocess
@@ -63,14 +64,15 @@ def test_a_font_with_the_standard_obfuscation_is_not_a_protected_book(tmp_path, 
 
 
 def test_a_lost_lease_publishes_nothing_and_the_retry_needs_no_translator(tmp_path, monkeypatch):
-    now = [datetime(2026, 1, 1, tzinfo=UTC)]
+    now = [datetime.now(UTC)]
     real_open = composition.open_translate_project
 
     def open_with_clock(*args, **kwargs):
         return real_open(*args, clock=lambda: now[0], lease_renewal=timedelta(days=1), **kwargs)
 
     def sleep_for_two_hours(_text: str) -> None:
-        now[0] = datetime(2026, 1, 1, 2, tzinfo=UTC)
+        if "Goodbye" in _text:
+            now[0] += timedelta(hours=2)
 
     monkeypatch.setattr(composition, "open_translate_project", open_with_clock)
     result, session = _run(tmp_path, monkeypatch, session=Session(on_post=sleep_for_two_hours))

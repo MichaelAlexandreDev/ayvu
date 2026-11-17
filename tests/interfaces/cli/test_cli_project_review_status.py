@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime
 import csv
 import io
 from concurrent.futures import ThreadPoolExecutor

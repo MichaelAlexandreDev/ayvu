@@ -1,3 +1,4 @@
+from tests.support.cli_rich_runtime_support import config
 """Integration checks for complete batch planning and dry-run publications."""
 
 import json
@@ -48,6 +49,7 @@ def test_same_stem_destinations_rejected_before_first_item(tmp_path, monkeypatch
 
 
 def test_dry_run_existing_output_saves_each_report_without_replacing_epub(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     first = _write_epub(tmp_path / "first.epub", language="en")
     second = _write_epub(tmp_path / "second.epub", language="fr")
     originals = [first.read_bytes(), second.read_bytes()]
@@ -129,6 +131,7 @@ def test_common_mode_cancel_conflict_on_final_item_starts_nothing(tmp_path, monk
 
 
 def test_cache_only_dry_run_keeps_reports_and_automatic_missing_files(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     first = _write_epub(tmp_path / "first.epub")
     second = _write_epub(tmp_path / "second.epub")
     output = tmp_path / "out"
@@ -146,6 +149,7 @@ def test_cache_only_dry_run_keeps_reports_and_automatic_missing_files(tmp_path, 
 
 
 def test_automatic_reports_and_missing_files_follow_the_umask_like_any_other_output(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     first = _write_epub(tmp_path / "first.epub")
     second = _write_epub(tmp_path / "second.epub")
     _install_cli_environment(monkeypatch, tmp_path, FakeLibreTranslateSession(_direct_languages()))
@@ -161,6 +165,7 @@ def test_automatic_reports_and_missing_files_follow_the_umask_like_any_other_out
 
 
 def test_real_project_batch_resolves_each_source_language(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     first = _write_epub(tmp_path / "first.epub", language="en")
     second = _write_epub(tmp_path / "second.epub", language="fr")
     originals = [first.read_bytes(), second.read_bytes()]
@@ -182,6 +187,7 @@ def test_real_project_batch_resolves_each_source_language(tmp_path, monkeypatch)
 
 
 def test_common_rename_and_overwrite_are_decided_before_translation(tmp_path, monkeypatch):
+    config(tmp_path, books_dir=str(tmp_path / "home" / "Documentos" / "Livros"))
     first = _write_epub(tmp_path / "first.epub")
     second = _write_epub(tmp_path / "second.epub")
     output = tmp_path / "out"

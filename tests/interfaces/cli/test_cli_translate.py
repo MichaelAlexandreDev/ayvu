@@ -1,4 +1,5 @@
 """Tests for the extracted translate command."""
+from tests.support.cli_rich_runtime_support import declare_model
 from ayvu.interfaces.cli.app import app
 from ayvu.translation.preflight import PreflightError
 from tests.support.cli_support import runner
@@ -20,7 +21,8 @@ def test_translate_command_has_clear_error_for_unknown_translator(tmp_path):
     assert "Traceback" not in result.output
 
 
-def test_translate_command_in_developer_mode_skips_confirmations(tmp_path, monkeypatch):
+def test_translate_command_in_developer_mode_skips_confirmations(tmp_path, monkeypatch, isolated_config):
+    declare_model(isolated_config)
     epub_path = tmp_path / "book.epub"
     epub_path.write_bytes(b"fake")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: tmp_path / "Traduzidos")

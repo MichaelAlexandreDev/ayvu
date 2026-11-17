@@ -1,5 +1,6 @@
 """The real ``resume`` command and the guided offer, through the recovery use cases, watched from the jobs and the files they leave."""
 from __future__ import annotations
+from tests.support.cli_rich_runtime_support import labeled_runtime, config
 
 import json
 import os
@@ -220,9 +221,11 @@ def test_an_old_file_stays_byte_for_byte_when_it_is_only_read_or_when_the_transl
 
 def test_an_old_file_with_a_project_from_before_jobs_gets_no_job(tmp_path, monkeypatch):
     """The project is real, but nothing ran under it on this plan, and the file is not given a job to fit."""
+    config(tmp_path, label=None)
     source = _book(tmp_path / "book.epub")
-    first, _ = _invoke(monkeypatch, _args(tmp_path, source))
-    assert first.exit_code == 0
+    from tests.support.job_recovery_integration_support import Scene
+    scene = Scene(tmp_path, source=source, url="http://localhost:5000")
+    assert scene.translate().result.state is JobState.VALIDATED
     count = len(_jobs(tmp_path))
     _old_file(tmp_path, source, output_path=str(tmp_path / "other.epub"))
 
@@ -268,7 +271,8 @@ def test_a_bad_file_does_not_stop_a_good_one(tmp_path, monkeypatch):
 def test_a_profile_is_kept_in_the_file_finds_its_project_and_shows_nothing_new(tmp_path, monkeypatch):
     path = default_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    ConfigStore(path).save(AyvuConfig(profiles={"tec": TranslationProfile(target_language="pt", style="technical")}))
+    path.unlink()
+    ConfigStore(path).save(AyvuConfig(translator_models={"libretranslate": "local-model-2026"}, profiles={"tec": TranslationProfile(target_language="pt", style="technical")}))
     source = _book(tmp_path / "book.epub")
     stopped, _ = _invoke(monkeypatch, _args(tmp_path, source, "--profile", "tec"), Session(on_post=_stop_on("Goodbye")))
     assert stopped.exit_code == 1
@@ -293,9 +297,9 @@ def test_failing_again_keeps_the_chain_truthful_and_the_file_running(tmp_path, m
     result, _ = _invoke(monkeypatch, RESUME, Session(failing="Goodbye"))
 
     text = " ".join(result.output.split())
-    assert result.exit_code == 1 and "--fail-fast" in text and WRAPPER in text and not isinstance(result.exception, ValueError)
+    assert result.exit_code == 1 and "nenhum EPUB parcial" in text and WRAPPER in text and not isinstance(result.exception, ValueError)
     states, _ = _chain(tmp_path)
-    assert states[0][0] is JobState.CANCELLED and states[1] == (JobState.FAILED, "provider_failed")
+    assert states[0][0] is JobState.CANCELLED and states[1] == (JobState.FAILED, "provider_server_error")
     assert _state(tmp_path)["status"] == "running" and not (tmp_path / "out.epub").exists()
 
 
