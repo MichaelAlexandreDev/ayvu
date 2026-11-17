@@ -22,7 +22,7 @@ from ..library import LibraryService
 from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
-from ..recovery.checkpoint import ResumeStateStore, TranslationResumeState
+from .builders import checkpoint
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
@@ -261,42 +261,8 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
     )
 
 
-class TranslationCheckpoint:
-    """Compatibility checkpoint writes stay with the storage adapter, never the presenter."""
-    def __init__(self):
-        self.store = None
-        self.state = None
-
-    def __repr__(self):
-        return 'TranslationCheckpoint()'
-
-    def start(self, *, processing_dir, epub_path, **values):
-        self.store = ResumeStateStore(processing_dir)
-        self.state = TranslationResumeState.create(input_path=epub_path, **values)
-        self._save()
-
-    def chapter_started(self, index, total, name):
-        if self.state is not None:
-            self.state = self.state.start_chapter(name, total)
-            self._save()
-
-    def chapter_done(self, index, total, name, stats):
-        if self.state is not None:
-            self.state = self.state.record_chapter(name=name, total=total,
-                ok=not stats.errors and stats.missing == 0, failed_segment_count=len(stats.errors) + stats.missing)
-            self._save()
-
-    def completed(self):
-        if self.state is not None:
-            self.state = self.state.mark_completed()
-            self._save()
-
-    def _save(self):
-        self.store.save(self.state)
-
-
 def translation_checkpoint():
-    return TranslationCheckpoint()
+    return checkpoint.TranslationCheckpoint()
 
 
 def translation_modality(dry_run, models, translator_name):

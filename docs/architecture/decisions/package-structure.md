@@ -264,7 +264,7 @@ src/ayvu/
                    local_files, local_context, local_packages, local_start, local_operations
   recovery/        service, store, checkpoint, checkpoint_scan
   v1/              translation, epub, html_translate, cache, cache_check
-  composition/     cli, desktop, editions (later); builders/
+  composition/     cli, desktop, editions (later); builders/ (including checkpoint)
   interfaces/      cli/ (app, commands/, render, progress); desktop/; server/ (later)
 ```
 

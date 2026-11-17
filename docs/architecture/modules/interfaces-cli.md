@@ -280,3 +280,6 @@ job or checkpoint. Provider errors return 1 with previous output intact; keyboar
 retains the CLI cancellation exit. Without a label, preview messages, requests and v1 cache
 behavior are preserved, including preparation before progress starts. G2's cache/partial-output
 differences were accepted on 2026-11-13.
+
+The compatibility checkpoint adapter is `composition/builders/checkpoint.py`; the CLI root
+constructs it through `translation_checkpoint()` without opening storage.
