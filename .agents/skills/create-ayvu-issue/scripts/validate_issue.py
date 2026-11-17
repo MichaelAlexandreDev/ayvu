@@ -41,6 +41,7 @@ PLACEHOLDERS = (
 )
 TITLE_RE = re.compile(r"(?m)^# \[([A-Z][A-Z0-9]*-\d+)\] ([A-Z][^\n]+)$")
 CODEX_MODELS = {
+    "GPT-6.1 Sol": {"low", "medium", "high", "xhigh", "max", "ultra"},
     "GPT-5.6 Sol": {"low", "medium", "high", "xhigh", "max", "ultra"},
     "GPT-5.6 Terra": {"low", "medium", "high", "xhigh", "max", "ultra"},
     "GPT-5.6 Luna": {"low", "medium", "high", "xhigh", "max"},
@@ -143,8 +144,6 @@ def validate(path: Path) -> list[str]:
         errors.append("Recommended model must include a risk-based reason")
 
     labels = section_body(text, "Labels")
-    if "`desktop`" not in labels:
-        errors.append("Labels must include desktop")
     if priority_match:
         expected_label = f"`priority:{priority_match.group(1).lower()}`"
         if expected_label not in labels:
