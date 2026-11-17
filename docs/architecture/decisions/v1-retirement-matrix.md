@@ -77,3 +77,28 @@ the rich runtime the default:
   administration, applying a review, `inspect` and `extract`; their v1 parts leave in steps 5 and 6.
 
 Every other surface keeps the behaviour in the matrix above.
+
+## Step 4 exit proof (2026-11-17)
+
+These are the runs that the [ordered plan](v1-retirement.md#ordered-implementation-after-approval) asks for. They used the real CLI with isolated user folders and a fake loopback LibreTranslate server. Each run compared `main` before the switch (`5cb6025`) with `main` after it (`274c77c`, #389), on the maintainer's Arch Linux machine.
+
+- **With a configured label:**
+  - **42 translation and resume scenarios:** all identical.
+  - **71 CLI scenarios:** 62 identical; 8 differ only in the width of the Rich tables.
+    - The width comes from the length of the run folder's name.
+    - The remaining scenario passes an unknown `--translator` together with a non-loopback URL. Before the switch, Ayvu created a project and then failed on the network policy. Now it refuses at once with the unknown-translator error and creates nothing.
+  - **End-to-end interruption and resume run:** no differences.
+- **Without a label:**
+  - **71 CLI scenarios:** 53 change, and each change is the refusal, at a step that translates. That step is `translate` (42 steps), root `--preview` (3) or guided option 2, the default (30 steps). 7 scenarios are identical; the other 11 differ only in table width or create nothing, and one of these fails in its own harness on both sides.
+  - The resume scenarios cannot set up an unlabeled job any more. The suite covers unlabeled v1 resume: `test_cli_resume_runtime.py`.
+- **After the switch:** an end-to-end run against a real loopback HTTP server passed all 16 checks:
+  - without a label, `translate`, `--dry-run`, `--cache-only` and root `--preview` exit 1 with the refusal, send no HTTP request and create no file;
+  - with a label:
+    - the default run translates every text once;
+    - a warm repeat sends nothing and publishes the same EPUB;
+    - warm cache-only opens no session and publishes the same EPUB;
+    - cold cache-only with `--require-full-cache` exits 1 without an EPUB; without that flag it keeps the source text and writes the missing-text file;
+    - dry run publishes nothing, and preview publishes a preview;
+    - an interrupted run resumes with only the missing texts and matches a clean run byte for byte;
+    - review export and `apply-review` put the reviewed text in the EPUB;
+    - common mode saves the Markdown report.
