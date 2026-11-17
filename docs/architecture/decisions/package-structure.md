@@ -255,7 +255,7 @@ src/ayvu/
   knowledge/       cache/ (identity, schema, protocol_names, legacy_schema, legacy_format, legacy_stream, legacy_admin_store, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
                    memory/ (fuzzy; approved/ model, service, store); glossary/ (rules, catalog, catalog_store)
   providers/       ports, capabilities, discovery, service, network, session;
-                   libretranslate/ (client, adapter)
+                   libretranslate/ (client, adapter); llm/ (model, prompt, batching, output, failures, facts, settings, core)
   projects/        model, service, store, schema; profiles/ (model, service, store, glossary_store)
   translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output, report;
                    stages/ (memory_retrieval); context/ (model, execution, source)

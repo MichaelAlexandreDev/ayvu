@@ -153,7 +153,7 @@ def _parallel_online(runtime, context, plan):
     @contextmanager
     def factory(events, check):
         check()
-        provider = runtime.binding.provider(factory_of(), plan.producer)
+        provider = runtime.binding.provider(factory_of(), plan.producer, runtime._prepared.glossary)
         try:
             artifacts = ArtifactService(SqliteArtifactRepository(runner, runtime._database, runtime._project_id,
                 clock=runtime._clock), LocalArtifactPayloads(runtime._artifact_root))

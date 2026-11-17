@@ -13,6 +13,7 @@ import ayvu.interfaces.cli.app as cli
 from ayvu.interfaces.cli import settings as cli_settings
 import ayvu.composition.builders.translate_project as composition
 from ayvu.jobs.execution import InMemoryJobEventLog
+from ayvu.knowledge.cache import CanonicalValue
 from ayvu.provenance.model import ProducerIdentity
 from ayvu.providers.ports import ProviderRoute
 from ayvu.translation.document_contracts import (
@@ -82,6 +83,14 @@ def test_without_a_chain_another_job_still_cannot_replay(env):
     _, result, provider, warnings = continue_job(env)
     assert len(provider.requests) == 2 and warnings == []
     assert {unit.source for unit in result.units} == {UnitSource.PROVIDER}
+
+
+def test_decimal_generation_parameters_have_a_stable_configuration_digest():
+    def configuration(value):
+        return reuse_dimensions(document(), plan(generation_parameters=(
+            ('decoding_temperature', CanonicalValue('decimal', value)),)))['configuration']
+    assert configuration('0.20') == configuration('0.2')
+    assert configuration('0.2') != configuration('0.7')
 
 
 @pytest.mark.parametrize('changes,dimension', [

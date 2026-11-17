@@ -1,7 +1,8 @@
 """The provider the rich runtime translates with, and the plan that names it.
 
 A binding resolves the plan of one run and creates the provider each worker uses, so the
-runtime itself never constructs a concrete provider. LibreTranslate is the default binding.
+runtime itself never constructs a concrete provider. LibreTranslate is the default binding;
+``composition.builders.llm`` binds the LLM core.
 """
 from __future__ import annotations
 
@@ -49,7 +50,8 @@ class LibreTranslateBinding:
             ProviderRoute(options.source, options.target, None if route is None else route.intermediate),
             chunk_limit=options.chunk_limit, glossary_ref=effective_glossary_reference(prepared.glossary))
 
-    def provider(self, translator, producer: ProducerIdentity) -> LibreTranslateProvider:
+    def provider(self, translator, producer: ProducerIdentity, glossary: object = None) -> LibreTranslateProvider:
+        """The glossary is not sent to LibreTranslate; the pipeline applies it after translation."""
         base = _base(translator)
         return LibreTranslateProvider(translator, producer=producer, clock=self._clock,
             cleanup=base.close if isinstance(base, LibreTranslateTranslator) else None)

@@ -441,12 +441,13 @@ def check_rich_options(options: TranslationOptions) -> None:
 class RichTranslationRuntime:
     """Only the composition knows the concrete repositories; its binding knows the provider."""
     def __init__(self, source_path, options, prepare, cache_path, label, database, backups, artifact_root, project_id,
-                 *, clock=lambda: datetime.now(UTC), translation_context: ContextExecution | None = None, prepare_offline=None) -> None:
+                 *, binding=None, clock=lambda: datetime.now(UTC),
+                 translation_context: ContextExecution | None = None, prepare_offline=None) -> None:
         self._source_path, self._options, self._prepare = source_path, options, prepare
         self._cache_path = v2_cache_path(cache_path)
         self._database, self._backups, self._artifact_root = database, backups, artifact_root
         self._project_id, self._clock = project_id, clock
-        self.binding = LibreTranslateBinding(label, clock)
+        self.binding = binding or LibreTranslateBinding(label, clock)
         self.producer = self.binding.producer
         self.preflight_error = None
         self._prepared = None
@@ -500,7 +501,7 @@ class RichTranslationRuntime:
         plan = self.binding.plan(prepared, options)
         artifacts = open_artifact_service(self._database, self._backups, self._artifact_root, self._project_id, clock=self._clock)
         provenance = open_provenance_repository(self._database, self._backups, self._project_id, clock=self._clock)
-        provider = self.binding.provider(prepared.translator, self.producer)
+        provider = self.binding.provider(prepared.translator, self.producer, prepared.glossary)
         try:
             yield online_work(self, context, plan, provider, artifacts, provenance, memory_policy)
         finally:

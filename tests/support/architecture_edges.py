@@ -3,8 +3,9 @@ from .architecture_cache_edges import CACHE_EDGES
 from .architecture_transient_edges import TRANSIENT_EDGES
 from .architecture_cache_only_edges import CACHE_ONLY_EDGES
 from .architecture_worker_edges import WORKER_EDGES
+from .architecture_llm_edges import LLM_EDGES
 ALLOWED_INTERNAL_EDGES = {
-    *TRANSIENT_EDGES, *CACHE_ONLY_EDGES, *WORKER_EDGES,
+    *TRANSIENT_EDGES, *CACHE_ONLY_EDGES, *WORKER_EDGES, *LLM_EDGES,
     *(("ayvu.translation.local_cache_plan", f"ayvu.{name}") for name in ("knowledge.cache.cache_only", "knowledge.cache.entries", "knowledge.cache.identity", "knowledge.cache.identity_values", "knowledge.cache.scope", "provenance.model", "providers.ports", "translation.plan")),
     *((f"ayvu.knowledge.cache.{a}", f"ayvu.knowledge.cache.{b}") for a, names in (
        ("read_only", "entries identity_values read_only_queries read_only_journal scope schema"),

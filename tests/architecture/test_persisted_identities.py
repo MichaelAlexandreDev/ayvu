@@ -18,7 +18,8 @@ What each identity keys (checked against its callers at 5796e49):
 - context content identity and projection: the context revision a job records;
 - provider network binding: ties a network decision to one provider, configuration and operation;
 - approved memory command fingerprint: ``tm_operations.command_hash`` in the memory store;
-- raw-results reuse dimension: the raw-results payload v2 (#242).
+- raw-results reuse dimension: the raw-results payload v2 (#242);
+- LLM prompt digest: the snapshot reference of the LLM core's prompt revision, inside the v2 fingerprint (#375).
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ from ayvu.knowledge.memory.approved.store import _digest as memory_digest
 from ayvu.knowledge.cache.identity_values import CanonicalValue, SemanticRouteHop
 from ayvu.knowledge.cache.identity import SemanticOperationV2
 from ayvu.provenance.model import ProducerIdentity
+from ayvu.providers.llm import PROMPT_V1
 
 from tests.support.paths import PROJECT_ROOT
 SOURCE = PROJECT_ROOT / "src" / "ayvu"
@@ -53,7 +55,7 @@ TEXT = "Olá, leitor — café."
 DOMAIN_TAGS = (
     "ayvu.content", "ayvu.translation_plan", "ayvu.semantic_operation", "ayvu.project_profile",
     "ayvu.profile_snapshot", "ayvu.translation_context", "ayvu.context_content.v1", "ayvu.context_egress.v1",
-    "ayvu.provider_network",
+    "ayvu.provider_network", "ayvu.llm_prompt",
 )
 
 
@@ -154,6 +156,9 @@ GOLDEN = {
     "approved memory command fingerprint": (
         lambda: memory_digest(["CreateCandidate", {"operation_id": "op-1"}]),
         "838c5b97825375dc91efac203b085c365af7c02c0a374d5b773f1668bf304af5"),
+    "llm prompt v1 digest": (
+        lambda: PROMPT_V1.digest,
+        "029c56321119ead6f898905c7d1202a972c6dce88e4f5319387d10c2360aec0e"),
     "raw-results reuse dimension": (
         lambda: translation_raw_results._dimension_digest({"input": ["rev-1", "sha256:x", "en"], "title": "Capítulo"}),
         "sha256:aca5b426889afe54ec666956d99cafb27f364e79b2fb3ef16c44e8bff8ea9792"),

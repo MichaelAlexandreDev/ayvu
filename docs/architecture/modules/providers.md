@@ -325,6 +325,52 @@ developer mode. The code still separates rejected, unauthorized, rate-limited an
 could not list languages. The real translator always can, so this reached only test doubles. A translator
 without discovery now gets an unknown route and no request.
 
+## LLM core
+
+The [prompt and batching decision](../decisions/llm-prompt-batching.md) (`Proposed`) records the contract
+of [#375](https://github.com/MichaelAlexandreDev/ayvu/issues/375). `ayvu.providers.llm` is a
+`TranslationProvider` over a `ModelPort`; an adapter maps transport and declares its facts, nothing more.
+
+| Module | Responsibility |
+| --- | --- |
+| `model` | Model port, request and response, glossary hints, batch policy, decoding settings, typed transport error |
+| `prompt` | Versioned template, deterministic JSON rendering, output schema, template digest |
+| `batching` | Ordered batches within a units cap and an estimated token budget |
+| `output` | Strict parsing of `{"translations": [{"id", "text"}]}` against the expected ids |
+| `failures` | Mapping to existing `JobFailure` families |
+| `facts` | Core capability facts and the snapshot that requires every transport fact from the adapter |
+| `settings` | Run settings and the plain semantic values the v2 fingerprint covers |
+| `core` | `LlmTranslationProvider`: pre-request refusals, calls, per-unit fallback, strict result check |
+
+**Before a call**, with nothing sent: a required feature other than context is `unsupported_required_feature`,
+a pivot route is `route_conflict`, and an observed cancellation is `cancelled_before_request`.
+
+**During a batch:**
+
+| Answer | Result |
+| --- | --- |
+| Valid, in any order | Each unit mapped by id, then checked strictly |
+| Missing, extra or duplicate id, invalid JSON, outside the schema, truncated | Retried once per unit alone; still broken: `provider_output_invalid` or `provider_output_truncated` |
+| Refusal or safety stop | `provider_refusal`, `provider_permanent`, not retryable, for the whole batch |
+| 429 with a retry-after within `max_retry_wait_ms` | Waited out up to `rate_limit_retries` times; then `provider_rate_limited` with `retry_after_ms` |
+| Timeout, connection, other request failure | `provider_transient`, delivery `unknown` |
+| 5xx, 401/403, other HTTP | `provider_server_error` (transient), `provider_unauthorized`, `provider_rejected` |
+| An adapter's own exception | Reduced by `normalize_failure`; its message is never read |
+
+**Per unit:** an empty answer is `empty_result`; a damaged or reordered placeholder is `placeholder_mismatch`;
+text equal to the source across languages succeeds with `untranslated_result`. The source's outer whitespace
+is restored, since chunks are joined on it.
+
+**Identity.** The plan's `prompt_strategy` is `llm_structured_batch`, its prompt revision is backed by the
+template digest, and its generation parameters hold the batch policy, decoding settings, core version and
+schema revision. A glossary hint makes the glossary native, with a terminology revision bound to its
+reference; the pipeline still applies it after translation. `composition.builders.llm.LlmBinding` builds
+that plan and the provider; `RichTranslationRuntime(binding=...)` uses it, and LibreTranslate stays the
+default binding.
+
+**Privacy.** Requests, responses, templates and hints have redacted `repr`; parse errors and failures carry
+codes only.
+
 ## Enforced contracts
 
 - [test_libretranslate_capabilities](../../../tests/providers/libretranslate/test_libretranslate_capabilities.py).
@@ -343,3 +389,7 @@ without discovery now gets an unknown route and no request.
 - [test_provider_discovery_operations](../../../tests/providers/test_provider_discovery_operations.py).
 - [test_provider_discovery_preflight](../../../tests/providers/test_provider_discovery_preflight.py).
 - [test_provider_service](../../../tests/providers/test_provider_service.py).
+- [test_core_batches](../../../tests/providers/llm/test_core_batches.py) and [test_core_failures](../../../tests/providers/llm/test_core_failures.py).
+- [test_prompt](../../../tests/providers/llm/test_prompt.py), [test_batching](../../../tests/providers/llm/test_batching.py) and [test_output](../../../tests/providers/llm/test_output.py).
+- [test_facts](../../../tests/providers/llm/test_facts.py) and [test_settings](../../../tests/providers/llm/test_settings.py).
+- [test_llm_binding_identity](../../../tests/composition/test_llm_binding_identity.py) and [test_llm_rich_runtime](../../../tests/composition/test_llm_rich_runtime.py).
