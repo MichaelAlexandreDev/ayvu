@@ -42,8 +42,7 @@ All test paths are under `tests/interfaces/cli/`.
 
 ## What stays open
 
-- **Step 4** switches the default: without a label, translation is refused clearly before any
-  provider call (answer 4), and setup offers the guided option. Until then, an unlabeled run keeps v1.
+- **Step 4** switches the default, as accepted below. Until it ships, an unlabeled run keeps v1.
 
 The owner answered the step 3 design questions on 2026-11-16 (translated quotation: "A. The
 recommended one. B the recommended one. C the recommended one"):
@@ -53,3 +52,24 @@ recommended one. B the recommended one. C the recommended one"):
 - **B:** without a label, `--cache-only` with more than one worker is refused clearly instead of
   crashing (#365); v1 never supported it.
 - **C:** no separate command sets the model label; guided settings and `config.json` cover it.
+
+## Step 4 acceptance
+
+On 2026-11-17 the owner accepted the step 4 design (translated quotation: "I accept"), which makes
+the rich runtime the default:
+
+- **Without a model label, no new translation runs.** `translate` (one book or a batch), guided
+  translation, `--preview`, `--dry-run` and `--cache-only` are refused before any provider call,
+  project, cache or file, with a message that says how to declare the label. Ayvu never invents a
+  label and never falls back to v1 silently (answer 4).
+- **The v1 cache does not speed up the first labeled translation:** texts are translated again into
+  the v2 cache, as answer B of 2026-11-12 already accepted. The notice about old data is step 5.
+- **Question P1:** a resume uses the runtime its job started with. A v1 job finishes on v1, with or
+  without a label, until step 6 removes v1; a rich job needs the label it started with. This only
+  finishes existing work: no new translation reaches v1.
+- **Question P2:** guided translation and preview without a label ask for the label in place, with
+  the same validation as the settings option, save it and continue; an empty answer cancels.
+- **Question P3:** commands that do not translate do not change in step 4. These are cache
+  administration, applying a review, `inspect` and `extract`; their v1 parts leave in steps 5 and 6.
+
+Every other surface keeps the behaviour in the matrix above.
