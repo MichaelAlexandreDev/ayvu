@@ -103,7 +103,8 @@ def request(tmp_path, **values):
         OutputPlan.for_translation(tmp_path / 'document-canary.epub', tmp_path / 'out.epub', options.language_pair),
         True, options, tmp_path / 'cache-canary.sqlite',
         lambda: SimpleNamespace(translator=object(), glossary=None),
-        project_id='project', source_sha256='a' * 64, processing_dir=tmp_path / 'processing')
+        project_id='project', source_sha256='a' * 64, processing_dir=tmp_path / 'processing',
+        translator_models={'libretranslate': 'local-model-2026'})
     return replace(book, **values)
 
 
@@ -172,7 +173,7 @@ def test_legacy_resource_is_closed_when_translation_raises(tmp_path, monkeypatch
         raise RuntimeError('exception-canary')
     monkeypatch.setattr(root, 'translate_without_project', fail)
     with pytest.raises(RuntimeError, match='exception-canary'):
-        root._translate_without_project(request(tmp_path), hooks())
+        root._translate_without_project(request(tmp_path, project_id=None, translator_models={}), hooks())
     assert lifecycle == ['open', 'close']
 
 
@@ -294,14 +295,23 @@ def test_cache_only_keeps_configuration_refusals_without_constructing_provider(t
 
 
 def test_preview_translation_does_not_validate_twice(tmp_path, monkeypatch):
-    class Cache:
-        def __enter__(self): return self
-        def __exit__(self, *args): pass
-    report = TranslationReport(output_written=True)
-    monkeypatch.setattr(root, 'TranslationCache', lambda path: Cache())
-    monkeypatch.setattr(root, 'translate_without_project', lambda *args, **kwargs: report)
-    monkeypatch.setattr(root, 'validate_output', lambda *args, **kwargs: pytest.fail('preview validates in presentation once'))
-    assert root._translate_without_project(request(tmp_path), hooks(), validate=False).report is report
+    from tests.support.cli_rich_runtime_support import Transport
+    from tests.support.cli_translate_project_support import _book
+    from tests.support.rich_preview_support import book_request
+    from ayvu.composition.builders import transient_publication
+    session = Transport()
+    monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
+    validations = []
+    validate = transient_publication.validate_output_epub
+    def observed(path):
+        validations.append(path)
+        return validate(path)
+    monkeypatch.setattr(transient_publication, "validate_output_epub", observed)
+    monkeypatch.setattr(root, "validate_output", lambda *a, **k: pytest.fail("composition validated preview twice"))
+    book = book_request(tmp_path, _book(tmp_path / "book.epub"))
+    outcome = root._translate_without_project(book, hooks(), validate=False)
+    assert outcome.report.output_written and book.output_plan.path.is_file()
+    assert len(validations) == 1 and session.posts
 
 
 def test_compatibility_facades_export_identical_contracts():

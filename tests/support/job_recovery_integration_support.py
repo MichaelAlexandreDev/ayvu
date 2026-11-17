@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 from ayvu.v1.cache import TranslationCache
+from ayvu.knowledge.glossary import load_glossary
 from ayvu.interfaces.cli.output import EXISTING_OUTPUT_OVERWRITE_OPTION
 from ayvu.interfaces.cli.app import app
 from ayvu.preferences.config_facade import AyvuConfig, ConfigStore, TranslationProfile, default_config_path
@@ -86,7 +87,7 @@ def tree(root: Path) -> dict[str, tuple]:
 class Scene:
     """One book, its project, its state file and its output, as the CLI leaves them."""
 
-    def __init__(self, tmp_path: Path, *, source=None, output=None, profile=None, url=CANARY_URL) -> None:
+    def __init__(self, tmp_path: Path, *, source=None, output=None, profile=None, glossary=None, url=CANARY_URL) -> None:
         self.tmp_path = tmp_path
         self.processing = tmp_path / "processing"
         self.source = source or _book(tmp_path / "book.epub")
@@ -96,6 +97,7 @@ class Scene:
         self.translator = Prefix()
         self.options = TranslationOptions(language_pair=PAIR)
         self.profile = profile
+        self.glossary = glossary
         self.url = url
         self.projects = ProjectJsonRepository(self.processing)
 
@@ -104,10 +106,10 @@ class Scene:
                                       translate_metadata=False, translate_alt_text=False, chapters=None, translation_memory=None)
 
     def project(self):
-        return self.projects.resolve(build_project_request(self.source, source="en", target="pt", selections=self.selections(), profile_name=self.profile)).project
+        return self.projects.resolve(build_project_request(self.source, source="en", target="pt", selections=self.selections(), profile_name=self.profile, glossary_path=self.glossary)).project
 
     def save_state(self, **changes) -> Path:
-        state = TranslationResumeState.create(self.source, self.output, self.cache, "libretranslate", self.url, None, self.options, False, 30.0, 0,
+        state = TranslationResumeState.create(self.source, self.output, self.cache, "libretranslate", self.url, self.glossary, self.options, False, 30.0, 0,
                                               profile_name=self.profile)
         return ResumeStateStore(self.processing).save(replace(state, **changes))
 
@@ -115,7 +117,7 @@ class Scene:
         project = self.project()
         return translate_in_project(ProjectTranslation(
             self.processing, project.project_id, project.source_sha256, self.source, self.options, OutputPlan(path=self.output), overwrite,
-            lambda: LegacyResources(self.translator), lambda: TranslationCache(self.cache), continuation, operation_id), TranslateObserver())
+            lambda: LegacyResources(self.translator, load_glossary(self.glossary) if self.glossary else None), lambda: TranslationCache(self.cache), continuation, operation_id), TranslateObserver())
 
     def crash(self, *, overwrite=False, on="Goodbye", continuation=None):
         def stop(text):
@@ -188,6 +190,12 @@ def _running_state(tmp_path):
 
 
 def _interrupt_real_cli(tmp_path, monkeypatch, arguments, stdin=None):
+    from tests.support.cli_rich_runtime_support import config, declare_model
+    path = default_config_path()
+    if path.exists():
+        declare_model(path)
+    else:
+        config(tmp_path)
     def stop(text):
         if "Goodbye" in text:
             raise KeyboardInterrupt
