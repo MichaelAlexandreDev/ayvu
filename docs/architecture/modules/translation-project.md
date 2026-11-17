@@ -80,6 +80,8 @@ the same ports as the legacy path, preserving the original EPUB.
 | `ayvu.translation.engine` | Application | One book through a format adapter and a unit executor |
 | `ayvu.artifacts.destination` | Infrastructure | Publishing to the file the user chose, and the way back to it after a crash |
 | `ayvu.composition.builders.translate_project` | Composition | The current language work and validator behind the ports, and the assembled use case |
+| `ayvu.composition.builders.rich_options` | Composition | The rich runtime's option checks before it prepares anything, and its translation-memory policy |
+| `ayvu.composition.builders.translation_checkpoint` | Composition | The compatibility checkpoint a CLI translation keeps while it runs |
 
 ## What happens, in order
 

@@ -35,7 +35,7 @@ def test_provider_failure_stops_the_book_and_resumes(tmp_path, monkeypatch, fail
 
 
 def test_require_full_cache_refusal_is_in_portuguese_on_the_rich_runtime(tmp_path):
-    from ayvu.composition.builders.translate_project import check_rich_options
+    from ayvu.composition.builders.rich_options import check_rich_options
     from ayvu.kernel import LanguagePair, TranslationOptions
     from ayvu.translation import PreflightError
     with pytest.raises(PreflightError) as refused:

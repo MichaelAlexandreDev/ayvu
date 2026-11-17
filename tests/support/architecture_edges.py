@@ -28,7 +28,7 @@ ALLOWED_INTERNAL_EDGES = {
     *(('ayvu.interfaces.cli.run_support', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'translation.batch', 'translation.errors')), *(('ayvu.interfaces.cli.translate_options', f"ayvu.{name}") for name in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.options', 'interfaces.cli.render', 'preferences.model')),
     *(("ayvu.composition.builders.translate_project", f"ayvu.{name}") for name in (
        "translation.errors", "translation.context.execution", "translation.context.model",
-       "translation.stages.memory_retrieval", "knowledge.cache.schema",
+       "composition.builders.rich_options", "knowledge.cache.schema",
        "knowledge.cache.repository",
        "translation.document_contracts", "translation.raw_results",
        "jobs.execution", "recovery.checkpoint", "recovery.service", "recovery.store", "artifacts.model",
@@ -364,7 +364,7 @@ ALLOWED_INTERNAL_EDGES = {
        "composition.builders.translate_project", "kernel.failures", "kernel.values", "library.adapters",
        "library.service", "preferences.config_facade", "projects.service", "projects.store",
        "translation.batch_output", "translation.engine", "translation.preflight",
-       "translation.project_contracts", "v1.cache", "v1.cache_check", "recovery.checkpoint",)),
+       "translation.project_contracts", "v1.cache", "v1.cache_check", "composition.builders.translation_checkpoint",)),
     *(("ayvu.composition.builders.review", f"ayvu.{name}") for name in (
        "review.local_operations", "review.local_packages",
        "review.local_start", "formats.epub.adapter", "formats.local", "formats.service",
