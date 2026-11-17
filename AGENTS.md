@@ -123,6 +123,15 @@ Claude Code). Use them for the matching work:
 
 Skills never widen authority: every approval in this file still applies.
 
+## Hooks
+
+`scripts/agent_hooks/ayvu_hook.py` is shared by every agent; `.claude/settings.json` wires it into Claude
+Code. It **denies** what cannot be undone (an `--admin` merge, a forced push to `main`, destroying or
+directly editing books, caches, glossaries or `.ayvu-pessoal/`), **asks** before discarding local work or
+editing `src/ayvu/v1/`, and **warns** right after a Python file goes over its size limit or imports v1
+outside composition. It also opens each session with the branch and the checks to run. Hooks are
+guardrails, not a substitute for the validation below.
+
 ## Validation
 
 Run what the change needs, in this order:
