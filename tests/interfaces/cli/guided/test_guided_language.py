@@ -9,3 +9,4 @@ def test_guided_selection_warns_with_a_code_and_not_the_response(monkeypatch, ca
     assert cli_module._load_languages_for_guided_selection() == ()
     output = capsys.readouterr().out
     assert "provider_server_error" in output and "SECRETBODY" not in output
+    assert "Could not list LibreTranslate languages" in " ".join(output.split())  # The wording before #377.

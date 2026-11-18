@@ -76,7 +76,8 @@ def _load_languages_for_guided_selection(translator_name="libretranslate", url=D
     _print_network_selection(session.network_decision)
     if _languages_were_listed(result):
         return result.languages
-    console.print(f"[yellow]Could not list translator languages:[/yellow] {result.code}")
+    provider = "Ollama" if translator_name == "ollama" else "LibreTranslate"
+    console.print(f"[yellow]Could not list {provider} languages:[/yellow] {result.code}")
     if network_next_step(result.code):
         console.print(session.network_decision.diagnostic("languages", result.code))
         console.print(network_next_step(result.code))
