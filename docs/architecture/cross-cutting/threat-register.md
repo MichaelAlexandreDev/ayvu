@@ -75,7 +75,10 @@ D: sanitized reason codes and denied-transport counters. R: stop with no silent
 remote fallback and require a new valid decision. V: zero DNS/socket in offline,
 loopback variants, redirects, proxy/environment, malformed URL and error
 redaction tests in #159. HTTPS transport alone does not establish purpose,
-operator retention or downstream behavior.
+operator retention or downstream behavior. #379 adds the explicit `remote` policy for remote AI
+providers: declared HTTPS hosts only, re-decided redirects, ignored proxies, opaque credentials and a
+recorded, revocable consent; its assets, mitigations and residual risk are the
+[remote egress entry](../decisions/product-threat-model.md#remote-egress-379).
 
 ### T04 — Reflected errors, paths and secret disclosure (High)
 
