@@ -62,20 +62,35 @@ def test_guided_translation_uses_an_ollama_profile_without_a_libretranslate_labe
 def test_guided_translation_discovers_and_saves_a_missing_ollama_model(tmp_path, monkeypatch):
     from tests.support.cli_translate_project_support import _book
 
-    path = config(tmp_path, label=None)
+    path = config(tmp_path, label=None, profiles={'local': {'translator': 'ollama'}})
     source = _book(tmp_path / 'book.epub')
     session = OllamaTransport()
     monkeypatch.setattr('requests.Session', lambda: session)
-    result = runner.invoke(app, [], input=f'1\n{source}\nollama\n2\n1\ny\nn\n')
+    result = runner.invoke(app, [], input=f'1\n{source}\n1\n\n2\n1\ny\nn\n')
     assert result.exit_code == 0, text(result)
     assert json.loads(path.read_text())['translator_models'] == {'ollama': MODEL}
     assert f'2. {MODEL}' in text(result) and 'Settings saved.' in text(result)
 
 
-def test_guided_ollama_preview_is_refused_before_discovery(tmp_path, monkeypatch):
-    config(tmp_path, label=None)
-    session = OllamaTransport()
-    monkeypatch.setattr('requests.Session', lambda: session)
-    result = runner.invoke(app, [], input='2\nollama\n')
-    assert result.exit_code == 1 and 'not available with Ollama yet' in text(result), text(result)
-    assert session.requests == []
+def test_with_libretranslate_only_guided_translation_asks_nothing_new(tmp_path, monkeypatch):
+    from tests.interfaces.cli.test_cli_rich_surfaces import guided
+
+    config(tmp_path)
+    result, session = guided(tmp_path, monkeypatch)
+    assert result.exit_code == 0, text(result)
+    assert 'Translator (' not in text(result)
+    assert any(method == 'POST' and url.startswith('http://localhost:5000') for method, url, _ in session.requests)
+
+
+def test_guided_preview_stays_on_libretranslate_even_with_an_ollama_model(tmp_path, monkeypatch):
+    from tests.support.cli_rich_runtime_support import Transport
+    from tests.support.cli_translate_project_support import _book
+
+    config(tmp_path, label=None, translator_models={'libretranslate': 'local-model-2026', 'ollama': MODEL})
+    source = _book(tmp_path / 'book.epub')
+    session = Transport()
+    monkeypatch.setattr('ayvu.providers.libretranslate.client.requests.Session', lambda: session)
+    result = runner.invoke(app, [], input=f'2\n{source}\n1\n')
+    assert result.exit_code == 0, text(result)
+    assert 'Translator (' not in text(result)
+    assert session.requests and all(url.startswith('http://localhost:5000') for _, url, _ in session.requests)

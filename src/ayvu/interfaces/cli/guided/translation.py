@@ -20,6 +20,8 @@ PROFILE_NO_PROFILE_OPTION = "0"
 
 
 def _run_guided_translation(config: AyvuConfig) -> None:
+    if not _offers_translator_choice(config):
+        config = _ensure_guided_model_label(config)  # LibreTranslate only: asked first, as before #377.
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
     profile_name, profile = _choose_guided_translation_profile(config)
     selected = _guided_translator(config, profile)
@@ -58,12 +60,11 @@ def _run_guided_translation(config: AyvuConfig) -> None:
 
 
 def _run_guided_preview(config: AyvuConfig) -> None:
-    selected = _guided_translator(config, preview=True)
+    # Ollama has no preview yet, so guided preview stays on LibreTranslate and asks nothing new.
+    config = _ensure_guided_model_label(config)
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
-    target = _choose_guided_target_language(config.default_target_language,
-                                            translator_name=selected.translator, url=selected.url)
-    previews._run_preview(epub_path, target=target, mode=UserMode.COMMON, config=selected.config,
-                          translator_name=selected.translator, url=selected.url)
+    target = _choose_guided_target_language(config.default_target_language)
+    previews._run_preview(epub_path, target=target, mode=UserMode.COMMON, config=config)
 
 
 def _choose_guided_translation_profile(
@@ -135,9 +136,21 @@ def _choose_guided_translation_glossary() -> Path | None:
         console.print("Choose another glossary or run without glossary.")
 
 
+def _offers_translator_choice(config, profile=None) -> bool:
+    """Only an Ollama model in the configuration or a profile naming a translator makes it a choice.
+
+    Without one, guided translation runs LibreTranslate and asks exactly what it asked before #377.
+    """
+    if "ollama" in config.translator_models:
+        return True
+    profiles = config.profiles.values() if profile is None else (profile,)
+    return any(item.translator is not None for item in profiles)
+
+
 def _guided_translator(config, profile=None, *, preview=False):
     selected = settings._select_translator(config, UserMode.COMMON, profile=profile, preview=preview)
-    name = typer.prompt("Translator (libretranslate or ollama)", default=selected.translator).strip()
+    name = (typer.prompt("Translator (libretranslate or ollama)", default=selected.translator).strip()
+            if _offers_translator_choice(config, profile) else selected.translator)
     selected = settings._select_translator(config, UserMode.COMMON, translator=name, profile=profile, preview=preview)
     if selected.model is None:
         if selected.translator == 'libretranslate':

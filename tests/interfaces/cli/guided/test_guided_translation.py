@@ -21,7 +21,7 @@ def test_root_command_generates_guided_preview_when_confirmed(isolated_config, t
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_preview_books_dir", lambda: preview_dir)
 
-    result = runner.invoke(app, [], input=f"2\n\n{epub_path}\n1\n")
+    result = runner.invoke(app, [], input=f"2\n{epub_path}\n1\n")
 
     assert result.exit_code == 0, result.output
     for message in ("Choose an option", "Generate preview", "EPUB path", "Default target language:",
@@ -48,7 +48,7 @@ def test_root_command_allows_guided_preview_target_from_languages(isolated_confi
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_preview_books_dir", lambda: preview_dir)
 
-    result = runner.invoke(app, [], input=f"2\n\n{epub_path}\n2\nes\n")
+    result = runner.invoke(app, [], input=f"2\n{epub_path}\n2\nes\n")
 
     assert result.exit_code == 0, result.output
     for message in ("Default target language:", "Outro idioma", "LibreTranslate languages", "Option",
@@ -83,7 +83,7 @@ def test_root_command_starts_guided_translation(tmp_path, monkeypatch, isolated_
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
     declare_model(isolated_config)
-    result = runner.invoke(app, [], input=f"1\n{epub_path}\n\n1\ny\n")
+    result = runner.invoke(app, [], input=f"1\n{epub_path}\n1\ny\n")
 
     options = calls["options"]
     assert result.exit_code == 0
@@ -127,7 +127,7 @@ def test_root_command_selects_saved_glossary_for_guided_translation(isolated_con
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
     declare_model(isolated_config)
-    result = runner.invoke(app, [], input=f"1\n{epub_path}\n\n1\n1\ny\n")
+    result = runner.invoke(app, [], input=f"1\n{epub_path}\n1\n1\ny\n")
 
     assert result.exit_code == 0
     assert "Saved glossaries are available." in result.output
@@ -182,7 +182,7 @@ def test_root_command_selects_profile_for_guided_translation(isolated_config, tm
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
 
     declare_model(isolated_config)
-    result = runner.invoke(app, [], input=f"1\n{epub_path}\n1\n\n1\ny\n")
+    result = runner.invoke(app, [], input=f"1\n{epub_path}\n1\n1\ny\n")
 
     preflight = calls["preflight"]
     options = calls["options"]
@@ -207,7 +207,7 @@ def test_root_command_uses_saved_default_language_in_guided_preview(isolated_con
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: tmp_path / "missing")
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_preview_books_dir", lambda: preview_dir)
 
-    result = runner.invoke(app, [], input=f"2\n\n{epub_path}\n1\n")
+    result = runner.invoke(app, [], input=f"2\n{epub_path}\n1\n")
 
     assert result.exit_code == 0, result.output
     assert "Default target language:" in result.output

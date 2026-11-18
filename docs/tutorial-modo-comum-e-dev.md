@@ -825,7 +825,8 @@ Depois da tradução:
 
 ### Choosing translator and model (#377)
 
-Guided translation asks for the EPUB, optional profile and translator, then a missing model.
+Guided translation asks for the EPUB and the optional profile; it asks for the translator only when there is a
+choice (an Ollama model in the configuration or a profile naming one), then for a missing model.
 Settings (option 4) offers **6. Choose translator and model**: select `libretranslate` for a declared
 label, or `ollama` for discovered installed models. Choose a number or type a validated model name;
 manual input remains available after discovery fails. Enter cancels without saving.

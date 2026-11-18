@@ -89,8 +89,10 @@ its label, or `ollama` to list installed model names from the local server. Ente
 validated name; if discovery fails, manual entry is still available. This records only
 `translator_models.<translator>`; translation still requires an explicit Ollama choice, or an Ollama
 profile. Enter cancels without saving. Option 5 continues to edit only LibreTranslate's label.
-Guided translation offers the profile's translator as its default and uses the selected provider for
-language discovery. Preview accepts the same provider selection, but Ollama preview remains unavailable.
+Guided translation asks for the translator only when there is a choice: an Ollama model in the
+configuration, or a profile that names a translator. It then offers the profile's translator as the
+default and uses the selected provider for language discovery. Otherwise it runs LibreTranslate and asks
+exactly what it asked before. Guided preview stays on LibreTranslate, because Ollama has no preview yet.
 
 ## Folders and the reader
 

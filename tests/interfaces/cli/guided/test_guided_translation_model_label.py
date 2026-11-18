@@ -15,8 +15,7 @@ def test_guided_saves_the_declared_label_and_continues(tmp_path, monkeypatch, me
     source = _book(tmp_path / "book.epub")
     transport = Transport()
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
-    answers = (f"1\n{source}\n\nlocal-model\n1\ny\nn\n" if menu == "1"
-               else f"2\n\nlocal-model\n{source}\n1\n")
+    answers = f"{menu}\nlocal-model\n{source}\n1\n" + ("y\nn\n" if menu == "1" else "")
     result = runner.invoke(app, [], input=answers)
     assert result.exit_code == 0, text(result)
     assert json.loads(path.read_text())["translator_models"] == {"libretranslate": "local-model"}
@@ -34,7 +33,7 @@ def test_guided_label_prompt_keeps_an_existing_ollama_model(tmp_path, monkeypatc
     source = _book(tmp_path / "book.epub")
     transport = Transport()
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
-    result = runner.invoke(app, [], input=f"2\n\nlocal-model\n{source}\n1\n")
+    result = runner.invoke(app, [], input=f"2\nlocal-model\n{source}\n1\n")
     assert result.exit_code == 0, text(result)
     assert json.loads(path.read_text())["translator_models"] == {"ollama": "qwen2.5:7b", "libretranslate": "local-model"}
 
@@ -45,10 +44,8 @@ def test_guided_uses_settings_validation_without_saving_invalid_labels(tmp_path,
     config(tmp_path, label=None)
     transport = Transport()
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
-    source = _book(tmp_path / "book.epub")
     before = snapshot(tmp_path)
-    answers = f"1\n{source}\n\n{label}\n" if menu == "1" else f"2\n\n{label}\n"
-    result = runner.invoke(app, [], input=answers)
+    result = runner.invoke(app, [], input=f"{menu}\n{label}\n")
     assert_refused(result)
     assert "Canceled." in result.output
     assert snapshot(tmp_path) == before and transport.requests == []
