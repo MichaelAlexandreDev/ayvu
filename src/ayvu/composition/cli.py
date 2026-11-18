@@ -280,6 +280,10 @@ def require_translation_model(models, translator_name, **continuation):
     return rich_provider.require_model(models, translator_name, **continuation)
 
 
+def legacy_cache_notice(*args, **kwargs):
+    return cache_admin.legacy_cache_notice(*args, **kwargs)
+
+
 def translation_modality(dry_run, models, translator_name):
     """Select without resources; unlabeled execution is reserved for existing v1 work."""
     labeled = rich_provider.selected_model(models, translator_name) is not None

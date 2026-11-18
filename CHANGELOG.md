@@ -18,6 +18,13 @@ lancadas e secoes versionadas quando uma release for publicada.
   de provedor e modelo. LibreTranslate segue como padrão; as restrições de preview, dry-run e
   cache-only do Ollama permanecem.
 
+- Antes de uma tradução nova (também em dry-run, cache-only e uma vez por lote), a CLI avisa quando o
+  cache v1 tem textos do par de idiomas: eles ficam intactos e não são reaproveitados, e a tradução vai
+  para o cache v2 ao lado. O arquivo v1 é lido só em modo somente leitura. Ao retomar um job v1, a CLI
+  avisa que ele pode ser terminado agora, mas não depois da remoção do v1 (versão congelada
+  `v1-runtime-final`), e a tabela da retomada mostra `Runtime: previous (v1)`. Guia novo: "Upgrading
+  from the v1 runtime" (`docs/guide/upgrading-from-v1.md`).
+
 - Toda tradução nova exige um rótulo de modelo declarado, inclusive lote, preview, dry-run e cache-only.
   Sem ele, a CLI encerra com saída 1 antes de rede, projeto, cache ou saída, indicando a opção 5 das
   Configurações ou `translator_models.libretranslate` no `config.json`. O guiado pede o rótulo no lugar,

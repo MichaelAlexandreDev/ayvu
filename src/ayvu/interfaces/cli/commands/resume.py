@@ -104,6 +104,9 @@ class _ResumeRunner:
         if state.execution_revision == 1:
             # A v1 job finishes on v1, whatever label the configuration now declares; no new run reaches v1.
             config = replace(config, translator_models={})
+            console.print("[yellow]Old job:[/yellow] this job started on Ayvu's previous runtime. It can be finished now; "
+                          "once that runtime is removed, finish it with the frozen release v1-runtime-final "
+                          "or translate the book again.")
         elif identity.get('continuation') is not None:
             try:
                 config = resume_translation_configuration(config, settings._processing_dir(config), self._project_id, identity['continuation'])
@@ -229,6 +232,8 @@ def _print_resume_checkpoint(state: TranslationResumeState) -> None:
         retry_backoff_max=state.retry_backoff_max,
     ):
         table.add_row(label, value)
+    if state.execution_revision == 1:
+        table.add_row("Runtime", "previous (v1)")
     table.add_row("Last update", state.updated_at)
     console.print(table)
     console.print(

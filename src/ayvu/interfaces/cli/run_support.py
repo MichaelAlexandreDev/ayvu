@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 import typer
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeElapsedColumn
-from ...translation import ItemOutcome
+from ...translation import ItemOutcome, ItemStatus
 from .contracts import ValidationResult
 from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, validate_output, _translate_without_project as execute_translate_without_project, _translate_in_project as execute_translate_in_project
 from ...translation import ResumeStateError
@@ -22,6 +22,17 @@ class _BatchItemExit(typer.Exit):
     def __init__(self, outcome: ItemOutcome) -> None:
         super().__init__(code=1)
         self.outcome = outcome
+
+
+def _auxiliary_output_failed(exc: Exception, batch_plan: object | None, active_job: object | None) -> None:
+    """A report or missing-text file of a batch item failed: end the item, keeping its job's outcome."""
+    if batch_plan is None:
+        raise exc
+    code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "report_failed"
+    raise _BatchItemExit(ItemOutcome(ItemStatus.FAILED, failure=code,
+        job_ref=active_job.job_id if active_job else None,
+        job_state=active_job.state.value if active_job and active_job.state else None,
+        output_published=bool(active_job and active_job.output_ready))) from None
 
 
 def _translation_progress_display() -> Progress:

@@ -125,10 +125,12 @@ A provider failure stops the rich runtime at its first occurrence and publishes 
 completed segments stay in v2; fix the problem and run `uv run ayvu resume book.epub`.
 
 A resume keeps the runtime its job started with: a v1 job finishes on v1 even after a label is declared,
-and a rich job needs a label (with another label, it translates again and says why). The resume reuses the
-documents the previous job completed, without calling the translator or the cache, when it can prove that
-nothing changed: model, route, capabilities, configuration, book and pipeline version. If something
-changed, it translates again and says what, for example `Aviso da tradução: raw_results_changed_provider`.
+and a rich job resumes with the provider and model it started with, whatever the configuration or profile
+now says. If an Ollama model's weights changed since the job started, the resume refuses before any work:
+restore the original model or start a new translation. The resume reuses the documents the previous job
+completed, without calling the translator or the cache, when it can prove that nothing changed: route,
+capabilities, configuration, book and pipeline version. If something changed, it translates again and says
+what, for example `Aviso da tradução: raw_results_changed_route`.
 
 ## Without a label, previews and dry runs
 

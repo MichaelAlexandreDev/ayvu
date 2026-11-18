@@ -19,4 +19,8 @@ MODEL_LABEL_EDGES = {
     ("ayvu.interfaces.cli.guided.preferences", "ayvu.composition.cli"),
     ("ayvu.interfaces.cli.guided.preferences", "ayvu.translation.errors"),
     ("ayvu.interfaces.cli.guided.translation", "ayvu.interfaces.cli.guided.preferences"),
+    # REF-18 step 5: the old-data notice counts the v1 cache read-only.
+    ("ayvu.composition.builders.cache_admin", "ayvu.knowledge.cache.legacy_census"),
+    ("ayvu.composition.builders.cache_admin", "ayvu.composition.builders.translate_project"),
+    ("ayvu.interfaces.cli.batch", "ayvu.interfaces.cli.run_messages"),
 }

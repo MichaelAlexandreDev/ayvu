@@ -59,6 +59,8 @@ menu, or set `translator_models.libretranslate` in `config.json`. Guided transla
 the label in place, save it and continue; Enter cancels. Without it, direct commands exit 1 before any
 provider call, project, cache or output. Ayvu never invents a label or copies one from the server.
 See [Model label, rich runtime and v2 cache](docs/guide/rich-runtime.md).
+If you translated with an earlier version, the old cache is kept but not reused: see
+[Upgrading from the v1 runtime](docs/guide/upgrading-from-v1.md).
 
 To translate with a model installed in Ollama instead, name it under `translator_models.ollama` and add
 `--translator ollama`. Use `--model qwen2.5:7b` to override its configured model for one run.
