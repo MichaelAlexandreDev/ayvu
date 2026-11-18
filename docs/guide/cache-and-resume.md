@@ -18,6 +18,8 @@ New translations require a model label and use the independent v2 cache. Existin
 standalone checkpoints still resume with the legacy v1 cache. The migration keeps the v1 data without turning it into exact v2 hits. Cache administration accepts
 explicit namespaces; without a selection, it keeps the legacy behaviour. See the
 [standalone v2 cache](../architecture/modules/knowledge-cache.md).
+Before new work, a translation names an old cache that has texts for its languages and says that it is
+not reused; see [Upgrading from the v1 runtime](upgrading-from-v1.md).
 
 ## Administering the cache
 

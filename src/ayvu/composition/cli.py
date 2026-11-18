@@ -20,6 +20,7 @@ from ..preferences.config_facade import ConfigStore, default_glossaries_dir as _
 from ..library.adapters import LocalLibraryFilesystem, ReaderLauncher
 from ..library import LibraryService
 from ..projects import resolve_project
+from ..knowledge.cache.legacy_census import legacy_cache_census
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
 from ..translation.preflight import check_book_resources
@@ -276,6 +277,12 @@ def translation_checkpoint():
 
 def require_translation_model(models, translator_name, **continuation):
     return rich_provider.require_model(models, translator_name, **continuation)
+
+
+def legacy_cache_notice(cache_path: Path, *, target: str, source: str | None = None):
+    """REF-18 step 5: the old cache's texts for the languages and the v2 file used instead, or None."""
+    census = legacy_cache_census(cache_path, target=target, source=source)
+    return None if census is None else (census, translate_project.v2_cache_path(cache_path))
 
 
 def translation_modality(dry_run, models, translator_name):

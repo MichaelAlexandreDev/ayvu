@@ -108,6 +108,8 @@ def _run_translation(
         retry_backoff=retry_backoff,
         retry_backoff_max=retry_backoff_max,
     )
+    if batch_plan is None and continuation is None and resolve_managed_project:  # A batch says it once, before its books.
+        run_messages._print_legacy_cache_notice(cache_path, source=resolved_source, target=resolved_target)
     translation_options = TranslationOptions(
         language_pair=language_pair,
         dry_run=dry_run,
@@ -302,13 +304,7 @@ def _run_translation(
                 batch_plan=batch_plan,
             )
         except (BatchOutputError, OSError) as exc:
-            if batch_plan is None:
-                raise
-            code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "report_failed"
-            raise run_support._BatchItemExit(ItemOutcome(ItemStatus.FAILED, failure=code,
-                job_ref=active_job.job_id if active_job else None,
-                job_state=active_job.state.value if active_job and active_job.state else None,
-                output_published=bool(active_job and active_job.output_ready))) from None
+            run_support._auxiliary_output_failed(exc, batch_plan, active_job)
 
     validation = outcome.validation
     validation_warnings = list(validation.warnings) if validation else []
@@ -325,13 +321,7 @@ def _run_translation(
                 batch_plan=batch_plan,
             )
         except (BatchOutputError, OSError) as exc:
-            if batch_plan is None:
-                raise
-            code = "auxiliary_allocation_exhausted" if str(exc) == "auxiliary_allocation_exhausted" else "report_failed"
-            raise run_support._BatchItemExit(ItemOutcome(ItemStatus.FAILED, failure=code,
-                job_ref=active_job.job_id if active_job else None,
-                job_state=active_job.state.value if active_job and active_job.state else None,
-                output_published=bool(active_job and active_job.output_ready))) from None
+            run_support._auxiliary_output_failed(exc, batch_plan, active_job)
         console.print(f"[green]Report saved to:[/green] {markdown_report_path}")
     else:
         reports._offer_markdown_report(report, dry_run, validation_warnings, mode=mode)

@@ -3,13 +3,29 @@ from __future__ import annotations
 from . import plan
 
 from pathlib import Path
+from rich.markup import escape
 from rich.table import Table
 from .progress import TranslationProgressSnapshot
 from .contracts import TranslationReport
-from ...composition.cli import _BookOutcome
+from ...composition.cli import _BookOutcome, legacy_cache_notice
 from ...kernel import UserMode
 
 from .render import _TRANSLATION_FAILURES, _print_expected_error, console
+
+
+def _print_legacy_cache_notice(cache_path: Path, *, source: str | None, target: str) -> None:
+    """REF-18 step 5: before any work, say that the old cache is kept and not reused."""
+    notice = legacy_cache_notice(cache_path, target=target, source=source or None)
+    if notice is None:
+        return
+    census, replacement = notice
+    languages = f"for {source}→{target}" if source else f"into {target}"
+    found = (f"Ayvu's previous runtime left {census.texts:,} texts {languages} in {escape(str(census.path))}."
+             if census.readable else
+             f"{escape(str(census.path))} may hold translations from Ayvu's previous runtime, but it could not be read.")
+    console.print(f"[yellow]Old translations:[/yellow] {found} They are kept unchanged and are not reused: the "
+                  f"translation starts again and is stored in {escape(str(replacement))}. "
+                  'See "Upgrading from the v1 runtime" in the guide.')
 
 
 _PROJECT_NEXT_STEPS = {

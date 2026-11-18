@@ -35,6 +35,7 @@ All test paths are under `tests/interfaces/cli/`.
 | Translation memory flags | G9, A(7): governed approved memory, fuzzy is a suggestion unless `--tm-conservative-auto-apply` at 0.98 or more; the v1 cache is not memory. A(s3-A): the CLI says so, and warns when `--tm-apply-threshold` is given without the conservative flag. | `test_cli_rich_runtime_policy.py`, `test_cli_rich_memory_notices.py` |
 | Provider failure | G10, A(7): the book always stops without a partial EPUB, whatever `--fail-fast` and the worker count say, and resumes from its completed documents | `test_cli_rich_failure_matrix.py` |
 | `resume` and the resume offer | = through the durable chain; a job resumes on the runtime it started with, and a rich job resumed with another label translates again with `raw_results_changed_provider` | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py`, `test_cli_resume_runtime.py` |
+| Old v1 data (step 5) | A new translation names an old v1 cache with texts for its languages, read-only, and says that it is not reused; a v1 resume says that it can be finished only until v1 is removed | `test_cli_legacy_data_notice.py` |
 | Review export and apply | = through the rich review package | `test_cli_rich_runtime_execution.py` |
 | `extract` | = (no translation runtime) | existing `extract` tests |
 | Terminal and Markdown reports | =, plus the workers line of the plan | `test_cli_rich_dry_run.py`, `test_cli_rich_surfaces.py` |
@@ -43,7 +44,10 @@ All test paths are under `tests/interfaces/cli/`.
 
 - **Step 4 has shipped:** new translations require a model label and use the rich runtime.
   G1 refuses unlabeled work before any provider call or file; existing v1 work may still resume.
-  Step 4f records the broader exit comparisons; old-data notices and removal remain steps 5 and 6.
+  Step 4f records the broader exit comparisons.
+- **Step 5 has shipped:** a new translation names an old v1 cache that has texts for its languages and
+  says that it is kept and not reused; resuming a v1 job says that it can be finished only until v1 is
+  removed. Removal remains step 6.
 
 The owner answered the step 3 design questions on 2026-11-16 (translated quotation: "A. The
 recommended one. B the recommended one. C the recommended one"):
@@ -77,6 +81,23 @@ the rich runtime the default:
   administration, applying a review, `inspect` and `extract`; their v1 parts leave in steps 5 and 6.
 
 Every other surface keeps the behaviour in the matrix above.
+
+## Step 5 acceptance
+
+On 2026-11-17 the owner accepted the step 5 design (translated quotation: "Q1-Q4 recommended"). Old
+data takes path B, so step 5 is a notice and a migration guide, not an importer:
+
+- **Q1:** a new translation (one book, guided, dry run or cache-only) shows the notice whenever the
+  v1 cache at its cache path has texts for its languages; a batch shows it once, before its books.
+  Continuations, old standalone checkpoints and previews do not show it.
+- **Q2:** the notice is in English, like the rest of the new interface.
+- **Q3:** before step 6 removes v1, the last `main` commit that still has it is tagged
+  `v1-runtime-final`, with a GitHub release that says what it is for. Old jobs can be finished there.
+- **Q4:** no archive importer (path A).
+
+The v1 cache is counted read-only and never created, migrated or written; an unreadable one is
+reported and the translation goes on. The guide is
+[Upgrading from the v1 runtime](../../guide/upgrading-from-v1.md).
 
 ## Step 4 exit proof (2026-11-17)
 
