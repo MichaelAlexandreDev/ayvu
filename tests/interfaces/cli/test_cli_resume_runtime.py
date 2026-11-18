@@ -34,16 +34,19 @@ def interrupted(tmp_path, monkeypatch, label):
 
 
 @pytest.mark.parametrize("label", [None, "local-model-2026"], ids=["without-label", "with-label"])
-def test_a_v1_job_finishes_on_v1_after_a_label_is_declared(tmp_path, monkeypatch, label):
+def test_a_v1_job_is_refused_with_or_without_a_label(tmp_path, monkeypatch, label):
+    """REF-18 step 6: v1 no longer runs; the job is refused before any request, job or file."""
     parent = interrupted(tmp_path, monkeypatch, None)
     assert parent.request.command_version == 1
     config(tmp_path, label=label)
+    states = {path: path.read_bytes() for path in (tmp_path / "processing").glob("*.ayvu-state.json")}
+    jobs = len(_jobs(tmp_path))
     result, session = resume(tmp_path, monkeypatch)
-    assert result.exit_code == 0, text(result)
-    child = next(job for job in _jobs(tmp_path) if job.continuation_of == parent.job_id)
-    assert child.request.command_version == 1 and child.state is JobState.VALIDATED
-    assert any(payload and payload.get("q") == FAILING for _, _, payload in session.requests)
-    assert (tmp_path / "out.epub").is_file()
+    assert result.exit_code == 1, text(result)
+    assert "This job started on Ayvu's previous runtime, which this version no longer runs." in flat(result)
+    assert "v1-runtime-final" in flat(result)
+    assert session.requests == [] and len(_jobs(tmp_path)) == jobs and not (tmp_path / "out.epub").exists()
+    assert states and all(path.read_bytes() == data for path, data in states.items())
 
 
 def test_a_rich_job_resumes_with_the_label_it_started_with(tmp_path, monkeypatch):

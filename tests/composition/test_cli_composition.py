@@ -160,21 +160,21 @@ def test_confirmation_is_handed_to_the_real_project_command_without_implicit_aut
     assert captured == [False, True]
 
 
-def test_legacy_resource_is_closed_when_translation_raises(tmp_path, monkeypatch):
+def test_an_old_checkpoint_resume_is_refused_before_any_resource(tmp_path, monkeypatch):
+    """REF-18 step 6: v1 no longer runs; the refusal comes before the cache or the translation is touched."""
+    from ayvu.translation import PreviousRuntimeRetired
     lifecycle = []
-    class Cache:
-        def __enter__(self):
-            lifecycle.append('open')
-            return self
-        def __exit__(self, *args):
-            lifecycle.append('close')
-    monkeypatch.setattr(root, 'TranslationCache', lambda path: Cache())
-    def fail(*args, **kwargs):
-        raise RuntimeError('exception-canary')
-    monkeypatch.setattr(root, 'translate_without_project', fail)
-    with pytest.raises(RuntimeError, match='exception-canary'):
+    monkeypatch.setattr(root, 'TranslationCache', lambda path: lifecycle.append('open'))
+    monkeypatch.setattr(root, 'translate_without_project', lambda *args, **kwargs: lifecycle.append('translate'))
+    with pytest.raises(PreviousRuntimeRetired):
         root._translate_without_project(request(tmp_path, project_id=None, translator_models={}), hooks(), legacy_resume=True)
-    assert lifecycle == ['open', 'close']
+    assert lifecycle == []
+
+
+def test_a_continuation_without_an_identity_is_refused_as_a_v1_job(tmp_path):
+    from ayvu.translation import PreviousRuntimeRetired
+    with pytest.raises(PreviousRuntimeRetired):
+        root.require_translation_model({}, 'libretranslate', continuation=object())
 
 
 def test_production_library_wiring_is_lazy_and_per_workflow(tmp_path, monkeypatch):

@@ -19,6 +19,15 @@ class PreflightPolicyError(PreflightError):
         self.code = code
 
 
+class PreviousRuntimeRetired(PreflightError):
+    """REF-18 step 6: work that started on the v1 runtime is refused before anything runs; its files stay as they are."""
+
+    def __init__(self) -> None:
+        super().__init__("This job started on Ayvu's previous runtime, which this version no longer runs.",
+                         "Finish it with the frozen release v1-runtime-final, or translate the book again. "
+                         "Its files were left unchanged.")
+
+
 class BookRefused(RuntimeError):
     """The book is refused before anything starts. The message is the code, never a name from the book."""
 

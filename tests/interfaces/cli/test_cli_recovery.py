@@ -189,16 +189,18 @@ def _old_file(tmp_path, source, **changes) -> Path:
     return path
 
 
-def test_an_old_file_runs_as_it_always_did_with_no_project_and_no_job(tmp_path, monkeypatch):
+def test_an_old_file_is_refused_with_no_project_no_job_and_no_request(tmp_path, monkeypatch):
+    """REF-18 step 6: v1 no longer runs, so an old standalone checkpoint is refused and left as it is."""
     source = _book(tmp_path / "book.epub")
-    _old_file(tmp_path, source)
+    path = _old_file(tmp_path, source)
+    before = path.read_bytes()
 
     result, session = _invoke(monkeypatch, RESUME)
 
-    assert result.exit_code == 0, result.output
-    assert session.posts and (tmp_path / "out.epub").exists()
+    assert result.exit_code == 1 and "no longer runs" in " ".join(result.output.split()), result.output
+    assert not session.posts and not (tmp_path / "out.epub").exists()
     assert not (tmp_path / "processing" / "projects").exists()
-    assert _state(tmp_path)["status"] == "completed"
+    assert path.read_bytes() == before
 
 
 def test_an_old_file_stays_byte_for_byte_when_it_is_only_read_or_when_the_translator_is_down(tmp_path, monkeypatch):
@@ -219,8 +221,8 @@ def test_an_old_file_stays_byte_for_byte_when_it_is_only_read_or_when_the_transl
     assert down.exit_code == 1 and path.read_bytes() == before
 
 
-def test_an_old_file_with_a_project_from_before_jobs_gets_no_job(tmp_path, monkeypatch):
-    """The project is real, but nothing ran under it on this plan, and the file is not given a job to fit."""
+def test_an_old_file_with_a_project_from_before_jobs_is_refused_and_gets_no_job(tmp_path, monkeypatch):
+    """The project is real, but nothing ran under it on this plan: the file is refused, not given a job to fit."""
     config(tmp_path, label=None)
     source = _book(tmp_path / "book.epub")
     from tests.support.job_recovery_integration_support import Scene
@@ -231,8 +233,8 @@ def test_an_old_file_with_a_project_from_before_jobs_gets_no_job(tmp_path, monke
 
     result, session = _invoke(monkeypatch, RESUME)
 
-    assert result.exit_code == 0, result.output
-    assert (tmp_path / "other.epub").exists() and len(_jobs(tmp_path)) == count and not session.posts
+    assert result.exit_code == 1 and "no longer runs" in " ".join(result.output.split()), result.output
+    assert not (tmp_path / "other.epub").exists() and len(_jobs(tmp_path)) == count and not session.posts
 
 
 def test_a_legacy_address_with_credentials_is_refused_without_migrating_it(tmp_path, monkeypatch):
@@ -240,7 +242,7 @@ def test_a_legacy_address_with_credentials_is_refused_without_migrating_it(tmp_p
     path = _old_file(tmp_path, source, url="http://user:secret@translator.test")
     before = path.read_bytes()
     result, session = _invoke(monkeypatch, RESUME)
-    assert result.exit_code == 1 and "userinfo_unsupported" in result.output, result.output
+    assert result.exit_code == 1 and "no longer runs" in " ".join(result.output.split()), result.output
     assert not session.posts and not (tmp_path / "processing" / "projects").exists()
     assert "secret" not in result.output and "translator.test" not in result.output
     assert path.read_bytes() == before

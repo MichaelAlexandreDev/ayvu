@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 from .. import plan, run as translation_run, run_messages, settings, translate_options
-from dataclasses import replace
 from pathlib import Path
-from typing import Optional
+from typing import NoReturn, Optional
 import typer
 from rich.table import Table
 from .. import report as reports
@@ -13,7 +12,7 @@ from ....composition.cli import _BookOutcome, book_refusal, interrupted_translat
 from ....kernel import UserMode
 from ....recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
 from ....network import NetworkPolicy
-from ....translation import ContinuationTicket, TranslateProjectResult, PreflightError
+from ....translation import ContinuationTicket, TranslateProjectResult, PreflightError, PreviousRuntimeRetired
 
 from ..render import _print_expected_error, console
 from ..options import NETWORK_POLICY_HELP, _selected_network_policy
@@ -41,6 +40,10 @@ def resume(
     state = _select_resume_state(found.running, epub_path, target, mode=mode)
     if state is None:
         raise typer.Exit(code=1)
+    if state.execution_revision == 1:
+        console.print(f"[yellow]Previous runtime job:[/yellow] {state.input_path.name} -> {state.output_path.name}")
+        _print_resume_checkpoint(state)
+        _refuse_previous_runtime(mode)
 
     console.print(
         f"[green]Resuming translation:[/green] {state.input_path.name} -> {state.output_path.name}"
@@ -74,6 +77,9 @@ def _offer_detected_translation_resume(found: InterruptedTranslations, recovery:
 
     state = states[0]
     _print_resume_checkpoint(state)
+    if state.execution_revision == 1:
+        _print_previous_runtime(mode)
+        return False
     if not typer.confirm("Continue detected translation?", default=False):
         console.print("Detected translation was not resumed. Processing files were left unchanged.")
         return False
@@ -102,12 +108,8 @@ class _ResumeRunner:
         state, mode = self._state, self._mode
         config = settings._load_existing_config_or_default()
         if state.execution_revision == 1:
-            # A v1 job finishes on v1, whatever label the configuration now declares; no new run reaches v1.
-            config = replace(config, translator_models={})
-            console.print("[yellow]Old job:[/yellow] this job started on Ayvu's previous runtime. It can be finished now; "
-                          "once that runtime is removed, finish it with the frozen release v1-runtime-final "
-                          "or translate the book again.")
-        elif identity.get('continuation') is not None:
+            _refuse_previous_runtime(mode)  # Callers refuse earlier; v1 never runs (REF-18 step 6).
+        if identity.get('continuation') is not None:
             try:
                 config = resume_translation_configuration(config, settings._processing_dir(config), self._project_id, identity['continuation'])
             except PreflightError as error:
@@ -148,8 +150,20 @@ class _ResumeRunner:
         )
 
 
+def _print_previous_runtime(mode: UserMode) -> None:
+    error = PreviousRuntimeRetired()
+    _print_expected_error(error.summary, error.next_step, mode)
+
+
+def _refuse_previous_runtime(mode: UserMode) -> NoReturn:
+    _print_previous_runtime(mode)
+    raise typer.Exit(code=1)
+
+
 def _resume_translation(state: TranslationResumeState, found: InterruptedTranslations, recovery: JobRecovery, mode: UserMode,
                         network_policy: NetworkPolicy | None = None) -> None:
+    if state.execution_revision == 1:
+        _refuse_previous_runtime(mode)
     entry = found.entry_of(state)
     # Asking for this resume is the decision: the command says what it does, and it has always replaced its output.
     request = ResumeRequest(entry.reference, entry.job_id, entry.project_id, entry.expected_revision, tuple(RequiredDecision))
@@ -236,6 +250,8 @@ def _print_resume_checkpoint(state: TranslationResumeState) -> None:
         table.add_row("Runtime", "previous (v1)")
     table.add_row("Last update", state.updated_at)
     console.print(table)
+    if state.execution_revision == 1:
+        return  # A v1 job is refused next: nothing is reused or retried.
     console.print(
         "Saved execution settings and cached translations are reused; only segments still missing from the cache are retried."
     )

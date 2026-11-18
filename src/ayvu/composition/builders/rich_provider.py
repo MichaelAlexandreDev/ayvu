@@ -17,7 +17,7 @@ from ...providers.libretranslate.adapter import LIBRETRANSLATE_PRODUCER, LibreTr
 from ...providers.libretranslate.client import (
     LibreTranslateTranslator, RoutedTranslator, TranslatorError, validate_translator_name,
 )
-from ...translation import PreflightError, resolve_plan
+from ...translation import PreflightError, PreviousRuntimeRetired, resolve_plan
 from .ollama import OLLAMA, ollama_preflight
 
 
@@ -75,7 +75,11 @@ def require_model(models, translator_name, *, continuation=None, legacy_resume=F
     except TranslatorError as error:
         raise PreflightError("Não foi possível preparar o tradutor.",
                              "Use --translator libretranslate.", detail=str(error)) from None
-    if continuation is not None or legacy_resume:
+    if legacy_resume:
+        raise PreviousRuntimeRetired()  # REF-18 step 6: an old standalone checkpoint no longer runs on v1.
+    if continuation is not None:
+        if selected_model(models, translator_name) is None:
+            raise PreviousRuntimeRetired()  # A continuation without an identity could only be a v1 job's.
         return
     if selected_model(models, translator_name) is None:
         name = translator_name.strip().lower()
