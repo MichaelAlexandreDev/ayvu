@@ -28,6 +28,7 @@ def test_root_command_refuses_a_v1_translation_without_offering_it(tmp_path, mon
     assert "Continue detected translation?" not in output and "Resuming translation:" not in output
     assert "This job started on Ayvu's previous runtime, which this version no longer runs." in output
     assert "Finish it with the frozen release v1-runtime-final" in output and "Traceback" not in output
+    assert "cached translations are reused" not in output
     assert calls == {} and path.read_bytes() == before
 
 

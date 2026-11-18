@@ -250,6 +250,8 @@ def _print_resume_checkpoint(state: TranslationResumeState) -> None:
         table.add_row("Runtime", "previous (v1)")
     table.add_row("Last update", state.updated_at)
     console.print(table)
+    if state.execution_revision == 1:
+        return  # A v1 job is refused next: nothing is reused or retried.
     console.print(
         "Saved execution settings and cached translations are reused; only segments still missing from the cache are retried."
     )
