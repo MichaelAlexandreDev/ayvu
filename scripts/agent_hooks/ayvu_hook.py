@@ -104,16 +104,30 @@ def without_heredoc_text(command: str) -> str:
     return "\n".join(kept)
 
 
+COMMAND_SEPARATOR = re.compile(r"&&|\|\||[;|&\n]")
+
+
+def simple_commands(command: str) -> list[str]:
+    """Splits a chain at `&&`, `||`, `;`, `|`, `&` and newlines, so a flag belongs to its own command.
+
+    Without this, `git push origin x && git worktree remove --force wt && git checkout main` read as a
+    forced push to main.
+    """
+    return COMMAND_SEPARATOR.split(command)
+
+
 def bash_decision(command: str) -> dict | None:
     command = without_heredoc_text(command)
-    if ADMIN_MERGE.search(command):
+    commands = simple_commands(command)
+    if any(ADMIN_MERGE.search(part) for part in commands):
         return deny("Ayvu never merges with --admin. Update the branch, wait for CI and merge normally.")
-    if FORCE_PUSH.search(command) and MAIN_REF.search(command):
+    if any(FORCE_PUSH.search(part) and MAIN_REF.search(part) for part in commands):
         return deny("Force-pushing main is not allowed in Ayvu.")
+    # Books and caches stay guarded across the whole chain: `cd .cache && rm x.sqlite` names them apart.
     if DESTRUCTIVE_SHELL.search(command) and SENSITIVE_IN_COMMAND.search(command):
         return deny("This would change or delete a book, a cache, a glossary or private data. "
                     "Confirm the exact target with the maintainer and use a recoverable flow.")
-    if any(pattern.search(command) for pattern in DISCARD_WORK):
+    if any(pattern.search(part) for part in commands for pattern in DISCARD_WORK):
         return ask("This discards local changes. Check the worktree has nothing to keep "
                    "(and that no suite, comparison or Docker run is reading it) before allowing it.")
     return None
