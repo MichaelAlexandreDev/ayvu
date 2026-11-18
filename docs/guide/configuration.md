@@ -49,12 +49,17 @@ Profiles can be added by hand under `profiles`:
     "technical": {
       "target_language": "pt",
       "glossary": "technical.json",
-      "style": "technical"
+      "style": "technical",
+      "translator": "ollama",
+      "model": "qwen2.5:7b"
     }
   }
 }
 ```
 
+- **`translator`** selects `libretranslate` or `ollama`; omitting it keeps LibreTranslate.
+- **`model`** declares a LibreTranslate label or names an installed Ollama model. Validation uses the
+  profile's translator (LibreTranslate if omitted). Invalid selections stop before provider or job work.
 - **`target_language`** sets the default target language when `--target` is not given.
 - **`glossary`** accepts an absolute path, or a path relative to the local glossaries folder.
 - **`style`** accepts `neutral`, `technical`, `literary` or `academic`. With the current LibreTranslate
@@ -70,6 +75,24 @@ For the fields that translation profiles cover, the precedence is:
 ```text
 CLI arguments > selected profile > configuration file > built-in defaults
 ```
+
+`ayvu translate book.epub --profile technical --model llama3.2:3b` overrides the profile's model.
+`--translator libretranslate --model local-model` overrides both. A profile model belongs to its
+translator: switching providers without `--model` uses the selected provider's `translator_models`
+entry. Flags never rewrite configuration. No global default translator or new connection format is added.
+A durable resume uses its job's original provider and model, ignoring later profile/configuration changes.
+
+## Guided translator settings
+
+Open Settings (option 4), then **6. Choose translator and model**. Choose `libretranslate` to declare
+its label, or `ollama` to list installed model names from the local server. Enter a list number or a
+validated name; if discovery fails, manual entry is still available. This records only
+`translator_models.<translator>`; translation still requires an explicit Ollama choice, or an Ollama
+profile. Enter cancels without saving. Option 5 continues to edit only LibreTranslate's label.
+Guided translation asks for the translator only when there is a choice: an Ollama model in the
+configuration, or a profile that names a translator. It then offers the profile's translator as the
+default and uses the selected provider for language discovery. Otherwise it runs LibreTranslate and asks
+exactly what it asked before. Guided preview stays on LibreTranslate, because Ollama has no preview yet.
 
 ## Folders and the reader
 

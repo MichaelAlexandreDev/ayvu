@@ -58,6 +58,8 @@ class TranslationReport:
     detected_language: str | None = None
     target_language: str | None = None
     execution_note: str | None = None
+    provider_name: str | None = None
+    model_name: str | None = None
 
     def record_error(self, message: str) -> None:
         self.errors.append(message)

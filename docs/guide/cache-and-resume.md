@@ -127,7 +127,8 @@ without a matching job still works as before, without creating a project or a jo
 [translation recovery](../architecture/modules/recovery.md).
 
 A resume keeps the runtime its job started with: a v1 job finishes on v1 even after a model label is
-declared, and a rich job needs a label. See [Model label, rich runtime and v2 cache](rich-runtime.md).
+declared. A rich job recovers its original provider and model from existing provenance, ignoring later
+profile and configuration changes. See [Model label, rich runtime and v2 cache](rich-runtime.md).
 
 The translator may be called again for a segment that was in progress when the run was interrupted. On the
 legacy runtime, the cache avoids repeating finished work but cannot prove which provider or model produced

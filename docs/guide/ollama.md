@@ -39,7 +39,7 @@ the book never leaves your computer.
 ## Translating
 
 ```bash
-uv run ayvu translate book.epub --translator ollama --target pt
+uv run ayvu translate book.epub --translator ollama --model qwen2.5:7b --target pt
 ```
 
 - **Address:** with `--translator ollama`, the default `--url` means `http://localhost:11434`. Give
@@ -52,6 +52,20 @@ uv run ayvu translate book.epub --translator ollama --target pt
   covers connection failures and server errors only.
 - **Workers:** Ollama runs with one worker. `--workers 2` or more is refused before anything starts, since
   Ollama's own `OLLAMA_NUM_PARALLEL` limits how many requests the server answers at once.
+
+`--model` overrides the selected profile, then `translator_models.ollama`. A profile may contain
+`"translator": "ollama", "model": "qwen2.5:7b"`; use it with `--profile <name>`. Without an explicit
+Ollama selection or profile, LibreTranslate remains the default.
+
+In Settings (option 4), choose **6. Choose translator and model**, then `ollama`. Ayvu lists installed
+models through `GET /api/tags`, under the invocation's network policy. Choose a number or enter a valid
+model name. Discovery failure permits manual entry; Enter cancels without changing configuration.
+Translation checks that the model is installed even when it was entered manually.
+
+A durable resume reads its original provider and model from job provenance, regardless of current
+configuration. If the model's weights changed, resume refuses; restore the original weights or start a
+new translation. Plans and terminal/Markdown reports name the provider and model, with no endpoint or
+credentials.
 
 ## Languages
 
@@ -77,6 +91,4 @@ does not record yet.
 ## Not available yet
 
 - `--dry-run`, `--preview` and `--cache-only` with `--translator ollama` are refused with an explanation.
-- Choosing the translator and model in the guided menu and in profiles, and keeping them on resume, come
-  with the translator selection work ([#377](https://github.com/MichaelAlexandreDev/ayvu/issues/377)).
 - Remote providers (Anthropic, OpenAI) need an explicit egress policy and are separate issues.

@@ -34,7 +34,7 @@ All test paths are under `tests/interfaces/cli/`.
 | `--workers` and performance profiles | A(s2-5), A(s2-6) | `test_cli_rich_workers.py`, `test_cli_rich_cache_only_workers.py` |
 | Translation memory flags | G9, A(7): governed approved memory, fuzzy is a suggestion unless `--tm-conservative-auto-apply` at 0.98 or more; the v1 cache is not memory. A(s3-A): the CLI says so, and warns when `--tm-apply-threshold` is given without the conservative flag. | `test_cli_rich_runtime_policy.py`, `test_cli_rich_memory_notices.py` |
 | Provider failure | G10, A(7): the book always stops without a partial EPUB, whatever `--fail-fast` and the worker count say, and resumes from its completed documents | `test_cli_rich_failure_matrix.py` |
-| `resume` and the resume offer | = through the durable chain; a job resumes on the runtime it started with, and a rich job resumed with another label translates again with `raw_results_changed_provider` | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py`, `test_cli_resume_runtime.py` |
+| `resume` and the resume offer | = through the durable chain; a job resumes on the runtime it started with, and a rich job resumes with the provider and model it started with, recovered from its provenance (AI-03, #377), and refuses an Ollama model whose weights changed | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py`, `test_cli_resume_runtime.py` |
 | Old v1 data (step 5) | A new translation names an old v1 cache with texts for its languages, read-only, and says that it is not reused; a v1 resume says that it can be finished only until v1 is removed | `test_cli_legacy_data_notice.py` |
 | Review export and apply | = through the rich review package | `test_cli_rich_runtime_execution.py` |
 | `extract` | = (no translation runtime) | existing `extract` tests |
@@ -75,6 +75,8 @@ the rich runtime the default:
   job needs the label it started with. That described current behaviour wrongly: a rich job resumed
   with another label already translates its documents again and warns
   (`raw_results_changed_provider`), as the README documents. The answer to P1 did not change that.
+  *Update (2026-11-18, AI-03 #377):* a rich job now resumes with the provider and model it started
+  with, whatever the configuration says, as the AI-03 issue asks.
 - **Question P2:** guided translation and preview without a label ask for the label in place, with
   the same validation as the settings option, save it and continue; an empty answer cancels.
 - **Question P3:** commands that do not translate do not change in step 4. These are cache

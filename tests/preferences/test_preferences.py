@@ -43,7 +43,7 @@ def test_field_classification_is_complete_executable_contract():
     contract = json.loads((PROJECT_ROOT /
         'docs/architecture/modules/preferences-fields.json').read_text())
     fields = {entry['path']: entry for entry in contract['fields']}
-    preferences = replace(GlobalPreferences(), profiles=(('test', NamedPreferenceProfile('pt', 'terms.json', 'technical')),))
+    preferences = replace(GlobalPreferences(), profiles=(('test', NamedPreferenceProfile('pt', 'terms.json', 'technical', 'libretranslate', 'local-model')),))
     payload = preferences_to_mapping(preferences)
     paths = set(payload)
     paths.update('folders.' + key for key in payload['folders'])

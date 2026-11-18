@@ -2,9 +2,9 @@
 from __future__ import annotations
 from .glossaries import _list_glossary_files, _load_guided_glossary, _prompt_saved_glossary_path
 from .language import _choose_guided_target_language
-from .preferences import _ensure_guided_model_label
+from .preferences import _ensure_guided_model_label, _settings_with_translator_model, _update_guided_settings
 
-from .. import preview as previews, run as translation_run, translate_options
+from .. import preview as previews, run as translation_run, translate_options, settings
 from pathlib import Path
 import typer
 from rich.table import Table
@@ -20,11 +20,15 @@ PROFILE_NO_PROFILE_OPTION = "0"
 
 
 def _run_guided_translation(config: AyvuConfig) -> None:
-    config = _ensure_guided_model_label(config)
+    if not _offers_translator_choice(config):
+        config = _ensure_guided_model_label(config)  # LibreTranslate only: asked first, as before #377.
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
     profile_name, profile = _choose_guided_translation_profile(config)
+    selected = _guided_translator(config, profile)
+    config = selected.config
     target = _choose_guided_target_language(
-        translate_options._resolve_target_language(None, profile, default_target=config.default_target_language)
+        translate_options._resolve_target_language(None, profile, default_target=config.default_target_language),
+        translator_name=selected.translator, url=selected.url,
     )
     glossary_path = _choose_guided_profile_glossary(profile) or _choose_guided_translation_glossary()
     translation_run._run_translation(
@@ -33,8 +37,8 @@ def _run_guided_translation(config: AyvuConfig) -> None:
         review_output=None,
         source=None,
         target=target,
-        translator_name="libretranslate",
-        url=DEFAULT_TRANSLATOR_URL,
+        translator_name=selected.translator,
+        url=selected.url,
         cache_path=DEFAULT_CACHE_PATH,
         glossary_path=glossary_path,
         profile_name=profile_name,
@@ -56,6 +60,7 @@ def _run_guided_translation(config: AyvuConfig) -> None:
 
 
 def _run_guided_preview(config: AyvuConfig) -> None:
+    # Ollama has no preview yet, so guided preview stays on LibreTranslate and asks nothing new.
     config = _ensure_guided_model_label(config)
     epub_path = Path(typer.prompt("EPUB path")).expanduser()
     target = _choose_guided_target_language(config.default_target_language)
@@ -129,3 +134,32 @@ def _choose_guided_translation_glossary() -> Path | None:
             console.print(f"[green]Glossary selected:[/green] {path}")
             return path
         console.print("Choose another glossary or run without glossary.")
+
+
+def _offers_translator_choice(config, profile=None) -> bool:
+    """Only an Ollama model in the configuration or a profile naming a translator makes it a choice.
+
+    Without one, guided translation runs LibreTranslate and asks exactly what it asked before #377.
+    """
+    if "ollama" in config.translator_models:
+        return True
+    profiles = config.profiles.values() if profile is None else (profile,)
+    return any(item.translator is not None for item in profiles)
+
+
+def _guided_translator(config, profile=None, *, preview=False):
+    selected = settings._select_translator(config, UserMode.COMMON, profile=profile, preview=preview)
+    name = (typer.prompt("Translator (libretranslate or ollama)", default=selected.translator).strip()
+            if _offers_translator_choice(config, profile) else selected.translator)
+    selected = settings._select_translator(config, UserMode.COMMON, translator=name, profile=profile, preview=preview)
+    if selected.model is None:
+        if selected.translator == 'libretranslate':
+            config = _ensure_guided_model_label(config)
+        else:
+            updated = _settings_with_translator_model(config, selected.translator)
+            config = _update_guided_settings(settings.configuration_store(), config, updated)
+        selected = settings._select_translator(config, UserMode.COMMON, translator=name, profile=profile, preview=preview)
+    if selected.model is None:
+        console.print("Canceled.")
+        raise typer.Exit(code=1)
+    return selected

@@ -14,7 +14,7 @@ provides the SQLite adapter `SQLiteLegacyStreamingStore`, constructed by
 The package API exports the schema value without loading SQLite adapters.
 [`legacy_census.py`](../../../src/ayvu/knowledge/cache/legacy_census.py) counts a v1 cache's texts for
 a language pair with SQLite's read-only URI mode, for the REF-18 step 5 notice that composition
-(`legacy_cache_notice`) passes to the CLI. It never creates, migrates or writes the file; a journal,
+(`legacy_cache_notice` in `composition/builders/cache_admin.py`) passes to the CLI. It never creates, migrates or writes the file; a journal,
 WAL or shared-memory file beside it, or a WAL header, makes it report the cache unreadable unopened.
 
 JSON-v1 inspection and export continue during the accepted retirement transition. This extraction

@@ -30,6 +30,8 @@ def _print_translation_plan(
     retry_backoff: float = DEFAULT_RETRY_BACKOFF,
     retry_backoff_max: float = DEFAULT_RETRY_BACKOFF_MAX,
     local_sequential: bool = False,
+    translator_name: str | None = None,
+    model: str | None = None,
 ) -> None:
     table = Table(title="Translation plan")
     table.add_column("Field")
@@ -39,6 +41,9 @@ def _print_translation_plan(
         source_value = f"{language_pair.source} (inferido do EPUB)"
     table.add_row("From", source_value)
     table.add_row("To", language_pair.target)
+    if translator_name is not None:
+        table.add_row("Provider", translator_name)
+        table.add_row("Model", model or "unknown")
     if profile_name:
         table.add_row("Profile", profile_name)
     if profile_style:

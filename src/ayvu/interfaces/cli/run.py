@@ -92,12 +92,25 @@ def _run_translation(
     resolved_target = translate_options._resolve_target_language(target, profile)
     resolved_glossary_path = translate_options._resolve_glossary_path(glossary_path, profile)
     resolved_source, source_inferred = translate_options._resolve_source_language(source, epub_path, mode=mode)
-    language_pair = LanguagePair(source=resolved_source, target=resolved_target)
     # A resume holds the profile of the run it continues, and shows no profile, because it applies none of its settings.
     identity_profile_name = project_profile_name or resolved_profile_name
+    translation_options = TranslationOptions(
+        language_pair=LanguagePair(source=resolved_source, target=resolved_target),
+        dry_run=dry_run,
+        fail_fast=fail_fast,
+        chunk_limit=chunk_limit,
+        workers=workers,
+        translate_metadata=translate_metadata,
+        translate_alt_text=translate_alt_text,
+        chapter_selection=chapter_selection,
+        cache_only=cache_only,
+        require_full_cache=require_full_cache,
+        translation_memory=translation_memory,
+    )
     plan._print_translation_plan(
-        language_pair,
+        translation_options.language_pair,
         source_inferred=source_inferred,
+        translator_name=translator_name, model=config.translator_models.get(translator_name),
         mode=mode,
         profile_name=resolved_profile_name,
         profile_style=profile.style if profile else None,
@@ -110,19 +123,6 @@ def _run_translation(
     )
     if batch_plan is None and continuation is None and resolve_managed_project:  # A batch says it once, before its books.
         run_messages._print_legacy_cache_notice(cache_path, source=resolved_source, target=resolved_target)
-    translation_options = TranslationOptions(
-        language_pair=language_pair,
-        dry_run=dry_run,
-        fail_fast=fail_fast,
-        chunk_limit=chunk_limit,
-        workers=workers,
-        translate_metadata=translate_metadata,
-        translate_alt_text=translate_alt_text,
-        chapter_selection=chapter_selection,
-        cache_only=cache_only,
-        require_full_cache=require_full_cache,
-        translation_memory=translation_memory,
-    )
     if chapter_selection is not None:
         selected_chapters = translate_options._resolve_chapter_selection_for_display(
             epub_path=epub_path,
@@ -134,7 +134,7 @@ def _run_translation(
     output_plan = OutputPlan.for_translation(
         epub_path,
         output,
-        language_pair,
+        translation_options.language_pair,
         dry_run=dry_run,
         default_dir=output_dir or output_paths._translated_books_dir(config),
     )
@@ -158,7 +158,7 @@ def _run_translation(
     if resolve_managed_project and not dry_run:
         try:
             resolution = resolve_translation_project(
-                settings._processing_dir(config), epub_path, source=language_pair.source, target=language_pair.target,
+                settings._processing_dir(config), epub_path, source=translation_options.source, target=translation_options.target,
                 glossary_path=resolved_glossary_path, profile_name=identity_profile_name,
                 translator=translator_name, url=url, chunk_limit=chunk_limit,
                 translate_metadata=translate_metadata, translate_alt_text=translate_alt_text,
@@ -279,19 +279,7 @@ def _run_translation(
     if batch_plan is not None and report.output_written and not dry_run:
         batch_plan.mark_published()
     if review_output_path is not None:
-        if outcome.job_result is None:
-            run_messages._print_review_export_failure("translation_identity_unavailable", mode)
-            raise typer.Exit(code=1)
-        use_cases = open_review_use_cases(settings._processing_dir(config))
-        cancellation = use_cases.cancellation()
-        exported = use_cases.export.execute(ReviewExportCommand(
-            outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
-            cancellation=cancellation.token))
-        if exported.outcome is not ReviewOutcome.READY or exported.artifact is None:
-            run_messages._print_review_export_failure(exported.code, mode)
-            raise typer.Exit(code=1)
-        console.print(f"[green]Review file saved to:[/green] {review_output_path}")
-        report.review_output_path = review_output_path
+        _export_review(outcome, review_output_path, config, overwrite, mode)
 
     if cache_only and report.missing_texts:
         try:
@@ -326,6 +314,36 @@ def _run_translation(
     else:
         reports._offer_markdown_report(report, dry_run, validation_warnings, mode=mode)
 
+    _finish_translation(book, report, outcome, validation, checkpoint, output_path, mode, item_exit)
+
+    return TranslationRunResult(
+        report=report,
+        validation_warnings=validation_warnings,
+        markdown_report_path=markdown_report_path,
+        project_id=project_id,
+        job_result=outcome.job_result,
+    )
+
+
+def _export_review(outcome, review_output_path, config, overwrite, mode):
+    """Publish the explicitly requested review package after translation."""
+    if outcome.job_result is None:
+        run_messages._print_review_export_failure("translation_identity_unavailable", mode)
+        raise typer.Exit(code=1)
+    use_cases = open_review_use_cases(settings._processing_dir(config))
+    cancellation = use_cases.cancellation()
+    exported = use_cases.export.execute(ReviewExportCommand(
+        outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
+        cancellation=cancellation.token))
+    if exported.outcome is not ReviewOutcome.READY or exported.artifact is None:
+        run_messages._print_review_export_failure(exported.code, mode)
+        raise typer.Exit(code=1)
+    console.print(f"[green]Review file saved to:[/green] {review_output_path}")
+    outcome.report.review_output_path = review_output_path
+
+
+def _finish_translation(book, report, outcome, validation, checkpoint, output_path, mode, item_exit):
+    """Present completion gates and mark a validated checkpoint complete."""
     if run_support.cache_coverage_blocked(book, report):
         run_messages._print_cache_coverage_blocked(report, mode)
         item_exit("cache_incomplete")
@@ -343,11 +361,3 @@ def _run_translation(
         run_messages._print_translation_failure(outcome, output_path, mode)
         if outcome.warning != "provenance_failed":
             item_exit("translation_failed")
-
-    return TranslationRunResult(
-        report=report,
-        validation_warnings=validation_warnings,
-        markdown_report_path=markdown_report_path,
-        project_id=project_id,
-        job_result=outcome.job_result,
-    )

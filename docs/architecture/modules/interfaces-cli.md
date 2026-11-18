@@ -218,7 +218,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UI-004` | `_RouteView`, `TranslationRunResult`, `BatchTranslationResult`, `_BatchItemExit`, `ExecutionControls` |
 | `AYVU-UI-004` | `main`, `create_app` |
 | `AYVU-UC-001` | `inspect` |
-| `AYVU-UC-002` | `test_translator`, `_ollama_model`, `_next_step` |
+| `AYVU-UC-002` | `test_translator`, `_translator_models`, `_next_step` |
 | `AYVU-UC-003` | `languages` |
 | `AYVU-UC-010`, `AYVU-UC-011`, `AYVU-UC-012`, `AYVU-UC-013` | `_cache_namespace`, `_cache_scope_map`, `_cache_warnings`, `cache_inspect`, `cache_clean`, `_cache_failure_hint`, `cache_export`, `cache_import` |
 | `AYVU-UC-004`, `AYVU-UC-005` | `translate` |
@@ -226,12 +226,12 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UI-004` | `_print_expected_error` |
 | `AYVU-UC-010`, `AYVU-UC-011`, `AYVU-UC-013` | `_normalize_cache_before`, `_validate_cache_clean_options`, `_print_cache_summary`, `_print_cache_import_report`, `_plural_cache_entries` |
 | `AYVU-UC-001`, `AYVU-UC-008` | `_print_epub_read_error`, `_print_content_failure` |
-| `AYVU-UC-004`, `AYVU-UC-005`, `AYVU-UC-006` | `_resolve_source_language`, `_print_translation_plan`, `_print_legacy_cache_notice`, `_execution_control_rows`, `_format_workers`, `_format_rate_limit`, `_format_retry_policy`, `_format_execution_summary`, `_format_number`, `_resolve_execution_controls`, `_resolve_performance_profile`, `_print_translation_route`, `_resolve_requested_profile`, `_resolve_target_language`, `_resolve_glossary_path`, `_parse_chapter_selection`, `_resolve_chapter_selection_for_display`, `_print_selected_chapters`, `_validate_translate_command_options`, `_validate_cache_only_options`, `_build_translation_memory_options`, `_check_runtime_options`, `_validate_worker_options`, `_print_rich_memory_notices`, `_resolve_translation_output_dir`, `_run_translation`, `_auxiliary_output_failed`, `_translation_progress_display`, `_print_project_failure`, `_print_translation_failure` |
+| `AYVU-UC-004`, `AYVU-UC-005`, `AYVU-UC-006` | `_resolve_source_language`, `_print_translation_plan`, `_print_legacy_cache_notice`, `_execution_control_rows`, `_format_workers`, `_format_rate_limit`, `_format_retry_policy`, `_format_execution_summary`, `_format_number`, `_resolve_execution_controls`, `_execution_controls`, `_memory_options`, `_command_translator`, `_select_translator`, `_guided_translator`, `_offers_translator_choice`, `_resolve_performance_profile`, `_print_translation_route`, `_resolve_requested_profile`, `_resolve_target_language`, `_resolve_glossary_path`, `_parse_chapter_selection`, `_resolve_chapter_selection_for_display`, `_print_selected_chapters`, `_validate_translate_command_options`, `_validate_cache_only_options`, `_build_translation_memory_options`, `_check_runtime_options`, `_validate_worker_options`, `_print_rich_memory_notices`, `_resolve_translation_output_dir`, `_run_translation`, `_auxiliary_output_failed`, `_translation_progress_display`, `_print_project_failure`, `_print_translation_failure` |
 | `AYVU-UC-005` | `_run_batch_translation`, `_batch_planning_failed`, `_print_batch_plan`, `_print_batch_summary` |
 | `AYVU-UC-006` | `_run_preview`, `_prepare_preview` |
 | `AYVU-UC-008` | `extract` |
 | `AYVU-UC-009` | `apply_review`, `_print_review_apply_failure` |
-| `AYVU-UC-004`, `AYVU-UC-006`, `AYVU-UC-009` | `_validate_with_progress`, `_print_validation_warnings`, `_print_report`, `_has_glossary_summary`, `_print_glossary_warnings`, `_resolve_review_output_path`, `_print_review_export_failure` |
+| `AYVU-UC-004`, `AYVU-UC-006`, `AYVU-UC-009` | `_validate_with_progress`, `_print_validation_warnings`, `_print_report`, `_has_glossary_summary`, `_print_glossary_warnings`, `_resolve_review_output_path`, `_print_review_export_failure`, `_export_review`, `_finish_translation`, `_with_selection` |
 | `AYVU-UC-007` | `_print_interrupted_translation`, `_partial_chapter_value`, `_interrupted_output_message`, `_print_processing_translation_states` |
 | `AYVU-UI-004` | `_run_guided_main_flow` |
 | `AYVU-UC-015` | `_load_or_init_config`, `_load_existing_config_or_default`, `_refuse_invalid_translator_models`, `_init_default_language_config`, `_choose_initial_folder_names`, `_print_feature_folder_paths`, `_save_config` |
@@ -241,7 +241,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UC-004` | `_choose_guided_translation_profile`, `_print_translation_profiles`, `_choose_guided_profile_glossary` |
 | `AYVU-UC-016` | `_run_guided_glossaries`, `_print_guided_glossary_menu`, `_create_guided_glossary`, `_edit_guided_glossary`, `_preview_guided_glossary`, `_choose_guided_translation_glossary`, `_prompt_new_glossary_path`, `_prompt_guided_glossary_terms`, `_prompt_guided_glossary_entry`, `_prompt_required_text`, `_upsert_glossary_entry`, `_save_guided_glossary`, `_glossary_failure`, `_load_guided_glossary`, `_prompt_saved_glossary_path`, `_print_saved_glossaries`, `_print_guided_glossary_preview`, `_list_glossary_files` |
 | `AYVU-UC-014` | `_run_guided_library`, `_print_library_books`, `_prompt_library_book`, `_print_library_warnings`, `_run_guided_library_book`, `_library_book_actions`, `_print_library_book_actions`, `_print_library_book_info`, `_open_library_book_path`, `_display_book_translations` |
-| `AYVU-UC-015` | `_run_guided_settings`, `_print_settings`, `_print_settings_menu`, `_update_guided_settings`, `_settings_with_default_language`, `_settings_with_books_dir`, `_settings_with_folder_names`, `_settings_with_reader_app`, `_settings_with_model_label`, `_format_profile_names` |
+| `AYVU-UC-015` | `_run_guided_settings`, `_print_settings`, `_print_settings_menu`, `_update_guided_settings`, `_settings_with_default_language`, `_settings_with_books_dir`, `_settings_with_folder_names`, `_settings_with_reader_app`, `_settings_with_model_label`, `_settings_with_translator_model`, `_format_profile_names` |
 | `AYVU-UI-004` | `_prompt_path`, `_prompt_folder_name`, `_prompt_optional_text` |
 | `AYVU-UC-003` | `_choose_guided_target_language`, `_prompt_target_language_code`, `_print_guided_language_choices`, `_language_code_from_guided_choice`, `_languages_were_listed`, `_load_languages_for_guided_selection`, `_print_languages`, `_display_language_targets` |
 | `AYVU-UC-007` | `_offer_detected_translation_resume`, `_ResumeRunner`, `_resume_translation`, `_print_resume_refusal`, `_select_resume_state`, `_print_resume_checkpoint`, `_has_checkpoint_progress`, `_checkpoint_chapter_value`, `_print_running_resume_states`, `_print_invalid_resume_states` |
@@ -282,3 +282,14 @@ differences were accepted on 2026-11-13.
 
 The compatibility checkpoint adapter is `composition/builders/checkpoint.py`; the CLI root
 constructs it through `translation_checkpoint()` without opening storage.
+
+## Translator selection (#377)
+
+`composition/builders/selection.py` owns translator and model precedence and reads the original
+producer from existing job provenance for a durable continuation. Named factories in `composition.cli`
+expose selection, resume configuration and model discovery. CLI presenters never construct a provider.
+`providers/ollama/discovery.py` supplies validated installed model names; composition owns its HTTP client.
+Settings option 6 chooses a translator before its model; option 5 retains LibreTranslate label editing.
+Profiles may carry `translator` and `model`; explicit flags win. Models remain in `translator_models`.
+Plans, terminal reports and Markdown reports show only the provider name and validated model name/label.
+Checkpoint schemas, job identities, cache keys and fingerprints are unchanged.

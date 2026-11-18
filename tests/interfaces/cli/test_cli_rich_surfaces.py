@@ -55,6 +55,7 @@ def test_guided_markdown_report_with_a_label_matches_the_terminal_report(tmp_pat
     assert f"- Output: {output}" in content
     assert "- Texts translated: 4" in content and "- Texts from cache: 1" in content
     assert "- Errors: 0" in content
+    assert "- Provider: libretranslate" in content and f"- Model: {LABEL}" in content
 
 
 def batch(tmp_path, monkeypatch, *arguments):

@@ -84,7 +84,7 @@ def test_translation_invalid_selection_allows_another(local_catalog, tmp_path, m
     book.write_bytes(b"fake")
     from tests.support.cli_rich_runtime_support import declare_model
     declare_model(tmp_path / "config/ayvu/config.json")
-    result = run(f"1\n{book}\n1\n1\n2\ny\n")
+    result = run(f"1\n{book}\n\n1\n1\n2\ny\n")
     assert "Choose another glossary or run without glossary." in result.output
     assert "Glossary selected:" in result.output
     assert str(valid) in result.output

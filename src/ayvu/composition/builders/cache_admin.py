@@ -8,12 +8,14 @@ from ...knowledge.cache import (ExecuteClean, ExportCache, ImportCache, InspectC
 from ...knowledge.cache.admin_store import LocalCacheFiles, SQLiteCacheStore
 from ...knowledge.cache.admin_v2_store import SQLiteCacheV2Store
 from ...knowledge.cache.legacy_admin_store import SQLiteLegacyStreamingStore
+from ...knowledge.cache.legacy_census import legacy_cache_census
 from ...knowledge.cache import admin_store as legacy_store
 from ...knowledge.cache.protocol_names import _SUFFIXES
 from ...knowledge.cache.schema import SchemaState, classify_cache_waiting
 from pathlib import Path
 from dataclasses import replace
 from ...knowledge.cache import CacheAdminError, CacheNamespace, checkpoint
+from .translate_project import v2_cache_path
 
 
 def prepare_export_destination(request):
@@ -146,3 +148,9 @@ def cache_admin_services() -> CacheAdminServices:
                               ExecuteClean(repository), ExportCache(repository, files, legacy=repository),
                               ImportCache(repository, files, legacy=repository), PreviewImport(repository), ExecuteImport(repository),
                               DiscardImport(repository))
+
+
+def legacy_cache_notice(cache_path: Path, *, target: str, source: str | None = None):
+    """REF-18 step 5: the old cache's texts for the languages and the v2 file used instead, or None."""
+    census = legacy_cache_census(cache_path, target=target, source=source)
+    return None if census is None else (census, v2_cache_path(cache_path))

@@ -26,8 +26,8 @@
   "functions": {
     "src/ayvu/formats/use_cases.py::ExportVisibleContent.execute": 136,
     "src/ayvu/interfaces/cli/batch.py::_run_batch_translation": 149,
-    "src/ayvu/interfaces/cli/commands/translate.py::translate": 258,
-    "src/ayvu/interfaces/cli/run.py::_run_translation": 320,
+    "src/ayvu/interfaces/cli/commands/translate.py::translate": 244,
+    "src/ayvu/interfaces/cli/run.py::_run_translation": 292,
     "src/ayvu/knowledge/cache/interchange.py::iter_records": 82,
     "src/ayvu/knowledge/cache/legacy_admin_store.py::SQLiteLegacyStreamingStore.import_cache": 155,
     "src/ayvu/knowledge/cache/schema.py::prepare_cache": 109,

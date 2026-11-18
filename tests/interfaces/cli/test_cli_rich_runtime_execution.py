@@ -39,7 +39,8 @@ def test_rich_translate_real_stores_cache_and_review_with_instrumented_transport
     assert any(record.operation == "execution_identity" for record in provenance)
     package = decode_review_package((tmp_path / "review.csv").read_bytes())
     assert len(package.rows) > 0 and all(row.machine_translation for row in package.rows)
-    assert label not in caplog.text + text(first) + repr(job) + repr(provenance)
+    assert label not in caplog.text + repr(job) + repr(provenance)
+    assert label in text(first)  # #377 deliberately presents the selected model.
     with ZipFile(tmp_path / "out.epub") as output:
         assert b"PT:Hello reader." in output.read("OEBPS/c1.xhtml")
     second, transport = invoke(tmp_path, monkeypatch, source, "--overwrite")
@@ -82,7 +83,7 @@ def test_rich_provider_failure_first_middle_last_is_resumable_without_partial_ep
     assert any(job.continuation_of == parent.job_id and job.state is JobState.VALIDATED for job in _jobs(tmp_path))
 
 
-def test_resuming_a_rich_job_without_a_label_is_refused_before_any_request(tmp_path, monkeypatch):
+def test_resuming_a_rich_job_without_a_configured_label_recovers_the_original(tmp_path, monkeypatch):
     # A v1 job resumed after a label is declared finishes on v1 instead: test_cli_resume_runtime.py.
     config(tmp_path, "model")
     source = _book(tmp_path / "book.epub")
@@ -96,6 +97,8 @@ def test_resuming_a_rich_job_without_a_label_is_refused_before_any_request(tmp_p
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
     resumed = runner.invoke(cli.app, ["--mode", "developer", "resume", str(source)])
     output = text(resumed)
-    assert resumed.exit_code == 1 and "Um job rich/v2 só pode ser retomado com um rótulo de modelo." in " ".join(output.split())
-    assert transport.requests == []
-    assert len(_jobs(tmp_path)) == len(original_jobs)
+    assert resumed.exit_code == 0, output
+    assert transport.requests
+    assert len(_jobs(tmp_path)) == len(original_jobs) + 1
+    child = next(job for job in _jobs(tmp_path) if job.continuation_of == original_jobs[-1].job_id)
+    assert all(record.producer.model == 'declared:model' for record in records(tmp_path, child))

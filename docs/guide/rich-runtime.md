@@ -31,6 +31,10 @@ default label. The label applies to `translate`, guided translation and every bo
 uv run ayvu translate book.epub --workers 1 --cache ./cache.sqlite
 ```
 
+A one-run `--model` overrides the profile and configuration. A durable resume recovers its original
+provider and model from provenance, even after a configured label is removed or changed. To translate
+with another model, start a new translation. No label is added to the checkpoint format.
+
 ## What changes with a label
 
 - **The v2 cache:** the rich runtime uses `DocumentTranslator` and writes to `cache.sqlite.v2.sqlite`, in
@@ -43,7 +47,7 @@ uv run ayvu translate book.epub --workers 1 --cache ./cache.sqlite
   under that label.** Change the label together with the model. Restoring a label lets you reuse its
   earlier cache.
 - **Where the label appears:** in the operational provenance data and in the cache identity; not in logs,
-  events, the terminal report or the checkpoint. Do not put personal data in the label. The rich
+  events or the checkpoint. Plans and terminal/Markdown reports show the provider and model. Do not put personal data in the label. The rich
   checkpoint records only the execution revision, to tie a resume to its job.
 
 ## Cache-only and workers
@@ -121,10 +125,12 @@ A provider failure stops the rich runtime at its first occurrence and publishes 
 completed segments stay in v2; fix the problem and run `uv run ayvu resume book.epub`.
 
 A resume keeps the runtime its job started with: a v1 job finishes on v1 even after a label is declared,
-and a rich job needs a label (with another label, it translates again and says why). The resume reuses the
-documents the previous job completed, without calling the translator or the cache, when it can prove that
-nothing changed: model, route, capabilities, configuration, book and pipeline version. If something
-changed, it translates again and says what, for example `Aviso da tradução: raw_results_changed_provider`.
+and a rich job resumes with the provider and model it started with, whatever the configuration or profile
+now says. If an Ollama model's weights changed since the job started, the resume refuses before any work:
+restore the original model or start a new translation. The resume reuses the documents the previous job
+completed, without calling the translator or the cache, when it can prove that nothing changed: route,
+capabilities, configuration, book and pipeline version. If something changed, it translates again and says
+what, for example `Aviso da tradução: raw_results_changed_route`.
 
 ## Without a label, previews and dry runs
 

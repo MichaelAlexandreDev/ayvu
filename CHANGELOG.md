@@ -10,6 +10,14 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Seleção de tradutor e modelo na CLI, no guiado e em perfis: `translate --model` prioriza a flag,
+  depois o perfil e `translator_models`. As Configurações oferecem descoberta de modelos Ollama,
+  com entrada manual validada em caso de falha e cancelamento sem gravação. A retomada conserva o
+  provedor e modelo originais pela proveniência, mesmo com a configuração alterada; pesos Ollama
+  diferentes exigem restaurar o modelo ou iniciar outra tradução. Plano e relatórios exibem os nomes
+  de provedor e modelo. LibreTranslate segue como padrão; as restrições de preview, dry-run e
+  cache-only do Ollama permanecem.
+
 - Antes de uma tradução nova (também em dry-run, cache-only e uma vez por lote), a CLI avisa quando o
   cache v1 tem textos do par de idiomas: eles ficam intactos e não são reaproveitados, e a tradução vai
   para o cache v2 ao lado. O arquivo v1 é lido só em modo somente leitura. Ao retomar um job v1, a CLI

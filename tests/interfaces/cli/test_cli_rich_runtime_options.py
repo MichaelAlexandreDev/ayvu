@@ -84,7 +84,7 @@ def test_guided_translation_selects_rich_from_existing_configuration(tmp_path, m
     source = _book(tmp_path / "book.epub")
     transport = Transport()
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: transport)
-    result = runner.invoke(cli.app, [], input=f"1\n{source}\n1\ny\nn\n")
+    result = runner.invoke(cli.app, [], input=f"1\n{source}\n\n1\ny\nn\n")
     assert result.exit_code == 0, text(result)
     job = _jobs(tmp_path)[0]
     assert job.request.command_version == 2 and job.state is JobState.VALIDATED

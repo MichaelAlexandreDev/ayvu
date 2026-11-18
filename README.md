@@ -53,7 +53,7 @@ uv run ayvu translate book.epub --target pt
 The guided menu asks for your default language and books folder on first use, then offers to translate
 a book, generate a preview, open your library, manage glossaries and change settings.
 
-Every new translation requires a model label declared by you, including batches, previews, dry runs
+Every new LibreTranslate translation requires a model label declared by you, including batches, previews, dry runs
 and cache-only rebuilds. Open **Settings (option 4) → 5. Change translator model label** in the guided
 menu, or set `translator_models.libretranslate` in `config.json`. Guided translation and preview ask for
 the label in place, save it and continue; Enter cancels. Without it, direct commands exit 1 before any
@@ -63,7 +63,11 @@ If you translated with an earlier version, the old cache is kept but not reused:
 [Upgrading from the v1 runtime](docs/guide/upgrading-from-v1.md).
 
 To translate with a model installed in Ollama instead, name it under `translator_models.ollama` and add
-`--translator ollama`. See [Translating with Ollama](docs/guide/ollama.md).
+`--translator ollama`. Use `--model qwen2.5:7b` to override its configured model for one run.
+Profiles may set `translator` and `model`; explicit flags override the profile, then `translator_models`.
+Settings option **6. Choose translator and model** lists installed Ollama models and accepts validated
+manual input if discovery fails. A durable resume keeps its original provider and model despite later
+configuration changes. Plans and reports display both names, without credentials. See [Translating with Ollama](docs/guide/ollama.md).
 
 ## Common commands
 

@@ -309,6 +309,7 @@ def test_frozen_post_predecessor_cli_contract_with_explicit_159_and_162_addition
     baseline = json.loads((ROOT / 'tests/fixtures/cli-post-predecessor.json').read_text())
     assert baseline['base_sha'] == '3edd2c2813c592418189670dbef1866c3026780e'
     current = normalized_cli_contract()
+    _normalize_ai03_selection(current, baseline['contract'])
     commands = [current, *(current['commands'][name] for name in ('languages', 'test-translator', 'translate', 'resume'))]
     for command in commands:
         added = [parameter for parameter in command['parameters'] if parameter['name'] == 'network_policy']
@@ -372,3 +373,22 @@ def test_installed_cli_entrypoint_still_targets_the_presenter():
     import tomllib
     project = tomllib.loads((ROOT / 'pyproject.toml').read_text())
     assert project['project']['scripts']['ayvu'] == 'ayvu.interfaces.cli.app:app'
+
+
+def _normalize_ai03_selection(current, baseline):
+    """Assert #377's explicit additions while keeping the historical fixture frozen."""
+    for command, names in [(current, ('translator_name', 'model', 'url')),
+                           (current['commands']['translate'], ('model',))]:
+        for name in names:
+            parameter = next(item for item in command['parameters'] if item['name'] == name)
+            assert parameter['opts'] == ['--translator' if name == 'translator_name' else '--' + name]
+            assert parameter['default'] is None and not parameter['required']
+            command['parameters'].remove(parameter)
+    for name, help_text in {
+        'translator_name': 'Translator backend: libretranslate or ollama.',
+        'url': 'Translator base URL; defaults to localhost:5000 or Ollama localhost:11434.',
+    }.items():
+        parameter = next(item for item in current['commands']['translate']['parameters'] if item['name'] == name)
+        assert parameter['default'] is None and parameter['help'] == help_text
+        original = next(item for item in baseline['commands']['translate']['parameters'] if item['name'] == name)
+        parameter.update(default=original['default'], help=original['help'])
