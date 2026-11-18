@@ -6,6 +6,7 @@ from rich.table import Table
 from .contracts import TranslationResumeState, SelectedChapter
 from ...kernel import LanguagePair, UserMode
 
+from ...composition.cli import remote_egress_notice
 from .render import console
 from .options import DEFAULT_RETRY_BACKOFF, DEFAULT_RETRY_BACKOFF_MAX
 
@@ -44,6 +45,10 @@ def _print_translation_plan(
     if translator_name is not None:
         table.add_row("Provider", translator_name)
         table.add_row("Model", model or "unknown")
+        notice = remote_egress_notice(translator_name)
+        if notice is not None:
+            table.add_row("Sent to", ", ".join(host.rsplit(":", 1)[0] for host in notice.hosts) + " (HTTPS)")
+            table.add_row("Retention claim", notice.retention_claim)
     if profile_name:
         table.add_row("Profile", profile_name)
     if profile_style:

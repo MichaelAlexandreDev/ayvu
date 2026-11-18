@@ -48,6 +48,13 @@ remain presentation concerns.
         "AYVU-UC-007"
       ]
     },
+    "--consent-remote": {
+      "kind": "application-policy",
+      "mappings": [
+        "AYVU-UC-004",
+        "AYVU-UC-005"
+      ]
+    },
     "--install-completion": {
       "kind": "presentation-only",
       "mappings": [
@@ -172,6 +179,23 @@ remain presentation concerns.
             "--source": "domain-input",
             "--target": "domain-input"
           }
+        }
+      }
+    },
+    "consent": {
+      "use_cases": [
+        "AYVU-UI-005"
+      ],
+      "options": {},
+      "subcommands": {
+        "revoke": {
+          "use_cases": [
+            "AYVU-UC-017"
+          ],
+          "options": {
+            "--translator": "domain-input"
+          },
+          "subcommands": {}
         }
       }
     },

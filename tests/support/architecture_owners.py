@@ -19,10 +19,15 @@ EDITION_DATA_MODULES = frozenset({
 OWNERS = {
     "ayvu.composition.builders.checkpoint": Owner("composition", "Recovery"),
     "ayvu.composition.builders.reports": Owner("composition", "Translation reports"),
+    # Remote egress (#379): the policy's HTTPS transport, what a remote adapter declares, the consent record.
+    **{f"ayvu.composition.builders.{name}": Owner("composition", "Providers") for name in ("remote", "remote_consent")},
+    "ayvu.network.remote_http": Owner("provider", "Network policy"),
+    "ayvu.providers.remote": Owner("domain", "Providers"),
+    "ayvu.projects.consent": Owner("infrastructure", "Projects"),
     **{name: Owner("composition", "Edition definitions") for name in EDITION_DATA_MODULES},
     "ayvu": Owner("surface", "Package"),
     **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "report", "output", "plan", "translate_options", "run", "run_support", "run_messages", "batch", "preview", "commands",
-      "guided", "guided.menu", "guided.translation", "guided.glossaries", "guided.library", "guided.preferences", "guided.language", "commands.resume", "commands.translate", "commands.cache", "commands.cache_output", "commands.content", "commands.review", "commands.translator")},
+      "guided", "guided.menu", "guided.translation", "guided.glossaries", "guided.library", "guided.preferences", "guided.language", "commands.resume", "commands.translate", "commands.cache", "commands.cache_output", "commands.content", "commands.review", "commands.translator", "commands.consent")},
     "ayvu.interfaces": Owner("interface", "Interfaces"), "ayvu.interfaces.cli": Owner("interface", "CLI"), "ayvu.jobs": Owner("domain", "Jobs"), "ayvu.artifacts": Owner("domain", "Artifacts"),
     "ayvu.recovery": Owner("application", "Jobs"), "ayvu.translation.resume_reuse": Owner("domain", "Translation"),
     **{f"ayvu.{name}": Owner("domain", "Knowledge") for name in ("knowledge", "knowledge.cache", "knowledge.memory",

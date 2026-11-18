@@ -23,7 +23,7 @@ from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
 from ..translation.preflight import check_book_resources
-from .builders import checkpoint, selection
+from .builders import checkpoint, remote, remote_consent, selection
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
 from ..kernel import JobWarning, OutputPlan, TranslationOptions
@@ -58,6 +58,7 @@ class _BookRequest:
     translator_name: str = "libretranslate"
     translator_models: dict[str, str] = field(default_factory=dict, repr=False)
     preview: bool = False
+    remote_consent: Callable[[object], bool] | None = None  # the owner's answer to a remote egress notice
 
 
 @dataclass(frozen=True, repr=False)
@@ -217,7 +218,7 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
     require_translation_model(book.translator_models, book.translator_name, continuation=book.continuation)
     # A model translator is prepared now, before its job: the job records a producer naming the model's digest.
-    model = rich_provider.prepare_model_translation(book.translator_name, book.prepare)
+    model = rich_provider.prepare_model_translation(book.translator_name, book.prepare, book)
     if model is not None and book.continuation is not None:
         selection.require_resume_producer(book, model.binding.producer)
 
@@ -387,3 +388,11 @@ def resume_translation_configuration(config, processing_dir, project_id, ticket)
 
 def discover_translator_models(**settings):
     return providers.discover_translator_models(**settings)
+
+
+def remote_egress_notice(translator_name):
+    return remote.egress_notice(translator_name)
+
+
+def revoke_remote_consent(processing_dir, target, translator=None):
+    return remote_consent.revoke_remote_consent(processing_dir, target, translator)

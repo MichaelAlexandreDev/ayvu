@@ -13,7 +13,7 @@ from urllib3.connection import HTTPConnection
 from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 
-from .policy import NetworkDecision, NetworkPolicyError
+from .policy import LOOPBACK_PERMITTED, NetworkDecision, NetworkPolicyError
 
 # The paths a session may reach under its decision's base URL. LibreTranslate's are the default.
 LIBRETRANSLATE_ENDPOINTS = ("/translate", "/languages")
@@ -46,6 +46,9 @@ class NetworkAuthorization:
 
     def authorize(self, operation: str) -> ValidatedAddress:
         self.decision.require(operation)
+        if self.decision.reason != LOOPBACK_PERMITTED:
+            # A remote decision never reaches this pinned loopback transport; ``network.remote_http`` carries it.
+            raise NetworkPolicyError(self.decision, operation, "unsupported_destination")
         with self._lock:
             if self._failure:
                 raise NetworkPolicyError(self.decision, operation, self._failure)
