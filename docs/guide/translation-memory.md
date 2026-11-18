@@ -19,7 +19,8 @@ to use translation memory, keep the sequential default.
 ## Existing v1 jobs
 
 New translations require `translator_models.libretranslate` and use governed approved memory, as
-described below. Only existing v1 jobs retain the legacy memory behaviour when resumed, using the same
+described below. Ayvu no longer runs v1 jobs (see [Upgrading from the v1 runtime](upgrading-from-v1.md)); the
+legacy memory behaviour below is only what the frozen release `v1-runtime-final` does with the
 original/translated pairs already stored in the SQLite cache on disk. For each new segment with no exact
 match, Ayvu looks for similar candidates in the same language pair and measures their similarity. Two
 similarity thresholds (between 0 and 1) control what happens:

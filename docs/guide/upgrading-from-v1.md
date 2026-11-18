@@ -37,18 +37,26 @@ Nothing is deleted or moved. The v1 files stay where they are until you remove t
 
 ## Finishing old jobs
 
-An interrupted v1 job still resumes on v1, with or without a label, and so does an old standalone
-checkpoint. The resume says so:
+Ayvu no longer runs v1. An interrupted v1 job, or an old standalone checkpoint, is refused on resume, with
+or without a label, before any request, job or file:
 
 ```text
-Old job: this job started on Ayvu's previous runtime. It can be finished now; once that runtime is
-removed, finish it with the frozen release v1-runtime-final or translate the book again.
+This job started on Ayvu's previous runtime, which this version no longer runs.
+Finish it with the frozen release v1-runtime-final, or translate the book again. Its files were left unchanged.
 ```
 
-The resume checkpoint table also shows `Runtime: previous (v1)`. Finish the jobs you care about
-before you upgrade past the release that removes v1. After that, use the frozen release
-`v1-runtime-final`, which is the last version with v1, in a separate checkout, with copies of the old
-files.
+The resume checkpoint table shows `Runtime: previous (v1)`, and the guided menu lists the job without
+offering to continue it. To finish such a job, use the frozen release `v1-runtime-final`, the last version
+that runs v1, in a separate checkout and with copies of the old files:
+
+```bash
+git clone https://github.com/MichaelAlexandreDev/ayvu.git ayvu-v1 && cd ayvu-v1
+git checkout v1-runtime-final
+uv sync
+uv run ayvu resume book.epub
+```
+
+That release receives no fixes. Translating the book again with the current version is the supported path.
 
 ## Keeping a copy
 

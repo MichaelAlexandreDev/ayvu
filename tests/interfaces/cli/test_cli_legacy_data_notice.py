@@ -113,18 +113,18 @@ def test_the_continuation_of_a_rich_job_does_not_repeat_it(tmp_path, monkeypatch
 
 
 @pytest.mark.parametrize("label", [None, "local-model-2026"], ids=["without-label", "with-label"])
-def test_resuming_a_v1_job_says_it_can_be_finished_only_until_v1_is_removed(tmp_path, monkeypatch, label):
+def test_a_v1_job_is_shown_as_previous_runtime_and_refused(tmp_path, monkeypatch, label):
     from tests.interfaces.cli.test_cli_resume_runtime import interrupted, resume
     parent = interrupted(tmp_path, monkeypatch, None)
     assert parent.request.command_version == 1
     config(tmp_path, label=label)
     result, _ = resume(tmp_path, monkeypatch)
     output = flat(result)
-    assert result.exit_code == 0, output
-    assert ("Old job: this job started on Ayvu's previous runtime. It can be finished now; once that runtime is "
-            "removed, finish it with the frozen release v1-runtime-final or translate the book again.") in output
-    assert "Resume checkpoint" in output and "Runtime │ previous (v1)" in output
-    assert NOTICE not in output  # Finishing old work is not new work.
+    assert result.exit_code == 1, output
+    assert "Previous runtime job: book.epub" in output and "Runtime │ previous (v1)" in output
+    assert ("This job started on Ayvu's previous runtime, which this version no longer runs. Finish it with the "
+            "frozen release v1-runtime-final, or translate the book again. Its files were left unchanged.") in output
+    assert NOTICE not in output  # Refusing old work is not new work.
 
 
 def test_resuming_a_rich_job_says_nothing_about_the_old_runtime(tmp_path, monkeypatch):
@@ -148,13 +148,16 @@ def test_guided_translation_names_the_default_old_cache(tmp_path, monkeypatch):
     assert cache.is_file()
 
 
-def test_an_old_checkpoint_resumes_on_its_old_cache_without_the_not_reused_notice(tmp_path, monkeypatch):
+def test_an_old_checkpoint_is_refused_and_its_old_cache_left_alone(tmp_path, monkeypatch):
     from tests.interfaces.cli.test_cli_recovery import _old_file
     source = _book(tmp_path / "book.epub")
-    v1_cache(tmp_path / "cache.sqlite")  # The checkpoint's own v1 cache, which this resume does use.
+    v1_cache(tmp_path / "cache.sqlite")  # The checkpoint's own v1 cache.
     _old_file(tmp_path, source)
+    from tests.support.model_label_support import snapshot
+    before = snapshot(tmp_path)
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: Transport())
     result = runner.invoke(cli.app, ["--mode", "developer", "resume"])
     output = flat(result)
-    assert result.exit_code == 0, output
-    assert "Old job: this job started on Ayvu's previous runtime." in output and NOTICE not in output
+    assert result.exit_code == 1, output
+    assert "no longer runs" in output and NOTICE not in output
+    assert snapshot(tmp_path) == before

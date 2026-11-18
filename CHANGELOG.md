@@ -24,6 +24,11 @@ lancadas e secoes versionadas quando uma release for publicada.
   hosts e a retenção declarada pelo provedor (`RETENTION_CLAIM`). Preview, dry-run e cache-only remotos
   ficam recusados. Nenhum provedor remoto real entra agora: Anthropic e OpenAI chegam depois.
 
+- O runtime v1 não executa mais. Retomar um job v1 ou um checkpoint antigo (pelo `resume` ou pela oferta
+  do guiado) é recusado com saída 1, com ou sem rótulo, antes de qualquer requisição, job ou arquivo, e os
+  arquivos ficam intactos. A mensagem indica a versão congelada `v1-runtime-final` ou traduzir de novo;
+  o guia "Upgrading from the v1 runtime" explica como terminar esses jobs nela.
+
 - Seleção de tradutor e modelo na CLI, no guiado e em perfis: `translate --model` prioriza a flag,
   depois o perfil e `translator_models`. As Configurações oferecem descoberta de modelos Ollama,
   com entrada manual validada em caso de falha e cancelamento sem gravação. A retomada conserva o
@@ -34,9 +39,8 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 - Antes de uma tradução nova (também em dry-run, cache-only e uma vez por lote), a CLI avisa quando o
   cache v1 tem textos do par de idiomas: eles ficam intactos e não são reaproveitados, e a tradução vai
-  para o cache v2 ao lado. O arquivo v1 é lido só em modo somente leitura. Ao retomar um job v1, a CLI
-  avisa que ele pode ser terminado agora, mas não depois da remoção do v1 (versão congelada
-  `v1-runtime-final`), e a tabela da retomada mostra `Runtime: previous (v1)`. Guia novo: "Upgrading
+  para o cache v2 ao lado. O arquivo v1 é lido só em modo somente leitura. A tabela da retomada mostra
+  `Runtime: previous (v1)` para jobs v1. Guia novo: "Upgrading
   from the v1 runtime" (`docs/guide/upgrading-from-v1.md`).
 
 - Toda tradução nova exige um rótulo de modelo declarado, inclusive lote, preview, dry-run e cache-only.

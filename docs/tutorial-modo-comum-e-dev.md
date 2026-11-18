@@ -435,8 +435,8 @@ no primeiro uso rico. A proveniência registra `declared:<rótulo>`, informado p
 
 O modo rico para na primeira falha do provedor, não publica EPUB parcial e conserva
 os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume livro.epub`.
-A resume keeps the runtime its job started with: existing v1 jobs finish on v1 with or without
-a label, and old standalone checkpoints still resume. Rich jobs recover their original provider and model from provenance, even when the current
+A resume runs only rich jobs: existing v1 jobs and old standalone checkpoints are refused, with or
+without a label, and left unchanged; finish them with the frozen release `v1-runtime-final`. Rich jobs recover their original provider and model from provenance, even when the current
 configuration changes. Start a new translation to select another model.
 
 For labeled durable translations, `--cache-only` reconstructs from the authorized

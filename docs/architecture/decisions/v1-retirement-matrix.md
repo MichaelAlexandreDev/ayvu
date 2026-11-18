@@ -34,7 +34,7 @@ All test paths are under `tests/interfaces/cli/`.
 | `--workers` and performance profiles | A(s2-5), A(s2-6) | `test_cli_rich_workers.py`, `test_cli_rich_cache_only_workers.py` |
 | Translation memory flags | G9, A(7): governed approved memory, fuzzy is a suggestion unless `--tm-conservative-auto-apply` at 0.98 or more; the v1 cache is not memory. A(s3-A): the CLI says so, and warns when `--tm-apply-threshold` is given without the conservative flag. | `test_cli_rich_runtime_policy.py`, `test_cli_rich_memory_notices.py` |
 | Provider failure | G10, A(7): the book always stops without a partial EPUB, whatever `--fail-fast` and the worker count say, and resumes from its completed documents | `test_cli_rich_failure_matrix.py` |
-| `resume` and the resume offer | = through the durable chain; a job resumes on the runtime it started with, and a rich job resumes with the provider and model it started with, recovered from its provenance (AI-03, #377), and refuses an Ollama model whose weights changed | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py`, `test_cli_resume_runtime.py` |
+| `resume` and the resume offer | = through the durable chain for rich jobs. Step 6a: a v1 job or old standalone checkpoint is refused, unchanged, before any request;  and a rich job resumes with the provider and model it started with, recovered from its provenance (AI-03, #377), and refuses an Ollama model whose weights changed | `test_cli_rich_runtime_execution.py`, `test_cli_rich_failure_matrix.py`, `test_cli_resume_runtime.py` |
 | Old v1 data (step 5) | A new translation names an old v1 cache with texts for its languages, read-only, and says that it is not reused; a v1 resume says that it can be finished only until v1 is removed | `test_cli_legacy_data_notice.py` |
 | Review export and apply | = through the rich review package | `test_cli_rich_runtime_execution.py` |
 | `extract` | = (no translation runtime) | existing `extract` tests |
@@ -46,8 +46,10 @@ All test paths are under `tests/interfaces/cli/`.
   G1 refuses unlabeled work before any provider call or file; existing v1 work may still resume.
   Step 4f records the broader exit comparisons.
 - **Step 5 has shipped:** a new translation names an old v1 cache that has texts for its languages and
-  says that it is kept and not reused; resuming a v1 job says that it can be finished only until v1 is
-  removed. Removal remains step 6.
+  says that it is kept and not reused.
+- **Step 6a has shipped:** v1 no longer runs. A v1 job or an old standalone checkpoint is refused on
+  resume and left unchanged; the frozen release `v1-runtime-final` finishes it. Step 6b deletes the
+  unused v1 code.
 
 The owner answered the step 3 design questions on 2026-11-16 (translated quotation: "A. The
 recommended one. B the recommended one. C the recommended one"):
@@ -100,6 +102,22 @@ data takes path B, so step 5 is a notice and a migration guide, not an importer:
 The v1 cache is counted read-only and never created, migrated or written; an unreadable one is
 reported and the translation goes on. The guide is
 [Upgrading from the v1 runtime](../../guide/upgrading-from-v1.md).
+
+## Step 6 acceptance
+
+On 2026-11-18 the owner accepted the step 6 design (translated quotation: "you may start"), with its
+recommendations:
+
+- **Q1:** a v1 job or an old standalone checkpoint is refused on resume, with or without a label, before
+  any request, job or file, and its files stay byte for byte. The guided offer lists it without offering
+  to continue. Checkpoints are not converted into new translation requests.
+- **Q2:** JSON-v1 cache administration and CSV-v1 review inspection stay; they do not depend on `v1/`.
+- **Q3:** `--tm-legacy-cache-compatibility` stays; it belongs to the rich runtime.
+- **Q4:** the tag `v1-runtime-final`, on the last `main` commit that runs v1, has a GitHub pre-release
+  that says what it is for and that it receives no fixes.
+
+Step 6 ships in two pull requests: 6a refuses v1 work (behavioural), and 6b deletes the code that this
+leaves unused (mechanical).
 
 ## Step 4 exit proof (2026-11-17)
 

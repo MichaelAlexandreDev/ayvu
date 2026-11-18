@@ -45,6 +45,9 @@ def _running_resume_state(
     )
 
 
+RETIRED = "This job started on Ayvu's previous runtime, which this version no longer runs."
+
+
 def _patch_resume_pipeline(monkeypatch, processing_dir: Path, calls: dict[str, object]) -> None:
     def fake_translate(input_path: Path, output_path: Path, **kwargs: object) -> TranslationReport:
         options = kwargs["options"]
@@ -81,24 +84,24 @@ def test_resume_command_resumes_single_state(tmp_path, monkeypatch):
         retry_backoff=1.0,
         retry_backoff_max=10.0,
     ).record_chapter("chapter-one.xhtml", 2, ok=True)
-    ResumeStateStore(processing_dir).save(state)
+    path = ResumeStateStore(processing_dir).save(state)
+    before = path.read_bytes()
     calls: dict[str, object] = {}
     _patch_resume_pipeline(monkeypatch, processing_dir, calls)
 
     result = runner.invoke(app, ["resume"])
 
-    assert result.exit_code == 0
-    assert "Resuming translation:" in result.output
-    assert "Resume checkpoint" in result.output
-    assert "1/2" in result.output
-    assert "Workers" in result.output
-    assert "2 (parallel" in result.output
-    assert "2.5 requests/second" in result.output
-    assert "shared across workers" in result.output
-    assert "4 retries" in result.output
-    assert calls["options"].source == "en"
-    assert calls["options"].target == "pt"
-    assert calls["options"].workers == 2
+    # REF-18 step 6: a v1 checkpoint is shown, then refused; nothing runs and the file stays as it was.
+    output = " ".join(result.output.split())
+    assert result.exit_code == 1
+    assert "Resuming translation:" not in output
+    assert "Resume checkpoint" in output and "previous (v1)" in output
+    assert "1/2" in output
+    assert "2 (parallel" in output
+    assert "2.5 requests/second" in output
+    assert "4 retries" in output
+    assert RETIRED in output and "v1-runtime-final" in output
+    assert calls == {} and path.read_bytes() == before
 
 
 def test_resume_command_without_state_reports_clear_error(tmp_path, monkeypatch):
@@ -123,9 +126,10 @@ def test_resume_command_selects_state_by_epub_and_target(tmp_path, monkeypatch):
 
     result = runner.invoke(app, ["resume", str(beta.input_path), "--target", "es"])
 
-    assert result.exit_code == 0
-    assert "beta.epub" in result.output
-    assert calls["options"].target == "es"
+    output = " ".join(result.output.split())
+    assert result.exit_code == 1
+    assert "Previous runtime job: beta.epub" in output and "alpha" not in output
+    assert RETIRED in output and calls == {}
 
 
 def test_resume_command_requires_disambiguation_for_multiple_states(tmp_path, monkeypatch):
