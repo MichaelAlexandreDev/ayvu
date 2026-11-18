@@ -59,8 +59,8 @@ class OllamaPreflight:
         return None
 
 
-def ollama_url(url: str) -> str:
-    return DEFAULT_OLLAMA_URL if url == LIBRETRANSLATE_DEFAULT_URL else url
+def ollama_url(url: str | None) -> str:
+    return DEFAULT_OLLAMA_URL if url in (None, LIBRETRANSLATE_DEFAULT_URL) else url
 
 
 def _transport(timeout: float, retries: int, requests_per_second: float | None, retry_backoff: float,
@@ -86,9 +86,7 @@ def _refusal(code: str, model: str) -> PreflightError:
 
 def _checked_request(*, model: str | None, workers: int, dry_run: bool, cache_only: bool, language_pair,
                      settings: OllamaSettings) -> str:
-    if dry_run or cache_only:
-        raise PreflightError("Dry runs, previews and cache-only runs are not available with Ollama yet.",
-                             "Run the translation without --dry-run or --cache-only, or use --translator libretranslate.")
+    require_supported_mode(dry_run=dry_run, cache_only=cache_only)
     if model is None:
         raise PreflightError("Ollama needs an installed model, named in translator_models.ollama.",
                              "Run 'ollama list' and set translator_models.ollama to one of its names, such as qwen2.5:7b.")
@@ -155,3 +153,20 @@ def ollama_provider_session(*, url: str, timeout: float, requests_per_second: fl
     decision = resolve_network_policy(network_policy, ollama_url(url))
     client = OllamaClient(NetworkAuthorization(decision), timeout=timeout, rate_limiter=limiter)
     return CliProviderSession.for_adapter(decision, CLI_INSTANCE_ID, OllamaDiscoveryAdapter(client, model))
+
+
+def discover_ollama_models(*, url='http://localhost:11434', timeout=3.0, network_policy=None):
+    """Settings discovery uses the same policy and adapter as translation."""
+    from ...providers.ollama.discovery import discover_model_names
+
+    client = OllamaClient(NetworkAuthorization(resolve_network_policy(network_policy, url)), timeout=timeout)
+    try:
+        return discover_model_names(client)
+    finally:
+        client.close()
+
+
+def require_supported_mode(*, dry_run=False, cache_only=False, preview=False):
+    if dry_run or cache_only or preview:
+        raise PreflightError("Dry runs, previews and cache-only runs are not available with Ollama yet.",
+                             "Run the translation without --dry-run or --cache-only, or use --translator libretranslate.")

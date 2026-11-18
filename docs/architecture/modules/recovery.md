@@ -211,3 +211,12 @@ book was done.
 - [test_job_recovery_scan_integration](../../../tests/recovery/test_job_recovery_scan_integration.py).
 - [test_resume_stage_selection](../../../tests/translation/test_resume_stage_selection.py).
 - [test_raw_results_resume](../../../tests/translation/test_raw_results_resume.py).
+
+## Translator selection on CLI resume (#377)
+
+The CLI resume runner passes the associated project and continuation ticket to
+`composition.cli.resume_translation_configuration`. The selection builder reads the original producer
+from existing job provenance, restores its declared LibreTranslate label or Ollama model name in the
+effective configuration, and ignores current profile/model settings. The Ollama binding must match the
+recorded producer, including digest, before another job starts. Legacy revision-1 continuations keep
+using the existing runtime. No checkpoint fields, identities, schema or fingerprint algorithms change.

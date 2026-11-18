@@ -9,11 +9,11 @@ import typer
 from rich.table import Table
 from .. import report as reports
 from ..contracts import TranslationResumeState, InvalidResumeState, InterruptedTranslations, JobRecovery
-from ....composition.cli import _BookOutcome, book_refusal, interrupted_translations, open_job_recovery
+from ....composition.cli import _BookOutcome, book_refusal, interrupted_translations, open_job_recovery, resume_translation_configuration
 from ....kernel import UserMode
 from ....recovery import RequiredDecision, ResumeRequest, ResumeResult, ResumeStatus
 from ....network import NetworkPolicy
-from ....translation import ContinuationTicket, TranslateProjectResult
+from ....translation import ContinuationTicket, TranslateProjectResult, PreflightError
 
 from ..render import _print_expected_error, console
 from ..options import NETWORK_POLICY_HELP, _selected_network_policy
@@ -86,7 +86,8 @@ def _offer_detected_translation_resume(found: InterruptedTranslations, recovery:
 class _ResumeRunner:
     """Runs a resume with what its file recorded, on whichever path the use case chose."""
 
-    def __init__(self, state: TranslationResumeState, mode: UserMode, network_policy: NetworkPolicy | None = None) -> None:
+    def __init__(self, state: TranslationResumeState, mode: UserMode, network_policy: NetworkPolicy | None = None, project_id: str | None = None) -> None:
+        self._project_id = project_id
         self._state = state
         self._mode = mode
         self._network_policy = _selected_network_policy(network_policy)
@@ -103,6 +104,13 @@ class _ResumeRunner:
         if state.execution_revision == 1:
             # A v1 job finishes on v1, whatever label the configuration now declares; no new run reaches v1.
             config = replace(config, translator_models={})
+        elif identity.get('continuation') is not None:
+            try:
+                config = resume_translation_configuration(config, settings._processing_dir(config), self._project_id, identity['continuation'])
+            except PreflightError as error:
+                _print_expected_error('Could not recover the original translator model.',
+                                      'Keep the job provenance and start a new translation if needed.', mode)
+                raise typer.Exit(code=1) from error
         return translation_run._run_translation(
             epub_path=state.input_path,
             output=state.output_path,
@@ -143,7 +151,7 @@ def _resume_translation(state: TranslationResumeState, found: InterruptedTransla
     # Asking for this resume is the decision: the command says what it does, and it has always replaced its output.
     request = ResumeRequest(entry.reference, entry.job_id, entry.project_id, entry.expected_revision, tuple(RequiredDecision))
     try:
-        result = recovery.request_resume.execute(request, _ResumeRunner(state, mode, network_policy))
+        result = recovery.request_resume.execute(request, _ResumeRunner(state, mode, network_policy, entry.project_id))
         if result.status in (ResumeStatus.REFUSED, ResumeStatus.ALREADY_REQUESTED):
             _print_resume_refusal(result, state, mode)
             raise typer.Exit(code=1)

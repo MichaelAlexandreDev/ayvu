@@ -1,6 +1,6 @@
 # Translating books
 
-Every new translation requires a declared model label, including previews, dry runs and cache-only
+Every new LibreTranslate translation requires a declared model label, including previews, dry runs and cache-only
 rebuilds. In the guided menu, open **Settings (option 4) → 5. Change translator model label**, or set
 `translator_models.libretranslate` in `config.json`. Menus 1 and 2 also ask for a missing label in place;
 Enter cancels. See [model labels](rich-runtime.md#declaring-the-model-label) for the format and example.
@@ -71,6 +71,26 @@ Resume an interrupted translation from its saved checkpoint:
 uv run ayvu resume
 uv run ayvu resume book.epub --target pt
 ```
+
+## Choosing the translator and model
+
+`--translator libretranslate|ollama` selects an available provider. `--model` selects its declared label
+or installed model, overriding the profile and `translator_models`. LibreTranslate uses
+`http://localhost:5000`; Ollama uses `http://localhost:11434`. Use `--url` for another local server.
+
+```bash
+uv run ayvu translate book.epub --translator libretranslate --model local-model
+uv run ayvu translate book.epub --translator ollama --model qwen2.5:7b
+uv run ayvu translate book.epub --profile technical --model llama3.2:3b
+uv run ayvu --preview book.epub --translator libretranslate --model local-model
+```
+
+The same selection applies to every book in a batch. Unknown providers and invalid models stop before
+job or provider work. Ollama dry runs, previews and cache-only runs remain unavailable. Guided translation
+asks for the translator after the EPUB and profile, then asks for a missing model. Settings option 6 lists
+Ollama models or accepts a validated manual name. See [configuration and profiles](configuration.md).
+A durable resume keeps the original provider/model even when configuration changes. The plan and both
+report formats show `Provider` and `Model`, without credentials.
 
 ## Translating several books
 

@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 import typer
-from .render import console
+from .render import console, _print_expected_error
 from ...preferences import DEFAULT_BOOKS_DIR, AyvuConfig, FolderNames, config_from_preferences
 from .contracts import ConfigStore
-from ...composition.cli import configuration_store, default_processing_dir
+from ...composition.cli import configuration_store, default_processing_dir, select_translator
+from ...translation import PreflightError
 
 
 def _load_existing_config_or_default(store: ConfigStore | None = None) -> AyvuConfig:
@@ -23,6 +24,9 @@ def _load_existing_config_or_default(store: ConfigStore | None = None) -> AyvuCo
 
 
 def _refuse_invalid_translator_models(snapshot) -> None:
+    if snapshot.error is not None and snapshot.error.field in {'profiles.*.translator', 'profiles.*.model'}:
+        console.print("[red]Invalid profile translator or model.[/red]")
+        raise typer.Exit(code=1)
     if snapshot.error is not None and snapshot.error.field == "translator_models":
         console.print("[red]Rótulo de modelo inválido em translator_models.[/red]")
         console.print("Use de 1 a 48 caracteres: letras minúsculas, números, _ ou -, começando por letra ou número.")
@@ -44,3 +48,11 @@ def _processing_dir(config: AyvuConfig) -> Path:
 
 def _uses_internal_storage_defaults(config: AyvuConfig) -> bool:
     return config.books_dir == Path(DEFAULT_BOOKS_DIR) and config.folders == FolderNames()
+
+
+def _select_translator(config, mode, **choices):
+    try:
+        return select_translator(config, **choices)
+    except PreflightError as error:
+        _print_expected_error(error.summary, error.next_step, mode, detail=error.detail)
+        raise typer.Exit(code=1) from None

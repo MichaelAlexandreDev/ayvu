@@ -141,6 +141,24 @@
       "default": null,
       "compatibility": "exact legacy optional field meaning; no provider/credential additions",
       "consumer": "CLI translation profile resolution"
+    },
+    {
+      "path": "profiles.*.translator",
+      "owner": "named_profile",
+      "validation": "libretranslate or ollama; absent means the default translator",
+      "sensitivity": "private_metadata",
+      "default": null,
+      "compatibility": "exact legacy optional field meaning; no provider/credential additions",
+      "consumer": "CLI translation profile resolution"
+    },
+    {
+      "path": "profiles.*.model",
+      "owner": "named_profile",
+      "validation": "validated by MODEL_TRANSLATORS for the profile translator, defaulting to LibreTranslate",
+      "sensitivity": "private_metadata",
+      "default": null,
+      "compatibility": "exact legacy optional field meaning; no provider/credential additions",
+      "consumer": "CLI translation profile resolution"
     }
   ],
   "excluded": [

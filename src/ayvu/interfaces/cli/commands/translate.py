@@ -53,8 +53,9 @@ def translate(
         "--target",
         help="Target language. Defaults to the profile target or pt.",
     ),
-    translator_name: str = typer.Option("libretranslate", "--translator", help="Translator backend."),
-    url: str = typer.Option(DEFAULT_TRANSLATOR_URL, "--url", help="Translator base URL."),
+    translator_name: Optional[str] = typer.Option(None, "--translator", help="Translator backend: libretranslate or ollama."),
+    model: Optional[str] = typer.Option(None, "--model", help="Model name or declared label; overrides the profile and configuration."),
+    url: Optional[str] = typer.Option(None, "--url", help="Translator base URL; defaults to localhost:5000 or Ollama localhost:11434."),
     cache_path: Path = typer.Option(DEFAULT_CACHE_PATH, "--cache", help="SQLite cache path."),
     glossary_path: Optional[Path] = typer.Option(None, "--glossary", help="Optional JSON glossary."),
     profile_name: Optional[str] = typer.Option(
@@ -171,7 +172,6 @@ def translate(
         missing_output=missing_output,
         mode=mode,
     )
-    config = settings._load_existing_config_or_default()
     translate_options._validate_cache_only_options(
         cache_only=cache_only,
         require_full_cache=require_full_cache,
@@ -186,10 +186,8 @@ def translate(
         performance_profile_name, workers, requests_per_second, retries,
         retry_backoff, retry_backoff_max, chunk_limit, mode,
     )
-    translate_options._check_runtime_options(
-        tm_options, config, translator_name, workers=execution_controls.workers, cache_only=cache_only, mode=mode,
-        explicit_apply_threshold=getattr(ctx.get_parameter_source("tm_apply_threshold"), "name", "DEFAULT") not in _DEFAULT_SOURCES,
-    )
+    selected = _command_translator(profile_name, mode, translator_name, model, url, dry_run, cache_only,
+                                   ctx, tm_options, execution_controls)
 
     if len(epub_list) > 1:
         batch._run_batch_translation(
@@ -197,8 +195,8 @@ def translate(
             output_dir=resolved_output_dir,
             source=source,
             target=target,
-            translator_name=translator_name,
-            url=url,
+            translator_name=selected.translator,
+            url=selected.url,
             network_policy=_selected_network_policy(network_policy),
             cache_path=cache_path,
             glossary_path=glossary_path,
@@ -217,7 +215,7 @@ def translate(
             chunk_limit=execution_controls.chunk_limit,
             workers=execution_controls.workers,
             mode=mode,
-            config=config,
+            config=selected.config,
             translate_metadata=translate_metadata,
             translate_alt_text=translate_alt_text,
             cache_only=cache_only,
@@ -233,8 +231,8 @@ def translate(
         review_output=review_output,
         source=source,
         target=target,
-        translator_name=translator_name,
-        url=url,
+        translator_name=selected.translator,
+        url=selected.url,
         network_policy=_selected_network_policy(network_policy),
         cache_path=cache_path,
         glossary_path=glossary_path,
@@ -252,7 +250,7 @@ def translate(
         chunk_limit=execution_controls.chunk_limit,
         workers=execution_controls.workers,
         mode=mode,
-        config=config,
+        config=selected.config,
         translate_metadata=translate_metadata,
         translate_alt_text=translate_alt_text,
         cache_only=cache_only,
@@ -289,3 +287,16 @@ def _memory_options(translation_memory, tm_apply_threshold, tm_suggest_threshold
         legacy_cache_compatibility=tm_legacy_cache_compatibility,
         mode=mode,
     )
+
+
+def _command_translator(profile_name, mode, translator_name, model, url, dry_run, cache_only, ctx, tm_options, controls):
+    """Resolve the named profile before validating the selected runtime's options."""
+    config = settings._load_existing_config_or_default()
+    _, profile = translate_options._resolve_requested_profile(config, profile_name, mode)
+    selected = settings._select_translator(config, mode, translator=translator_name, model=model, profile=profile,
+                                           url=url, dry_run=dry_run, cache_only=cache_only)
+    translate_options._check_runtime_options(
+        tm_options, selected.config, selected.translator, workers=controls.workers, cache_only=cache_only, mode=mode,
+        explicit_apply_threshold=getattr(ctx.get_parameter_source("tm_apply_threshold"), "name", "DEFAULT") not in _DEFAULT_SOURCES,
+    )
+    return selected

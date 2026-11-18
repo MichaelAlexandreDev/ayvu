@@ -25,11 +25,9 @@ def _next_step(translator_name: str) -> str:
     return _NEXT_STEPS.get(translator_name, _LIBRETRANSLATE_NEXT_STEP)
 
 
-def _ollama_model(translator_name: str, model: str | None) -> str | None:
-    """Only Ollama needs a model: the --model given, or translator_models.ollama from the configuration."""
-    if translator_name != "ollama" or model is not None:
-        return model
-    return _load_existing_config_or_default().translator_models.get("ollama")
+def _translator_models(translator_name: str, model: str | None) -> dict[str, str]:
+    """Read configuration only for Ollama, as the synthetic test already did."""
+    return _load_existing_config_or_default().translator_models if translator_name == "ollama" and model is None else {}
 
 
 def test_translator(
@@ -70,7 +68,7 @@ def test_translator(
             retry_backoff=retry_backoff,
             retry_backoff_max=retry_backoff_max,
             translator_name=translator_name,
-            model=_ollama_model(translator_name, model),
+            model=model, translator_models=_translator_models(translator_name, model),
         )
         result = session.test(source, target)
         _print_network_selection(session.network_decision)

@@ -10,7 +10,7 @@ from tests.support.cli_translate_project_support import _book, _jobs
 
 LABEL = "local-model-2026"
 # Translate, the EPUB, the default target language, keep the output location, then the Markdown offer.
-GUIDED = "1\n{source}\n1\ny\n{markdown}\n"
+GUIDED = "1\n{source}\n\n1\ny\n{markdown}\n"
 
 
 def guided(tmp_path, monkeypatch, *, markdown="n"):
@@ -38,8 +38,9 @@ def test_guided_translation_without_a_label_cancels_on_enter(tmp_path, monkeypat
     config(tmp_path, label=None)
     session = Transport()
     monkeypatch.setattr("ayvu.providers.libretranslate.client.requests.Session", lambda: session)
+    source = _book(tmp_path / 'book.epub')
     before = snapshot(tmp_path)
-    result = runner.invoke(cli.app, [], input="1\n\n")
+    result = runner.invoke(cli.app, [], input=f"1\n{source}\n\n\n")
     assert_refused(result)
     assert snapshot(tmp_path) == before and session.requests == []
 
@@ -55,6 +56,7 @@ def test_guided_markdown_report_with_a_label_matches_the_terminal_report(tmp_pat
     assert f"- Output: {output}" in content
     assert "- Texts translated: 4" in content and "- Texts from cache: 1" in content
     assert "- Errors: 0" in content
+    assert "- Provider: libretranslate" in content and f"- Model: {LABEL}" in content
 
 
 def batch(tmp_path, monkeypatch, *arguments):

@@ -19,7 +19,7 @@ GUIDED_DEFAULT_LANGUAGE_OPTION = "1"
 GUIDED_OTHER_LANGUAGE_OPTION = "2"
 
 
-def _choose_guided_target_language(default_target: str) -> str:
+def _choose_guided_target_language(default_target: str, **provider) -> str:
     console.print(f"[yellow]Default target language:[/yellow] {default_target}")
     console.print(f"{GUIDED_DEFAULT_LANGUAGE_OPTION}. Use default target language ({default_target})")
     console.print(f"{GUIDED_OTHER_LANGUAGE_OPTION}. Outro idioma")
@@ -29,14 +29,14 @@ def _choose_guided_target_language(default_target: str) -> str:
         if choice == GUIDED_DEFAULT_LANGUAGE_OPTION:
             return default_target
         if choice == GUIDED_OTHER_LANGUAGE_OPTION:
-            return _prompt_target_language_code(default_target)
+            return _prompt_target_language_code(default_target, **provider)
         console.print("[red]Invalid option.[/red] Choose 1 or 2.")
 
 
-def _prompt_target_language_code(default_target: str) -> str:
-    available_languages = _load_languages_for_guided_selection()
+def _prompt_target_language_code(default_target: str, **provider) -> str:
+    available_languages = _load_languages_for_guided_selection(**provider)
     if available_languages:
-        _print_guided_language_choices(available_languages)
+        _print_guided_language_choices(available_languages, provider.get("translator_name", "libretranslate"))
     else:
         console.print("Enter a language code manually.")
 
@@ -47,8 +47,8 @@ def _prompt_target_language_code(default_target: str) -> str:
     return target or default_target
 
 
-def _print_guided_language_choices(languages: tuple[DiscoveredLanguage, ...]) -> None:
-    table = Table(title="LibreTranslate languages")
+def _print_guided_language_choices(languages: tuple[DiscoveredLanguage, ...], translator_name="libretranslate") -> None:
+    table = Table(title="Ollama languages (declared)" if translator_name == "ollama" else "LibreTranslate languages")
     table.add_column("Option")
     table.add_column("Language")
     table.add_column("Code")
@@ -69,14 +69,14 @@ def _language_code_from_guided_choice(choice: str, languages: tuple[DiscoveredLa
     return None
 
 
-def _load_languages_for_guided_selection() -> tuple[DiscoveredLanguage, ...]:
-    session = cli_provider_session(url=DEFAULT_TRANSLATOR_URL, timeout=10.0, retries=1,
+def _load_languages_for_guided_selection(translator_name="libretranslate", url=DEFAULT_TRANSLATOR_URL) -> tuple[DiscoveredLanguage, ...]:
+    session = cli_provider_session(url=url, timeout=10.0, retries=1, translator_name=translator_name,
                                    network_policy=_selected_network_policy())
     result = session.languages()
     _print_network_selection(session.network_decision)
     if _languages_were_listed(result):
         return result.languages
-    console.print(f"[yellow]Could not list LibreTranslate languages:[/yellow] {result.code}")
+    console.print(f"[yellow]Could not list translator languages:[/yellow] {result.code}")
     if network_next_step(result.code):
         console.print(session.network_decision.diagnostic("languages", result.code))
         console.print(network_next_step(result.code))

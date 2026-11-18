@@ -58,11 +58,11 @@ def _validate_with_progress(output_path: Path) -> ValidationResult:
 
 
 def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True, legacy_resume: bool = False) -> _BookOutcome:
-    return execute_translate_without_project(book, hooks, validate=validate, legacy_resume=legacy_resume)
+    return _with_selection(book, execute_translate_without_project(book, hooks, validate=validate, legacy_resume=legacy_resume))
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
-    return execute_translate_in_project(book, hooks)
+    return _with_selection(book, execute_translate_in_project(book, hooks))
 
 
 def _checkpoint_action(action, *args, **kwargs):
@@ -98,3 +98,11 @@ def translation_configuration(config, translator_name, mode, continuation, resol
         _print_expected_error(error.summary, error.next_step, mode, detail=error.detail)
         raise typer.Exit(code=1) from None
     return config
+
+
+def _with_selection(book, outcome):
+    """Attach only the already selected public names, for both terminal and Markdown rendering."""
+    if outcome.report is not None:
+        outcome.report.provider_name = book.translator_name
+        outcome.report.model_name = book.translator_models.get(book.translator_name)
+    return outcome

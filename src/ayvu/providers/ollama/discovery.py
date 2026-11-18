@@ -166,3 +166,16 @@ class OllamaDiscoveryAdapter:
         model = self._model or find_model(self._client, self._model_name)
         return LlmTranslationProvider(OllamaChatModel(self._client, model.name), ollama_producer(model),
                                       settings=self._settings)
+
+
+def discover_model_names(client: OllamaClient) -> tuple[str, ...]:
+    """Validated installed names for settings; no book text or chat request."""
+    from ...provenance import valid_observed_model_name
+
+    try:
+        models = client.list_models()
+    except OllamaError as error:
+        raise ProviderSetupError(_unavailable(error)) from None
+    if any(not valid_observed_model_name(model.name) for model in models):
+        raise ProviderSetupError('malformed_models')
+    return tuple(sorted({model.name for model in models}))

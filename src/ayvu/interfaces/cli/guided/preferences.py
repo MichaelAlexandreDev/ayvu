@@ -7,11 +7,13 @@ from dataclasses import replace
 from pathlib import Path
 import typer
 from rich.table import Table
-from ....preferences import AyvuConfig, ConfigError, FolderNames, config_from_preferences, is_valid_model_label
+from ....preferences import AyvuConfig, ConfigError, FolderNames, config_from_preferences, is_valid_model_label, MODEL_TRANSLATORS
 from ..contracts import ConfigStore
 
 from ..render import console
-from ....composition.cli import require_translation_model
+from ....composition.cli import require_translation_model, discover_translator_models
+from ....providers import ProviderSetupError
+from ..options import _selected_network_policy
 from ....translation import PreflightError
 
 
@@ -77,11 +79,14 @@ def _run_guided_settings(config: AyvuConfig) -> None:
         if choice == SETTINGS_MODEL_LABEL_OPTION:
             current = _update_guided_settings(store, current, _settings_with_model_label(current))
             continue
+        if choice == "6":
+            current = _update_guided_settings(store, current, _settings_with_translator_model(current))
+            continue
         if choice == SETTINGS_EXIT_OPTION:
             console.print("Settings closed.")
             return
 
-        console.print("[red]Invalid setting.[/red] Choose 1, 2, 3, 4, 5, or 0.")
+        console.print("[red]Invalid setting.[/red] Choose 1, 2, 3, 4, 5, 6, or 0.")
 
 
 def _print_settings(config: AyvuConfig) -> None:
@@ -97,6 +102,7 @@ def _print_settings(config: AyvuConfig) -> None:
     table.add_row("Processing folder", config.folders.processing)
     table.add_row("Reader app", config.reader_app or "-")
     table.add_row("Translator model label", config.translator_models.get(MODEL_LABEL_TRANSLATOR) or "-")
+    table.add_row("Ollama model", config.translator_models.get("ollama") or "-")
     table.add_row("Translation profiles", _format_profile_names(config))
     console.print(table)
 
@@ -107,6 +113,7 @@ def _print_settings_menu() -> None:
     console.print(f"{SETTINGS_FOLDERS_OPTION}. Change feature folder names")
     console.print(f"{SETTINGS_READER_OPTION}. Change reader app")
     console.print(f"{SETTINGS_MODEL_LABEL_OPTION}. Change translator model label")
+    console.print("6. Choose translator and model")
     console.print(f"{SETTINGS_EXIT_OPTION}. Back")
 
 
@@ -175,8 +182,6 @@ def _settings_with_model_label(config: AyvuConfig) -> AyvuConfig:
         console.print("[red]Rótulo de modelo inválido.[/red] Use letras minúsculas, números, - ou _, "
                       "começando por letra ou número, com até 48 caracteres.")
         return config
-    if current is not None:
-        console.print("Resuming a rich job with another label translates its documents again.")
     # Other translators' entries, such as translator_models.ollama, are kept as they are.
     others = {name: value for name, value in config.translator_models.items() if name != MODEL_LABEL_TRANSLATOR}
     if label is None:
@@ -222,3 +227,30 @@ def _ensure_guided_model_label(config: AyvuConfig) -> AyvuConfig:
         console.print("Canceled.")
         raise typer.Exit(code=1)
     return _update_guided_settings(settings.configuration_store(), config, updated)
+
+
+def _settings_with_translator_model(config, translator=None):
+    name = translator or typer.prompt("Translator (libretranslate or ollama; Enter cancels)", default="").strip().lower()
+    if not name:
+        return config
+    if name not in MODEL_TRANSLATORS:
+        console.print("[red]Unknown translator.[/red] Choose libretranslate or ollama.")
+        return config
+    if name == 'libretranslate':
+        return _settings_with_model_label(config)
+    try:
+        models = discover_translator_models(translator_name=name, network_policy=_selected_network_policy(None))
+    except ProviderSetupError:
+        console.print("Model discovery failed. Enter an installed model name manually.")
+        models = ()
+    for index, model in enumerate(models, 1):
+        console.print(f"{index}. {model}")
+    value = typer.prompt("Ollama model (number or name; Enter cancels)", default="").strip()
+    if not value:
+        return config
+    if value.isdigit() and 1 <= int(value) <= len(models):
+        value = models[int(value) - 1]
+    if not MODEL_TRANSLATORS[name](value):
+        console.print("[red]Invalid translator model.[/red]")
+        return config
+    return replace(config, translator_models={**config.translator_models, name: value})

@@ -242,7 +242,7 @@ def test_resume_replays_finished_documents_even_without_the_v2_cache(tmp_path, m
     assert "Texts translated │ 2 " in report
 
 
-def test_resume_after_a_model_change_names_the_dimension_and_translates_again(tmp_path, monkeypatch, isolate):
+def test_resume_after_a_configuration_change_keeps_original_model_and_replays_results(tmp_path, monkeypatch, isolate):
     config(tmp_path, "model-a")
     source = _book(tmp_path / "book.epub")
     first, _ = invoke(tmp_path, monkeypatch, source, session=Transport(failing="Goodbye reader."))
@@ -251,9 +251,10 @@ def test_resume_after_a_model_change_names_the_dimension_and_translates_again(tm
     config(tmp_path, "model-b")
     resumed, transport = resume(tmp_path, monkeypatch, source)
     assert resumed.exit_code == 0, text(resumed)
-    assert "Goodbye reader." in transport.posts and "Hello reader." in transport.posts
+    assert transport.posts == ["T", "Goodbye reader."]
     output = " ".join(text(resumed).split())
-    assert "raw_results_changed_provider" in output
+    assert "raw_results_changed_provider" not in output
+    assert "model-a" in output and "model-b" not in output
 
 
 def test_a_second_resume_reaches_the_job_that_stored_the_results(tmp_path, monkeypatch, isolate):

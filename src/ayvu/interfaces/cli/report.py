@@ -32,6 +32,9 @@ def _print_report(
     table.add_row("Detected language", report.detected_language or "-")
     table.add_row("Translated language", report.target_language or "-")
     table.add_row("Output", _report_output_value(report, dry_run))
+    if report.provider_name is not None:
+        table.add_row("Provider", report.provider_name)
+        table.add_row("Model", report.model_name or "unknown")
     if report.review_output_path is not None:
         table.add_row("Review file", str(report.review_output_path))
     table.add_row("Chapters processed", str(report.chapters_processed))
@@ -195,6 +198,8 @@ def _render_markdown_report(
         f"- Texts translated: {report.texts_translated}",
         f"- Texts from cache: {report.texts_from_cache}",
     ]
+    if report.provider_name is not None:
+        lines.extend([f"- Provider: {report.provider_name}", f"- Model: {report.model_name or '-'}"])
     if report.review_output_path is not None:
         lines.insert(6, f"- Review file: {report.review_output_path}")
     if report.execution_note:

@@ -14,7 +14,7 @@ from ..provenance import ProvenanceValidationError, declared_model, valid_observ
 
 FOLDER_KEYS = ('original', 'translated', 'preview', 'reports', 'processing')
 TOP_KEYS = ('version', 'default_target_language', 'books_dir', 'folders', 'reader_app', 'profiles', 'translator_models')
-PROFILE_KEYS = ('target_language', 'glossary', 'style')
+PROFILE_KEYS = ('target_language', 'glossary', 'style', 'translator', 'model')
 STYLES = frozenset({'neutral', 'technical', 'literary', 'academic'})
 FIELD_NAMES = frozenset({*TOP_KEYS, 'configuration', 'revision', 'profiles.*',
                          *(f'folders.{key}' for key in FOLDER_KEYS),
@@ -82,9 +82,15 @@ class NamedPreferenceProfile:
     target_language: str | None = None
     glossary: str | None = None
     style: str | None = None
+    translator: str | None = None
+    model: str | None = None
 
     def __post_init__(self) -> None:
         _language(self.target_language, 'profiles.*.target_language', nullable=True)
+        if self.translator is not None and (not isinstance(self.translator, str) or self.translator not in MODEL_TRANSLATORS):
+            raise PreferencesError('invalid', 'profiles.*.translator')
+        if self.model is not None and not MODEL_TRANSLATORS[self.translator or 'libretranslate'](self.model):
+            raise PreferencesError('invalid', 'profiles.*.model')
         _text(self.glossary, 'profiles.*.glossary', 4096, nullable=True)
         if self.style is not None and (not isinstance(self.style, str) or self.style not in STYLES):
             raise PreferencesError('invalid', 'profiles.*.style')
@@ -245,6 +251,8 @@ class TranslationProfile:
     target_language: str | None = None
     glossary: Path | None = None
     style: str | None = None
+    translator: str | None = None
+    model: str | None = None
 
     @classmethod
     def from_dict(cls, data: object, profile_name: str) -> "TranslationProfile":
@@ -252,7 +260,7 @@ class TranslationProfile:
             value, _ = preferences_from_mapping({'profiles': {'profile': data}})
             profile = value.profiles[0][1]
             return cls(profile.target_language, Path(profile.glossary) if profile.glossary is not None else None,
-                       profile.style)
+                       profile.style, profile.translator, profile.model)
         except PreferencesError as exc:
             raise ConfigError(_compatibility_error(exc)) from None
 
@@ -264,6 +272,10 @@ class TranslationProfile:
             data["glossary"] = str(self.glossary)
         if self.style is not None:
             data["style"] = self.style
+        if self.translator is not None:
+            data['translator'] = self.translator
+        if self.model is not None:
+            data['model'] = self.model
         return data
 
 
@@ -338,7 +350,7 @@ def config_to_preferences(config: AyvuConfig) -> GlobalPreferences:
         folders=PreferenceFolders(**config.folders.to_dict()), reader_app=config.reader_app,
         profiles=tuple((name, NamedPreferenceProfile(
             profile.target_language, str(profile.glossary) if profile.glossary is not None else None,
-            profile.style)) for name, profile in sorted(config.profiles.items())),
+            profile.style, profile.translator, profile.model)) for name, profile in sorted(config.profiles.items())),
         translator_models=tuple(config.translator_models.items()),
     )
 
@@ -351,7 +363,7 @@ def config_from_preferences(value: GlobalPreferences, revision: str | None = Non
         reader_app=value.reader_app,
         translator_models=dict(value.translator_models),
         profiles={name: TranslationProfile(profile.target_language,
-                  Path(profile.glossary) if profile.glossary is not None else None, profile.style)
+                  Path(profile.glossary) if profile.glossary is not None else None, profile.style, profile.translator, profile.model)
                   for name, profile in value.profiles}, _preferences_revision=revision,
     )
 

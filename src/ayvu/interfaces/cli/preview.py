@@ -37,6 +37,8 @@ def _run_preview(
     network_policy: NetworkPolicy | None = None,
 ) -> None:
     config = config or settings._load_existing_config_or_default()
+    selected = settings._select_translator(config, mode, translator=translator_name, url=url, preview=True)
+    config, translator_name, url = selected.config, selected.translator, selected.url
     epub_path = epub_path.expanduser()
     output_paths._ensure_preview_input_exists(epub_path)
 
@@ -85,6 +87,7 @@ def _run_preview(
         raise typer.Exit(code=1) from exc
 
     validation = run_support._validate_with_progress(output_path)
+    report.provider_name, report.model_name = translator_name, config.translator_models.get(translator_name)
     reports._print_report(report, dry_run=False, validation_warnings=validation.warnings)
     if validation.ok:
         console.print(f"[green]Preview salvo em:[/green] {output_path}")

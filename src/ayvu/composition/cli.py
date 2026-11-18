@@ -23,7 +23,7 @@ from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
 from ..translation.preflight import check_book_resources
-from .builders import checkpoint
+from .builders import checkpoint, selection
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
 from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
@@ -218,6 +218,8 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
     require_translation_model(book.translator_models, book.translator_name, continuation=book.continuation)
     # A model translator is prepared now, before its job: the job records a producer naming the model's digest.
     model = rich_provider.prepare_model_translation(book.translator_name, book.prepare)
+    if model is not None and book.continuation is not None:
+        selection.require_resume_producer(book, model.binding.producer)
 
     def prepare() -> LegacyResources:
         preflight = model or book.prepare()
@@ -378,3 +380,15 @@ def cli_surface(edition_id: str) -> CliSurface:
 def installed_cli_surface() -> CliSurface:
     """Declare the installed presentation surface without acquiring resources."""
     return cli_surface("cli_free")
+
+
+def select_translator(config, **choices):
+    return selection.select_translator(config, **choices)
+
+
+def resume_translation_configuration(config, processing_dir, project_id, ticket):
+    return selection.resume_configuration(config, processing_dir, project_id, ticket)
+
+
+def discover_translator_models(**settings):
+    return providers.discover_translator_models(**settings)

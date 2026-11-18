@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .guided import menu
-from . import preview as previews, settings
+from . import preview as previews, settings, translate_options
 from pathlib import Path
 from typing import Optional
 import typer
@@ -21,6 +21,9 @@ def main(
         "--mode",
         help="Execution mode (common or developer). If not specified, it's inferred from usage.",
     ),
+    translator_name: Optional[str] = typer.Option(None, "--translator", help="Preview translator: libretranslate or ollama."),
+    model: Optional[str] = typer.Option(None, "--model", help="Preview model or declared label."),
+    url: Optional[str] = typer.Option(None, "--url", help="Preview provider URL."),
     preview: Optional[Path] = typer.Option(
         None,
         "--preview",
@@ -46,7 +49,9 @@ def main(
         return
 
     if preview is not None:
-        previews._run_preview(preview, mode=mode)
+        config = settings._load_existing_config_or_default()
+        selected = settings._select_translator(config, mode, translator=translator_name, model=model, url=url)
+        previews._run_preview(preview, mode=mode, config=selected.config, translator_name=selected.translator, url=selected.url)
         return
 
     config = settings._load_existing_config_or_default()

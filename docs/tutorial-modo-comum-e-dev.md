@@ -105,7 +105,7 @@ No primeiro uso, o Ayvu pergunta o idioma padrão de leitura/tradução e a past
 Se houver perfis de tradução no arquivo de configuração, a tradução guiada mostra esses perfis antes da escolha do idioma de destino. Um perfil pode fornecer um idioma padrão diferente e um glossário associado.
 
 Before translating or previewing, declare the translator model label. Menus 1 and 2 ask for a missing
-label before the EPUB path, save it and continue; Enter cancels. Settings (option 4), option 5 and
+label after choosing the translator, save it and continue; Enter cancels. Settings (option 4), option 5 and
 `translator_models.libretranslate` in `config.json` provide the same declaration.
 
 ### Gerar um preview
@@ -408,7 +408,7 @@ Use o modo desenvolvedor quando quiser execução previsível por terminal, auto
 
 ### Declare the required translator model label
 
-Every new translation requires a model label, including batches, previews, dry runs and cache-only
+Every new LibreTranslate translation requires a model label, including batches, previews, dry runs and cache-only
 rebuilds. Guided menus 1 and 2 ask in place, save and continue; Enter cancels. You can also open
 Settings (option 4), then `5. Change translator model label`.
 The label is checked before saving, and `-` removes it. You can also edit the file by hand:
@@ -436,8 +436,8 @@ no primeiro uso rico. A proveniência registra `declared:<rótulo>`, informado p
 O modo rico para na primeira falha do provedor, não publica EPUB parcial e conserva
 os segmentos concluídos em v2. Corrija a causa e execute `uv run ayvu resume livro.epub`.
 A resume keeps the runtime its job started with: existing v1 jobs finish on v1 with or without
-a label, and old standalone checkpoints still resume. Rich jobs require a label; changing it
-translates their documents again and prints `raw_results_changed_provider`.
+a label, and old standalone checkpoints still resume. Rich jobs recover their original provider and model from provenance, even when the current
+configuration changes. Start a new translation to select another model.
 
 For labeled durable translations, `--cache-only` reconstructs from the authorized
 exact v2 cache without network, sessions, discovery, cache writes, translation memory or replay.
@@ -822,3 +822,14 @@ Depois da tradução:
 - A qualidade depende do servidor de tradução local.
 - Livros técnicos costumam exigir glossário.
 - EPUBs malformados podem depender do comportamento do parser HTML/XML.
+
+### Choosing translator and model (#377)
+
+Guided translation asks for the EPUB, optional profile and translator, then a missing model.
+Settings (option 4) offers **6. Choose translator and model**: select `libretranslate` for a declared
+label, or `ollama` for discovered installed models. Choose a number or type a validated model name;
+manual input remains available after discovery fails. Enter cancels without saving.
+Profiles support `translator` and `model`; CLI flags override them, followed by `translator_models`.
+For example: `uv run ayvu translate book.epub --translator ollama --model qwen2.5:7b`.
+Ollama still refuses previews, dry runs and cache-only runs. Durable resume retains its original
+provider/model, and plans and reports display those names without credentials.

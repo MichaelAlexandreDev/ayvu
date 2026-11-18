@@ -63,15 +63,15 @@ def test_dash_removes_the_label_and_explains_the_effect(isolated_config):
     assert result.exit_code == 0, result.output
     assert "Settings saved." in result.output
     assert "Without a model label, new translations are refused." in result.output
-    assert "Resuming a rich job with another label translates its documents again." in result.output
+    assert "Resuming a rich job with another label translates its documents again." not in result.output
     assert "translator_models" not in saved(isolated_config)
 
 
-def test_changing_the_label_warns_about_resuming_earlier_jobs(isolated_config):
+def test_changing_the_label_keeps_resume_bound_to_its_original_model(isolated_config):
     with_label(isolated_config, "first-model")
     result = runner.invoke(app, [], input="4\n5\nsecond-model\n0\n")
     assert result.exit_code == 0, result.output
-    assert "Resuming a rich job with another label translates its documents again." in result.output
+    assert "Resuming a rich job with another label translates its documents again." not in result.output
     assert saved(isolated_config)["translator_models"] == {"libretranslate": "second-model"}
 
 

@@ -133,3 +133,12 @@ a validated target for these locking/rename guarantees.
 
 - [`tests/preferences/test_preferences.py`](../../../tests/preferences/test_preferences.py)
 - [`tests/preferences/test_preferences_store.py`](../../../tests/preferences/test_preferences_store.py)
+
+## Translator and model fields (#377)
+
+Optional named-profile fields `translator` and `model` reuse the version-1 preferences container.
+The translator must be `libretranslate` or `ollama`; `MODEL_TRANSLATORS` validates its model, using
+LibreTranslate when the profile omits a translator. No endpoint, credential or implicit default
+translator is persisted. `translator_models` remains the per-translator model map. Composition selects
+explicit flags, then the matching profile, then this map; switching translators ignores the old
+profile's model. A durable resume reads its original selection from existing provenance.

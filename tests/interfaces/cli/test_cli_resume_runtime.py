@@ -56,21 +56,21 @@ def test_a_rich_job_resumes_with_the_label_it_started_with(tmp_path, monkeypatch
     assert all(record.producer.model == "declared:first-model" for record in records(tmp_path, child))
 
 
-def test_a_rich_job_resumed_with_another_label_translates_again_and_says_why(tmp_path, monkeypatch):
+def test_a_rich_job_resumed_with_another_configured_label_keeps_the_original(tmp_path, monkeypatch):
     parent = interrupted(tmp_path, monkeypatch, "first-model")
     config(tmp_path, label="second-model")
     result, _ = resume(tmp_path, monkeypatch)
     assert result.exit_code == 0, text(result)
-    assert "raw_results_changed_provider" in flat(result)
+    assert "raw_results_changed_provider" not in flat(result)
     child = next(job for job in _jobs(tmp_path) if job.continuation_of == parent.job_id)
     assert child.state is JobState.VALIDATED and child.request.command_version == 2
-    assert all(record.producer.model == "declared:second-model" for record in records(tmp_path, child))
+    assert all(record.producer.model == "declared:first-model" for record in records(tmp_path, child))
 
 
-def test_a_rich_job_without_any_label_explains_how_to_resume(tmp_path, monkeypatch):
+def test_a_rich_job_resumes_after_its_configured_label_is_removed(tmp_path, monkeypatch):
     parent = interrupted(tmp_path, monkeypatch, "first-model")
     config(tmp_path, label=None)
     result, _ = resume(tmp_path, monkeypatch)
-    assert result.exit_code == 1
-    assert "Um job rich/v2 só pode ser retomado com um rótulo de modelo." in flat(result)
-    assert [job.job_id for job in _jobs(tmp_path)] == [parent.job_id]
+    assert result.exit_code == 0, text(result)
+    child = next(job for job in _jobs(tmp_path) if job.continuation_of == parent.job_id)
+    assert all(record.producer.model == "declared:first-model" for record in records(tmp_path, child))

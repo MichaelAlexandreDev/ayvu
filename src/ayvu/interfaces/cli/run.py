@@ -92,24 +92,10 @@ def _run_translation(
     resolved_target = translate_options._resolve_target_language(target, profile)
     resolved_glossary_path = translate_options._resolve_glossary_path(glossary_path, profile)
     resolved_source, source_inferred = translate_options._resolve_source_language(source, epub_path, mode=mode)
-    language_pair = LanguagePair(source=resolved_source, target=resolved_target)
     # A resume holds the profile of the run it continues, and shows no profile, because it applies none of its settings.
     identity_profile_name = project_profile_name or resolved_profile_name
-    plan._print_translation_plan(
-        language_pair,
-        source_inferred=source_inferred,
-        mode=mode,
-        profile_name=resolved_profile_name,
-        profile_style=profile.style if profile else None,
-        performance_profile_name=performance_profile_name,
-        workers=workers, local_sequential=run_support.translation_modality(dry_run, config.translator_models, translator_name) == "transient_dry_run",
-        requests_per_second=requests_per_second,
-        retries=retries,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-    )
     translation_options = TranslationOptions(
-        language_pair=language_pair,
+        language_pair=LanguagePair(source=resolved_source, target=resolved_target),
         dry_run=dry_run,
         fail_fast=fail_fast,
         chunk_limit=chunk_limit,
@@ -120,6 +106,20 @@ def _run_translation(
         cache_only=cache_only,
         require_full_cache=require_full_cache,
         translation_memory=translation_memory,
+    )
+    plan._print_translation_plan(
+        translation_options.language_pair,
+        source_inferred=source_inferred,
+        translator_name=translator_name, model=config.translator_models.get(translator_name),
+        mode=mode,
+        profile_name=resolved_profile_name,
+        profile_style=profile.style if profile else None,
+        performance_profile_name=performance_profile_name,
+        workers=workers, local_sequential=run_support.translation_modality(dry_run, config.translator_models, translator_name) == "transient_dry_run",
+        requests_per_second=requests_per_second,
+        retries=retries,
+        retry_backoff=retry_backoff,
+        retry_backoff_max=retry_backoff_max,
     )
     if chapter_selection is not None:
         selected_chapters = translate_options._resolve_chapter_selection_for_display(
@@ -132,7 +132,7 @@ def _run_translation(
     output_plan = OutputPlan.for_translation(
         epub_path,
         output,
-        language_pair,
+        translation_options.language_pair,
         dry_run=dry_run,
         default_dir=output_dir or output_paths._translated_books_dir(config),
     )
@@ -156,7 +156,7 @@ def _run_translation(
     if resolve_managed_project and not dry_run:
         try:
             resolution = resolve_translation_project(
-                settings._processing_dir(config), epub_path, source=language_pair.source, target=language_pair.target,
+                settings._processing_dir(config), epub_path, source=translation_options.source, target=translation_options.target,
                 glossary_path=resolved_glossary_path, profile_name=identity_profile_name,
                 translator=translator_name, url=url, chunk_limit=chunk_limit,
                 translate_metadata=translate_metadata, translate_alt_text=translate_alt_text,

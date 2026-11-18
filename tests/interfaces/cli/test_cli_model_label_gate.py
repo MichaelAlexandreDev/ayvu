@@ -53,8 +53,10 @@ def test_new_translation_requires_a_model_without_creating_anything(tmp_path, no
 def test_guided_enter_cancels_without_creating_anything(tmp_path, no_http, menu):
     from tests.support.cli_rich_runtime_support import config
     config(tmp_path, label=None)
+    source = _book(tmp_path / "book.epub")
     before = snapshot(tmp_path)
-    result = CliRunner().invoke(app, [], input=f"{menu}\n\n")
+    answers = f"1\n{source}\n\n\n" if menu == "1" else "2\n\n\n"
+    result = CliRunner().invoke(app, [], input=answers)
     assert_refused(result)
     assert "Translator model label" in result.output and "Canceled." in result.output
     assert snapshot(tmp_path) == before

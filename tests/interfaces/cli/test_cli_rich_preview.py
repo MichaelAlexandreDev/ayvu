@@ -23,7 +23,7 @@ def test_root_and_guided_use_configured_preview_folder(tmp_path, monkeypatch, gu
     monkeypatch.setattr("requests.Session", lambda: session)
     with preview_guard(monkeypatch, tmp_path, destination) as sql:
         result = runner.invoke(app, [] if guided else ["--mode", "developer", "--preview", str(source)],
-                               input=f"2\n{source}\n1\n" if guided else None)
+                               input=f"2\n\n{source}\n1\n" if guided else None)
     assert result.exit_code == 0, text(result)
     assert "Preview salvo em:" in text(result) and "Validação OK:" in text(result)
     assert validate_output_epub(destination).ok and len(session.posts) == 12

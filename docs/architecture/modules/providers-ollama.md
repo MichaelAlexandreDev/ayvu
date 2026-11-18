@@ -12,7 +12,7 @@ The first model adapter on the [LLM core](providers.md#llm-core), from
 | --- | --- | --- |
 | `ayvu.providers.ollama.client` | Provider | HTTP through `ayvu.network`: `GET /api/tags` lists models with their digests, `POST /api/chat` asks one. Typed `OllamaError` reasons, retries of connection failures and 5xx within configured delays, a shared rate limiter |
 | `ayvu.providers.ollama.chat` | Provider | `ModelPort` over `/api/chat`: one non-streamed call with the core's JSON schema as `format`, decoding values as `options`, the answer mapped back to a `ModelResponse` |
-| `ayvu.providers.ollama.discovery` | Provider | Transport facts, the producer and snapshot, `find_model`, the declared languages and the discovery adapter behind `test-translator` and `languages` |
+| `ayvu.providers.ollama.discovery` | Provider | Transport facts, the producer and snapshot, `find_model`, validated `discover_model_names`, the declared languages and the discovery adapter behind `test-translator` and `languages` |
 | `ayvu.composition.builders.ollama` | Composition | The preflight that refuses what Ollama cannot run and discovers the model before any book work, the `LlmBinding`, and the CLI discovery session |
 
 `composition.builders.rich_provider` selects Ollama by translator name (`selected_model`, `model_selection`,
@@ -65,6 +65,14 @@ model, with its own client and HTTP session, comes from the binding, and the rat
 
 Cancellation is observed at `provider_before_request`, so a cancelled unit sends nothing.
 
+## Selection (#377)
+
+`composition.builders.selection` owns flag/profile/configuration precedence and the job-bound selection
+on resume. Its named `composition.cli` factories are the only interface entry points. Settings discovery
+uses `discover_model_names` through `composition.builders.ollama`, with policy authorization and a closed
+client; invalid names or transport failures return bounded codes and allow manual validated input.
+Durable resume reuses the original model name from provenance and refuses changed installed digests.
+
 ## Languages and discovery
 
 A model has no fixed language list, so the adapter declares seventeen languages; `LANGUAGE_DISCOVERY`
@@ -77,7 +85,7 @@ the core.
 
 - Token counts are reported by Ollama but not recorded: `ProviderUsage` has no token fields yet.
 - The parallelism is a composition setting, not yet a user setting; selection in the guided menu,
-  profiles and resume is [#377](https://github.com/MichaelAlexandreDev/ayvu/issues/377).
+  profiles and resume is implemented by `composition.builders.selection` (#377).
 - With `--translator ollama`, the CLI's LibreTranslate default URL means `http://localhost:11434`.
 
 ## Enforced contracts

@@ -31,34 +31,71 @@ remain presentation concerns.
   "universal_options": {
     "--help": {
       "kind": "presentation-only",
-      "mappings": ["AYVU-UI-004"]
+      "mappings": [
+        "AYVU-UI-004"
+      ]
     }
   },
   "root_options": {
     "--network-policy": {
       "kind": "application-policy",
-      "mappings": ["AYVU-UC-002", "AYVU-UC-003", "AYVU-UC-004", "AYVU-UC-005", "AYVU-UC-006", "AYVU-UC-007"]
+      "mappings": [
+        "AYVU-UC-002",
+        "AYVU-UC-003",
+        "AYVU-UC-004",
+        "AYVU-UC-005",
+        "AYVU-UC-006",
+        "AYVU-UC-007"
+      ]
     },
     "--install-completion": {
       "kind": "presentation-only",
-      "mappings": ["AYVU-UI-001"]
+      "mappings": [
+        "AYVU-UI-001"
+      ]
     },
     "--mode": {
       "kind": "presentation-only",
-      "mappings": ["AYVU-UI-002"]
+      "mappings": [
+        "AYVU-UI-002"
+      ]
     },
     "--preview": {
       "kind": "compatibility-routing",
-      "mappings": ["AYVU-UC-006"]
+      "mappings": [
+        "AYVU-UC-006"
+      ]
     },
     "--show-completion": {
       "kind": "presentation-only",
-      "mappings": ["AYVU-UI-001"]
+      "mappings": [
+        "AYVU-UI-001"
+      ]
+    },
+    "--translator": {
+      "kind": "adapter-configuration",
+      "mappings": [
+        "AYVU-UC-006"
+      ]
+    },
+    "--model": {
+      "kind": "adapter-configuration",
+      "mappings": [
+        "AYVU-UC-006"
+      ]
+    },
+    "--url": {
+      "kind": "adapter-configuration",
+      "mappings": [
+        "AYVU-UC-006"
+      ]
     }
   },
   "commands": {
     "apply-review": {
-      "use_cases": ["AYVU-UC-009"],
+      "use_cases": [
+        "AYVU-UC-009"
+      ],
       "options": {
         "--output": "artifact-destination",
         "--overwrite": "application-policy",
@@ -67,11 +104,15 @@ remain presentation concerns.
       "subcommands": {}
     },
     "cache": {
-      "use_cases": ["AYVU-UI-003"],
+      "use_cases": [
+        "AYVU-UI-003"
+      ],
       "options": {},
       "subcommands": {
         "clean": {
-          "use_cases": ["AYVU-UC-011"],
+          "use_cases": [
+            "AYVU-UC-011"
+          ],
           "options": {
             "--namespace": "application-policy",
             "--scope-kind": "domain-input",
@@ -87,7 +128,9 @@ remain presentation concerns.
           }
         },
         "export": {
-          "use_cases": ["AYVU-UC-012"],
+          "use_cases": [
+            "AYVU-UC-012"
+          ],
           "options": {
             "--all": "application-policy",
             "--namespace": "application-policy",
@@ -102,7 +145,9 @@ remain presentation concerns.
           }
         },
         "import": {
-          "use_cases": ["AYVU-UC-013"],
+          "use_cases": [
+            "AYVU-UC-013"
+          ],
           "options": {
             "--all": "application-policy",
             "--dry-run": "application-policy",
@@ -113,7 +158,9 @@ remain presentation concerns.
           }
         },
         "inspect": {
-          "use_cases": ["AYVU-UC-010"],
+          "use_cases": [
+            "AYVU-UC-010"
+          ],
           "options": {
             "--all": "application-policy",
             "--namespace": "application-policy",
@@ -129,7 +176,9 @@ remain presentation concerns.
       }
     },
     "extract": {
-      "use_cases": ["AYVU-UC-008"],
+      "use_cases": [
+        "AYVU-UC-008"
+      ],
       "options": {
         "--output": "artifact-destination",
         "--overwrite": "application-policy"
@@ -137,12 +186,16 @@ remain presentation concerns.
       "subcommands": {}
     },
     "inspect": {
-      "use_cases": ["AYVU-UC-001"],
+      "use_cases": [
+        "AYVU-UC-001"
+      ],
       "options": {},
       "subcommands": {}
     },
     "languages": {
-      "use_cases": ["AYVU-UC-003"],
+      "use_cases": [
+        "AYVU-UC-003"
+      ],
       "options": {
         "--network-policy": "application-policy",
         "--requests-per-second": "application-policy",
@@ -156,7 +209,9 @@ remain presentation concerns.
       "subcommands": {}
     },
     "resume": {
-      "use_cases": ["AYVU-UC-007"],
+      "use_cases": [
+        "AYVU-UC-007"
+      ],
       "options": {
         "--network-policy": "application-policy",
         "--target": "domain-input"
@@ -164,7 +219,9 @@ remain presentation concerns.
       "subcommands": {}
     },
     "test-translator": {
-      "use_cases": ["AYVU-UC-002"],
+      "use_cases": [
+        "AYVU-UC-002"
+      ],
       "options": {
         "--model": "adapter-configuration",
         "--network-policy": "application-policy",
@@ -181,9 +238,16 @@ remain presentation concerns.
       "subcommands": {}
     },
     "translate": {
-      "use_cases": ["AYVU-UC-004", "AYVU-UC-005"],
+      "use_cases": [
+        "AYVU-UC-004",
+        "AYVU-UC-005"
+      ],
       "option_exclusions": {
-        "AYVU-UC-005": ["--missing-output", "--output", "--review-output"]
+        "AYVU-UC-005": [
+          "--missing-output",
+          "--output",
+          "--review-output"
+        ]
       },
       "options": {
         "--network-policy": "application-policy",
@@ -220,7 +284,8 @@ remain presentation concerns.
         "--no-translation-memory": "application-policy",
         "--translator": "adapter-configuration",
         "--url": "adapter-configuration",
-        "--workers": "application-policy"
+        "--workers": "application-policy",
+        "--model": "adapter-configuration"
       },
       "subcommands": {}
     }
