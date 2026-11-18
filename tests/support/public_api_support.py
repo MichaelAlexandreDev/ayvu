@@ -34,7 +34,7 @@ ADAPTER_MODULES = frozenset({
     "knowledge.cache.interchange", "knowledge.cache.admin_store",
     "knowledge.cache.admin_v2_queries", "knowledge.cache.admin_v2_files", "knowledge.cache.admin_v2_export",
     "knowledge.cache.admin_v2_records", "knowledge.cache.admin_v2_import",
-    "knowledge.cache.legacy_admin_store", "knowledge.cache.admin_v2_store", "knowledge.memory.approved.store", "knowledge.glossary.catalog_store",
+    "knowledge.cache.legacy_admin_store", "knowledge.cache.legacy_census", "knowledge.cache.admin_v2_store", "knowledge.memory.approved.store", "knowledge.glossary.catalog_store",
     "formats.local", "formats.epub.archive", "formats.epub.io", "formats.epub.adapter", "formats.epub.validation",
     "formats.epub.reader",
     "formats.markdown.writer", "providers.libretranslate.client", "providers.libretranslate.adapter",

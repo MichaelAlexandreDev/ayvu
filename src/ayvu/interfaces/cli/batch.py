@@ -1,6 +1,6 @@
 """Plan, execute and summarize a batch of book translations."""
 from __future__ import annotations
-from . import plan, run as translation_run, run_support, translate_options
+from . import plan, run as translation_run, run_messages, run_support, translate_options
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -79,6 +79,7 @@ def _run_batch_translation(
 
     _, profile = translate_options._resolve_requested_profile(config, profile_name, mode=mode)
     target_language = translate_options._resolve_target_language(target, profile)
+    run_messages._print_legacy_cache_notice(cache_path, source=source, target=target_language)  # Once for the batch.
     intents = []
     try:
         for epub_path in epub_paths:

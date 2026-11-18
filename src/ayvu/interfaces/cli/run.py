@@ -108,6 +108,8 @@ def _run_translation(
         retry_backoff=retry_backoff,
         retry_backoff_max=retry_backoff_max,
     )
+    if batch_plan is None and continuation is None and resolve_managed_project:  # A batch says it once, before its books.
+        run_messages._print_legacy_cache_notice(cache_path, source=resolved_source, target=resolved_target)
     translation_options = TranslationOptions(
         language_pair=language_pair,
         dry_run=dry_run,

@@ -97,6 +97,7 @@ OWNERS = {
     "ayvu.translation.transient_cache": Owner("application", "Transient translation"),
     "ayvu.translation.transient_units": Owner("application", "Transient translation"),
     "ayvu.knowledge.cache.read_only_journal": Owner("knowledge", "Knowledge"),
+    "ayvu.knowledge.cache.legacy_census": Owner("knowledge", "Knowledge"),
     "ayvu.composition.builders.translate_batch": Owner("composition", "Translation"),
     "ayvu.artifacts.destination": Owner("infrastructure", "Artifacts"),
     "ayvu.formats.epub.archive": Owner("format", "EPUB"),
