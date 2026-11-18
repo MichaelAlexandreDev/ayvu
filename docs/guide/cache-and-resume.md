@@ -15,7 +15,8 @@ Segments already translated are reused automatically. The resume checkpoint keep
 execution options, such as timeout, workers, retries, requests per second and backoff.
 
 New translations require a model label and use the independent v2 cache. Existing v1 jobs and old
-standalone checkpoints still resume with the legacy v1 cache. The migration keeps the v1 data without turning it into exact v2 hits. Cache administration accepts
+standalone checkpoints are refused on resume and left unchanged; finish them with the frozen release
+`v1-runtime-final` (see [Upgrading from the v1 runtime](upgrading-from-v1.md)). The migration keeps the v1 data without turning it into exact v2 hits. Cache administration accepts
 explicit namespaces; without a selection, it keeps the legacy behaviour. See the
 [standalone v2 cache](../architecture/modules/knowledge-cache.md).
 Before new work, a translation names an old cache that has texts for its languages and says that it is
@@ -126,13 +127,11 @@ process, if the book changed since it started, or if the book is refused by poli
 without a matching job still works as before, without creating a project or a job. See
 [translation recovery](../architecture/modules/recovery.md).
 
-A resume keeps the runtime its job started with: a v1 job finishes on v1 even after a model label is
-declared. A rich job recovers its original provider and model from existing provenance, ignoring later
+A resume runs only rich jobs: a v1 job is refused, with or without a model label, and its files stay as
+they are. A rich job recovers its original provider and model from existing provenance, ignoring later
 profile and configuration changes. See [Model label, rich runtime and v2 cache](rich-runtime.md).
 
-The translator may be called again for a segment that was in progress when the run was interrupted. On the
-legacy runtime, the cache avoids repeating finished work but cannot prove which provider or model produced
-a text, so every resume reprocesses the whole book instead of reusing stages.
+The translator may be called again for a segment that was in progress when the run was interrupted.
 
 The checkpoint and the cache complement each other: the **cache** keeps each translated segment so it is
 never translated again, while the **checkpoint** records progress and failures. Because the output EPUB is

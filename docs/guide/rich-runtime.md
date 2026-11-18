@@ -124,8 +124,8 @@ Cleaning the cache does not delete approved memory.
 A provider failure stops the rich runtime at its first occurrence and publishes no partial EPUB. The
 completed segments stay in v2; fix the problem and run `uv run ayvu resume book.epub`.
 
-A resume keeps the runtime its job started with: a v1 job finishes on v1 even after a label is declared,
-and a rich job resumes with the provider and model it started with, whatever the configuration or profile
+A resume runs only rich jobs: a v1 job is refused, with or without a label, and left unchanged (see
+[Upgrading from the v1 runtime](upgrading-from-v1.md)). A rich job resumes with the provider and model it started with, whatever the configuration or profile
 now says. If an Ollama model's weights changed since the job started, the resume refuses before any work:
 restore the original model or start a new translation. The resume reuses the documents the previous job
 completed, without calling the translator or the cache, when it can prove that nothing changed: route,
@@ -136,8 +136,7 @@ what, for example `Aviso da tradução: raw_results_changed_route`.
 
 - **Without a label,** new translations exit 1 with instructions to declare it in Settings option 5
   or `translator_models.libretranslate` in `config.json`, before any provider call, project, cache or
-  output. Existing v1 jobs still finish on v1, with or without a label, and old standalone checkpoints
-  still resume. `inspect`, `extract`, `languages`, `test-translator`, cache administration and review
+  output. Existing v1 jobs and old standalone checkpoints are refused on resume, with or without a label. `inspect`, `extract`, `languages`, `test-translator`, cache administration and review
   application do not require a label.
 - **Previews with a label** (root and guided) use the transient rich runtime:
   - authorised discovery and translation of the first 12 documents;

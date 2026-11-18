@@ -177,21 +177,16 @@ def test_translate_and_batch_use_real_production_composition(minimal_epub_path, 
 
 
 @pytest.mark.parametrize("policy", ["none", "loopback"])
-def test_resume_uses_saved_endpoint_but_current_request_policy(minimal_epub_path, tmp_path, provider_wire, policy):
-    # A legacy checkpoint is an existing supported production recovery input.
+def test_a_v1_checkpoint_is_refused_before_any_request_under_every_policy(minimal_epub_path, tmp_path, provider_wire, policy):
     processing = cli_settings._processing_dir(AyvuConfig.default())
     state = TranslationResumeState.create(input_path=minimal_epub_path, output_path=tmp_path / "out.epub",
         cache_path=tmp_path / "cache.sqlite", translator_name="libretranslate", url="http://localhost:5000",
         glossary_path=None, options=TranslationOptions(LanguagePair("en", "pt")), overwrite=False, timeout=2, retries=0)
     ResumeStateStore(processing).save(state)
     result = CliRunner().invoke(cli.app, ["--mode", "developer", "resume", "--network-policy", policy])
-    if policy == "none":
-        assert result.exit_code == 1 and "strict_offline" in result.output, result.output
-        assert provider_wire[0] == provider_wire[2] == []
-    else:
-        assert result.exit_code == 0, result.output
-        assert provider_wire[0][0][:2] == ("GET", "/languages")
-        assert any(item[0] == "POST" for item in provider_wire[0])
+    # REF-18 step 6: a v1 checkpoint is refused before any policy decision or request, under every policy.
+    assert result.exit_code == 1 and "no longer runs" in " ".join(result.output.split()), result.output
+    assert provider_wire[0] == provider_wire[2] == []
 
 
 def test_external_reader_launch_is_outside_http_offline_receipt(tmp_path, monkeypatch, capsys):

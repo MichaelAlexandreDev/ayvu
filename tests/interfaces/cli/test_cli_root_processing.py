@@ -12,7 +12,7 @@ def test_root_command_shows_processing_translation_state(tmp_path, monkeypatch):
     ResumeStateStore(processing_dir).save(state)
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
 
-    result = runner.invoke(app, [], input="n\n0\n")
+    result = runner.invoke(app, [], input="0\n")
 
     assert result.exit_code == 0
     assert "Translations in progress were found." in result.output
@@ -22,8 +22,9 @@ def test_root_command_shows_processing_translation_state(tmp_path, monkeypatch):
     assert "cache.sqlite" in result.output
     assert "Execution" in result.output
     assert "1 (sequential)" in result.output
-    assert "Continue detected translation?" in result.output
-    assert "Detected translation was not resumed." in result.output
+    # REF-18 step 6: a v1 checkpoint is listed and refused, without an offer, and the menu follows.
+    assert "Continue detected translation?" not in result.output
+    assert "no longer runs" in " ".join(result.output.split())
     assert "Choose an option" in result.output
     assert "Generate preview" in result.output
     assert "Canceled." in result.output
@@ -47,13 +48,13 @@ def test_root_command_uses_configured_processing_dir(isolated_config, tmp_path):
         encoding="utf-8",
     )
 
-    result = runner.invoke(app, [], input="n\n0\n")
+    result = runner.invoke(app, [], input="0\n")
 
     assert result.exit_code == 0
     assert "Translations in progress were found." in result.output
     assert "Processing translations" in result.output
     assert "book.epub" in result.output
-    assert "Detected translation was not resumed." in result.output
+    assert "no longer runs" in " ".join(result.output.split())
     assert "Canceled." in result.output
 
 
