@@ -145,6 +145,24 @@ def test_a_heredoc_fed_to_a_shell_or_a_command_after_it_is_still_checked(command
     assert decision(bash(command)) == "deny"
 
 
+@pytest.mark.parametrize("command", [
+    "git push -u origin feat/x && git worktree remove --force ../wt && git checkout main",
+    "git push origin feat/x; gh pr create --base main --title t; git branch -D feat/y --force",
+    "git clean -n && rm -f notes.tmp",
+])
+def test_a_flag_of_another_command_does_not_make_a_git_command_dangerous(command):
+    assert decision(bash(command)) == "allow"
+
+
+@pytest.mark.parametrize("command", [
+    "git fetch -q && git push --force origin main",
+    "cd ../wt; git push -f origin HEAD:main 2>&1 | tail -3",
+    "git status\ngit push --force-with-lease origin main",
+])
+def test_a_forced_push_to_main_inside_a_chain_is_still_denied(command):
+    assert decision(bash(command)) == "deny"
+
+
 def test_bad_input_never_breaks_the_agent():
     for mode in ("pretool", "posttool", "session", "unknown"):
         result = subprocess.run([sys.executable, str(HOOK), mode], input="not json", capture_output=True,
