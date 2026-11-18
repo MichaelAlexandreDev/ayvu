@@ -4,6 +4,7 @@ from . import plan, run as translation_run, run_support, translate_options
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NoReturn
 import typer
 from rich.table import Table
 from ...translation import ItemOutcome, ItemStatus
@@ -92,12 +93,7 @@ def _run_batch_translation(
                 overwrite or (not dry_run and output_plan.path.exists()),
             ))
     except BatchOutputError as exc:
-        _print_expected_error(
-            "Não foi possível planejar as saídas do lote.",
-            "Escolha destinos distintos dos EPUBs originais e tente novamente.",
-            mode, detail=str(exc),
-        )
-        raise typer.Exit(code=1) from None
+        _batch_planning_failed(exc, mode)
 
     results: list[BatchTranslationResult] = []
     total = len(epub_paths)
@@ -178,13 +174,19 @@ def _run_batch_translation(
         result = translate_batch(tuple(zip(intents, (execute_item(path) for path in epub_paths))),
                                  continue_on_error=continue_on_error, on_progress=on_progress)
     except BatchOutputError as exc:
-        _print_expected_error(
-            "Não foi possível planejar as saídas do lote.",
-            "Escolha destinos distintos dos EPUBs originais e tente novamente.", mode, detail=str(exc))
-        raise typer.Exit(code=1) from None
+        _batch_planning_failed(exc, mode)
     _print_batch_summary(results)
     if not result.succeeded:
         raise typer.Exit(code=1)
+
+
+def _batch_planning_failed(exc: BatchOutputError, mode: UserMode) -> NoReturn:
+    _print_expected_error(
+        "Não foi possível planejar as saídas do lote.",
+        "Escolha destinos distintos dos EPUBs originais e tente novamente.",
+        mode, detail=str(exc),
+    )
+    raise typer.Exit(code=1) from None
 
 
 def _print_batch_plan(
