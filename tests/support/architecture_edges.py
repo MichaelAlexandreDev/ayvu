@@ -52,7 +52,7 @@ ALLOWED_INTERNAL_EDGES = {
       'composition.cli', 'interfaces.cli.render', 'interfaces.cli.settings', 'review.application')), *(('settings', b) for b in (
       'composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'preferences.model')),
       ('options', 'network.policy'), ('render', 'providers.discovery'), *(('report', b) for b in ('composition.cli', 'interfaces.cli.contracts', 'interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')), *(('output', b) for b in ('interfaces.cli.render', 'interfaces.cli.settings', 'preferences.model')))),
-    ('ayvu.composition.builders.translate_project', 'ayvu.v1.epub'), ('ayvu.v1.translation', 'ayvu.v1.epub'), ('ayvu.composition.cli', 'ayvu.v1.cache_check'), ('ayvu.v1.cache_check', 'ayvu.v1.cache'),
+    ('ayvu.composition.builders.translate_project', 'ayvu.v1.epub'), ('ayvu.v1.translation', 'ayvu.v1.epub'), ('ayvu.composition.cli', 'ayvu.v1.cache_check'), ('ayvu.composition.cli', 'ayvu.composition.builders.reports'), ('ayvu.v1.cache_check', 'ayvu.v1.cache'),
     ('ayvu.formats.epub.io', 'ayvu.formats.epub.html_structure'), ('ayvu.formats.epub.validation', 'ayvu.formats.epub.html_structure'),
     ('ayvu.v1.epub', 'ayvu.formats.epub.archive'), ('ayvu.v1.epub', 'ayvu.formats.epub.io'),
     ('ayvu.v1.epub', 'ayvu.knowledge.memory.fuzzy'), ('ayvu.v1.epub', 'ayvu.v1.html_translate'),

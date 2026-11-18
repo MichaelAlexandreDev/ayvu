@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from . import editions, surface_rules
-from .builders import cache_admin, content, glossary, providers, review, rich_provider, translate_project, translate_transient
+from .builders import cache_admin, content, glossary, providers, reports, review, rich_provider, translate_project, translate_transient
 from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation
@@ -26,7 +26,7 @@ from ..translation.preflight import check_book_resources
 from .builders import checkpoint, selection
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
-from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
+from ..kernel import JobWarning, OutputPlan, TranslationOptions
 
 
 @dataclass(frozen=True, repr=False)
@@ -332,20 +332,11 @@ def prepare_translation(*, epub_path, options, cache_path, glossary_path, transl
 
 
 def publish_cli_report(path: Path, text: str) -> Path:
-    """Preserve the current report publication semantics, including mode and overwrite behavior."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-    return path
+    return reports.publish_cli_report(path, text)
 
 
 def report_destination(directory: Path, stem: str, suffix: str = '.md') -> Path:
-    directory.mkdir(parents=True, exist_ok=True)
-    path = automatic_output_candidate(directory, stem, suffix, 1)
-    index = 2
-    while path.exists():
-        path = automatic_output_candidate(directory, stem, suffix, index)
-        index += 1
-    return path
+    return reports.report_destination(directory, stem, suffix)
 
 
 @dataclass(frozen=True)

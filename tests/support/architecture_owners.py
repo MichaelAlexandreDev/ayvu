@@ -18,6 +18,7 @@ EDITION_DATA_MODULES = frozenset({
 
 OWNERS = {
     "ayvu.composition.builders.checkpoint": Owner("composition", "Recovery"),
+    "ayvu.composition.builders.reports": Owner("composition", "Translation reports"),
     **{name: Owner("composition", "Edition definitions") for name in EDITION_DATA_MODULES},
     "ayvu": Owner("surface", "Package"),
     **{f"ayvu.interfaces.cli.{name}": Owner("interface", "CLI") for name in ("render", "options", "settings", "report", "output", "plan", "translate_options", "run", "run_support", "run_messages", "batch", "preview", "commands",

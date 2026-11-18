@@ -282,6 +282,8 @@ differences were accepted on 2026-11-13.
 
 The compatibility checkpoint adapter is `composition/builders/checkpoint.py`; the CLI root
 constructs it through `translation_checkpoint()` without opening storage.
+The Markdown report files are written by `composition/builders/reports.py`, behind the root's
+`publish_cli_report` and `report_destination`.
 
 ## Translator selection (#377)
 
