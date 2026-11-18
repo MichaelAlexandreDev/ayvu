@@ -277,19 +277,7 @@ def _run_translation(
     if batch_plan is not None and report.output_written and not dry_run:
         batch_plan.mark_published()
     if review_output_path is not None:
-        if outcome.job_result is None:
-            run_messages._print_review_export_failure("translation_identity_unavailable", mode)
-            raise typer.Exit(code=1)
-        use_cases = open_review_use_cases(settings._processing_dir(config))
-        cancellation = use_cases.cancellation()
-        exported = use_cases.export.execute(ReviewExportCommand(
-            outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
-            cancellation=cancellation.token))
-        if exported.outcome is not ReviewOutcome.READY or exported.artifact is None:
-            run_messages._print_review_export_failure(exported.code, mode)
-            raise typer.Exit(code=1)
-        console.print(f"[green]Review file saved to:[/green] {review_output_path}")
-        report.review_output_path = review_output_path
+        _export_review(outcome, review_output_path, config, overwrite, mode)
 
     if cache_only and report.missing_texts:
         try:
@@ -336,6 +324,36 @@ def _run_translation(
     else:
         reports._offer_markdown_report(report, dry_run, validation_warnings, mode=mode)
 
+    _finish_translation(book, report, outcome, validation, checkpoint, output_path, mode, item_exit)
+
+    return TranslationRunResult(
+        report=report,
+        validation_warnings=validation_warnings,
+        markdown_report_path=markdown_report_path,
+        project_id=project_id,
+        job_result=outcome.job_result,
+    )
+
+
+def _export_review(outcome, review_output_path, config, overwrite, mode):
+    """Publish the explicitly requested review package after translation."""
+    if outcome.job_result is None:
+        run_messages._print_review_export_failure("translation_identity_unavailable", mode)
+        raise typer.Exit(code=1)
+    use_cases = open_review_use_cases(settings._processing_dir(config))
+    cancellation = use_cases.cancellation()
+    exported = use_cases.export.execute(ReviewExportCommand(
+        outcome.job_result, review_output_path, destination_fingerprint(review_output_path), overwrite,
+        cancellation=cancellation.token))
+    if exported.outcome is not ReviewOutcome.READY or exported.artifact is None:
+        run_messages._print_review_export_failure(exported.code, mode)
+        raise typer.Exit(code=1)
+    console.print(f"[green]Review file saved to:[/green] {review_output_path}")
+    outcome.report.review_output_path = review_output_path
+
+
+def _finish_translation(book, report, outcome, validation, checkpoint, output_path, mode, item_exit):
+    """Present completion gates and mark a validated checkpoint complete."""
     if run_support.cache_coverage_blocked(book, report):
         run_messages._print_cache_coverage_blocked(report, mode)
         item_exit("cache_incomplete")
@@ -353,11 +371,3 @@ def _run_translation(
         run_messages._print_translation_failure(outcome, output_path, mode)
         if outcome.warning != "provenance_failed":
             item_exit("translation_failed")
-
-    return TranslationRunResult(
-        report=report,
-        validation_warnings=validation_warnings,
-        markdown_report_path=markdown_report_path,
-        project_id=project_id,
-        job_result=outcome.job_result,
-    )

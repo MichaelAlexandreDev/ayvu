@@ -180,23 +180,11 @@ def translate(
     )
     resolved_output_dir = translate_options._resolve_translation_output_dir(output_dir, mode=mode)
     chapter_selection = translate_options._parse_chapter_selection(chapters, mode=mode)
-    tm_options = translate_options._build_translation_memory_options(
-        enabled=translation_memory,
-        apply_threshold=tm_apply_threshold,
-        suggest_threshold=tm_suggest_threshold,
-        conservative_auto_apply=tm_conservative_auto_apply,
-        legacy_cache_compatibility=tm_legacy_cache_compatibility,
-        mode=mode,
-    )
-    execution_controls = translate_options._resolve_execution_controls(
-        performance_profile_name=performance_profile_name,
-        workers=workers,
-        requests_per_second=requests_per_second,
-        retries=retries,
-        retry_backoff=retry_backoff,
-        retry_backoff_max=retry_backoff_max,
-        chunk_limit=chunk_limit,
-        mode=mode,
+    tm_options = _memory_options(translation_memory, tm_apply_threshold, tm_suggest_threshold,
+                                 tm_conservative_auto_apply, tm_legacy_cache_compatibility, mode)
+    execution_controls = _execution_controls(
+        performance_profile_name, workers, requests_per_second, retries,
+        retry_backoff, retry_backoff_max, chunk_limit, mode,
     )
     translate_options._check_runtime_options(
         tm_options, config, translator_name, workers=execution_controls.workers, cache_only=cache_only, mode=mode,
@@ -272,4 +260,32 @@ def translate(
         missing_output=missing_output,
         translation_memory=tm_options,
         confirm_output_location=resolved_output_dir is None,
+    )
+
+
+def _execution_controls(performance_profile_name, workers, requests_per_second, retries,
+                        retry_backoff, retry_backoff_max, chunk_limit, mode):
+    """Adapt the command's transport and worker flags to execution controls."""
+    return translate_options._resolve_execution_controls(
+        performance_profile_name=performance_profile_name,
+        workers=workers,
+        requests_per_second=requests_per_second,
+        retries=retries,
+        retry_backoff=retry_backoff,
+        retry_backoff_max=retry_backoff_max,
+        chunk_limit=chunk_limit,
+        mode=mode,
+    )
+
+
+def _memory_options(translation_memory, tm_apply_threshold, tm_suggest_threshold,
+                    tm_conservative_auto_apply, tm_legacy_cache_compatibility, mode):
+    """Adapt memory flags to the shared option validation."""
+    return translate_options._build_translation_memory_options(
+        enabled=translation_memory,
+        apply_threshold=tm_apply_threshold,
+        suggest_threshold=tm_suggest_threshold,
+        conservative_auto_apply=tm_conservative_auto_apply,
+        legacy_cache_compatibility=tm_legacy_cache_compatibility,
+        mode=mode,
     )
