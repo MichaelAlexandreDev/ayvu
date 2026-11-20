@@ -14,8 +14,8 @@ the review; they do not replace targeted reading of the architecture.
 
 ## 2. Architecture and compatibility
 
-- Affected decisions (D1–D15), module ownership, layer, public API, the v1
-  quarantine, and the new-module checklist in AGENTS.md
+- Affected decisions (D1–D15), module ownership, layer, public API, no
+  recreated v1 runtime (D7), and the new-module checklist in AGENTS.md
   remain satisfied.
 - Domain and application dependencies point inward.
 - Interfaces adapt shared use cases instead of duplicating business rules.

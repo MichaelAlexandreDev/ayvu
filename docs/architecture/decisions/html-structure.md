@@ -18,13 +18,11 @@ imports no provider, cache, memory, glossary, chunker or interface.
 | --- | --- | --- |
 | `extract_html_document`, `reconstruct_html` | The [rich path](translation-pipeline.md) and [#144](https://github.com/MichaelAlexandreDev/ayvu/issues/144) | Durable: real project, document and revision |
 | `map_review_package` | The v2 review exchange | Durable units become validated `UnitTranslation` reconstruction inputs |
-| `extract_visible_text`, `translate_html` | The current translation, through `ayvu.v1.html_translate` | None |
-| `apply_reviewed_html` | Legacy positional helper | None; v1 apply is rejected before the helper is called |
+| `extract_visible_text` | Output validation | None |
 
 The v2 mapper produces the durable values accepted by `reconstruct_html`, but
-the CLI does not call the mapper yet. `ayvu.v1.html_translate` remains as a
-compatibility facade with the same names and signatures, until
-[#153](https://github.com/MichaelAlexandreDev/ayvu/issues/153).
+the CLI does not call the mapper yet. The compatibility facade `ayvu.v1.html_translate`, with `translate_html`
+and `apply_reviewed_html`, was removed with the v1 runtime in REF-18 step 6.
 
 ## Consequences and limits
 

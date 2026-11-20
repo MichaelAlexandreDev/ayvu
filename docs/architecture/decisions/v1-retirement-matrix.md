@@ -119,6 +119,11 @@ recommendations:
 Step 6 ships in two pull requests: 6a refuses v1 work (behavioural), and 6b deletes the code that this
 leaves unused (mechanical).
 
+Step 6b deleted `src/ayvu/v1/`, `tests/v1/`, the legacy runtime selection in composition, the `legacy_resume`
+chain and the fuzzy `TranslationMemory`, with the `v1` layer, its import contract and its hook rules. What stays
+is listed under Q2 and Q3, plus `LEGACY_SCHEMA`, the reading of old checkpoints and every refusal. Tests that used
+v1 as a vehicle now write v1 files with `LEGACY_SCHEMA`, or run the use cases on a test runtime over the real engine.
+
 ## Step 4 exit proof (2026-11-17)
 
 These are the runs that the [ordered plan](v1-retirement.md#ordered-implementation-after-approval) asks for. They used the real CLI with isolated user folders and a fake loopback LibreTranslate server. Each run compared `main` before the switch (`5cb6025`) with `main` after it (`274c77c`, #389), on the maintainer's Arch Linux machine.

@@ -21,7 +21,7 @@ placement late; this skill catches it before the first line.
      `recovery`, `formats.use_cases`, ...);
    - I/O adapters (SQLite, files, HTTP) → the owning module's store or adapter module;
    - values used by at least three modules and importing nothing → `kernel` (D4).
-   Never `v1` (D7).
+   v1 is retired (D7): never recreate it.
 3. **Check the direction.** The new module may import only lower layers and same-module code (D3).
    If it needs something above it, the design is wrong: inject a port from composition instead.
 4. **Use public APIs.** Import other packages through their `__init__` exports (D2). If another package

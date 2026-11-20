@@ -132,7 +132,7 @@ publish an EPUB.
 
 `ayvu.review.csv_import.read_review_csv` is a bounded v1 inspection reader. It
 returns `LegacyReviewInspection` with redacted rows and duplicate-ID warnings;
-it never creates stable identity. `v1.epub.apply_reviewed_epub` rejects this
+it never creates stable identity. The review application rejects this
 type with `legacy_reexport_required` before opening EPUB input or output. The
 CLI `apply-review` command applies the same rule and asks for a fresh v2 package
 bound to the exact durable source and machine artifact. `translate --review-output`

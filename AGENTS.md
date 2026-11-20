@@ -32,7 +32,7 @@ Use the knowledge graph before broad searches (see [graphify](#graphify)). Do no
 These are enforced by tests and `import-linter`; a change that needs to break one needs an accepted
 decision record first, not a workaround.
 
-- **Layers (D3).** From top to bottom: `interfaces` → `composition` → `v1` → `recovery` → `review` →
+- **Layers (D3).** From top to bottom: `interfaces` → `composition` → `recovery` → `review` →
   `translation` → `projects` → `preferences` → `knowledge` | `providers` | `formats` → `artifacts` →
   `provenance` → `jobs` → `content` | `network` | `library` → `kernel`. A lower layer never imports a higher
   one; modules on the same row do not import each other.
@@ -40,8 +40,8 @@ decision record first, not a workaround.
   that are public on their own are listed in `tests/support/public_api_support.py` (`ADAPTER_MODULES`).
 - **Composition builds adapters (D5).** Only `composition` selects and constructs concrete adapters. The
   CLI imports named factories from `ayvu.composition.cli`, never a builder or an adapter directly.
-- **v1 is quarantined (D7).** `src/ayvu/v1/` is the legacy runtime, being retired (REF-18). Never add a
-  capability there, and never import it from a new module.
+- **v1 is retired (D7).** The legacy runtime was removed in REF-18 step 6; do not recreate it. Old v1 data
+  is read only by its owners (JSON-v1 cache administration, CSV-v1 review inspection, checkpoint reading).
 - **No shims (D8).** When code moves, update every importer in the same PR; leave no re-export behind.
 - **Frozen persisted identities (D9).** Cache keys, fingerprints, schema versions, checkpoint formats and
   job identities change only with a migration, a new version and an explicit decision.
@@ -71,9 +71,9 @@ The architecture tests fail and name what is missing.
 
 ## Domain rules
 
-- **Runtimes.** With a model label (`translator_models.<translator>` in the configuration) the rich
-  runtime runs: durable jobs, provenance and the v2 cache. Without one, v1 runs, until step 4 of REF-18
-  makes the label required. New behaviour goes into the rich runtime only.
+- **Runtime.** Only the rich runtime runs: durable jobs, provenance and the v2 cache. New work needs a model
+  label (`translator_models.<translator>` in the configuration) and is refused without one. A v1 job or an old
+  standalone checkpoint is refused on resume (`PreviousRuntimeRetired`) and its files stay unchanged.
 - **Providers.** A translator is a provider adapter behind `ayvu.providers` contracts: a rich request and
   result, honest capability declarations, and a `ProducerIdentity`. Every result passes the strict result
   check (placeholders, protected parts, markup); never trust a provider to keep structure.
@@ -127,9 +127,8 @@ Skills never widen authority: every approval in this file still applies.
 
 `scripts/agent_hooks/ayvu_hook.py` is shared by every agent; `.claude/settings.json` wires it into Claude
 Code. It **denies** what cannot be undone (an `--admin` merge, a forced push to `main`, destroying or
-directly editing books, caches, glossaries or `.ayvu-pessoal/`), **asks** before discarding local work or
-editing `src/ayvu/v1/`, and **warns** right after a Python file goes over its size limit or imports v1
-outside composition. It also opens each session with the branch and the checks to run. Hooks are
+directly editing books, caches, glossaries or `.ayvu-pessoal/`), **asks** before discarding local work, and
+**warns** right after a Python file goes over its size limit. It also opens each session with the branch and the checks to run. Hooks are
 guardrails, not a substitute for the validation below.
 
 ## Validation

@@ -14,7 +14,7 @@ command and the guided offer run through them, with the prompts they always had.
 
 `open_job_recovery` in `ayvu.composition.builders.translate_project` puts them together.
 
-REF-18 R2 moves the shared checkpoint adapters out of v1. Their names, persisted fields,
+REF-18 R2 moved the shared checkpoint adapters out of v1, and step 6 removed v1 itself. Their names, persisted fields,
 version, defaults, filenames and written bytes stay unchanged, including rich
 `execution_revision=2` checkpoints. Under D2, `ayvu.recovery` keeps only its use-case API:
 checkpoint values remain with their intact filesystem adapter, and both adapters are public
@@ -22,8 +22,9 @@ modules themselves. Re-exporting them would load filesystem code when importing 
 
 ## What a resume is today
 
-A full re-execution under a new job linked to the old one. Without a label, the legacy
-runtime continues on v1 cache:
+A full re-execution under a new job linked to the old one, on the rich runtime. A v1 job or an old standalone
+checkpoint is refused before anything runs (REF-18 step 6), and its files stay as they are. Recovery still
+reads them, so it can list and refuse them; what the retired legacy runtime did with them:
 
 - The v1 cache holds languages, a hash and two texts. Nothing says which provider, model or pipeline produced a text.
 - Legacy lineage records `unknown` for its producer.
@@ -78,8 +79,8 @@ the current configuration. It also uses that request's real `output_roles`. With
 evidence or a matching fingerprint, the entry is refused; it never silently returns
 to the project-free/v1 flow.
 
-**A legacy file that does not match loses the link and not the translation.** It runs on the current flow, as it does today, and
-the old job is settled by the next run of its plan or once its lease expires.
+**A legacy file that does not match loses the link and not the translation.** Since REF-18 step 6 the CLI refuses it
+instead of running it on v1, and the old job is settled by the next run of its plan or once its lease expires.
 
 Files record `profile_name`. An old file has none, so a run that used a
 profile stays `legacy_only`.

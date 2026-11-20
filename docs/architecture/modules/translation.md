@@ -128,7 +128,7 @@ predecessor project-free flow. Labeled previews and dry runs use `TransientTrans
 
 `_BookRequest` carries the translator name/model mapping and an explicit preview marker.
 `composition.cli.prepare_preview` selects before stores or provider preparation. Only a valid
-label chooses late online preparation; the unlabeled path retains v1 timing and observables.
+label chooses late online preparation; an unlabeled preview is refused before any of it.
 The real session performs authorized discovery and supplies the execution's rate limiter.
 The resulting plan uses the declared producer and observed route/capability fingerprint.
 
@@ -290,8 +290,8 @@ In rich, the CLI prepares `<--cache name>.v2.sqlite` before the provider, withou
 changing v1. The first rich use retranslates texts available only in v1. It requires
 `--workers 1` and stops at the first provider failure
 without publishing a partial EPUB. The job remains resumable and completed segments stay in cache.
-The glossary is applied to raw v2 values. Removing the label returns to legacy on new
-runs; resume between different runtimes is refused and names `legacy/v1` and `rich/v2`.
+The glossary is applied to raw v2 values. Removing the label makes new runs refuse to start;
+resume between different runtimes is refused and names `legacy/v1` and `rich/v2`.
 The declaration stays in configuration and operational provenance/identity, outside repr,
 events, logs and checkpoints. A continuation reuses the previous job's proven raw results (#242).
 Migration outside this production selection preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
@@ -370,7 +370,7 @@ keeps `_Run._fail` precedence over concurrent failure. Complete durable artifact
 remain resumable independently of unconsumed callbacks; partial documents receive
 no completion credit. Cache-only creates no new raw-results and never replays them.
 
-`rich_workers.py` owns resource composition; `engine.py` keeps the unchanged v1
-parallel pool. High and overrides preserve the effective N only in durable offline
+`rich_workers.py` owns resource composition; `engine.py` keeps the unit-executor
+parallel pool that the v1 runtime used. High and overrides preserve the effective N only in durable offline
 execution in this batch. Online concurrency, shared rate limiting and duplicate-key
 arbitration remain batch 5; governed memory with multiple workers remains refused.

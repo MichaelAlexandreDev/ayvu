@@ -12,9 +12,9 @@ Decision: extends `DEC-005`, scoped to the production EPUB adapter and its archi
 ## Decision and scope
 
 EPUB is the first real format behind the [format contract](format-adapter.md). **`translate` and the guided
-translation use it**, through [the use case](../modules/translation-project.md). Dry run, preview and a resume with no job keep `translate_epub`.
+translation use it**, through [the use case](../modules/translation-project.md). Dry run and preview use the transient routes; `translate_epub` was removed with the v1 runtime in REF-18 step 6.
 `inspect` and `extract` now use the shared read-only
-[content use cases](../modules/content-use-cases.md), and `apply_reviewed_epub` rejects
+[content use cases](../modules/content-use-cases.md), and the review application rejects
 legacy v1 review data before EPUB access; v2 apply is orchestrated by the shared
 review use case and delegates reconstruction and validation to this adapter.
 

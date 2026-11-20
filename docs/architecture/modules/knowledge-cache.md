@@ -5,7 +5,7 @@
 REF-18 R3 moves the preserved legacy administration implementation into Knowledge:
 [`legacy_schema.py`](../../../src/ayvu/knowledge/cache/legacy_schema.py) holds the single original
 `SCHEMA` definition; `schema.LEGACY_SCHEMA`, `admin_store` and the streaming store consume it locally.
-The runtime in `v1/cache.py` imports the same value through `ayvu.knowledge.cache.SCHEMA`.
+The v1 runtime cache that also read it (`v1/cache.py`) was removed in REF-18 step 6; tests write v1 files with it.
 [`legacy_format.py`](../../../src/ayvu/knowledge/cache/legacy_format.py) owns `validate` and
 `LegacyFormatError`; [`legacy_stream.py`](../../../src/ayvu/knowledge/cache/legacy_stream.py) owns
 the bounded reader; [`legacy_admin_store.py`](../../../src/ayvu/knowledge/cache/legacy_admin_store.py)
@@ -19,8 +19,8 @@ WAL or shared-memory file beside it, or a WAL header, makes it report the cache 
 
 JSON-v1 inspection and export continue during the accepted retirement transition. This extraction
 preserves existing import/cleanup behavior too, including SQL bytes, the unique key, validation,
-messages and `legacy_namespace='legacy-v1'`. `TranslationCache` and `v1/cache_check.py` remain
-with the runtime. Dedicated streaming tests now live in `tests/knowledge/cache/`.
+messages and `legacy_namespace='legacy-v1'`. `TranslationCache` and `v1/cache_check.py` went with the
+v1 runtime in REF-18 step 6. Dedicated streaming tests now live in `tests/knowledge/cache/`.
 
 ## Standalone SQLite cache v2
 
@@ -29,7 +29,7 @@ The local `knowledge/cache/schema.py` module is independent of the project execu
 a file before starting workers or opening the repository. `SQLiteExactCache`
 implements `ExactCachePort` for the rich path. Production composition selects
 this path when `translator_models.libretranslate` contains a valid label in
-`config.json`; without a label it keeps legacy v1. The model is `declared:<label>`, declared
+`config.json`; without a label, new work is refused (REF-18 step 4). The model is `declared:<label>`, declared
 by the user, never observed on the server. `unknown` remains ineligible.
 A new cache prepared at this boundary starts as v2.
 
@@ -57,8 +57,8 @@ The #252 integration derives the sibling file by appending `.v2.sqlite` to the
 `--cache` name: `cache.sqlite` produces `cache.sqlite.v2.sqlite`. Original v1 is neither opened
 nor changed by the rich runtime; there is no migration, copying, querying or promotion of its
 rows. A v1 accidentally found at the sibling name is also refused. The first
-rich use retranslates texts present only in v1. Removing the label restores
-the legacy path on new runs, with its cache intact. Unlabeled previews and dry runs use v1.
+rich use retranslates texts present only in v1. Without a label, new runs, previews and dry runs are
+refused, and the v1 cache stays intact.
 Labeled dry runs read only authorized existing-project v2 evidence, through the transient runtime.
 
 The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and is part of the semantic fingerprint.
@@ -126,7 +126,7 @@ cache = SQLiteExactCache(Path("/caminho/local/suportado/novo-v2.sqlite"))
 
 The v1 source remains intact; no row is transferred or promoted to an exact
 entry. If no supported filesystem is available, v2 is unavailable: retain
-v1 for reading or for the existing legacy execution.
+v1 for reading; the legacy execution was removed in REF-18 step 6.
 
 The snapshot uses SQLite `VACUUM INTO` and flush, accounting for WAL;
 never copy only the main file. Backup is verified before DDL and
