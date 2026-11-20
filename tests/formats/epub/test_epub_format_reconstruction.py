@@ -6,8 +6,6 @@ from bs4 import BeautifulSoup
 from lxml import etree
 
 from ayvu.formats.epub import adapter as epub_format
-from ayvu.v1 import epub as v1_epub
-from ayvu.v1.cache import TranslationCache
 from ayvu.formats.epub.archive import EpubArchiveError
 from ayvu.formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
 from ayvu.formats.contracts import ContentScope, ExtractionRequest, PreviewRequest, UnitTranslation
@@ -236,8 +234,8 @@ def test_a_title_holding_other_nodes_is_not_offered_for_translation(service, tmp
     assert extract(service, source, frozenset({ContentScope.METADATA})).documents == ()
 
 
-def test_the_adapter_and_the_current_flow_write_the_same_package(service, tmp_path):
-    # ebooklib, which the current flow opens every book with, rejects a remote manifest item.
+def test_the_adapter_rewrites_only_the_title_of_the_package(service, tmp_path):
+    """The package the retired v1 flow wrote for the same book, pinned when it was removed (REF-18 step 6)."""
     openable = OPF.replace(b'    <item id="remote" href="https://example.test/a.mp3" media-type="audio/mpeg"/>\n', b"")
     path, source = source_of(tmp_path, epub_bytes(replace={"OEBPS/content.opf": openable}))
     documents = extract(service, source, frozenset({ContentScope.METADATA})).documents
@@ -245,12 +243,5 @@ def test_the_adapter_and_the_current_flow_write_the_same_package(service, tmp_pa
     result, publication = rebuild(service, env, source, documents, (UnitTranslation(documents[0].units[0].unit_id, "PT:The Title"),))
     assert result.failure is None
 
-    class Prefix:
-        def translate(self, text, source, target):
-            return f"PT:{text}"
-
-    output = tmp_path / "current.epub"
-    options = TranslationOptions(language_pair=LanguagePair(source="en", target="pt"), translate_metadata=True)
-    with TranslationCache(tmp_path / "cache.sqlite") as cache:
-        v1_epub.translate_epub(path, output, translator=Prefix(), cache=cache, options=options)
-    assert members_of(output.read_bytes())["OEBPS/content.opf"] == members_of(env.read(publication))["OEBPS/content.opf"]
+    expected = openable.replace(b'<?xml version="1.0" encoding="utf-8"?>', b"<?xml version='1.0' encoding='utf-8'?>", 1)
+    assert members_of(env.read(publication))["OEBPS/content.opf"] == expected.replace(b">The Title<", b">PT:The Title<", 1)

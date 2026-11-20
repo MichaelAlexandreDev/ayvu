@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from ebooklib import epub
 from typer.testing import CliRunner
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.interfaces.cli.app import app
 from ayvu.composition.cli import _BookOutcome
@@ -55,7 +55,7 @@ def _seed_cache_entry(
     created_at: str = "2024-01-01 10:00:00",
 ) -> CacheKey:
     key = CacheKey(text=text, language_pair=LanguagePair(source=source, target=target))
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         cache.set(key, translated)
         cache.connection.execute(
             """

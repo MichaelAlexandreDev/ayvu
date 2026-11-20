@@ -27,14 +27,14 @@ def test_sqlite_vm_deadline_rolls_back_and_keeps_backup(tmp_path):
 
 def test_real_project_boundary_and_cache_preservation(tmp_path):
     from ayvu.projects.store import ProjectJsonRepository, build_project_request
-    from ayvu.v1.cache import TranslationCache, CacheKey
+    from tests.support.legacy_cache_file import LegacyCacheFile, CacheKey
     source = tmp_path / 'original.epub'
     source.write_bytes(b'synthetic-original')
     repository = ProjectJsonRepository(tmp_path / 'processing')
     project = repository.create(build_project_request(source, source='en', target='pt'))
     paths = repository.resolve_database_paths(project.project_id)
     cache_path = tmp_path / 'legacy-cache.sqlite'
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         cache.set(CacheKey('synthetic-source', LanguagePair('en', 'pt')), 'synthetic-target')
     before = cache_path.read_bytes()
     result = SqliteMigrationRunner().migrate(paths.database, paths.backups)

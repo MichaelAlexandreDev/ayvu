@@ -11,18 +11,17 @@ from datetime import timedelta
 
 import pytest
 
-from ayvu.v1.cache import TranslationCache
 from ayvu.jobs.model import JobContinuationError, JobRequest, JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
 from ayvu.translation.resume_reuse import RecoveryReason
 from ayvu.recovery.store import _options
 from ayvu.projects.store import ProjectJsonRepository
 from ayvu.translation.project_contracts import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
-from ayvu.composition.builders.translate_project import (
-    LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
-)
+from ayvu.composition.builders.translate_project import LegacyResources, open_job_recovery, open_translate_project
+from tests.support.engine_runtime_support import EngineTestRuntime
+from tests.support.legacy_cache_file import LegacyCacheFile
 from tests.support.cli_translate_project_support import _args, _book
-from tests.support.job_recovery_integration_support import DECIDED, Runner, Scene
+from tests.support.job_recovery_integration_support import DECIDED, Runner, Scene, run_in_project
 from ayvu.kernel import OutputPlan
 
 from tests.support.job_recovery_concurrency_support import Blocked, _isolated_from_the_user, _kill_a_real_run, scene
@@ -114,7 +113,7 @@ def test_a_job_settled_in_the_instant_before_the_run_is_stale_for_the_run_itself
     class SettlesFirst(Runner):
         def run_durable(self, reference, ticket, operation_id):
             project = scene.project()
-            runtime = LegacyTranslationRuntime(scene.source, scene.options, lambda: LegacyResources(scene.translator), lambda: TranslationCache(scene.cache))
+            runtime = scene.runtime()
             open_translate_project(scene.processing, project.project_id, scene.source, scene.output, overwrite=True, runtime=runtime, clock=scene.clock).reconcile(project.project_id)
             return super().run_durable(reference, ticket, operation_id)
 
@@ -176,9 +175,9 @@ def test_a_real_kill_is_seen_while_alive_and_after_and_resumes_with_the_file_it_
         def run_durable(self, reference, ticket, operation_id):
             state = recovery.evidence.legacy_entry(reference).state
             project = ProjectJsonRepository(tmp_path / "processing").load(dead.project_id)
-            return translate_in_project(ProjectTranslation(
-                tmp_path / "processing", project.project_id, project.source_sha256, state.input_path, _options(state), OutputPlan(path=state.output_path), True,
-                lambda: LegacyResources(Fake()), lambda: TranslationCache(state.cache_path), ticket, operation_id), TranslateObserver()).result
+            runtime = EngineTestRuntime(state.input_path, _options(state), lambda: LegacyResources(Fake()), lambda: LegacyCacheFile(state.cache_path))
+            return run_in_project(tmp_path / "processing", project, state.input_path, state.output_path, _options(state), runtime,
+                                  overwrite=True, continuation=ticket, operation_id=operation_id).result
 
         def run_legacy(self, reference):
             raise AssertionError("this one is durable")

@@ -12,7 +12,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from ayvu.v1.cache_check import verify_cache_writable
 import requests
 from typer.testing import CliRunner
 
@@ -90,7 +89,7 @@ def test_cache_only_preflight_instruments_transport_and_provider_authority(minim
     original = minimal_epub_path.read_bytes()
     result = run_translation_preflight(epub_path=minimal_epub_path, cache_path=tmp_path / 'only-cache.sqlite',
         glossary_path=None, translator_name='libretranslate', url='http://endpoint-canary.invalid',
-        timeout=1, retries=0, language_pair=LanguagePair('en', 'pt'), dry_run=False, cache_only=True, cache_check=verify_cache_writable)
+        timeout=1, retries=0, language_pair=LanguagePair('en', 'pt'), dry_run=False, cache_only=True, cache_check=lambda _path: None)
     assert result.translator is None and result.translator_factory is None and result.route is None
     assert calls == []
     assert minimal_epub_path.read_bytes() == original

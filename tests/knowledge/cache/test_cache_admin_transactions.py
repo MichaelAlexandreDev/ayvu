@@ -6,7 +6,7 @@ import sqlite3
 import pytest
 
 from ayvu.knowledge.cache import admin_store as cache_admin_store
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from ayvu.knowledge.cache.admin import CacheRef, FileRef, CacheFilter, PreviewCleanRequest, ExecuteCleanRequest, ExportRequest, ImportRequest
 from ayvu.composition.builders.cache_admin import cache_admin_services
 from ayvu.kernel import LanguagePair
@@ -176,7 +176,7 @@ def test_import_sql_failure_rolls_back_prior_insert(tmp_path):
         conn.execute("CREATE TRIGGER fail_second BEFORE INSERT ON translations WHEN NEW.original_text = 'two' BEGIN SELECT RAISE(ABORT, 'injected'); END")
     result = services.import_cache.execute(ImportRequest(CacheRef(str(dest)), FileRef(str(output))))
     assert result.failure is not None and result.value is None
-    with TranslationCache(dest) as cache:
+    with LegacyCacheFile(dest) as cache:
         assert cache.get(key("one")) is None
         assert cache.get(key("two")) is None
         assert cache.get(key("existing")) == "translated existing"
@@ -215,7 +215,7 @@ def test_bounded_file_read_rejects_oversized_input(tmp_path, monkeypatch):
 def test_clean_filters_select_exact_rows(tmp_path, filters, expected):
     services = cache_admin_services()
     path = tmp_path / "cache.sqlite"
-    with TranslationCache(path) as cache:
+    with LegacyCacheFile(path) as cache:
         cache.set(key("one"), "um")
         cache.set(key("two"), "dois")
         cache.set(CacheKey(text="three", language_pair=LanguagePair(source="es", target="es")), "tres")

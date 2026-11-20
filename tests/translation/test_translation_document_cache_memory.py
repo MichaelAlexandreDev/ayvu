@@ -1,5 +1,4 @@
 from __future__ import annotations
-import inspect
 import pytest
 from ayvu.provenance.model import SourceKind, UNKNOWN
 from ayvu.translation.document_contracts import UnitSource
@@ -29,16 +28,6 @@ def test_another_plan_does_not_see_the_cache_entries(env):
     env.translate(document(key='two.vtt'), provider, subject_plan=plan(chunk_limit=999), context=env.context(progress_phase='second'),
                   translator_options={'exact_cache': cache})
     assert len(provider.requests) == 2
-
-
-def test_the_legacy_v1_ports_do_not_fit_the_generic_path():
-    from ayvu.v1.html_translate import _LegacyV1Cache
-    from ayvu.translation.document_contracts import ExactCachePort, MemoryPort
-    from ayvu.knowledge.memory.fuzzy import TranslationMemory
-    assert 'key' in inspect.signature(ExactCachePort.lookup).parameters
-    assert 'plan_fingerprint' not in inspect.signature(_LegacyV1Cache.get).parameters
-    assert 'query' in inspect.signature(MemoryPort.lookup).parameters
-    assert 'plan_fingerprint' not in inspect.signature(TranslationMemory.lookup).parameters
 
 
 def test_the_generic_path_cannot_reach_the_legacy_cache():

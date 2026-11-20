@@ -1,9 +1,8 @@
 import pytest
-from ayvu.v1.cache_check import verify_cache_writable
 from ayvu.translation.preflight import PreflightError, run_translation_preflight
 from ayvu.providers.libretranslate.client import RoutedTranslator, TranslatorLanguage
 from ayvu.kernel import LanguagePair
-from tests.translation.preflight_support import TranslatorWithFailingLanguages, TranslatorWithLanguages, _preflight
+from tests.translation.preflight_support import accept_cache, TranslatorWithFailingLanguages, TranslatorWithLanguages, _preflight
 
 
 def test_preflight_uses_languages_to_resolve_direct_route(monkeypatch, tmp_path):
@@ -24,7 +23,7 @@ def test_preflight_uses_languages_to_resolve_direct_route(monkeypatch, tmp_path)
         timeout=1.0,
         retries=0,
         language_pair=LanguagePair(source="en", target="pt"),
-        dry_run=False, cache_check=verify_cache_writable)
+        dry_run=False, cache_check=accept_cache)
 
     assert translator.list_calls == 1
     assert translator.translate_calls == []
@@ -51,7 +50,7 @@ def test_preflight_wraps_translator_when_intermediate_route_is_needed(monkeypatc
         timeout=1.0,
         retries=0,
         language_pair=LanguagePair(source="fr", target="pt"),
-        dry_run=False, cache_check=verify_cache_writable)
+        dry_run=False, cache_check=accept_cache)
 
     assert isinstance(result.translator, RoutedTranslator)
     assert result.route is not None
@@ -83,7 +82,7 @@ def test_preflight_translator_factory_preserves_intermediate_route(monkeypatch, 
         timeout=1.0,
         retries=0,
         language_pair=LanguagePair(source="fr", target="pt"),
-        dry_run=False, cache_check=verify_cache_writable)
+        dry_run=False, cache_check=accept_cache)
 
     assert result.translator_factory is not None
     worker_translator = result.translator_factory()
@@ -110,7 +109,7 @@ def test_preflight_reports_missing_route_with_clear_message(monkeypatch, tmp_pat
             timeout=1.0,
             retries=0,
             language_pair=LanguagePair(source="fr", target="pt"),
-            dry_run=False, cache_check=verify_cache_writable)
+            dry_run=False, cache_check=accept_cache)
 
     assert error.value.summary == "O par de idiomas não está disponível no tradutor."
     assert "ayvu languages" in error.value.next_step
@@ -131,7 +130,7 @@ def test_preflight_reports_translator_unreachable_when_list_languages_fails(monk
             timeout=1.0,
             retries=0,
             language_pair=LanguagePair(source="en", target="pt"),
-            dry_run=False, cache_check=verify_cache_writable)
+            dry_run=False, cache_check=accept_cache)
 
     assert error.value.summary == "O tradutor não respondeu."
     assert "connection refused" not in error.value.detail

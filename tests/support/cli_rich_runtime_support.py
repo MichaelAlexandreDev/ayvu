@@ -11,7 +11,6 @@ import pytest
 from typer.testing import CliRunner
 from ayvu.interfaces.cli import app as cli, settings as cli_settings, options as cli_options
 import ayvu.composition.builders.translate_project as composition
-from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.preferences.model import AyvuConfig
 from ayvu.jobs.model import JobState
 from ayvu.jobs.events import JobEventSequence, encode_event

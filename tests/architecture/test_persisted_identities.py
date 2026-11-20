@@ -26,6 +26,8 @@ What each identity keys (checked against its callers at 5796e49):
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from functools import cache as memoize
@@ -39,7 +41,7 @@ from ayvu.knowledge.cache import identity_values as cache_identity
 from ayvu.knowledge.cache.entries import source_content_digest
 from ayvu.projects.profiles import model as project_profiles
 from ayvu.content import model as content
-from ayvu.v1 import cache
+from ayvu.knowledge.cache import legacy_format
 from ayvu.translation.context import model as translation_context
 from ayvu.translation import raw_results as translation_raw_results
 from ayvu.translation import plan as translation_plan
@@ -127,6 +129,16 @@ def semantic_operation() -> SemanticOperationV2:
         plan.NORMALIZATION_REVISION, (("markup", CanonicalValue("boolean", True)),))
 
 
+def legacy_text_hash(text: str) -> str:
+    """The v1 row key, as the JSON-v1 cache reader still checks it: it accepts an entry only with this hash."""
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    entry = {"source_lang": "en", "target_lang": "pt", "original_text_hash": digest, "original_text": text,
+             "translated_text": "x", "created_at": "2026-01-01 00:00:00"}
+    legacy_format.validate(json.dumps({"version": 1, "entries": [entry]}).encode(), file_bytes=10**6, entries_limit=1,
+                           text_length=10**4, metadata_length=100, structure_depth=8, structure_tokens=100)
+    return digest
+
+
 GOLDEN = {
     "content source digest": (
         lambda: content.source_digest("project-1", TEXT),
@@ -138,7 +150,7 @@ GOLDEN = {
         lambda: translation_plan._digest("producer", {"name": "libretranslate", "version": 1}),
         "sha256:417f5ef5c9e27d9f30217d8f581a8b06e261205c6e6bc985415fcce911fd3879"),
     "cache v1 text hash": (
-        lambda: cache.text_hash(TEXT),
+        lambda: legacy_text_hash(TEXT),
         "8d4642afb4cbbf6a2f242cab16bd32bc8c9a6a90954b17146c3fcb8ab92e9ec7"),
     "cache v2 source digest": (
         lambda: source_content_digest(TEXT),

@@ -13,7 +13,6 @@ from ayvu.knowledge.memory.approved.model import (
 )
 from ayvu.knowledge.memory.approved.service import CreateCandidate, ReviewRevision
 from ayvu.knowledge.memory.approved.store import MEMORY_MIGRATIONS, SqliteApprovedMemoryRepository, memory_migration_runner
-from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.provenance.model import ActorKind, ConfigurationRef
 from tests.support.approved_memory_fixtures import IMPORT_SCOPE, NOW, PAIR, PIN, PROJECT_SCOPE, SCOPES, USER_SCOPE, WORK_SCOPE, MemoryEnvironment, document, final, source
 from tests.support.content_fixtures import PROJECT

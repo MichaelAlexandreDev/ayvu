@@ -12,8 +12,6 @@ from pathlib import Path
 import pytest
 from ayvu.artifacts.model import ArtifactRequest, ArtifactState
 from ayvu.artifacts.destination import DestinationFileOps, LocalDestinationPayloads
-from ayvu.v1.cache import TranslationCache
-from ayvu.v1.epub import translate_epub
 from ayvu.knowledge.glossary.rules import load_glossary
 from ayvu.jobs.model import JobState, JobStoreError
 from ayvu.jobs.events import JobEventKind, encode_event
@@ -25,7 +23,9 @@ from ayvu.translation.project import TranslateProject
 from ayvu.translation.project_contracts import (OUTPUT_ROLE, RECONSTRUCT_STAGE,
     RECONSTRUCT_STAGE_VERSION, TRANSLATE_BEFORE_START, ContinuationTicket, OutputValidation, TranslateCommandError,
     TranslateObserver, TranslateProjectCommand, TranslateProjectPorts, resolve_execution_plan as resolve_plan)
-from ayvu.composition.builders.translate_project import LegacyOutputValidator, LegacyResources, LegacyTranslationRuntime, open_translate_project
+from ayvu.composition.builders.translate_project import LegacyOutputValidator, LegacyResources, open_translate_project
+from tests.support.engine_runtime_support import EngineTestRuntime
+from tests.support.legacy_cache_file import LegacyCacheFile
 from ayvu.translation.engine import ENGINE_BEFORE_CHAPTER, ENGINE_BEFORE_UNIT, EngineObserver
 from ayvu.providers.libretranslate.client import TranslatorError
 from tests.support.epub_fakes import OPF, XHTML, epub_bytes
@@ -176,7 +176,7 @@ class World:
 
     def cache_factory(self):
         self.factory_calls["cache"] += 1
-        return TranslationCache(self.cache)
+        return LegacyCacheFile(self.cache)
 
     def translator_factory(self):
         self.factory_calls["translator"] += 1
@@ -186,7 +186,7 @@ class World:
         return LegacyResources(self.translator, self.glossary, self.translator_factory)
 
     def runtime(self, options, prepare=None):
-        return LegacyTranslationRuntime(self.source, options, prepare or self.prepare, self.cache_factory)
+        return EngineTestRuntime(self.source, options, prepare or self.prepare, self.cache_factory)
 
     def command(self, *, destination=None, overwrite=False, **options):
         return TranslateProjectCommand(self.project.project_id, self.project.source_sha256,
@@ -259,28 +259,6 @@ class World:
 @pytest.fixture
 def world(tmp_path):
     return World(tmp_path)
-
-
-def current_flow(world, directory, **options):
-    directory.mkdir()
-    translator = Prefix(world.translator.change)
-    with TranslationCache(directory / "cache.sqlite") as cache:
-        factories = {}
-        if options.get("workers", 1) > 1:
-            factories = dict(translator_factory=lambda: translator, cache_factory=lambda: TranslationCache(directory / "cache.sqlite"))
-        report = translate_epub(world.source, directory / "out.epub", translator, cache,
-                                TranslationOptions(language_pair=PAIR, **options), **factories)
-    return report, (directory / "out.epub").read_bytes() if report.output_written else None, translator
-
-
-SCENARIOS = {
-    "plain": {},
-    "metadata-and-alt": dict(translate_metadata=True, translate_alt_text=True),
-    "selection": dict(chapter_selection=ChapterSelection.parse("2")),
-    "small-chunks": dict(chunk_limit=20),
-    "cache-only": dict(cache_only=True),
-    "workers": dict(workers=2),
-}
 
 
 CANCEL_POINTS = [TRANSLATE_BEFORE_START, "format_before_work", "epub_between_members", ENGINE_BEFORE_CHAPTER, ENGINE_BEFORE_UNIT,

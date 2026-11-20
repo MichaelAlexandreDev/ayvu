@@ -1,6 +1,4 @@
 import pytest
-from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.v1.cache_check import verify_cache_writable
 from ayvu.translation.preflight import PreflightError, run_translation_preflight
 from ayvu.providers.libretranslate.client import RequestRateLimiter, RoutedTranslator, TranslatorError, TranslatorLanguage
 from ayvu.kernel import LanguagePair
@@ -50,10 +48,14 @@ def raise_bad_epub(_path: object) -> object:
     raise ValueError("bad epub")
 
 
+def accept_cache(_path):
+    """The cache check is the caller's port: the rich runtime prepares its own cache, so this one accepts."""
+
+
 def _preflight(tmp_path, translator, monkeypatch, source="en", target="pt", url="http://localhost:5000"):
     monkeypatch.setattr("ayvu.translation.preflight.create_translator", lambda *_args, **_kwargs: translator)
     monkeypatch.setattr("ayvu.translation.preflight.inspect_epub", lambda _path: object())
     return run_translation_preflight(
         epub_path=tmp_path / "book.epub", cache_path=tmp_path / "cache.sqlite", glossary_path=None,
         translator_name="libretranslate", url=url, timeout=1.0, retries=0,
-        language_pair=LanguagePair(source=source, target=target), dry_run=False, cache_check=verify_cache_writable)
+        language_pair=LanguagePair(source=source, target=target), dry_run=False, cache_check=accept_cache)

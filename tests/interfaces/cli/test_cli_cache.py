@@ -1,4 +1,4 @@
-from ayvu.v1.cache import TranslationCache
+from tests.support.legacy_cache_file import LegacyCacheFile
 from ayvu.interfaces.cli.app import app
 from tests.support.cli_support import _seed_cache_entry, runner
 
@@ -40,7 +40,7 @@ def test_cache_clean_dry_run_does_not_delete_entries(tmp_path):
     assert result.exit_code == 0
     assert "Dry run" in result.output
     assert "1 cache entry would be removed" in result.output
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         assert cache.get(key) == "Olá"
 
 
@@ -53,7 +53,7 @@ def test_cache_clean_deletes_confirmed_entries(tmp_path):
 
     assert result.exit_code == 0
     assert "Deleted 1 cache entry" in result.output
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         assert cache.get(removed_key) is None
         assert cache.get(kept_key) == "Hola"
 
@@ -79,7 +79,7 @@ def test_cache_export_and_import_commands(tmp_path):
     assert import_result.exit_code == 0
     assert "Cache import" in import_result.output
     assert "Imported" in import_result.output
-    with TranslationCache(target_cache) as cache:
+    with LegacyCacheFile(target_cache) as cache:
         assert cache.get(key) == "Olá"
 
 
