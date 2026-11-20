@@ -58,8 +58,8 @@ def test_unsupported_destinations_never_reach_resolver(url):
 
 
 def test_closed_vocabulary_and_visible_compatibility_default():
-    assert {item.value for item in NetworkPolicy} == {"none", "loopback"}
-    for value in ("remote", "NONE", "", 3, object()):
+    assert {item.value for item in NetworkPolicy} == {"none", "loopback", "remote"}
+    for value in ("REMOTE", "NONE", "", 3, object()):
         denied = resolve_network_policy(value, "http://localhost:5000")
         assert not denied.allowed and denied.reason == "unknown_network_policy"
     default = resolve_network_policy(None, "http://localhost:5000")
@@ -225,7 +225,7 @@ def test_cli_none_and_legacy_destination_denial_are_actionable_and_zero_io(monke
     for url in ("http://10.0.0.1:5000", "https://localhost:5000"):
         result = CliRunner().invoke(app, [command, "--url", url])
         assert result.exit_code == 1 and ("unsupported_destination" in result.output or "unsupported_scheme" in result.output)
-        assert "futura política" in result.output and url not in result.output
+        assert "--network-policy remote" in result.output and url not in result.output
     assert reached == []
 
 

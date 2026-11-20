@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Optional
 import typer
 from .render import console
-from .options import NETWORK_POLICY_HELP, _invocation_network_policy
-from .commands import cache, content, resume, review, translate, translator
+from .options import CONSENT_REMOTE_HELP, NETWORK_POLICY_HELP, _invocation_network_policy, _invocation_remote_consent
+from .commands import cache, consent, content, resume, review, translate, translator
 from .commands.resume import _offer_detected_translation_resume, _print_processing_translation_states
 from ...composition.cli import CliSurface, installed_cli_surface, open_job_recovery
 from ...kernel import UserMode
@@ -16,6 +16,7 @@ from ...network import NetworkPolicy
 def main(
     ctx: typer.Context,
     network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
+    consent_remote: bool = typer.Option(False, "--consent-remote", help=CONSENT_REMOTE_HELP),
     mode: Optional[UserMode] = typer.Option(
         None,
         "--mode",
@@ -36,7 +37,7 @@ def main(
         # COMMON mode is only when running 'ayvu' without subcommands or options (except for help)
         # Typer sets invoked_subcommand when a subcommand is used.
         # ctx.params contains options of the callback itself.
-        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k not in {"mode", "network_policy"}):
+        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k not in {"mode", "network_policy", "consent_remote"}):
             mode = UserMode.COMMON
     surface = ctx.obj
     ctx.ensure_object(dict)
@@ -44,6 +45,8 @@ def main(
     ctx.obj["network_policy"] = network_policy
     network_token = _invocation_network_policy.set(network_policy)
     ctx.call_on_close(lambda: _invocation_network_policy.reset(network_token))
+    consent_token = _invocation_remote_consent.set(True if consent_remote else False if mode == UserMode.DEVELOPER else None)
+    ctx.call_on_close(lambda: _invocation_remote_consent.reset(consent_token))
 
     if ctx.invoked_subcommand is not None:
         return
@@ -74,6 +77,7 @@ def create_app(surface: CliSurface) -> typer.Typer:
         context_settings={"obj": surface},
     )
     cache_app = typer.Typer(help="Inspect, clean, export, and import the translation cache.")
+    consent_app = typer.Typer(help="Manage the consent recorded for remote translation providers.")
     application.callback(invoke_without_command=True)(main)
     bindings = {
         ("inspect",): content.inspect,
@@ -87,13 +91,16 @@ def create_app(surface: CliSurface) -> typer.Typer:
         ("resume",): resume.resume,
         ("extract",): content.extract,
         ("apply-review",): review.apply_review,
+        ("consent", "revoke"): consent.revoke,
     }
     for path, handler in bindings.items():
         if path in surface.commands:
-            target = cache_app if path[0] == "cache" else application
+            target = {"cache": cache_app, "consent": consent_app}.get(path[0], application)
             target.command(path[-1])(handler)
     if cache_app.registered_commands:
         application.add_typer(cache_app, name="cache")
+    if consent_app.registered_commands:
+        application.add_typer(consent_app, name="consent")
     return application
 
 

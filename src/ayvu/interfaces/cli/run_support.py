@@ -1,6 +1,7 @@
 """Book execution adapters, progress displays and checkpoint actions."""
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 import typer
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn, TimeElapsedColumn
@@ -8,11 +9,12 @@ from ...translation import ItemOutcome, ItemStatus
 from .contracts import ValidationResult
 from ...composition.cli import _BookHooks, _BookRequest, _BookOutcome, validate_output, _translate_without_project as execute_translate_without_project, _translate_in_project as execute_translate_in_project
 from ...translation import ResumeStateError
-from ...composition.cli import require_translation_model, translation_modality
+from ...composition.cli import remote_egress_notice, require_translation_model, translation_modality
 from . import settings
 from ...translation import PreflightError
 from .progress import TranslationProgress
 
+from .options import _invocation_remote_consent
 from .render import _print_expected_error, console
 
 
@@ -73,7 +75,21 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
-    return _with_selection(book, execute_translate_in_project(book, hooks))
+    return _with_selection(book, execute_translate_in_project(replace(book, remote_consent=_remote_consent), hooks))
+
+
+def _remote_consent(notice) -> bool:
+    """The owner's answer to a remote egress notice: developer mode's flag, or one question in plain words."""
+    selected = _invocation_remote_consent.get()
+    if selected is not None:
+        return selected
+    hosts = ", ".join(host.rsplit(":", 1)[0] for host in notice.hosts)
+    console.print(f"[bold]Remote translation with {notice.provider}[/bold]")
+    console.print(f"The book's visible text and your glossary terms will leave this computer, over HTTPS, to {hosts}.")
+    console.print("File names, folders and settings are not sent. The API key is read from the environment and never saved.")
+    console.print(f"Provider's retention claim: {notice.retention_claim}")
+    console.print("Your answer is recorded in this book's project; 'ayvu consent revoke <book.epub>' removes it.")
+    return typer.confirm(f"Send this book's text to {notice.provider}?", default=False)
 
 
 def _checkpoint_action(action, *args, **kwargs):
@@ -116,4 +132,6 @@ def _with_selection(book, outcome):
     if outcome.report is not None:
         outcome.report.provider_name = book.translator_name
         outcome.report.model_name = book.translator_models.get(book.translator_name)
+        notice = remote_egress_notice(book.translator_name)
+        outcome.report.retention_claim = notice.retention_claim if notice is not None else None
     return outcome

@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from . import editions, surface_rules
-from .builders import cache_admin, content, glossary, providers, review, rich_provider, translate_project, translate_transient
+from .builders import cache_admin, content, glossary, providers, reports, review, rich_provider, translate_project, translate_transient
 from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation
@@ -23,10 +23,10 @@ from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
 from ..translation.preflight import check_book_resources
-from .builders import checkpoint, selection
+from .builders import checkpoint, remote, remote_consent, selection
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
-from ..kernel import JobWarning, OutputPlan, TranslationOptions, automatic_output_candidate
+from ..kernel import JobWarning, OutputPlan, TranslationOptions
 
 
 @dataclass(frozen=True, repr=False)
@@ -58,6 +58,7 @@ class _BookRequest:
     translator_name: str = "libretranslate"
     translator_models: dict[str, str] = field(default_factory=dict, repr=False)
     preview: bool = False
+    remote_consent: Callable[[object], bool] | None = None  # the owner's answer to a remote egress notice
 
 
 @dataclass(frozen=True, repr=False)
@@ -217,7 +218,7 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
     require_translation_model(book.translator_models, book.translator_name, continuation=book.continuation)
     # A model translator is prepared now, before its job: the job records a producer naming the model's digest.
-    model = rich_provider.prepare_model_translation(book.translator_name, book.prepare)
+    model = rich_provider.prepare_model_translation(book.translator_name, book.prepare, book)
     if model is not None and book.continuation is not None:
         selection.require_resume_producer(book, model.binding.producer)
 
@@ -332,20 +333,11 @@ def prepare_translation(*, epub_path, options, cache_path, glossary_path, transl
 
 
 def publish_cli_report(path: Path, text: str) -> Path:
-    """Preserve the current report publication semantics, including mode and overwrite behavior."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-    return path
+    return reports.publish_cli_report(path, text)
 
 
 def report_destination(directory: Path, stem: str, suffix: str = '.md') -> Path:
-    directory.mkdir(parents=True, exist_ok=True)
-    path = automatic_output_candidate(directory, stem, suffix, 1)
-    index = 2
-    while path.exists():
-        path = automatic_output_candidate(directory, stem, suffix, index)
-        index += 1
-    return path
+    return reports.report_destination(directory, stem, suffix)
 
 
 @dataclass(frozen=True)
@@ -396,3 +388,11 @@ def resume_translation_configuration(config, processing_dir, project_id, ticket)
 
 def discover_translator_models(**settings):
     return providers.discover_translator_models(**settings)
+
+
+def remote_egress_notice(translator_name):
+    return remote.egress_notice(translator_name)
+
+
+def revoke_remote_consent(processing_dir, target, translator=None):
+    return remote_consent.revoke_remote_consent(processing_dir, target, translator)

@@ -23,7 +23,9 @@ internal file names. The original EPUB is never modified; the translation is wri
 - **Human review:** export a CSV review package, correct it in a spreadsheet, and apply it back to
   produce a reviewed EPUB.
 - **Offline by design:** an explicit network policy allows only loopback HTTP by default, or no
-  network at all (`--network-policy none`).
+  network at all (`--network-policy none`). Remote AI providers will need `--network-policy remote`
+  (HTTPS to the hosts they declare) and a consent recorded per project, revocable with
+  `ayvu consent revoke`.
 - **Two modes:** a guided menu for everyday use (`ayvu`) and direct subcommands for scripting.
 
 ## Quick start
@@ -84,6 +86,7 @@ configuration changes. Plans and reports display both names, without credentials
 | `ayvu apply-review book.epub review.csv` | Applies a reviewed CSV package and writes a reviewed EPUB |
 | `ayvu cache inspect\|clean\|export\|import` | Manages the translation cache |
 | `ayvu languages` | Lists the languages your server offers; for Ollama (`--translator ollama`), the list Ayvu declares, since a model has no fixed one |
+| `ayvu consent revoke <epub>` | Removes the consent a project recorded for a remote provider; the next remote run asks again |
 
 Run `uv run ayvu --help` or `uv run ayvu <command> --help` for every option.
 

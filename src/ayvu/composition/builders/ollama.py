@@ -63,7 +63,7 @@ def ollama_url(url: str | None) -> str:
     return DEFAULT_OLLAMA_URL if url in (None, LIBRETRANSLATE_DEFAULT_URL) else url
 
 
-def _transport(timeout: float, retries: int, requests_per_second: float | None, retry_backoff: float,
+def transport_controls(timeout: float, retries: int, requests_per_second: float | None, retry_backoff: float,
                retry_backoff_max: float) -> tuple[RequestRateLimiter | None, tuple[float, ...]]:
     """LibreTranslate's validation and backoff: one shared limiter, and the delay before each retry.
 
@@ -110,7 +110,7 @@ def ollama_preflight(*, book_checks, epub_path, cache_path, glossary_path, url, 
     name = _checked_request(model=model, workers=workers, dry_run=dry_run, cache_only=cache_only,
                             language_pair=language_pair, settings=settings)
     try:
-        limiter, delays = _transport(timeout, retries, requests_per_second, retry_backoff, retry_backoff_max)
+        limiter, delays = transport_controls(timeout, retries, requests_per_second, retry_backoff, retry_backoff_max)
     except TranslatorError as error:
         raise PreflightError("Invalid Ollama settings.", "Check --timeout, --retries and --requests-per-second.",
                              detail=str(error)) from None
@@ -146,7 +146,7 @@ def ollama_provider_session(*, url: str, timeout: float, requests_per_second: fl
                             network_policy=None, model: str | None = None, **_ignored) -> CliProviderSession:
     """``test-translator`` and ``languages``. A test needs the model; the language list does not."""
     try:
-        limiter, _ = _transport(timeout, 0, requests_per_second, 0.0, 0.0)
+        limiter, _ = transport_controls(timeout, 0, requests_per_second, 0.0, 0.0)
     except TranslatorError:
         # Its message is not forwarded: a bad setting is reported with a code.
         raise ProviderSetupError("invalid_provider_settings") from None

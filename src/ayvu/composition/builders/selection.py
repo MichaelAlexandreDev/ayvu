@@ -15,6 +15,7 @@ from ...provenance.store import SqliteProvenanceRepository
 from ...translation import PreflightError
 from .rich_provider import require_model
 from .ollama import require_supported_mode
+from .remote import remote_adapter, require_remote_mode
 
 
 @dataclass(frozen=True, repr=False)
@@ -41,6 +42,9 @@ def select_translator(config: AyvuConfig, *, translator: str | None = None, mode
         require_model({}, name)
     if name == 'ollama':
         require_supported_mode(dry_run=dry_run, cache_only=cache_only, preview=preview)
+    remote = remote_adapter(name)
+    if remote is not None:
+        require_remote_mode(dry_run=dry_run, cache_only=cache_only, preview=preview)
     profile_model = profile.model if profile and profile_translator in (None, name) else None
     chosen = model if model is not None else profile_model if profile_model is not None else config.translator_models.get(name)
     if chosen is not None and not MODEL_TRANSLATORS[name](chosen):
@@ -48,7 +52,8 @@ def select_translator(config: AyvuConfig, *, translator: str | None = None, mode
     models = dict(config.translator_models)
     if chosen is not None:
         models[name] = chosen
-    endpoint = url if url is not None else ('http://localhost:11434' if name == 'ollama' else 'http://localhost:5000')
+    default = remote.BASE_URL if remote is not None else 'http://localhost:11434' if name == 'ollama' else 'http://localhost:5000'
+    endpoint = url if url is not None else default
     return TranslatorSelection(name, chosen, endpoint, replace(config, translator_models=models))
 
 

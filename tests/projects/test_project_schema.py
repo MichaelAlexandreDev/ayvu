@@ -11,6 +11,7 @@ from ayvu.jobs.model import JobRequest, JobState, JobStoreError
 from ayvu.artifacts.store import ARTIFACT_SCHEMA_STATEMENTS
 from ayvu.jobs.store import JOB_SCHEMA_STATEMENTS
 from ayvu.provenance.store import PROVENANCE_SCHEMA_STATEMENTS
+from ayvu.projects.consent import REMOTE_CONSENT_SCHEMA_STATEMENTS
 from ayvu.projects.schema import PROJECT_MIGRATIONS, open_job_repository, project_migration_runner
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
 from ayvu.kernel.sqlite import APPLICATION_ID, SqliteMigrationRunner
@@ -21,6 +22,7 @@ PROJECT = str(UUID(int=1))
 V2_CHECKSUM = 'bb8de968c66ff715f48f6fd763be29a553fd4c6a49b14c702dc07b1dabe5e5d9'
 V3_CHECKSUM = '936a09b9b40fa9d20d8687672b2dec067844c991747363be9d78b2a233b8a008'
 V4_CHECKSUM = 'f863172375c8ceceff484d694e2102c9a975f2041e198f73cb39bf3c23f7af28'
+V5_CHECKSUM = 'c937e0d775e59fa9fed01f2c8946702c7998f43c18f7299fede1f9ab40d02208'
 
 
 def seeded(path, version):
@@ -41,7 +43,7 @@ def request():
 
 
 def test_registry_history_is_ordered_and_released_steps_are_frozen():
-    assert [step.version for step in PROJECT_MIGRATIONS] == [1, 2, 3, 4]
+    assert [step.version for step in PROJECT_MIGRATIONS] == [1, 2, 3, 4, 5]
     assert PROJECT_MIGRATIONS[0].statements == ()
     assert PROJECT_MIGRATIONS[1].statements == JOB_SCHEMA_STATEMENTS
     # A failure here means a released migration was edited. Add a new version instead.
@@ -50,6 +52,8 @@ def test_registry_history_is_ordered_and_released_steps_are_frozen():
     assert PROJECT_MIGRATIONS[2].checksum == V3_CHECKSUM
     assert PROJECT_MIGRATIONS[3].statements == PROVENANCE_SCHEMA_STATEMENTS
     assert PROJECT_MIGRATIONS[3].checksum == V4_CHECKSUM
+    assert PROJECT_MIGRATIONS[4].statements == REMOTE_CONSENT_SCHEMA_STATEMENTS
+    assert PROJECT_MIGRATIONS[4].checksum == V5_CHECKSUM
 
 
 def test_default_runner_keeps_its_infrastructure_only_registry():
@@ -60,38 +64,39 @@ def test_fresh_bootstrap_reaches_the_released_schema_and_is_idempotent(tmp_path)
     path, backups = tmp_path / 'project.sqlite', tmp_path / 'backups'
     runner = project_migration_runner()
     first = runner.migrate(path, backups)
-    assert first.ok and first.status == 'created' and first.applied == (1, 2, 3, 4)
+    assert first.ok and first.status == 'created' and first.applied == (1, 2, 3, 4, 5)
     original = path.read_bytes()
     assert runner.migrate(path, backups).status == 'unchanged'
     assert path.read_bytes() == original and not backups.exists()
     version, application, objects, ledger = schema(path)
-    assert (version, application) == (4, APPLICATION_ID)
+    assert (version, application) == (5, APPLICATION_ID)
     assert {name for _, name, _ in objects} >= {
         'ayvu_schema_migrations', 'translation_jobs', 'translation_jobs_by_project_state', 'translation_jobs_immutable',
         'job_artifacts', 'job_artifacts_one_active', 'job_artifacts_by_state', 'job_artifacts_immutable',
         'provenance_records', 'provenance_parents', 'provenance_artifacts', 'provenance_artifacts_by_artifact',
         'provenance_records_no_update', 'provenance_records_no_delete', 'provenance_parents_no_update',
         'provenance_parents_no_delete', 'provenance_artifacts_no_update', 'provenance_artifacts_no_delete',
+        'remote_egress_consents',
     }
-    assert ledger[1:] == [(2, V2_CHECKSUM), (3, V3_CHECKSUM), (4, V4_CHECKSUM)]
+    assert ledger[1:] == [(2, V2_CHECKSUM), (3, V3_CHECKSUM), (4, V4_CHECKSUM), (5, V5_CHECKSUM)]
 
 
 def test_released_fixture_matches_a_fresh_bootstrap_and_needs_no_migration(tmp_path):
     fresh, released = tmp_path / 'fresh.sqlite', tmp_path / 'released.sqlite'
     assert project_migration_runner().migrate(fresh, tmp_path / 'fresh-backups').ok
-    seeded(released, 4)
+    seeded(released, 5)
     assert schema(released) == schema(fresh)
     result = project_migration_runner().migrate(released, tmp_path / 'backups')
     assert result.ok and result.status == 'unchanged'
 
 
-@pytest.mark.parametrize('prior', [0, 1, 2, 3])
+@pytest.mark.parametrize('prior', [0, 1, 2, 3, 4])
 def test_each_prior_version_upgrades_with_a_verified_backup(tmp_path, prior):
     path, backups = tmp_path / 'project.sqlite', tmp_path / 'backups'
     seeded(path, prior)
     before = schema(path) if prior else None
     result = project_migration_runner().migrate(path, backups)
-    assert result.ok and result.status == 'upgraded' and result.to_version == 4 and result.backup_verified
+    assert result.ok and result.status == 'upgraded' and result.to_version == 5 and result.backup_verified
     with closing(sqlite3.connect(backups / result.backup_name)) as snapshot:
         assert snapshot.execute('PRAGMA user_version').fetchone()[0] == prior
     if prior:
@@ -148,13 +153,13 @@ def test_real_project_boundary_preserves_manifest_source_and_cache(tmp_path):
 
 def test_documented_snapshot_verifier_accepts_the_current_schema(tmp_path):
     path = tmp_path / 'snapshot.sqlite'
-    seeded(path, 4)
+    seeded(path, 5)
     document = PROJECT_ROOT / 'docs' / 'architecture' / 'modules' / 'projects-storage.md'
     script = document.read_text().split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
     result = subprocess.run([sys.executable, '-O', '-c', script, str(path)],
                             capture_output=True, text=True, timeout=10)
     assert result.returncode == 0
-    assert 'Snapshot integrity and ledger OK; version 4' in result.stdout
+    assert 'Snapshot integrity and ledger OK; version 5' in result.stdout
 
 
 def test_jobs_created_at_version_two_survive_the_artifact_upgrade(tmp_path):

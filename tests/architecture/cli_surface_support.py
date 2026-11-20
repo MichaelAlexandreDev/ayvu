@@ -46,3 +46,13 @@ def normalized_cli_contract():
         return {'parameters': parameters, 'help': command.help,
                 'commands': {name: command_record(child) for name, child in sorted((_subcommands(command) or {}).items())}}
     return command_record(get_command(app))
+
+
+def normalize_remote_egress(current):
+    """#379 adds the root --consent-remote flag, the consent revoke command and the remote policy choice."""
+    added = [parameter for parameter in current['parameters'] if parameter['name'] == 'consent_remote']
+    assert [(item['opts'], item['default'], item['is_flag']) for item in added] == [(['--consent-remote'], False, True)]
+    current['parameters'].remove(added[0])
+    consent = current['commands'].pop('consent')
+    assert list(consent['commands']) == ['revoke']
+    assert [item['name'] for item in consent['commands']['revoke']['parameters']] == ['target', 'translator_name', 'help']
