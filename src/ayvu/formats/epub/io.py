@@ -1,6 +1,7 @@
 """Reads an EPUB: its metadata, documents, chapters and language, and exports its visible text as Markdown.
 
-The v1 translation of a whole EPUB that used to live here is ``v1/epub.py`` (REF-10).
+The v1 translation of a whole EPUB that used to live here moved to ``v1/epub.py`` (REF-10) and was removed with
+the v1 runtime (REF-18 step 6).
 """
 from __future__ import annotations
 

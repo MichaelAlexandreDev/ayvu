@@ -65,7 +65,6 @@ exhaustive = true
 layers = [
   "interfaces",
   "composition",
-  "v1",
   "recovery",
   "review",
   "translation",
@@ -79,18 +78,6 @@ layers = [
   "kernel",
 ]
 ignore_imports = [
-]
-
-[[tool.importlinter.contracts]]
-id = "v1-quarantine"
-name = "D7: only composition imports v1 (the layers contract covers the modules below it)"
-type = "forbidden"
-allow_indirect_imports = true
-source_modules = [
-  "ayvu.interfaces",
-]
-forbidden_modules = [
-  "ayvu.v1",
 ]
 
 [[tool.importlinter.contracts]]

@@ -99,7 +99,8 @@ class _ResumeRunner:
         self._network_policy = _selected_network_policy(network_policy)
 
     def run_legacy(self, reference: str) -> None:
-        self._run(resolve_managed_project=False)
+        # Recovery asks for this only for an old standalone checkpoint, which v1 wrote: refused, as callers do earlier.
+        _refuse_previous_runtime(self._mode)
 
     def run_durable(self, reference: str, ticket: ContinuationTicket, operation_id: str) -> TranslateProjectResult:
         return self._run(continuation=ticket, operation_id=operation_id).job_result

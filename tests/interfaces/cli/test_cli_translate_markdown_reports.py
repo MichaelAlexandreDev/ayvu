@@ -5,7 +5,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
 from ayvu.recovery.checkpoint import COMPLETED_STATUS, ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
-from tests.support.cli_support import FakeCache, _fake_translation
+from tests.support.cli_support import _fake_translation
 from tests.support.cli_support import isolated_config, runner
 
 
@@ -29,7 +29,6 @@ def test_translate_command_offers_and_saves_markdown_report(tmp_path, monkeypatc
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, lambda *_args, **_kwargs: report)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._default_reports_dir", lambda: reports_dir)
@@ -81,7 +80,6 @@ def test_translate_command_puts_validation_warnings_in_report_and_markdown(tmp_p
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, lambda *_args, **_kwargs: report)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",

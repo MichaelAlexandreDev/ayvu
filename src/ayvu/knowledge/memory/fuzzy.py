@@ -1,19 +1,9 @@
+"""Fuzzy similarity and the match value the text pipeline reports; the stores live in ``approved``."""
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
 
-from rapidfuzz import fuzz, process
-
-from ...kernel import LanguagePair, TranslationMemoryOptions
-
-
-class FuzzyCandidates(Protocol):
-    """Where stored translations come from; today that is the v1 cache."""
-
-    def fuzzy_candidates(self, *, language_pair: LanguagePair, text: str, min_ratio: float,
-                         max_candidates: int) -> Sequence[tuple[str, str]]: ...
+from rapidfuzz import fuzz
 
 
 @dataclass(frozen=True, repr=False)
@@ -33,50 +23,6 @@ class TranslationMemoryMatch:
 
     def __repr__(self) -> str:
         return f"TranslationMemoryMatch(score={self.score!r}, applied={self.applied})"
-
-
-class TranslationMemory:
-    """Fuzzy reuse of stored translations for similar source text.
-
-    Heavy similarity scoring lives here, on top of the candidate set the cache
-    fetches from disk. The cache stays responsible for SQL and storage; this
-    layer only ranks candidates and applies the configured thresholds.
-    """
-
-    def __init__(self, cache: FuzzyCandidates, options: TranslationMemoryOptions) -> None:
-        self._cache = cache
-        self._options = options
-
-    def lookup(self, text: str, language_pair: LanguagePair) -> TranslationMemoryMatch | None:
-        core = text.strip()
-        if not core:
-            return None
-
-        candidates = self._cache.fuzzy_candidates(
-            language_pair=language_pair,
-            text=core,
-            min_ratio=self._options.suggest_threshold,
-            max_candidates=self._options.max_candidates,
-        )
-        if not candidates:
-            return None
-
-        best = process.extractOne(core, [original for original, _ in candidates], scorer=fuzz.ratio)
-        if best is None:
-            return None
-
-        _matched, raw_score, index = best
-        score = raw_score / 100.0
-        if score < self._options.suggest_threshold:
-            return None
-
-        original, translated = candidates[index]
-        return TranslationMemoryMatch(
-            original=original,
-            translated=translated,
-            score=score,
-            applied=self._options.applies(score),
-        )
 
 
 def similarity_score(left: str, right: str) -> float:

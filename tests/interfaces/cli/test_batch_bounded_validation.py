@@ -22,10 +22,10 @@ def isolated_cli(tmp_path, monkeypatch):
             raise AssertionError(f"unexpected boundary: {name}")
         return fail
 
-    for name in ("_load_existing_config_or_default", "_run_translation", "_translate_in_project", "translate_without_project",
-                 "run_translation_preflight", "TranslationCache", "_save_markdown_report",
+    for name in ("_load_existing_config_or_default", "_run_translation", "_translate_in_project",
+                 "run_translation_preflight", "_save_markdown_report",
                  "_save_missing_texts"):
-        owner = composition if name in {"translate_without_project", "TranslationCache"} else (cli_report if name in {"_save_markdown_report", "_save_missing_texts"} else (cli_settings if name == "_load_existing_config_or_default" else (cli_run_support if name == "_translate_in_project" else cli_run)))
+        owner = (cli_report if name in {"_save_markdown_report", "_save_missing_texts"} else (cli_settings if name == "_load_existing_config_or_default" else (cli_run_support if name == "_translate_in_project" else cli_run)))
         monkeypatch.setattr(owner, name, forbidden(name))
     return tmp_path, calls
 

@@ -59,7 +59,7 @@ def test_format_ids_match_content_review_and_translation_recipes(edition_id, mon
 
 
 @pytest.mark.parametrize("edition_id", EDITION_IDS, ids=CASE_IDS)
-def test_provider_id_matches_discovery_and_v1_preflight(edition_id, tmp_path, monkeypatch):
+def test_provider_id_matches_discovery_and_preflight(edition_id, tmp_path, monkeypatch):
     surface = effective_surface(edition_id)
     registrations = []
     register = ProviderDiscoveryService.register
@@ -78,19 +78,12 @@ def test_provider_id_matches_discovery_and_v1_preflight(edition_id, tmp_path, mo
     session.languages()
     session.test("en", "pt")
     assert registrations == [("libretranslate", "libretranslate")]
-    # Keep file validation and storage out of this recipe audit; constructors,
-    # preflight orchestration and the legacy executor remain real.
+    # Keep file validation out of this recipe audit; constructors and preflight orchestration remain real.
     monkeypatch.setattr(preflight, "inspect_epub", lambda _: None)
-    monkeypatch.setattr(cli, "verify_cache_writable", lambda _: None)
     prepared = cli.run_translation_preflight(epub_path=tmp_path / "book.epub", cache_path=tmp_path / "cache",
         glossary_path=None, translator_name=surface.providers[0], url="http://localhost:5000", timeout=30,
         retries=0, language_pair=LanguagePair("en", "pt"), dry_run=True, network_policy="none")
     assert type(prepared.translator) is LibreTranslateTranslator
-    runtime = translate_project.LegacyTranslationRuntime(tmp_path / "book.epub",
-        TranslationOptions(language_pair=LanguagePair("en", "pt")), lambda: prepared, lambda: nullcontext(object()))
-    assert runtime.preflight() is None
-    with runtime.resources() as resources:
-        assert resources.executor._translator is prepared.translator
     prepared.translator.close()
 
 

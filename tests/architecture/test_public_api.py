@@ -5,7 +5,7 @@ package's ``__init__.py`` exports, or that one of its subpackages' ``__init__.py
 ``ayvu.kernel.sqlite``). It may not import a plain submodule. Imports inside a package are free. Top-level flat modules are not packages yet, so they are outside this check until they move.
 
 The composition roots are an exception (D5): each is a public module of its own, so an interface loads only
-its root and not every edition's wiring. The quarantined v1 modules are the other (D7).
+its root and not every edition's wiring. The adapter modules are the other (``ADAPTER_MODULES``).
 """
 
 from __future__ import annotations

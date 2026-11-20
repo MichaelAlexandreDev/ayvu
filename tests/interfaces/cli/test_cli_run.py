@@ -6,7 +6,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
 from ayvu.translation import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
-from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
+from tests.support.cli_support import isolated_config, _fake_translation, runner
 
 
 def test_translate_resolves_and_reuses_project_before_preflight(minimal_epub_path, tmp_path, monkeypatch, isolated_config):
@@ -95,7 +95,6 @@ def test_translate_command_handles_keyboard_interrupt_cleanly(tmp_path, monkeypa
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, interrupt_translation)
 
     declare_model(isolated_config)

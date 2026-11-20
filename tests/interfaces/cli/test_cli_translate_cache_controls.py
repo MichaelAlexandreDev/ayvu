@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
 from ayvu.formats.epub.validation import ValidationResult
-from tests.support.cli_support import FakeCache, _fake_translation
+from tests.support.cli_support import _fake_translation
 from tests.support.cli_support import isolated_config, runner
 
 
@@ -35,7 +35,6 @@ def test_translate_command_cache_only_saves_missing_texts_file(tmp_path, monkeyp
         return SimpleNamespace(translator=object(), glossary=None, route=None)
 
     monkeypatch.setattr("ayvu.composition.cli._local_preflight", fake_preflight)
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate_epub)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",
@@ -89,7 +88,6 @@ def test_translate_command_cache_only_require_full_cache_blocks_output(tmp_path,
         "ayvu.composition.cli._local_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, lambda *_args, **_kwargs: report)
 
     def fail_validate(*_args: object, **_kwargs: object) -> ValidationResult:

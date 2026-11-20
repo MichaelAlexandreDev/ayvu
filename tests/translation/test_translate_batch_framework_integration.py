@@ -67,7 +67,7 @@ def test_client_resolves_each_book_lazily_and_executes_production_projects(tmp_p
             translation = ProjectTranslation(
                 processing, project.project_id, project.source_sha256, source,
                 TranslationOptions(language_pair=LanguagePair(language, "pt")), accepted.output,
-                False, lambda: LegacyResources(translator), lambda: pytest.fail("no v1 cache"),
+                False, lambda: LegacyResources(translator),
                 operation_id=correlation, accepted_output=accepted, model_label="local-model-2026", cache_path=tmp_path / "cache.sqlite",
             )
             run_result = translate_in_project(translation, TranslateObserver(), cancellation=cancellation)

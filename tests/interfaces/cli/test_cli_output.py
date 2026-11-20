@@ -6,7 +6,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
 from ayvu.recovery.checkpoint import ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
-from tests.support.cli_support import FakeCache, _fake_translation, runner
+from tests.support.cli_support import _fake_translation, runner
 
 
 def test_translate_command_confirms_default_output_location(tmp_path, monkeypatch, isolated_config):
@@ -35,7 +35,6 @@ def test_translate_command_confirms_default_output_location(tmp_path, monkeypatc
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
@@ -76,7 +75,6 @@ def test_translate_command_allows_custom_output_path_from_default_prompt(tmp_pat
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
@@ -131,7 +129,6 @@ def test_translate_command_allows_another_name_when_output_exists(tmp_path, monk
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",

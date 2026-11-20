@@ -146,7 +146,7 @@ def test_composition_binds_context_before_repositories_and_puts_effect_in_job_pl
     monkeypatch.setattr(composition, 'open_translate_project', open_case)
     translation = composition.ProjectTranslation(tmp_path, PROJECT, 'a' * 64, tmp_path / 'book.epub',
         TranslationOptions(language_pair=LanguagePair('en', 'pt')), OutputPlan(tmp_path / 'out.epub'), False,
-        lambda: resolutions.append('provider'), lambda: resolutions.append('cache'),
+        lambda: resolutions.append('provider'),
         operation_id=OPERATION, model_label='model-v1', cache_path=tmp_path / 'cache.sqlite', translation_context=s.execution)
     composition.translate_in_project(translation, TranslateObserver())
     assert len(opened) == 1 and type(opened[0]) is composition.RichTranslationRuntime
@@ -196,7 +196,7 @@ def test_composition_cancellation_stops_before_candidate_loading_and_project_por
     source.request('user_cancelled', NOW)
     translation = composition.ProjectTranslation(tmp_path, PROJECT, 'a' * 64, tmp_path / 'book.epub',
         TranslationOptions(language_pair=LanguagePair('en', 'pt')), OutputPlan(tmp_path / 'out.epub'), False,
-        lambda: pytest.fail('provider resolved'), lambda: pytest.fail('cache opened'),
+        lambda: pytest.fail('provider resolved'),
         operation_id=OPERATION, model_label='model-v1', cache_path=tmp_path / 'cache.sqlite', translation_context=s.execution)
     with pytest.raises(composition.ProjectTranslationUnavailable, match='context_cancelled'):
         composition.translate_in_project(translation, TranslateObserver(), cancellation=Binding() if binding else source)

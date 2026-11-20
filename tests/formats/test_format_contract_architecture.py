@@ -11,7 +11,7 @@ from tests.formats.format_adapter_support import resolve
 def test_the_contract_imports_nothing_concrete():
     forbidden = {"ebooklib", "bs4", "lxml", "typer", "rich", "PySide6", "requests", "mcp", "sqlite3", "os", "shutil", "zipfile",
                  "ayvu.providers.libretranslate.client", "ayvu.providers", "ayvu.translation",
-                 "ayvu.artifacts.store", "ayvu.jobs.store", "ayvu.v1.cache", "ayvu.knowledge.glossary", "ayvu.v1.html_translate", "ayvu.formats.epub.io", "ayvu.formats.local"}
+                 "ayvu.artifacts.store", "ayvu.jobs.store", "ayvu.knowledge.glossary", "ayvu.formats.epub.io", "ayvu.formats.local"}
     for name in CONTRACT_MODULES:
         tree = ast.parse((ROOT / "src" / "ayvu" / f"{name}.py").read_text())
         for node in ast.walk(tree):

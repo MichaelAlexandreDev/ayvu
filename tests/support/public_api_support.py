@@ -22,9 +22,9 @@ PURE_API_EXPORTS = {
 ALLOWED: dict[str, str] = {}
 
 
-# Plain modules that are a public API by themselves: the composition roots (D5); the v1 modules, quarantined
-# until REF-18 retires them (D7); and the adapters, which do I/O, so that importing a package's model and use
-# cases never loads SQLite, HTTP or the filesystem code behind them (D2, like ayvu.kernel.sqlite).
+# Plain modules that are a public API by themselves: the composition roots (D5) and the adapters, which do I/O,
+# so that importing a package's model and use cases never loads SQLite, HTTP or the filesystem code behind them
+# (D2, like ayvu.kernel.sqlite).
 ADAPTER_MODULES = frozenset({
     "network.http", "preferences.store", "preferences.config_facade", "provenance.store", "jobs.store",
     "artifacts.store", "artifacts.destination", "projects.store", "projects.schema", "projects.profiles.store",
@@ -44,9 +44,7 @@ ADAPTER_MODULES = frozenset({
     "review.local_operations"})
 
 
-PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | {f"v1.{name}" for name in (
-    "translation", "html_translate", "cache", "cache_check",
-    "epub")} | ADAPTER_MODULES)
+PUBLIC_MODULES = frozenset({"composition.cli", "composition.desktop"} | ADAPTER_MODULES)
 
 
 def packages(root: Path = SOURCE) -> set[str]:

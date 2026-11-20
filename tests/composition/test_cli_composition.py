@@ -43,7 +43,7 @@ def deny_resources(monkeypatch):
     for module, name in (
         (socket, 'socket'), (socket, 'getaddrinfo'), (socket, 'create_connection'),
         (sqlite3, 'connect'), (requests.Session, 'request'), (requests.Session, '__init__'),
-        (root, 'TranslationCache'), (root, 'ProjectJsonRepository'),
+        (root, 'ProjectJsonRepository'),
         (root, 'ConfigStore'), (root, 'LocalLibraryFilesystem'), (root, 'ReaderLauncher'),
         (root.providers, 'LibreTranslateTranslator'),
         (root.glossary, 'managed_glossary_repository'),
@@ -157,17 +157,6 @@ def test_confirmation_is_handed_to_the_real_project_command_without_implicit_aut
     root._translate_in_project(request(tmp_path, replace_existing=False), hooks())
     root._translate_in_project(request(tmp_path, replace_existing=True), hooks())
     assert captured == [False, True]
-
-
-def test_an_old_checkpoint_resume_is_refused_before_any_resource(tmp_path, monkeypatch):
-    """REF-18 step 6: v1 no longer runs; the refusal comes before the cache or the translation is touched."""
-    from ayvu.translation import PreviousRuntimeRetired
-    lifecycle = []
-    monkeypatch.setattr(root, 'TranslationCache', lambda path: lifecycle.append('open'))
-    monkeypatch.setattr(root, 'translate_without_project', lambda *args, **kwargs: lifecycle.append('translate'))
-    with pytest.raises(PreviousRuntimeRetired):
-        root._translate_without_project(request(tmp_path, project_id=None, translator_models={}), hooks(), legacy_resume=True)
-    assert lifecycle == []
 
 
 def test_a_continuation_without_an_identity_is_refused_as_a_v1_job(tmp_path):

@@ -68,8 +68,8 @@ def _validate_with_progress(output_path: Path) -> ValidationResult:
         return validate_output(output_path, on_progress=on_progress)
 
 
-def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True, legacy_resume: bool = False) -> _BookOutcome:
-    return _with_selection(book, execute_translate_without_project(book, hooks, validate=validate, legacy_resume=legacy_resume))
+def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
+    return _with_selection(book, execute_translate_without_project(book, hooks, validate=validate))
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
@@ -99,12 +99,11 @@ def translation_progress(progress, options, config, translator_name):
                                local_sequential=modality == "transient_dry_run")
 
 
-def translation_configuration(config, translator_name, mode, continuation, resolve_managed_project):
-    """Refuse before project resolution; only the resume runner disables managed resolution."""
+def translation_configuration(config, translator_name, mode, continuation):
+    """Refuse before project resolution."""
     config = config or settings._load_existing_config_or_default()
     try:
-        require_translation_model(config.translator_models, translator_name,
-            continuation=continuation, legacy_resume=not resolve_managed_project)
+        require_translation_model(config.translator_models, translator_name, continuation=continuation)
     except PreflightError as error:
         _print_expected_error(error.summary, error.next_step, mode, detail=error.detail)
         raise typer.Exit(code=1) from None

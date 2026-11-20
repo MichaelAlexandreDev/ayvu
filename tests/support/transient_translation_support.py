@@ -122,7 +122,6 @@ def deny_runtime(patch):
         "ayvu.translation.DocumentTranslator.__init__", "ayvu.translation.TranslationEngine.__init__",
         "ayvu.knowledge.cache.repository.SQLiteExactCache.__init__",
         "ayvu.knowledge.cache.repository.SQLiteExactCache.put_if_absent",
-        "ayvu.composition.cli.TranslationCache", "ayvu.composition.cli.verify_cache_writable",
         "ayvu.projects.store.ProjectJsonRepository.create", "ayvu.projects.store.ProjectJsonRepository.resolve",
         "ayvu.projects.store.ProjectJsonRepository.load", "ayvu.projects.store.ProjectJsonRepository.list_projects",
         "ayvu.projects.schema.open_job_repository", "ayvu.projects.schema.open_artifact_service",

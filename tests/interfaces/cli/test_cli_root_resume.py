@@ -6,7 +6,7 @@ from ayvu.translation import HtmlTranslationStats
 from ayvu.translation.preflight import PreflightError
 from ayvu.recovery.checkpoint import COMPLETED_STATUS, ResumeStateStore
 from ayvu.formats.epub.validation import ValidationResult
-from tests.support.cli_support import FakeCache, _fake_translation
+from tests.support.cli_support import _fake_translation
 from tests.support.cli_support import _resume_state, isolated_config, runner
 
 
@@ -84,7 +84,6 @@ def test_translate_command_records_chapter_checkpoint(tmp_path, monkeypatch, iso
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",
