@@ -1,4 +1,4 @@
-"""Translation providers: the request and result port, capabilities, discovery, the provider registry and network decisions. LibreTranslate and the CLI provider session are adapter modules."""
+"""Translation providers: the request and result port, capabilities, discovery, the provider registry, network decisions and what a remote adapter declares. LibreTranslate and the CLI provider session are adapter modules."""
 from __future__ import annotations
 
 from .capabilities import (
@@ -12,13 +12,15 @@ from .ports import (
     ContextFeature, ContextItem, ProviderRoute, ProviderStatus, Requirement, TranslationProviderRequest,
     UnitReference, valid_reference,
 )
+from .remote import RemoteCredential, RemoteModelAdapter, check_remote_adapter, credential_from_environment
 from .service import TranslationProvider, execute
 
 __all__ = [
     "Capability", "ContextFeature", "ContextItem", "DiscoveredLanguage", "DiscoveryOutcome",
     "LanguagesResult", "LimitSemantics", "LimitUnit", "NegotiationDecision", "NetworkClass",
     "ProviderCapabilitySnapshot", "ProviderRequirements", "ProviderRoute", "ProviderSetupError",
-    "ProviderStatus", "Requirement", "ResolvedProviderNetworkDecision", "SYNTHETIC_TEST_TEXT", "SupportState",
-    "TranslationProvider", "TranslationProviderRequest", "UnitReference", "capability_fingerprint", "execute",
+    "ProviderStatus", "RemoteCredential", "RemoteModelAdapter", "Requirement", "ResolvedProviderNetworkDecision", "SYNTHETIC_TEST_TEXT", "SupportState",
+    "TranslationProvider", "TranslationProviderRequest", "UnitReference", "capability_fingerprint", "check_remote_adapter",
+    "credential_from_environment", "execute",
     "negotiate", "network_refusal", "valid_reference",
 ]

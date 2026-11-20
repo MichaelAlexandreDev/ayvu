@@ -59,7 +59,8 @@ reviewed lifecycle work exists. Jobs were later accepted separately, in the scop
 [job lifecycle ADR](../decisions/job-lifecycle.md), and are schema version 2. Artifact metadata and
 the `artifacts/` directories were accepted in the scoped
 [job artifacts ADR](../decisions/job-artifacts.md), and are schema version 3. Provenance was accepted
-in the scoped [provenance ADR](../decisions/provenance.md), and is schema version 4.
+in the scoped [provenance ADR](../decisions/provenance.md), and is schema version 4. Consent to remote
+egress (#379) is schema version 5, in `projects/consent.py`.
 
 The [governed translation memory](knowledge-memory.md) introduced by
 #161 uses a dedicated `approved-memory.sqlite` alongside `project.sqlite`, with
@@ -72,7 +73,8 @@ This contract implements [#135](https://github.com/MichaelAlexandreDev/ayvu/issu
 under the [accepted, scoped DEC-012](../decisions/local-project-storage.md). The runner itself
 owns no domain tables. Schema version 2 adds the job tables of the
 [job lifecycle](../decisions/job-lifecycle.md) and version 3 the [job artifact](../decisions/job-artifacts.md)
-metadata, and version 4 the [provenance](../decisions/provenance.md) tables. This project
+metadata, version 4 the [provenance](../decisions/provenance.md) tables and version 5 the remote egress
+consents. This project
 database contains no cache or review tables. The [governed approved translation
 memory](knowledge-memory.md) uses the same runner with its own file,
 registry and backup directory; its versions do not extend `PROJECT_MIGRATIONS`.
@@ -101,7 +103,7 @@ the SQLite database. Future job services can explicitly request bootstrap throug
 their own reviewed composition. The runner never chooses layout or reads an EPUB.
 
 The production history is `PROJECT_MIGRATIONS` in `ayvu.projects.schema`, whose
-current schema is version 4. A bare `SqliteMigrationRunner()` only knows version 1
+current schema is version 5. A bare `SqliteMigrationRunner()` only knows version 1
 and refuses a newer database with `newer_schema`, so production code must use
 `project_migration_runner()`. Application ID is `0x41595655`, and
 `PRAGMA user_version` holds the schema version. Table
@@ -111,12 +113,13 @@ step's ordered SQL text. Version 1 has no domain SQL. Version 2 adds
 `translation_jobs`, its index and its immutability trigger. Version 3 adds
 `job_artifacts`, its indexes and its immutability trigger. Version 4 adds the
 `provenance_records`, `provenance_parents` and `provenance_artifacts` tables, their
-indexes and their append-only triggers. A released step is never edited; a schema change is always a new version.
+indexes and their append-only triggers. Version 5 adds `remote_egress_consents`: one row per
+project and remote provider, with the UTC time and the consent text version, and nothing else. A released step is never edited; a schema change is always a new version.
 Changed historical checksums, gaps and newer versions are rejected. No downgrade
 or implicit adoption of another application's database is allowed.
 
 The committed fixtures are an empty version-0 SQLite database, the version-1 ledger
-and the released version-2, version-3 and version-4 schemas, represented by SQL under
+and the released version-2, version-3, version-4 and version-5 schemas, represented by SQL under
 `tests/fixtures/migrations/`. Tests of the runner itself use explicitly synthetic
 harness migrations, not product history. Registries are ordered in-tree `SqliteMigration`
 values, not filesystem/plugin discovery or document-supplied SQL.

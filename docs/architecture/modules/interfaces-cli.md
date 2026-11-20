@@ -52,6 +52,7 @@ the capability it exposes.
 | `AYVU-UC-014` | Discover, inspect, and open library books: guided Library | [`interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py), [`library/service.py`](../../../src/ayvu/library/service.py), [`library/adapters.py`](../../../src/ayvu/library/adapters.py) | Configured library root and folder names, opaque book/entry references, optional reader command | Discovery reads local directory metadata without opening EPUB contents; an explicit open can launch a local reader | Grouped entries, bounded warnings, cooperative cancellation and normalized open outcomes; a new scan invalidates prior references | Guided CLI and framework-free service consumers; other interfaces must authorize reader launch explicitly |
 | `AYVU-UC-015` | Preferences: first use, Settings and configuration reading | `preferences.service.get_preferences` / `update_preferences`, via `composition.cli.configuration_store`; facade `config.ConfigStore`, values `preferences.model`; `tests/preferences/test_preferences.py`, `tests/preferences/test_preferences_store.py`, `tests/preferences/test_config.py`, `tests/interfaces/cli/test_cli_root_processing.py` | V1 values and expected revision; resolved prompts | Selected JSON repository; reading creates no configuration; writing validates revision | Snapshot, warnings, refusal and persistence result; presentation retains messages and menus | CLI and framework-free consumer |
 | `AYVU-UC-016` | Create, edit, preview, and select managed glossaries | [`knowledge/glossary/catalog.py`](../../../src/ayvu/knowledge/glossary/catalog.py), [`knowledge/glossary/catalog_store.py`](../../../src/ayvu/knowledge/glossary/catalog_store.py), [`composition/builders/glossary.py`](../../../src/ayvu/composition/builders/glossary.py), [`interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py) | Trusted managed root, opaque references, entries and revisions | Bounded local JSON catalog; no network | Normalized failures and cooperative cancellation; divergent updates are unavailable; presentation owns prompts and paths | Guided CLI and framework-free consumers with a supplied repository |
+| `AYVU-UC-017` | Revoke remote egress consent: `consent revoke <epub or project id>` | `composition/builders/remote_consent.py`, `projects/consent.py`; `tests/interfaces/cli/test_cli_remote_consent.py` | An EPUB path or a project id; optional provider | Deletes the consent rows of the matching projects in their project databases; no network | Counts of projects and removed records; an unknown project is a bounded failure | CLI and framework-free consumers |
 
 ## Proposed target ownership
 
@@ -71,6 +72,7 @@ proposals below now point to actually delivered contracts.
 | `AYVU-UC-014` | `library.service.LibraryService` | `library.adapters`: local reading and explicitly requested opening |
 | `AYVU-UC-015` | `preferences.service` | `config.ConfigStore` over `JsonPreferencesRepository`; values in `preferences.model` |
 | `AYVU-UC-016` | `knowledge.glossary.catalog` | `composition.builders.glossary`: managed JSON catalog |
+| `AYVU-UC-017` | `projects.consent` | `composition.builders.remote_consent`: the project database's consent rows |
 
 ## Interface-only behavior
 
@@ -79,6 +81,7 @@ proposals below now point to actually delivered contracts.
 | `AYVU-UI-001` | `--install-completion`, `--show-completion` | Shell integration only; not an application use case. |
 | `AYVU-UI-002` | `--mode common|developer` | Selects wording/detail and guided-vs-command presentation; it must not change domain results. |
 | `AYVU-UI-003` | `cache` command group | Navigation container for cache use cases; it has no independent application operation. |
+| `AYVU-UI-005` | `consent` command group | Navigation container for remote egress consent; it has no independent application operation. |
 | `AYVU-UI-004` | Guided Help, Back, and Exit choices; prompts and Rich tables | Interaction/rendering only. Prompt answers must be converted into stable inputs before a service is invoked. |
 
 ## Option boundary
@@ -223,6 +226,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UC-010`, `AYVU-UC-011`, `AYVU-UC-012`, `AYVU-UC-013` | `_cache_namespace`, `_cache_scope_map`, `_cache_warnings`, `cache_inspect`, `cache_clean`, `_cache_failure_hint`, `cache_export`, `cache_import` |
 | `AYVU-UC-004`, `AYVU-UC-005` | `translate` |
 | `AYVU-UC-007` | `resume` |
+| `AYVU-UC-017` | `revoke` |
 | `AYVU-UI-004` | `_print_expected_error` |
 | `AYVU-UC-010`, `AYVU-UC-011`, `AYVU-UC-013` | `_normalize_cache_before`, `_validate_cache_clean_options`, `_print_cache_summary`, `_print_cache_import_report`, `_plural_cache_entries` |
 | `AYVU-UC-001`, `AYVU-UC-008` | `_print_epub_read_error`, `_print_content_failure` |
@@ -231,7 +235,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UC-006` | `_run_preview`, `_prepare_preview` |
 | `AYVU-UC-008` | `extract` |
 | `AYVU-UC-009` | `apply_review`, `_print_review_apply_failure` |
-| `AYVU-UC-004`, `AYVU-UC-006`, `AYVU-UC-009` | `_validate_with_progress`, `_print_validation_warnings`, `_print_report`, `_has_glossary_summary`, `_print_glossary_warnings`, `_resolve_review_output_path`, `_print_review_export_failure`, `_export_review`, `_finish_translation`, `_with_selection` |
+| `AYVU-UC-004`, `AYVU-UC-006`, `AYVU-UC-009` | `_validate_with_progress`, `_print_validation_warnings`, `_print_report`, `_has_glossary_summary`, `_print_glossary_warnings`, `_resolve_review_output_path`, `_print_review_export_failure`, `_export_review`, `_finish_translation`, `_with_selection`, `_remote_consent` |
 | `AYVU-UC-007` | `_print_interrupted_translation`, `_partial_chapter_value`, `_interrupted_output_message`, `_print_processing_translation_states` |
 | `AYVU-UI-004` | `_run_guided_main_flow` |
 | `AYVU-UC-015` | `_load_or_init_config`, `_load_existing_config_or_default`, `_refuse_invalid_translator_models`, `_init_default_language_config`, `_choose_initial_folder_names`, `_print_feature_folder_paths`, `_save_config` |
@@ -282,6 +286,8 @@ differences were accepted on 2026-11-13.
 
 The compatibility checkpoint adapter is `composition/builders/checkpoint.py`; the CLI root
 constructs it through `translation_checkpoint()` without opening storage.
+The Markdown report files are written by `composition/builders/reports.py`, behind the root's
+`publish_cli_report` and `report_destination`.
 
 ## Translator selection (#377)
 
@@ -293,3 +299,14 @@ Settings option 6 chooses a translator before its model; option 5 retains LibreT
 Profiles may carry `translator` and `model`; explicit flags win. Models remain in `translator_models`.
 Plans, terminal reports and Markdown reports show only the provider name and validated model name/label.
 Checkpoint schemas, job identities, cache keys and fingerprints are unchanged.
+
+## Remote egress consent (#379)
+
+The root `--consent-remote` flag and `--network-policy remote` are invocation-scoped and never saved. The
+root resolves the invocation's answer once (`options._invocation_remote_consent`): the flag grants, developer
+mode without it refuses, and the guided and common modes ask through `run_support._remote_consent`, which
+`run_support._translate_in_project` hands to composition with the book. The question names what leaves the
+computer (visible text and glossary terms, no file names), the declared hosts and the retention claim;
+the plan and both reports show the hosts and the claim through `composition.cli.remote_egress_notice`.
+`consent revoke` (`AYVU-UC-017`, in the `consent` group `AYVU-UI-005`) calls `composition.cli.revoke_remote_consent`.
+The remote provider contract is `docs/architecture/modules/providers-remote.md`.

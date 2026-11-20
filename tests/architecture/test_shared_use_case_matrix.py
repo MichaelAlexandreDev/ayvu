@@ -13,7 +13,7 @@ from typer.main import get_command
 from ayvu.interfaces.cli.app import app
 
 from tests.support.paths import PROJECT_ROOT as ROOT
-from tests.architecture.cli_surface_support import _subcommands, normalized_cli_contract
+from tests.architecture.cli_surface_support import _subcommands, normalize_remote_egress, normalized_cli_contract
 MATRIX_PATH = ROOT / "docs" / "architecture" / "modules" / "interfaces-cli.md"
 SURFACE_PATH = ROOT / "docs" / "architecture" / "cross-cutting" / "cli-surface.md"  # option boundary and snapshot
 SNAPSHOT_PATTERN = re.compile(
@@ -310,11 +310,12 @@ def test_frozen_post_predecessor_cli_contract_with_explicit_159_and_162_addition
     assert baseline['base_sha'] == '3edd2c2813c592418189670dbef1866c3026780e'
     current = normalized_cli_contract()
     _normalize_ai03_selection(current, baseline['contract'])
+    normalize_remote_egress(current)
     commands = [current, *(current['commands'][name] for name in ('languages', 'test-translator', 'translate', 'resume'))]
     for command in commands:
         added = [parameter for parameter in command['parameters'] if parameter['name'] == 'network_policy']
         assert len(added) == 1
-        assert added[0]['opts'] == ['--network-policy'] and added[0]['choices'] == ['none', 'loopback']
+        assert added[0]['opts'] == ['--network-policy'] and added[0]['choices'] == ['none', 'loopback', 'remote']
         assert added[0]['default'] is None and added[0]['required'] is False
         command['parameters'].remove(added[0])
     # #376 adds the translator choice to the two discovery commands, and the model to the test.

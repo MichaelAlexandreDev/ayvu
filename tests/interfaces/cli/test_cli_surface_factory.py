@@ -15,13 +15,15 @@ from tests.composition.test_cli_composition import deny_resources
 
 
 TREES = (
-    ("lite", {"translate", "resume", "test-translator"}),
-    ("free", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review"}),
-    ("ai", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review"}),
+    ("lite", {"translate", "resume", "test-translator", "consent", "consent revoke"}),
+    ("free", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review", "consent", "consent revoke"}),
+    ("ai", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review", "consent", "consent revoke"}),
     ("cli_free", {"inspect", "test-translator", "languages", "cache", "cache inspect", "cache clean",
-                  "cache export", "cache import", "translate", "resume", "extract", "apply-review"}),
+                  "cache export", "cache import", "translate", "resume", "extract", "apply-review", "consent",
+                  "consent revoke"}),
     ("cli_pro", {"inspect", "test-translator", "languages", "cache", "cache inspect", "cache clean",
-                 "cache export", "cache import", "translate", "resume", "extract", "apply-review"}),
+                 "cache export", "cache import", "translate", "resume", "extract", "apply-review", "consent",
+                 "consent revoke"}),
 )
 
 
@@ -126,7 +128,7 @@ def test_partial_cache_group_has_no_unselected_help_dispatch_or_completions(monk
 
 
 def test_factories_keep_registration_order_identity_and_independent_groups():
-    from ayvu.interfaces.cli.commands import cache, content, resume, review, translate, translator
+    from ayvu.interfaces.cli.commands import cache, consent, content, resume, review, translate, translator
     surface = installed_cli_surface()
     first = cli.create_app(surface)
     reduced = cli.create_app(projected("lite"))
@@ -134,7 +136,7 @@ def test_factories_keep_registration_order_identity_and_independent_groups():
     assert first is not second and first is not cli.app
     assert first.registered_commands is not second.registered_commands
     assert first.registered_groups[0].typer_instance is not second.registered_groups[0].typer_instance
-    assert reduced.registered_groups == []
+    assert [group.name for group in reduced.registered_groups] == ["consent"]
     callbacks = [content.inspect, translator.test_translator, translator.languages, translate.translate,
                  resume.resume, content.extract, review.apply_review]
     for application in (first, second, cli.app):
@@ -143,6 +145,8 @@ def test_factories_keep_registration_order_identity_and_independent_groups():
         assert [info.callback for info in group.registered_commands] == [
             cache.cache_inspect, cache.cache_clean, cache.cache_export, cache.cache_import,
         ]
+        assert [info.callback for info in application.registered_groups[1].typer_instance.registered_commands] == [
+            consent.revoke]
     first.registered_groups[0].typer_instance.registered_commands.clear()
     assert len(second.registered_groups[0].typer_instance.registered_commands) == 4
 

@@ -42,6 +42,7 @@ COMMAND_RULES = (
     CommandRule(("resume",), Feature.RESUME_TRANSLATION),
     CommandRule(("extract",), Feature.EXTRACT_MARKDOWN),
     CommandRule(("apply-review",), Feature.REVIEW_APPLY),
+    CommandRule(("consent", "revoke"), Feature.TRANSLATE_EPUB),
 )
 MENU_RULES = (
     MenuRule("1", "translate", Feature.TRANSLATE_EPUB),

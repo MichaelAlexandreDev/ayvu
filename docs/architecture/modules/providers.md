@@ -372,7 +372,7 @@ default binding.
 codes only.
 
 The first model adapter, Ollama ([#376](https://github.com/MichaelAlexandreDev/ayvu/issues/376)), has its own
-contract: [Ollama provider](providers-ollama.md).
+contract: [Ollama provider](providers-ollama.md). Remote model adapters follow [Remote providers](providers-remote.md).
 
 ## Enforced contracts
 

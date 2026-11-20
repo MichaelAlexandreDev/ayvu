@@ -35,6 +35,8 @@ def _print_report(
     if report.provider_name is not None:
         table.add_row("Provider", report.provider_name)
         table.add_row("Model", report.model_name or "unknown")
+    if getattr(report, "retention_claim", None):
+        table.add_row("Retention claim", report.retention_claim)
     if report.review_output_path is not None:
         table.add_row("Review file", str(report.review_output_path))
     table.add_row("Chapters processed", str(report.chapters_processed))
@@ -200,6 +202,8 @@ def _render_markdown_report(
     ]
     if report.provider_name is not None:
         lines.extend([f"- Provider: {report.provider_name}", f"- Model: {report.model_name or '-'}"])
+    if getattr(report, "retention_claim", None):
+        lines.append(f"- Retention claim: {report.retention_claim}")
     if report.review_output_path is not None:
         lines.insert(6, f"- Review file: {report.review_output_path}")
     if report.execution_note:

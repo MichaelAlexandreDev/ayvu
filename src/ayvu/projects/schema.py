@@ -15,6 +15,7 @@ from ..jobs.store import JOB_SCHEMA_STATEMENTS, SqliteJobRepository
 from ..provenance import ProvenanceStoreError
 from ..provenance.store import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRepository
 from ..kernel.sqlite import SqliteMigration, SqliteMigrationRunner
+from .consent import REMOTE_CONSENT_SCHEMA_STATEMENTS, RemoteConsentError, SqliteRemoteConsentRepository
 from .turns import ProjectDatabaseTurns, TurnTakingRunner
 
 PROJECT_MIGRATIONS = (
@@ -22,6 +23,7 @@ PROJECT_MIGRATIONS = (
     SqliteMigration(2, JOB_SCHEMA_STATEMENTS),
     SqliteMigration(3, ARTIFACT_SCHEMA_STATEMENTS),
     SqliteMigration(4, PROVENANCE_SCHEMA_STATEMENTS),
+    SqliteMigration(5, REMOTE_CONSENT_SCHEMA_STATEMENTS),
 )
 
 
@@ -74,3 +76,15 @@ def open_provenance_repository(database: Path, backups: Path, project_id: str, *
     if not result.ok:
         raise ProvenanceStoreError(result.error or "io")
     return SqliteProvenanceRepository(runner, database, project_id, **factories)
+
+
+def open_remote_consents(database: Path, backups: Path, project_id: str, **factories) -> SqliteRemoteConsentRepository:
+    """Bootstrap or upgrade the database explicitly, then expose the project's remote egress consents.
+
+    ``factories`` is the optional clock of the repository.
+    """
+    runner = project_migration_runner()
+    result = runner.migrate(database, backups)
+    if not result.ok:
+        raise RemoteConsentError(result.error or "io")
+    return SqliteRemoteConsentRepository(runner, database, project_id, **factories)

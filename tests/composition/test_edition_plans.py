@@ -16,15 +16,15 @@ from tests.architecture.cli_surface_support import normalized_cli_contract
 
 
 @pytest.mark.parametrize("edition_id,commands,menu,extraction,reports", (
-    ("lite", {"translate", "resume", "test-translator"},
+    ("lite", {"translate", "resume", "test-translator", "consent revoke"},
      (("1", "translate"), ("2", "preview"), ("4", "settings"), ("6", "help"), ("0", "exit")), (), ()),
-    ("free", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review"},
+    ("free", {"translate", "resume", "test-translator", "consent revoke", "inspect", "extract", "apply-review"},
      (("1", "translate"), ("2", "preview"), ("3", "library"), ("4", "settings"), ("5", "glossaries"), ("6", "help"), ("0", "exit")), ("markdown",), ("markdown",)),
-    ("ai", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review"},
+    ("ai", {"translate", "resume", "test-translator", "consent revoke", "inspect", "extract", "apply-review"},
      (("1", "translate"), ("2", "preview"), ("3", "library"), ("4", "settings"), ("5", "glossaries"), ("6", "help"), ("0", "exit")), ("markdown",), ("markdown",)),
-    ("cli_free", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review", "languages", "cache inspect", "cache clean", "cache export", "cache import"},
+    ("cli_free", {"translate", "resume", "test-translator", "consent revoke", "inspect", "extract", "apply-review", "languages", "cache inspect", "cache clean", "cache export", "cache import"},
      (("1", "translate"), ("2", "preview"), ("3", "library"), ("4", "settings"), ("5", "glossaries"), ("6", "help"), ("0", "exit")), ("markdown",), ("markdown",)),
-    ("cli_pro", {"translate", "resume", "test-translator", "inspect", "extract", "apply-review", "languages", "cache inspect", "cache clean", "cache export", "cache import"},
+    ("cli_pro", {"translate", "resume", "test-translator", "consent revoke", "inspect", "extract", "apply-review", "languages", "cache inspect", "cache clean", "cache export", "cache import"},
      (("1", "translate"), ("2", "preview"), ("3", "library"), ("4", "settings"), ("5", "glossaries"), ("6", "help"), ("0", "exit")), ("markdown",), ("markdown",)),
 ))
 def test_literal_edition_projection(edition_id, commands, menu, extraction, reports):
@@ -56,7 +56,8 @@ def test_installed_selection_matches_real_typer_tree_and_existing_menu_keys():
     plan = installed_cli_surface()
     assert set(plan.commands) == leaves(contract)
     assert {path[0] for path in plan.commands} == set(contract["commands"])
-    assert len(contract["commands"]) == 8
+    assert len(contract["commands"]) == 9
+    assert set(contract["commands"]["consent"]["commands"]) == {"revoke"}
     assert set(contract["commands"]["cache"]["commands"]) == {"inspect", "clean", "export", "import"}
     assert "--preview" in {option for parameter in contract["parameters"] for option in parameter["opts"]}
     assert tuple(key for key, _ in plan.menu_actions) == (

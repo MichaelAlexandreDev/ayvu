@@ -10,6 +10,20 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Saída HTTPS explícita e consentida para provedores remotos de IA (#379). A nova política
+  `--network-policy remote` nunca é o padrão: mantém tudo o que `loopback` permite (LibreTranslate e
+  Ollama seguem iguais) e acrescenta só HTTPS aos hosts que o adaptador do provedor declara, sem
+  credenciais, query ou fragmento na URL, sem IP literal não declarado, ignorando sempre os proxies do
+  ambiente e seguindo um redirecionamento só quando o destino também é declarado (a chave vai só ao host
+  autorizado). Antes da primeira tradução remota de um projeto, o guiado e o modo comum explicam que o
+  texto visível do livro e os termos do glossário saem da máquina (nomes de arquivos não) e perguntam uma
+  vez; "não" sai com código 1 sem nenhuma requisição. O modo desenvolvedor exige `--consent-remote`. O
+  consentimento fica no banco do projeto (provedor, hora UTC e versão do texto `remote-egress-v1`, esquema
+  versão 5, com backup na migração) e sai com `ayvu consent revoke <epub|projeto>`. A credencial vem da
+  variável de ambiente padrão do provedor, lida na hora, e nunca é gravada. Plano e relatórios mostram os
+  hosts e a retenção declarada pelo provedor (`RETENTION_CLAIM`). Preview, dry-run e cache-only remotos
+  ficam recusados. Nenhum provedor remoto real entra agora: Anthropic e OpenAI chegam depois.
+
 - O runtime v1 não executa mais. Retomar um job v1 ou um checkpoint antigo (pelo `resume` ou pela oferta
   do guiado) é recusado com saída 1, com ou sem rótulo, antes de qualquer requisição, job ou arquivo, e os
   arquivos ficam intactos. A mensagem indica a versão congelada `v1-runtime-final` ou traduzir de novo;

@@ -16,9 +16,9 @@ from tests.composition.test_desktop_composition import STAGES, setup_factories
 
 EDITION_IDS = ("lite", "free", "ai", "cli_free", "cli_pro")
 CASE_IDS = ("lite", "free", "ai", "cli-free", "cli-pro")
-BASE_ACTIONS = ("test-translator", "translate", "resume", "preview", "settings", "help", "exit")
+BASE_ACTIONS = ("test-translator", "translate", "resume", "consent.revoke", "preview", "settings", "help", "exit")
 EXTENDED_ACTIONS = ("inspect", "test-translator", "translate", "resume", "extract", "apply-review",
-                    "preview", "library", "settings", "glossaries", "help", "exit")
+                    "consent.revoke", "preview", "library", "settings", "glossaries", "help", "exit")
 
 
 @pytest.mark.parametrize("edition_id", EDITION_IDS, ids=CASE_IDS)

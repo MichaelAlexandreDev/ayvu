@@ -27,7 +27,8 @@ the [shared use-case matrix](../modules/interfaces-cli.md) describes future seam
 Desktop, local API, inbound/outbound MCP, plugins, AI assistance, managed models,
 durable projects/jobs, approved translation memory, and contributed training
 corpus are proposed boundaries. #159 now enforces the request-scoped
-[HTTP none/loopback boundary](../cross-cutting/network-policy.md); remote URLs and HTTPS are denied.
+[HTTP none/loopback boundary](../cross-cutting/network-policy.md); remote URLs and HTTPS are denied
+unless a run selects the explicit, consented `remote` policy of #379 (see [Remote egress](#remote-egress-379)).
 Broader purpose-specific authorization remains future work. The current CLI has
 no account or multi-tenant boundary.
 
@@ -110,6 +111,51 @@ Document acceptance checks:
 Runtime mitigations require meaningful production-boundary tests in their own
 issues, using synthetic fixtures, fake transports/process launchers and
 `tmp_path`. Green documentation or import-boundary tests do not prove security.
+
+## Remote egress (#379)
+
+Added on 2026-11-18 with [#379](https://github.com/MichaelAlexandreDev/ayvu/issues/379), whose design the
+maintainer accepted that day. It narrows T03 for remote AI providers; it does not accept any provider.
+
+**Assets.** The book's visible text and the glossary terms sent with it; the provider credential; the
+project's consent record; the integrity of the translation that comes back.
+
+**Threats.**
+
+- *Text leakage* to an unintended recipient: a wrong host, a lookalike name, a redirect, an environment
+  proxy, or a silent fallback from a local translator.
+- *Credential leakage* into configuration, checkpoints, reports, logs, provenance, the cache, the
+  consent record or terminal output, or to another host through a redirect.
+- *Redirect and proxy hijack:* a 3xx or a `HTTPS_PROXY`/`ALL_PROXY`/`.netrc`/CA override that moves the
+  request or its key elsewhere.
+- *DNS manipulation* that points a declared name at another address.
+- *Consent erosion:* sending before the owner agreed, after a "no", after revocation, or under a changed
+  consent text; a developer run that sends without an explicit flag.
+
+**Mitigations (implemented and tested).**
+
+- `remote` is never a default and is selected per run; `none` and `loopback` are unchanged.
+- HTTPS only, to the `ALLOWED_HOSTS` the adapter declares in code; no userinfo, query, fragment or
+  undeclared address literal; plain HTTP off the machine is refused.
+- `trust_env=False` and verified TLS; the adapter re-decides each prepared URL and refuses any proxy,
+  client certificate or TLS override; only 307/308 to a declared host are followed, and credential
+  headers never leave the authorized host.
+- The credential is read from the provider's standard environment variable when the run starts and
+  passed as an opaque `RemoteCredential` that does not print or serialize; a fixture secret is searched
+  for in every written file and in all output.
+- Consent per project and provider (provider, UTC time, text version `remote-egress-v1`) in project schema
+  version 5, asked once in plain words before the book is read; "no" exits 1 with zero requests; developer
+  mode needs `--consent-remote`; `ayvu consent revoke` removes it; a new text version asks again. Without a
+  project (preview, dry run, cache-only, legacy resume) a remote provider is refused.
+- Each adapter declares `RETENTION_CLAIM`, shown in the consent question, the plan and the report.
+
+**Residual risk.** Once sent, the text is under the provider's control: Ayvu shows the provider's own
+retention claim but cannot verify or enforce it, and revoking consent does not recall what was sent.
+DNS is resolved by the platform; a manipulated answer is stopped by TLS certificate validation, not by
+Ayvu, so a mis-issued certificate or a compromised trust store remains a risk. The environment variable
+is visible to other processes of the same user, and shell history may keep it; the secret store of
+[#160](https://github.com/MichaelAlexandreDev/ayvu/issues/160) replaces it later. Translations that come
+back still pass the strict result check, but their quality is the provider's.
 
 ## Residual risks and human decisions
 

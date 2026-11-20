@@ -2,7 +2,8 @@
 
 A binding resolves the plan of one run and creates the provider each worker uses, so the
 runtime itself never constructs a concrete provider. LibreTranslate is the default binding;
-``composition.builders.llm`` binds the LLM core, and Ollama is its first model translator.
+``composition.builders.llm`` binds the LLM core, Ollama is its first model translator, and a remote
+model provider (``composition.builders.remote``) is prepared inside its project's consent scope.
 """
 from __future__ import annotations
 
@@ -19,6 +20,8 @@ from ...providers.libretranslate.client import (
 )
 from ...translation import PreflightError, PreviousRuntimeRetired, resolve_plan
 from .ollama import OLLAMA, ollama_preflight
+from .remote import is_remote, remote_preflight
+from .remote_consent import consent_scope, project_gate
 
 
 def _base(translator: object) -> object:
@@ -30,6 +33,7 @@ class IdentitySource:
 
     DECLARED_LABEL = "declared_label"  # LibreTranslate: the owner declares it in translator_models
     DISCOVERED_MODEL = "discovered_model"  # Ollama: discovery reports the named model's digest before any work
+    REMOTE_MODEL = "remote_model"  # a remote provider: the owner names the provider's versioned model id
 
 
 IDENTITY_SOURCES = {"libretranslate": IdentitySource.DECLARED_LABEL, OLLAMA: IdentitySource.DISCOVERED_MODEL}
@@ -37,7 +41,8 @@ IDENTITY_SOURCES = {"libretranslate": IdentitySource.DECLARED_LABEL, OLLAMA: Ide
 
 def identity_source(translator_name: str) -> str | None:
     """``None`` for a translator Ayvu does not know; validation of the name stays with each translator's preflight."""
-    return IDENTITY_SOURCES.get(translator_name.strip().lower())
+    name = translator_name.strip().lower()
+    return IDENTITY_SOURCES.get(name) or (IdentitySource.REMOTE_MODEL if is_remote(name) else None)
 
 
 def discovers_identity(translator_name: str) -> bool:
@@ -45,16 +50,22 @@ def discovers_identity(translator_name: str) -> bool:
     return identity_source(translator_name) == IdentitySource.DISCOVERED_MODEL
 
 
+def names_model(translator_name: str) -> bool:
+    """A model translator: its entry names a model, not a label, and it is prepared before its job."""
+    return identity_source(translator_name) in (IdentitySource.DISCOVERED_MODEL, IdentitySource.REMOTE_MODEL)
+
+
 def selected_model(models: dict[str, str], translator_name: str) -> str | None:
     """Selection belongs here, never in the presenter, engine or domain.
 
-    LibreTranslate's entry is a declared label; Ollama's is the name of an installed model.
+    LibreTranslate's entry is a declared label; Ollama's is the name of an installed model, and a remote
+    provider's its model id.
     """
     name = translator_name.strip().lower()
     if name not in models:
         return None
     label = models[name]
-    if discovers_identity(name):
+    if names_model(name):
         if not valid_observed_model_name(label):
             raise ProvenanceValidationError("invalid_model_name")
         return label
@@ -68,7 +79,7 @@ def require_model(models, translator_name, *, continuation=None):
     A translator whose identity is discovered (Ollama) is admitted here: its own preflight refuses a
     missing model entry or a model that is not installed, before any book work.
     """
-    if discovers_identity(translator_name):
+    if names_model(translator_name):
         return
     try:
         validate_translator_name(translator_name)
@@ -90,7 +101,7 @@ def require_model(models, translator_name, *, continuation=None):
 
 def model_selection(models: dict[str, str] | None, translator_name: str, options) -> dict[str, object]:
     """What a model translator's preflight needs beyond LibreTranslate's arguments: its model and the workers."""
-    if not discovers_identity(translator_name):
+    if not names_model(translator_name):
         return {}
     return {"model": selected_model(models or {}, translator_name), "workers": options.workers}
 
@@ -98,14 +109,27 @@ def model_selection(models: dict[str, str] | None, translator_name: str, options
 def translation_preflight(libretranslate_preflight: Callable[..., object], book_checks: Callable[..., object],
                           **configuration) -> object:
     """The preflight of the selected translator. Each one refuses what it cannot run before any book work."""
-    if discovers_identity(str(configuration.get("translator_name", ""))):
+    name = str(configuration.get("translator_name", ""))
+    if is_remote(name):
+        return remote_preflight(book_checks=book_checks, **configuration)
+    if discovers_identity(name):
         return ollama_preflight(book_checks=book_checks, **configuration)
     return libretranslate_preflight(**configuration)
 
 
-def prepare_model_translation(translator_name: str, prepare: Callable[[], object]) -> object | None:
-    """A model translator is prepared before its job: its producer names the model's digest, found by discovery."""
-    return prepare() if discovers_identity(translator_name) else None
+def prepare_model_translation(translator_name: str, prepare: Callable[[], object], book: object = None) -> object | None:
+    """A model translator is prepared before its job: its producer names the model's digest, found by discovery.
+
+    A remote provider is prepared inside the consent scope of the book's project; without a project there
+    is no scope, and its preflight refuses.
+    """
+    if is_remote(translator_name):
+        gate = project_gate(book)
+        if gate is None:
+            return prepare()
+        with consent_scope(gate):
+            return prepare()
+    return prepare() if names_model(translator_name) else None
 
 
 class LibreTranslateBinding:

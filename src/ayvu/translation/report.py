@@ -60,6 +60,7 @@ class TranslationReport:
     execution_note: str | None = None
     provider_name: str | None = None
     model_name: str | None = None
+    retention_claim: str | None = None  # a remote provider's declared retention, shown with the provider
 
     def record_error(self, message: str) -> None:
         self.errors.append(message)
