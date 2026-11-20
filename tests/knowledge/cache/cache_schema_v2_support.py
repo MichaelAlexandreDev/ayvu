@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from ayvu.knowledge.cache import schema as schema
 from ayvu.knowledge.cache import LEGACY_SCHEMA as SCHEMA
-from ayvu.v1.cache import text_hash
+from tests.support.legacy_cache_file import text_hash
 
 class Cancel(BaseException):
     pass

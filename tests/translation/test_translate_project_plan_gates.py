@@ -17,8 +17,8 @@ from ayvu.composition.builders.translate_project import LegacyOutputValidator, L
 from ayvu.providers.libretranslate.client import TranslatorError
 from tests.support.epub_fakes import XHTML
 from ayvu.kernel import ChapterSelection, LanguagePair, OutputPlan, TranslationMemoryOptions, TranslationOptions, JobFailureFamily
-from tests.support.translate_project_support import SCENARIOS, World
-from tests.support.translate_project_support import current_flow, world
+from tests.support.translate_project_support import World
+from tests.support.translate_project_support import world
 
 
 def test_a_clean_run_publishes_the_output_and_ends_validated(world):
@@ -47,41 +47,11 @@ def test_the_output_has_the_mode_a_new_file_gets_and_the_temporary_name_says_not
     assert len(names) == 1 and names[0].parent == world.destination.parent and "out" not in names[0].name and "book" not in names[0].name
 
 
-@pytest.mark.parametrize("name", SCENARIOS)
-def test_the_output_and_the_report_match_the_current_flow(name, tmp_path):
-    world = World(tmp_path)
-    options = SCENARIOS[name]
-    report, output, translator = current_flow(world, tmp_path / "current", **options)
-    result = world.run(**options)
-    world.assert_consistent(result)
-    # Workers sharing a cache can race on a repeated text, so only the set of calls is stable.
-    compared = set if options.get("workers") else list
-    assert compared(world.translator.calls) == compared(translator.calls)
-    assert world.destination.read_bytes() == output
-    produced = world.runtime_used.report(result, world.destination)
-    for field in ("texts_missing", "alt_texts_translated", "errors", "chapters_processed", "output_written", "detected_language", "target_language"):
-        assert getattr(produced, field) == getattr(report, field), field
-    # The same race decides which of the two counts a repeated text lands in.
-    assert produced.texts_translated + produced.texts_from_cache == report.texts_translated + report.texts_from_cache
-    if not options.get("workers"):
-        assert produced.texts_from_cache == report.texts_from_cache
-
-
 def test_missing_texts_keep_the_output_and_end_partial(world):
     result = world.run(cache_only=True)
     world.assert_consistent(result)
     assert result.state is JobState.PARTIALLY_COMPLETED and result.outcome.summary.reason_code == "texts_missing"
     assert world.destination.exists() and world.translator.calls == []
-
-
-def test_translation_memory_applies_through_the_use_case(tmp_path):
-    world = World(tmp_path, chapter=XHTML.format("<p>The quick brown fox jumps over the lazy dog and runs</p>").encode(),
-                  second=XHTML.format("<p>The quick brown fox jumps over the lazy dog and ran</p>").encode())
-    world.run(chapter_selection=ChapterSelection.parse("1"))
-    world.destination.unlink()
-    memory = TranslationMemoryOptions(apply_threshold=0.9, suggest_threshold=0.5)
-    result = world.run(translation_memory=memory)
-    assert result.engine.stats.from_memory == 1
 
 
 def test_a_failed_text_keeps_the_output_and_ends_partial(world):

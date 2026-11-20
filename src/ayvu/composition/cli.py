@@ -14,8 +14,6 @@ from ..review import local_files as review_files
 from .builders.translate_batch import LocalBatchItem, LocalTranslateBatch, project_item_outcome
 from .builders.translate_project import LegacyResources, ProjectTranslation
 from ..translation.batch_output import AcceptedItem, OutputIntent
-from ..v1.cache import TranslationCache
-from ..v1.cache_check import verify_cache_writable
 from ..preferences.config_facade import ConfigStore, default_glossaries_dir as _default_glossaries_dir
 from ..library.adapters import LocalLibraryFilesystem, ReaderLauncher
 from ..library import LibraryService
@@ -119,9 +117,13 @@ def read_review_input(path):
     return review_files.read_review_input(path)
 
 
+def _no_cache_check(_path) -> None:
+    """The rich runtime prepares its own v2 cache before preflight; the v1 write check went with v1 (REF-18 step 6)."""
+
+
 def run_translation_preflight(**configuration):
     return rich_provider.translation_preflight(_preflight, check_book_resources,
-                                               **{"cache_check": verify_cache_writable, **configuration})
+                                               **{"cache_check": _no_cache_check, **configuration})
 
 
 def prepare_preview(*, translator_models, translator_name, **configuration):
@@ -178,41 +180,16 @@ def resolve_chapter_selection(*args, **kwargs):
     return translate_project.resolve_chapter_selection(*args, **kwargs)
 
 
-def translate_without_project(*args, **kwargs):
-    return translate_project.translate_without_project(*args, **kwargs)
-
-
 def validate_output(*args, **kwargs):
     return translate_project.validate_output(*args, **kwargs)
 
 
-def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True, legacy_resume: bool = False) -> _BookOutcome:
-    """Transient translation, or an explicitly authorized old checkpoint resume."""
-    require_translation_model(book.translator_models, book.translator_name, legacy_resume=legacy_resume)
-    if not legacy_resume:
-        return _BookOutcome(report=translate_transient.translate(book, hooks,
-            rich_provider.selected_model(book.translator_models, book.translator_name),
-            formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))
-    preflight = book.prepare()
-    with TranslationCache(book.cache_path) as cache:
-        report = translate_without_project(
-            book.epub_path,
-            book.output_plan.path,
-            translator=preflight.translator,
-            cache=cache,
-            options=book.options,
-            glossary=preflight.glossary,
-            on_chapter_start=hooks.on_chapter_start,
-            on_chapter_done=hooks.on_chapter_done,
-            on_text_processed=hooks.on_text_processed,
-            translator_factory=getattr(preflight, "translator_factory", None),
-            cache_factory=lambda: TranslationCache(book.cache_path),
-            **({"cancellation": book.cancellation} if book.cancellation is not None else {}),
-        )
-    validation = None
-    if validate and report.output_written and not book.options.dry_run:
-        validation = validate_output(book.output_plan.path, on_progress=hooks.on_validation)
-    return _BookOutcome(report=report, validation=validation)
+def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validate: bool = True) -> _BookOutcome:
+    """Transient translation: a labeled dry run or preview, which belongs to no project."""
+    require_translation_model(book.translator_models, book.translator_name)
+    return _BookOutcome(report=translate_transient.translate(book, hooks,
+        rich_provider.selected_model(book.translator_models, book.translator_name),
+        formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
@@ -236,7 +213,6 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
             book.output_plan,
             book.replace_existing,
             prepare,
-            lambda: TranslationCache(book.cache_path),
             book.continuation,
             book.operation_id,
             book.batch_plan.publication_guard if book.batch_plan is not None else None,
@@ -286,7 +262,7 @@ def legacy_cache_notice(*args, **kwargs):
 
 
 def translation_modality(dry_run, models, translator_name):
-    """Select without resources; unlabeled execution is reserved for existing v1 work."""
+    """Select without resources. "standard" is the unlabeled selection, which admission refuses before it runs."""
     labeled = rich_provider.selected_model(models, translator_name) is not None
     return "standard" if not labeled else "transient_dry_run" if dry_run else "rich"
 

@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import pytest
 from ayvu.interfaces.cli import app as cli
 import ayvu.composition.builders.translate_project as composition
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from ayvu.jobs.model import JobState
 from ayvu.review import decode_review_package
 from tests.support.cli_translate_project_support import _book, _jobs
@@ -21,7 +21,7 @@ def test_rich_translate_real_stores_cache_and_review_with_instrumented_transport
     source = _book(tmp_path / "book.epub")
     original = source.read_bytes()
     cache = tmp_path / "cache.sqlite"
-    with TranslationCache(cache) as legacy:
+    with LegacyCacheFile(cache) as legacy:
         legacy.set(CacheKey("Hello title", LanguagePair(source="en", target="pt")), "LEGACY_ONLY")
     v1 = cache.read_bytes()
     with caplog.at_level(logging.DEBUG):

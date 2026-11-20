@@ -1,7 +1,6 @@
 """Explicit dependencies owned by cache adapters and compatibility storage."""
 
 CACHE_EDGES = {
-    ("ayvu.v1.cache", "ayvu.knowledge.cache.legacy_schema"),
     ("ayvu.knowledge.cache.repository", "ayvu.knowledge.memory.approved.model"),
     ("ayvu.knowledge.cache.admin", "ayvu.knowledge.cache.legacy_format"),
     ("ayvu.knowledge.cache.legacy_admin_store", "ayvu.knowledge.cache.legacy_schema"),

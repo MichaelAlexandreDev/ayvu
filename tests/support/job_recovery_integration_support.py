@@ -4,12 +4,11 @@ import json
 import logging
 import socket
 import sqlite3
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import pytest
 from typer.testing import CliRunner
-from ayvu.v1.cache import TranslationCache
 from ayvu.knowledge.glossary import load_glossary
 from ayvu.interfaces.cli.output import EXISTING_OUTPUT_OVERWRITE_OPTION
 from ayvu.interfaces.cli.app import app
@@ -24,9 +23,9 @@ from ayvu.recovery.checkpoint import ResumeStateStore, TranslationResumeState
 from ayvu.translation.project_contracts import (
     OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, ContinuationTicket, TranslateObserver, TranslateProjectCommand,
 )
-from ayvu.composition.builders.translate_project import (
-    LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
-)
+from ayvu.composition.builders.translate_project import LegacyResources, open_job_recovery, open_translate_project
+from tests.support.engine_runtime_support import EngineTestRuntime
+from tests.support.legacy_cache_file import LegacyCacheFile
 from tests.support.cli_translate_project_support import ENCRYPTED_DOCUMENT, Session, _args, _book
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions
 from ayvu.kernel.sqlite import SqliteMigrationRunner
@@ -113,11 +112,15 @@ class Scene:
                                               profile_name=self.profile)
         return ResumeStateStore(self.processing).save(replace(state, **changes))
 
+    def runtime(self, translator=None):
+        translator = translator or self.translator
+        return EngineTestRuntime(self.source, self.options, lambda: LegacyResources(translator, load_glossary(self.glossary) if self.glossary else None),
+                                 lambda: LegacyCacheFile(self.cache))
+
     def translate(self, *, overwrite=False, continuation=None, operation_id=None):
-        project = self.project()
-        return translate_in_project(ProjectTranslation(
-            self.processing, project.project_id, project.source_sha256, self.source, self.options, OutputPlan(path=self.output), overwrite,
-            lambda: LegacyResources(self.translator, load_glossary(self.glossary) if self.glossary else None), lambda: TranslationCache(self.cache), continuation, operation_id), TranslateObserver())
+        """A run of the book's project, as the CLI starts one: the plan holds the canonical output path."""
+        return run_in_project(self.processing, self.project(), self.source, self.output, self.options, self.runtime(),
+                              overwrite=overwrite, continuation=continuation, operation_id=operation_id)
 
     def crash(self, *, overwrite=False, on="Goodbye", continuation=None):
         def stop(text):
@@ -154,6 +157,18 @@ class Scene:
         entry = recovery.list_interrupted.execute().entries[0]
         fields = dict(reference=entry.reference, job_id=entry.job_id, project_id=entry.project_id, expected_revision=entry.expected_revision, accepted=DECIDED)
         return recovery.request_resume.execute(ResumeRequest(**{**fields, **changes}), runner or Runner(self))
+
+
+@dataclass(frozen=True)
+class Run:
+    result: object
+
+
+def run_in_project(processing, project, source, output, options, runtime, *, overwrite=False, continuation=None, operation_id=None):
+    use_case = open_translate_project(processing, project.project_id, source, output, overwrite=overwrite, runtime=runtime)
+    command = TranslateProjectCommand(project.project_id, project.source_sha256, options, OutputPlan(path=output.expanduser().resolve()),
+                                      overwrite=overwrite, operation_id=operation_id)
+    return Run(use_case.execute(command, observer=TranslateObserver(), continuation=continuation))
 
 
 class Runner:

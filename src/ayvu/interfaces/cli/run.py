@@ -67,7 +67,6 @@ def _run_translation(
     auto_save_markdown_report: bool = False,
     report_dir: Path | None = None,
     confirm_output_location: bool = True,
-    resolve_managed_project: bool = True,
     project_profile_name: str | None = None,
     batch_plan: AcceptedItem | None = None,
     continuation: ContinuationTicket | None = None,
@@ -87,7 +86,7 @@ def _run_translation(
             raise run_support._BatchItemExit(normalized)
         raise typer.Exit(code=1)
 
-    config = run_support.translation_configuration(config, translator_name, mode, continuation, resolve_managed_project)
+    config = run_support.translation_configuration(config, translator_name, mode, continuation)
     resolved_profile_name, profile = translate_options._resolve_requested_profile(config, profile_name, mode=mode)
     resolved_target = translate_options._resolve_target_language(target, profile)
     resolved_glossary_path = translate_options._resolve_glossary_path(glossary_path, profile)
@@ -121,7 +120,7 @@ def _run_translation(
         retry_backoff=retry_backoff,
         retry_backoff_max=retry_backoff_max,
     )
-    if batch_plan is None and continuation is None and resolve_managed_project:  # A batch says it once, before its books.
+    if batch_plan is None and continuation is None:  # A batch says it once, before its books.
         run_messages._print_legacy_cache_notice(cache_path, source=resolved_source, target=resolved_target)
     if chapter_selection is not None:
         selected_chapters = translate_options._resolve_chapter_selection_for_display(
@@ -155,7 +154,7 @@ def _run_translation(
 
     project_id = None
     source_sha256 = None
-    if resolve_managed_project and not dry_run:
+    if not dry_run:
         try:
             resolution = resolve_translation_project(
                 settings._processing_dir(config), epub_path, source=translation_options.source, target=translation_options.target,
@@ -230,7 +229,7 @@ def _run_translation(
     try:
         try:
             outcome = (
-                run_support._translate_without_project(book, hooks, legacy_resume=not resolve_managed_project)
+                run_support._translate_without_project(book, hooks)
                 if project_id is None
                 else run_support._translate_in_project(book, hooks)
             )

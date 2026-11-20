@@ -2,7 +2,7 @@
   "_comment": "D10 size ratchet (REF-03, #271). Entries may only shrink; see scripts/size_ratchet.py.",
   "files": {
     "src/ayvu/artifacts/store.py": 520,
-    "src/ayvu/composition/builders/translate_project.py": 500,
+    "src/ayvu/composition/builders/translate_project.py": 406,
     "src/ayvu/content/model.py": 639,
     "src/ayvu/formats/contracts.py": 579,
     "src/ayvu/formats/epub/html_structure.py": 626,
@@ -19,22 +19,18 @@
     "src/ayvu/recovery/checkpoint.py": 442,
     "src/ayvu/recovery/service.py": 498,
     "src/ayvu/review/application.py": 701,
-    "src/ayvu/translation/context/model.py": 516,
-    "src/ayvu/v1/cache.py": 503,
-    "src/ayvu/v1/epub.py": 637
+    "src/ayvu/translation/context/model.py": 516
   },
   "functions": {
     "src/ayvu/formats/use_cases.py::ExportVisibleContent.execute": 136,
     "src/ayvu/interfaces/cli/batch.py::_run_batch_translation": 149,
     "src/ayvu/interfaces/cli/commands/translate.py::translate": 244,
-    "src/ayvu/interfaces/cli/run.py::_run_translation": 292,
+    "src/ayvu/interfaces/cli/run.py::_run_translation": 291,
     "src/ayvu/knowledge/cache/interchange.py::iter_records": 82,
     "src/ayvu/knowledge/cache/legacy_admin_store.py::SQLiteLegacyStreamingStore.import_cache": 155,
     "src/ayvu/knowledge/cache/schema.py::prepare_cache": 109,
     "src/ayvu/knowledge/glossary/catalog_store.py::ManagedGlossaryRepository._write": 86,
     "src/ayvu/review/application.py::ApplyReviewPackage.execute": 82,
-    "src/ayvu/translation/context/model.py::TranslationContextBuilder._build": 87,
-    "src/ayvu/v1/epub.py::translate_epub": 130,
-    "src/ayvu/v1/html_translate.py::translate_html": 81
+    "src/ayvu/translation/context/model.py::TranslationContextBuilder._build": 87
   }
 }

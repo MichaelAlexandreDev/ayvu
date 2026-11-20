@@ -108,7 +108,8 @@ def test_a_preflight_failure_has_no_report_even_on_a_book_that_cannot_be_read(tm
     run = composition.translate_in_project(
         composition.ProjectTranslation(tmp_path / "processing", project.project_id, project.source_sha256, broken,
                                        TranslationOptions(language_pair=LanguagePair(source="en", target="pt")),
-                                       OutputPlan(path=tmp_path / "out.epub"), False, prepare, lambda: None),
+                                       OutputPlan(path=tmp_path / "out.epub"), False, prepare,
+                                       model_label="local-model-2026", cache_path=tmp_path / "cache.sqlite"),
         TranslateObserver())
 
     assert run.report is None and run.preflight_error is error

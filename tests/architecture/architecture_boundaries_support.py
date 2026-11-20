@@ -332,14 +332,6 @@ def forbidden(
 
 EXCEPTIONS = {
     ("ayvu.translation.report", "ayvu.knowledge.glossary.rules"): Exemption("Translation", 286, "shared report retains GlossaryUsage until glossary values are separated from I/O"),
-    ("ayvu.v1.epub", "ayvu.v1.cache"): Exemption("Formats", 144, "EPUB adapter isolated from pipeline"),
-    ("ayvu.v1.epub", "ayvu.knowledge.glossary.rules"): Exemption("Formats", 144, "glossary coordinated by pipeline"),
-    ("ayvu.v1.epub", "ayvu.review.csv_export"): Exemption("Review", 158, "legacy EPUB review projection removed with the old facade"),
-    ("ayvu.v1.epub", "ayvu.review.csv_import"): Exemption("Review", 158, "v1 refusal in apply_reviewed_epub removed with the old facade"),
-    ("ayvu.v1.epub", "ayvu.providers.libretranslate.client"): Exemption("Formats", 144, "provider port separated by #141"),
-    ("ayvu.v1.html_translate", "ayvu.v1.cache"): Exemption("Formats", 153, "compatibility facade retired with the versioned cache"),
-    ("ayvu.v1.html_translate", "ayvu.knowledge.glossary.rules"): Exemption("Formats", 153, "compatibility facade retired with the versioned cache"),
-    ("ayvu.v1.html_translate", "ayvu.providers.libretranslate.client"): Exemption("Formats", 153, "compatibility facade retired with the versioned cache"),
     ("ayvu.knowledge.memory.fuzzy", "rapidfuzz"): Exemption("Knowledge", 161, "TM matching behind repository boundary"),
 }
 

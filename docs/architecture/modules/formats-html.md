@@ -115,8 +115,4 @@ parsing and serializing give.
 - [test_html_structure_extraction](../../../tests/formats/epub/test_html_structure_extraction.py).
 - [test_html_structure_reconstruction](../../../tests/formats/epub/test_html_structure_reconstruction.py).
 - [test_html_structure_transient](../../../tests/formats/epub/test_html_structure_transient.py).
-- [test_html_translate_cache_memory](../../../tests/v1/test_html_translate_cache_memory.py).
-- [test_html_translate_markers](../../../tests/v1/test_html_translate_markers.py).
-- [test_html_translate_markup_literals](../../../tests/v1/test_html_translate_markup_literals.py).
-- [test_html_translate_structure](../../../tests/v1/test_html_translate_structure.py).
-- [test_html_translate_terms_alt](../../../tests/v1/test_html_translate_terms_alt.py).
+- [test_translation_pipeline](../../../tests/translation/test_translation_pipeline.py).

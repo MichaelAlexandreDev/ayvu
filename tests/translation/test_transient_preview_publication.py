@@ -6,7 +6,6 @@ import sqlite3
 import pytest
 
 from ayvu.composition.cli import _translate_without_project
-from ayvu.composition.builders.translate_project import translate_without_project
 from ayvu.composition.builders.transient_publication import LocalTransientPublication
 from ayvu.formats.epub.io import preview_documents
 from ayvu.formats.epub.validation import ValidationResult, validate_output_epub
@@ -14,14 +13,13 @@ from ayvu.formats.local import LocalFormatSource
 from ayvu.providers.libretranslate.client import RequestRateLimiter
 from ayvu.kernel import ChapterSelection, LanguagePair, TranslationOptions
 from ayvu.translation import PreflightError, TranslationDryRunCancelled, TranslationExecutionError
-from ayvu.v1.cache import TranslationCache
 from tests.support.rich_preview_support import (
     HOOKS, KEYS, ORDER, PreviewTransport, book_request, members, preview_book, preview_guard, seed_preview,
 )
 
 
 @pytest.mark.parametrize("limit", [12, 1, 0, -3, None])
-def test_v1_document_enumeration_and_limits_match_rich_preview(tmp_path, monkeypatch, limit):
+def test_rich_preview_enumerates_documents_in_order_within_the_limit(tmp_path, monkeypatch, limit):
     source = preview_book(tmp_path / "book.epub")
     original = members(source)
     options = TranslationOptions(LanguagePair("en", "pt"), max_documents=limit)
@@ -34,16 +32,6 @@ def test_v1_document_enumeration_and_limits_match_rich_preview(tmp_path, monkeyp
     expected = list(KEYS[:count])
     assert [item.archive_path for item in preview_documents(source, max_documents=limit)] == expected
     assert session.posts == [f"Document {i:02}." for i in ORDER[:count]]
-    legacy_order = []
-    legacy_prepared = book.prepare()
-    try:
-        with TranslationCache(tmp_path / "v1.sqlite") as cache:
-            translate_without_project(source, tmp_path / "v1.epub", translator=legacy_prepared.online.translator,
-                cache=cache, options=options, glossary=legacy_prepared.glossary,
-                on_chapter_start=lambda i, total, name: legacy_order.append("OEBPS/" + name))
-    finally:
-        legacy_prepared.online.translator.close()
-    assert legacy_order == expected
     after = members(book.output_plan.path)
     assert {key for key in original if original[key] != after[key]} == set(expected)
     assert outcome.report.chapters_processed == len(expected) and outcome.report.output_written

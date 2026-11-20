@@ -27,6 +27,15 @@ from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions, JobFailure
 from tests.support.translate_batch_project_contract_support import DIGEST, PROJECT, _options, _use_case
 
 
+def labeled(tmp_path, monkeypatch):
+    """A model label selects the rich runtime; its project paths are fixed here, since these ports are in memory."""
+    import ayvu.composition.builders.translate_project as composition
+    monkeypatch.setattr(composition, "ProjectJsonRepository", lambda _: SimpleNamespace(
+        resolve_database_paths=lambda _: SimpleNamespace(database=tmp_path / "project.sqlite", backups=tmp_path / "backups"),
+        resolve_artifact_root=lambda _: tmp_path / "artifacts"))
+    return {"model_label": "local-model-2026", "cache_path": tmp_path / "cache.sqlite"}
+
+
 def test_accepted_plan_passes_through_production_composition(tmp_path, monkeypatch):
     import ayvu.composition.builders.translate_project as composition
 
@@ -41,7 +50,7 @@ def test_accepted_plan_passes_through_production_composition(tmp_path, monkeypat
         return FakeUseCase()
     monkeypatch.setattr(composition, "open_translate_project", open_case)
     translation = ProjectTranslation(tmp_path, PROJECT, DIGEST, tmp_path / "book.epub", _options(),
-                                     accepted.output, False, lambda: None, lambda: None, accepted_output=accepted)
+                                     accepted.output, False, lambda: None, accepted_output=accepted, **labeled(tmp_path, monkeypatch))
     translate_in_project(translation, TranslateObserver())
     assert seen["command"].accepted_output is accepted
     assert seen["command"].output == accepted.output
@@ -72,7 +81,7 @@ def test_relative_accepted_output_keeps_canonical_resume_fingerprint(tmp_path, m
             return TranslateProjectResult(PROJECT, recorded=False)
     monkeypatch.setattr(composition, "open_translate_project", lambda *args, **kwargs: UseCase())
     translation = ProjectTranslation(tmp_path, PROJECT, DIGEST, requested.source, _options(),
-                                     accepted.output, False, lambda: None, lambda: None, accepted_output=accepted)
+                                     accepted.output, False, lambda: None, accepted_output=accepted, **labeled(tmp_path, monkeypatch))
     translate_in_project(translation, TranslateObserver())
     assert str(accepted.output.path) == "relative.epub"
     assert seen[0].output.path == tmp_path / "relative.epub"
@@ -86,8 +95,8 @@ def test_composition_rejects_a_different_destination_before_opening_project(tmp_
     opened = []
     monkeypatch.setattr(composition, "open_translate_project", lambda *args, **kwargs: opened.append(args))
     translation = ProjectTranslation(tmp_path, PROJECT, DIGEST, tmp_path / "book.epub", _options(),
-                                     OutputPlan(tmp_path / "unplanned.epub"), False, lambda: None, lambda: None,
-                                     accepted_output=accepted)
+                                     OutputPlan(tmp_path / "unplanned.epub"), False, lambda: None,
+                                     accepted_output=accepted, **labeled(tmp_path, monkeypatch))
     with pytest.raises(TranslateCommandError, match="output_plan_mismatch"):
         translate_in_project(translation, TranslateObserver())
     assert opened == []
@@ -110,7 +119,7 @@ def test_composition_binds_batch_request_to_the_active_project_source(tmp_path, 
     use_case.execute = execute
     monkeypatch.setattr(composition, "open_translate_project", lambda *args, **kwargs: use_case)
     translation = ProjectTranslation(tmp_path, PROJECT, DIGEST, tmp_path / "book.epub", _options(),
-                                     OutputPlan(tmp_path / "output.epub"), False, lambda: None, lambda: None)
+                                     OutputPlan(tmp_path / "output.epub"), False, lambda: None, **labeled(tmp_path, monkeypatch))
     run = translate_in_project(translation, TranslateObserver(), cancellation=controller)
     result = run.result
     assert len(sources) == 1
@@ -224,7 +233,7 @@ def test_accepted_overwrite_reaches_publication_and_command(tmp_path, monkeypatc
         return FakeUseCase()
     monkeypatch.setattr(composition, "open_translate_project", open_case)
     translation = ProjectTranslation(tmp_path, PROJECT, DIGEST, planned.source, _options(), accepted.output,
-                                     False, lambda: None, lambda: None, accepted_output=accepted)
+                                     False, lambda: None, accepted_output=accepted, **labeled(tmp_path, monkeypatch))
     translate_in_project(translation, TranslateObserver())
     assert accepted.overwrite is True
     assert seen["overwrite"] is True and seen["command"].overwrite is True
@@ -238,23 +247,3 @@ def test_command_rejects_overwrite_different_from_accepted_plan(tmp_path, accept
     with pytest.raises(TranslateCommandError, match="output_plan_mismatch"):
         TranslateProjectCommand(PROJECT, DIGEST, _options(), accepted.output,
                                 overwrite=not accepted_overwrite, accepted_output=accepted)
-
-
-@pytest.mark.parametrize("callback", ["on_chapter_start", "on_chapter_done", "on_text_processed"])
-def test_dry_run_observes_cancellation_in_each_callback_before_publication(tmp_path, monkeypatch, callback):
-    import ayvu.composition.builders.translate_project as composition
-
-    cancellation = BatchCancellationController()
-    seen = []
-    output = tmp_path / "output.epub"
-    def fake_translate(source, destination, **kwargs):
-        cancellation.request()
-        kwargs[callback]("callback argument")
-        output.write_bytes(b"should not be published")
-        return object()
-    monkeypatch.setattr(composition, "translate_epub", fake_translate)
-    with pytest.raises(composition.TranslationDryRunCancelled):
-        composition.translate_without_project(tmp_path / "book.epub", output, cancellation=cancellation,
-                                              **{callback: lambda *args: seen.append(args)})
-    assert seen == []
-    assert not output.exists()

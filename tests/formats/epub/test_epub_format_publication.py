@@ -118,7 +118,7 @@ def test_the_adapter_imports_no_provider_cache_glossary_or_interface():
     import subprocess
     import sys
 
-    forbidden = ("ayvu.v1.cache", "ayvu.knowledge.glossary", "ayvu.providers.libretranslate.client", "ayvu.knowledge.memory", "ayvu.translation", "ayvu.providers", "ayvu.interfaces", "ayvu.formats.epub.io", "ayvu.v1.html_translate", "ayvu.formats.epub.validation", "ebooklib", "typer", "rich", "requests", "sqlite3")
+    forbidden = ("ayvu.knowledge.glossary", "ayvu.providers.libretranslate.client", "ayvu.knowledge.memory", "ayvu.translation", "ayvu.providers", "ayvu.interfaces", "ayvu.formats.epub.io", "ayvu.formats.epub.validation", "ebooklib", "typer", "rich", "requests", "sqlite3")
     source = (PROJECT_ROOT / "src" / "ayvu" / "formats" / "epub" / "adapter.py").read_text()
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.ImportFrom):
@@ -135,7 +135,7 @@ def test_no_html_is_traversed_here():
 
 
 def test_the_current_flow_writes_no_durable_artifact(tmp_path):
-    for source in ((PROJECT_ROOT / "src" / "ayvu" / name).read_text() for name in ("formats/epub/io.py", "v1/epub.py")):
+    for source in ((PROJECT_ROOT / "src" / "ayvu" / name).read_text() for name in ("formats/epub/io.py",)):
         assert "epub_format" not in source and "ArtifactService" not in source and "artifact" not in source.lower()
 
 

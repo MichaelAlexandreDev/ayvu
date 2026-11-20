@@ -7,7 +7,6 @@ import textwrap
 import threading
 from datetime import timedelta
 import pytest
-from ayvu.v1.cache import TranslationCache
 from ayvu.jobs.model import JobContinuationError, JobRequest, JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
 from ayvu.translation.resume_reuse import RecoveryReason
@@ -15,9 +14,7 @@ from ayvu.recovery.store import _options
 from ayvu.projects.store import ProjectJsonRepository
 from tests.support.paths import PROJECT_ROOT
 from ayvu.translation.project_contracts import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, TranslateObserver
-from ayvu.composition.builders.translate_project import (
-    LegacyResources, LegacyTranslationRuntime, ProjectTranslation, open_job_recovery, open_translate_project, translate_in_project,
-)
+from ayvu.composition.builders.translate_project import LegacyResources, open_job_recovery, open_translate_project
 from tests.support.cli_translate_project_support import _args, _book
 from tests.support.job_recovery_integration_support import DECIDED, Runner, Scene
 from ayvu.kernel import OutputPlan

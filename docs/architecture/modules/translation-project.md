@@ -17,11 +17,12 @@ and labeled previews use the [online transient route](translation.md#online-tran
 ## Explicit runtime selection (#252)
 
 `ayvu.composition.cli` resolves `translator_models` for the selected translator and
-`ayvu.composition.builders.translate_project` constructs `LegacyTranslationRuntime` or
-`RichTranslationRuntime`. Composition's `rich_provider.require_model` refuses new unlabeled work before
-project resolution, cache acquisition or provider calls. Both execution entries enforce it too; only
-continuation tickets and the resume runner's explicit old-checkpoint route are exempt. Existing v1
-composition and fingerprints remain the same. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
+`ayvu.composition.builders.translate_project` constructs `RichTranslationRuntime`; `LegacyTranslationRuntime`
+was removed with the v1 runtime in REF-18 step 6, and a project translation without a label stops with
+`TranslateCommandError("model_label_required")`. Composition's `rich_provider.require_model` refuses new unlabeled
+work before project resolution, cache acquisition or provider calls, and both execution entries enforce it too. A
+continuation without an identity, which only a v1 job has, is refused with `PreviousRuntimeRetired`, as is an old
+standalone checkpoint. Existing v1 fingerprints remain the same, so recovery still reads and refuses that work. A valid label (`[a-z0-9][a-z0-9_-]{0,47}`) produces model
 `declared:<label>`; `unknown` has not been made eligible. **Changing the server model
 without updating the label reuses old results under the same declaration.** With `--translator ollama`,
 the entry names an installed model, and the rich runtime gets the [Ollama binding](providers-ollama.md),

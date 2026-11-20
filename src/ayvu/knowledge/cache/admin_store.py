@@ -19,7 +19,7 @@ MAX_FILE_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 1_000_000
 MAX_TEXT_LENGTH = 1_000_000
 MAX_METADATA_LENGTH = 256
-# The same patience as TranslationCache: a running translation holds the lock for each commit.
+# The patience the v1 runtime's cache had: a running translation held the lock for each commit.
 BUSY_TIMEOUT_SECONDS = 30.0
 # What a filesystem without hard links answers, such as a FAT or exFAT pen drive.
 _NO_HARD_LINKS = frozenset({errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.ENOSYS, errno.EMLINK})

@@ -113,10 +113,10 @@ def test_unreadable_module_fails_closed(tmp_path: Path, monkeypatch: pytest.Monk
 
 
 def test_exception_is_exact_and_expires(tmp_path: Path) -> None:
-    root = make_tree(tmp_path, "ayvu.application", "import ayvu.v1.cache")
-    exceptions = {("ayvu.application", "ayvu.v1.cache"): Exemption("Translation", 145, "use port")}
+    root = make_tree(tmp_path, "ayvu.application", "import ayvu.knowledge.cache.repository")
+    exceptions = {("ayvu.application", "ayvu.knowledge.cache.repository"): Exemption("Translation", 145, "use port")}
     check_tree(root, TEST_OWNERS, exceptions)
-    (root / "application.py").write_text("import ayvu.v1.cache\nimport ayvu.providers.libretranslate.client", encoding="utf-8")
+    (root / "application.py").write_text("import ayvu.knowledge.cache.repository\nimport ayvu.providers.libretranslate.client", encoding="utf-8")
     with pytest.raises(BoundaryError, match="forbidden"):
         check_tree(root, TEST_OWNERS, exceptions)
     (root / "application.py").write_text("", encoding="utf-8")
@@ -127,9 +127,9 @@ def test_exception_is_exact_and_expires(tmp_path: Path) -> None:
 @pytest.mark.parametrize("exemption", [Exemption("", 145, "use port"),
     Exemption("Translation", 0, "use port"), Exemption("Translation", 145, "")])
 def test_incomplete_exception_rejected(exemption: Exemption, tmp_path: Path) -> None:
-    root = make_tree(tmp_path, "ayvu.application", "import ayvu.v1.cache")
+    root = make_tree(tmp_path, "ayvu.application", "import ayvu.knowledge.cache.repository")
     with pytest.raises(BoundaryError, match="invalid exception"):
-        check_tree(root, TEST_OWNERS, {("ayvu.application", "ayvu.v1.cache"): exemption})
+        check_tree(root, TEST_OWNERS, {("ayvu.application", "ayvu.knowledge.cache.repository"): exemption})
 
 
 @pytest.mark.parametrize("edge", [

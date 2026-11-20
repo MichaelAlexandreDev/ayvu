@@ -4,7 +4,7 @@ import sqlite3
 from dataclasses import replace
 import pytest
 import ayvu.composition.builders.translate_project as composition
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from ayvu.knowledge.glossary.rules import load_glossary
 from ayvu.jobs.events import encode_event
 from ayvu.provenance.model import declared_model
@@ -22,7 +22,7 @@ def test_rich_resources_use_real_document_translator_and_cache_label_miss_restor
     glossary_path.write_text('{"Hello": "Olá"}')
     source = document("Hello", "Good night")
     legacy_path = tmp_path / "cache.sqlite"
-    with TranslationCache(legacy_path) as legacy:
+    with LegacyCacheFile(legacy_path) as legacy:
         legacy.set(CacheKey("Hello", PAIR), "V1_ONLY")
     legacy_bytes = legacy_path.read_bytes()
     calls = []

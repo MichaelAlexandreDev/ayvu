@@ -6,7 +6,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
 from ayvu.translation.preflight import PreflightError
 from ayvu.formats.epub.validation import ValidationResult
-from tests.support.cli_support import isolated_config, FakeCache, _fake_translation, runner
+from tests.support.cli_support import isolated_config, _fake_translation, runner
 
 
 def test_translate_command_batch_writes_outputs_and_markdown_reports(tmp_path, monkeypatch, isolated_config):
@@ -36,7 +36,6 @@ def test_translate_command_batch_writes_outputs_and_markdown_reports(tmp_path, m
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",
@@ -179,7 +178,6 @@ def test_translate_command_batch_continues_after_failure_when_requested(tmp_path
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.report._reports_dir", lambda _config: reports_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fake_preflight)
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",

@@ -12,7 +12,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from ayvu.v1.cache_check import verify_cache_writable
 import requests
 from typer.testing import CliRunner
 
@@ -44,7 +43,7 @@ def deny_resources(monkeypatch):
     for module, name in (
         (socket, 'socket'), (socket, 'getaddrinfo'), (socket, 'create_connection'),
         (sqlite3, 'connect'), (requests.Session, 'request'), (requests.Session, '__init__'),
-        (root, 'TranslationCache'), (root, 'ProjectJsonRepository'),
+        (root, 'ProjectJsonRepository'),
         (root, 'ConfigStore'), (root, 'LocalLibraryFilesystem'), (root, 'ReaderLauncher'),
         (root.providers, 'LibreTranslateTranslator'),
         (root.glossary, 'managed_glossary_repository'),
@@ -90,7 +89,7 @@ def test_cache_only_preflight_instruments_transport_and_provider_authority(minim
     original = minimal_epub_path.read_bytes()
     result = run_translation_preflight(epub_path=minimal_epub_path, cache_path=tmp_path / 'only-cache.sqlite',
         glossary_path=None, translator_name='libretranslate', url='http://endpoint-canary.invalid',
-        timeout=1, retries=0, language_pair=LanguagePair('en', 'pt'), dry_run=False, cache_only=True, cache_check=verify_cache_writable)
+        timeout=1, retries=0, language_pair=LanguagePair('en', 'pt'), dry_run=False, cache_only=True, cache_check=lambda _path: None)
     assert result.translator is None and result.translator_factory is None and result.route is None
     assert calls == []
     assert minimal_epub_path.read_bytes() == original
@@ -158,17 +157,6 @@ def test_confirmation_is_handed_to_the_real_project_command_without_implicit_aut
     root._translate_in_project(request(tmp_path, replace_existing=False), hooks())
     root._translate_in_project(request(tmp_path, replace_existing=True), hooks())
     assert captured == [False, True]
-
-
-def test_an_old_checkpoint_resume_is_refused_before_any_resource(tmp_path, monkeypatch):
-    """REF-18 step 6: v1 no longer runs; the refusal comes before the cache or the translation is touched."""
-    from ayvu.translation import PreviousRuntimeRetired
-    lifecycle = []
-    monkeypatch.setattr(root, 'TranslationCache', lambda path: lifecycle.append('open'))
-    monkeypatch.setattr(root, 'translate_without_project', lambda *args, **kwargs: lifecycle.append('translate'))
-    with pytest.raises(PreviousRuntimeRetired):
-        root._translate_without_project(request(tmp_path, project_id=None, translator_models={}), hooks(), legacy_resume=True)
-    assert lifecycle == []
 
 
 def test_a_continuation_without_an_identity_is_refused_as_a_v1_job(tmp_path):

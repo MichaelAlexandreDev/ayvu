@@ -6,12 +6,11 @@ with a live lease and a guard nobody holds, as a killed process does. A real kil
 from __future__ import annotations
 from datetime import timedelta
 import pytest
-from ayvu.v1.cache import TranslationCache
 from ayvu.jobs.model import JobRequest, JobState
 from ayvu.recovery.service import CompatibilityStatus, RequiredDecision, ResumeRequest, ResumeStatus
 from ayvu.translation.resume_reuse import RecoveryReason, ResumeStage
 from ayvu.translation.project_contracts import OUTPUT_ROLE, TRANSLATE_COMMAND_TYPE, TRANSLATE_COMMAND_VERSION, ContinuationTicket, TranslateProjectCommand
-from ayvu.composition.builders.translate_project import LegacyResources, LegacyTranslationRuntime, open_translate_project
+from ayvu.composition.builders.translate_project import open_translate_project
 from tests.support.cli_translate_project_support import ENCRYPTED_DOCUMENT, _book
 from ayvu.kernel import OutputPlan
 from tests.support.job_recovery_integration_support import DECIDED, Runner, Scene
@@ -219,7 +218,7 @@ def test_cancelling_a_resumed_run_leaves_a_truthful_state_that_can_resume_again(
     scene.interrupted_state()
     entry = scene.only_entry()
     project = scene.project()
-    runtime = LegacyTranslationRuntime(scene.source, scene.options, lambda: LegacyResources(scene.translator), lambda: TranslationCache(scene.cache))
+    runtime = scene.runtime()
     use_case = open_translate_project(scene.processing, project.project_id, scene.source, scene.output, overwrite=True, runtime=runtime, clock=scene.clock)
     cancellation = use_case.cancellation()
     cancellation.request("user_requested", scene.clock())

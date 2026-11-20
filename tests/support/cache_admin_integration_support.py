@@ -7,7 +7,7 @@ import threading
 import pytest
 from typer.testing import CliRunner
 from ayvu.knowledge.cache import admin as cache_admin, admin_store as cache_admin_store
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from ayvu.knowledge.cache.admin import (CacheRef, FileRef, CacheFilter, InspectRequest, PreviewCleanRequest,
     ExecuteCleanRequest, ExportRequest, ImportRequest)
 from ayvu.composition.builders.cache_admin import cache_admin_services
@@ -19,7 +19,7 @@ def key(text):
 
 
 def seed(path, *texts):
-    with TranslationCache(path) as cache:
+    with LegacyCacheFile(path) as cache:
         for text in texts:
             cache.set(key(text), "translated " + text)
 

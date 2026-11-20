@@ -9,7 +9,6 @@ from pathlib import Path
 from threading import Barrier
 import pytest
 import ayvu.composition.builders.translate_project as composition
-from ayvu.v1.cache import CacheKey, TranslationCache
 from ayvu.knowledge.cache import CacheEligibilityState, CacheIneligibleReason, PutIfAbsentState
 from ayvu.knowledge.cache.schema import SchemaState, classify_cache
 from ayvu.preferences.config_facade import ConfigStore

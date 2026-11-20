@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from ebooklib import epub
 from typer.testing import CliRunner
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from ayvu.artifacts.model import Artifact, ArtifactRequest, ArtifactState
 from ayvu.interfaces.cli.app import app
 from ayvu.composition.cli import _BookOutcome
@@ -42,7 +42,6 @@ def _fake_translation(monkeypatch, fake_translate) -> None:
         return _BookOutcome(report=report, validation=validation)
 
     monkeypatch.setattr("ayvu.interfaces.cli.run_support._translate_in_project", run)
-    monkeypatch.setattr("ayvu.composition.cli.translate_without_project", fake_translate)
 
 
 def _seed_cache_entry(
@@ -55,7 +54,7 @@ def _seed_cache_entry(
     created_at: str = "2024-01-01 10:00:00",
 ) -> CacheKey:
     key = CacheKey(text=text, language_pair=LanguagePair(source=source, target=target))
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         cache.set(key, translated)
         cache.connection.execute(
             """
@@ -108,14 +107,6 @@ def _library_config(isolated_config, books_dir, reader_app=None):
     isolated_config.write_text(json.dumps(data) + "\n", encoding="utf-8")
 
 
-class FakeCache:
-    def __enter__(self) -> "FakeCache":
-        return self
-
-    def __exit__(self, _exc_type: object, _exc: object, _traceback: object) -> None:
-        return None
-
-
 def _resume_state(tmp_path: Path) -> TranslationResumeState:
     return TranslationResumeState.create(
         input_path=tmp_path / "Original" / "book.epub",
@@ -149,7 +140,6 @@ def _mock_translation_pipeline(monkeypatch, calls: dict[str, object]) -> None:
         )
 
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fake_preflight)
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",

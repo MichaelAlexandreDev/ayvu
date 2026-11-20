@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 import pytest
 import ayvu.composition.builders.translate_project as composition
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from ayvu.knowledge.cache import PutIfAbsentState
 from ayvu.knowledge.cache.schema import SchemaState, classify_cache
 from tests.support.cache_repository_v2_support import entry
@@ -33,7 +33,7 @@ def test_cache_is_refused_before_preparation_and_errors_are_sanitized(tmp_path, 
         with sqlite3.connect(path) as conn:
             conn.execute("CREATE TABLE private(x)")
     elif problem == "v1":
-        with TranslationCache(path) as cache:
+        with LegacyCacheFile(path) as cache:
             cache.set(CacheKey("private source", PAIR), "private result")
     else:
         path.symlink_to(tmp_path / "other")
@@ -48,7 +48,7 @@ def test_cache_is_refused_before_preparation_and_errors_are_sanitized(tmp_path, 
 
 def test_prepare_cache_is_complete_before_provider_preparation_and_preserves_v1(tmp_path):
     path = tmp_path / "cache.sqlite"
-    with TranslationCache(path) as cache:
+    with LegacyCacheFile(path) as cache:
         cache.set(CacheKey("private source", PAIR), "private result")
     before = path.read_bytes()
     called = []

@@ -1,16 +1,15 @@
 import pytest
-from ayvu.v1.cache import CacheKey, TranslationCache
-from ayvu.v1.cache_check import verify_cache_writable
 from ayvu.translation.preflight import PreflightError, run_translation_preflight
 from ayvu.providers.libretranslate.client import RequestRateLimiter, TranslatorLanguage
 from ayvu.kernel import LanguagePair
-from tests.translation.preflight_support import FailingTranslator, FakeTranslator, TranslatorWithLanguages
+from tests.translation.preflight_support import accept_cache, FailingTranslator, FakeTranslator, TranslatorWithLanguages
 from tests.translation.preflight_support import raise_bad_epub
 
 
 def test_preflight_checks_cache_epub_and_translator(monkeypatch, tmp_path):
     translator = FakeTranslator()
     cache_path = tmp_path / "cache.sqlite"
+    checked = []
     monkeypatch.setattr("ayvu.translation.preflight.create_translator", lambda *_args, **_kwargs: translator)
     monkeypatch.setattr("ayvu.translation.preflight.inspect_epub", lambda _path: object())
 
@@ -23,14 +22,9 @@ def test_preflight_checks_cache_epub_and_translator(monkeypatch, tmp_path):
         timeout=1.0,
         retries=0,
         language_pair=LanguagePair(source="en", target="pt"),
-        dry_run=False, cache_check=verify_cache_writable)
+        dry_run=False, cache_check=checked.append)
 
-    probe_key = CacheKey(
-        text="__ayvu_cache_write_check__",
-        language_pair=LanguagePair(source="ayvu", target="ayvu"),
-    )
-    with TranslationCache(cache_path) as cache:
-        assert cache.get(probe_key) is None
+    assert checked == [cache_path]
     assert result.translator is translator
     # No discovery available means an unknown route, never a hidden translation.
     assert translator.calls == []
@@ -51,7 +45,7 @@ def test_preflight_dry_run_skips_translator_probe(monkeypatch, tmp_path):
         timeout=1.0,
         retries=0,
         language_pair=LanguagePair(source="en", target="pt"),
-        dry_run=True, cache_check=verify_cache_writable)
+        dry_run=True, cache_check=accept_cache)
 
     assert translator.calls == []
 
@@ -80,7 +74,7 @@ def test_preflight_passes_execution_controls_to_translator_factory(monkeypatch, 
         retry_backoff=0.25,
         retry_backoff_max=2.0,
         language_pair=LanguagePair(source="en", target="pt"),
-        dry_run=True, cache_check=verify_cache_writable)
+        dry_run=True, cache_check=accept_cache)
 
     assert calls["args"] == ("libretranslate",)
     kwargs = calls["kwargs"]
@@ -114,7 +108,7 @@ def test_preflight_cache_only_skips_route_resolution(monkeypatch, tmp_path):
         retries=0,
         language_pair=LanguagePair(source="en", target="pt"),
         dry_run=False,
-        cache_only=True, cache_check=verify_cache_writable)
+        cache_only=True, cache_check=accept_cache)
 
     assert result.route is None
     assert result.translator is None
@@ -134,7 +128,7 @@ def test_preflight_rejects_blank_language_pair(tmp_path):
             timeout=1.0,
             retries=0,
             language_pair=LanguagePair(source="en", target=" "),
-            dry_run=True, cache_check=verify_cache_writable)
+            dry_run=True, cache_check=accept_cache)
 
     assert error.value.summary == "O par de idiomas informado não é válido."
     assert "--source e --target" in error.value.next_step
@@ -153,7 +147,7 @@ def test_preflight_never_translates_to_find_out_whether_a_translator_works(monke
         timeout=1.0,
         retries=0,
         language_pair=LanguagePair(source="en", target="pt"),
-        dry_run=False, cache_check=verify_cache_writable)
+        dry_run=False, cache_check=accept_cache)
 
     assert result.route is None
 
@@ -172,7 +166,7 @@ def test_preflight_reports_epub_failure(monkeypatch, tmp_path):
             timeout=1.0,
             retries=0,
             language_pair=LanguagePair(source="en", target="pt"),
-            dry_run=False, cache_check=verify_cache_writable)
+            dry_run=False, cache_check=accept_cache)
 
     assert error.value.summary == "Não foi possível ler o EPUB informado."
     assert "bad epub" in error.value.detail

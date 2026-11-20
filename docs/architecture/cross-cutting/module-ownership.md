@@ -20,14 +20,14 @@ issue.
 | `src/ayvu/kernel/values.py` (was `domain.py`, moved by REF-04) | Shared value objects and policies for languages, outputs, chapters, memory, and execution | Transitional domain collection; split only when a use case establishes ownership in **Domain**, **Translation**, **Jobs**, or **Policies** |
 | `src/ayvu/preferences/config_facade.py` | Compatible facade over preference use cases and JSON repository | **Infrastructure**; construction selected in `composition.cli` and values in `preferences.model` |
 | `src/ayvu/formats/epub/io.py` | EPUB inspection, selection, archive copying, translation coordination, review application, and report data | Archive and document composition remain in the **Formats/EPUB** adapter; cross-stage orchestration moves to **Application/Translation**; review semantics move to **Review** |
-| `src/ayvu/v1/html_translate.py` | Visible-node selection, markup-safe reconstruction, chunk/cache/provider/glossary/TM coordination | Structural HTML segmentation, opaque references, and reconstruction remain an internal **Formats/EPUB** component that produces/consumes **Content** units; format-neutral linguistic execution moves incrementally to **Translation** |
+| `src/ayvu/formats/epub/html_structure.py` | Visible-node selection, durable units and markup-safe reconstruction | Remains an internal **Formats/EPUB** component that produces/consumes **Content** units; linguistic execution is **Translation**'s (the v1 `html_translate.py` was removed in REF-18 step 6) |
 | `src/ayvu/translation/chunking.py` | Ordered length-bounded text splitting | **Translation** pipeline policy; remains format- and provider-neutral |
 | `src/ayvu/providers/libretranslate/client.py` | Translation protocol, routing, LibreTranslate HTTP, retries, rate limiting, and language discovery | Request/result and routing contracts move to **Translation**; LibreTranslate transport remains a **Providers/Infrastructure** adapter |
 | `src/ayvu/network/policy.py` | Closed none/loopback vocabulary, pure destination classification and immutable per-request snapshot (#159) | **Policies/Domain**; without I/O or interface dependency; see [HTTP contract](network-policy.md) |
 | `src/ayvu/network/http.py` | Single injectable resolution and Requests transport pinned to validated loopback sockaddrs, without environment or redirects | **Providers/Infrastructure**; consumes the Policies decision and adds neither provider nor interface entry point |
 | `src/ayvu/translation/preflight.py` | Translation readiness checks and collaborator construction | Readiness coordination moves to **Application**; checks call format, knowledge, provider, and policy ports |
-| `src/ayvu/v1/cache.py` | Runtime exact-cache identity, querying, mutation, and JSON interchange; shared schema in `knowledge/cache/legacy_schema.py` (REF-18 R3) | Exact-cache semantics belong to **Knowledge**; SQLite/JSON operations implement **Infrastructure** repository and interchange ports |
-| `src/ayvu/knowledge/memory/fuzzy.py` | Fuzzy lookup over cached translations | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
+| `src/ayvu/knowledge/cache/legacy_admin_store.py` | Administration and JSON interchange of the v1 cache file; frozen schema in `knowledge/cache/legacy_schema.py` (REF-18 R3) | **Knowledge/Infrastructure**; reads old data only, since the v1 runtime cache `v1/cache.py` was removed in REF-18 step 6 |
+| `src/ayvu/knowledge/memory/fuzzy.py` | Fuzzy similarity scoring and the match value the pipeline reports | Translation-memory policy and contracts belong to **Knowledge** and must remain distinct from exact-cache identity and storage |
 | `src/ayvu/knowledge/memory/approved/model.py` | Governed TM identity, scope, value semantics and closed lifecycle | **Domain/Approved translation memory**; independent of operational cache and dataset consent |
 | `src/ayvu/knowledge/memory/approved/service.py` | Governed TM commands, queries, use cases and repository port | **Application/Approved translation memory**; no SQLite or pipeline bridge |
 | `src/ayvu/knowledge/memory/approved/store.py` | Dedicated SQLite values, immutable events, current approvals and migrations | **Infrastructure/Approved translation memory**; see [the contract](../modules/knowledge-memory.md) |
@@ -186,8 +186,8 @@ the existing test suite provide evidence, not proof, of conformance.
 - [Shared application use-case matrix](../modules/interfaces-cli.md)
 - [`src/ayvu/interfaces/cli/app.py`](../../../src/ayvu/interfaces/cli/app.py)
 - [`src/ayvu/formats/epub/io.py`](../../../src/ayvu/formats/epub/io.py)
-- [`src/ayvu/v1/html_translate.py`](../../../src/ayvu/v1/html_translate.py)
-- [`src/ayvu/v1/cache.py`](../../../src/ayvu/v1/cache.py)
+- [`src/ayvu/formats/epub/html_structure.py`](../../../src/ayvu/formats/epub/html_structure.py)
+- [`src/ayvu/knowledge/cache/legacy_admin_store.py`](../../../src/ayvu/knowledge/cache/legacy_admin_store.py)
 - [`src/ayvu/recovery/checkpoint.py`](../../../src/ayvu/recovery/checkpoint.py)
 - [`src/ayvu/providers/libretranslate/client.py`](../../../src/ayvu/providers/libretranslate/client.py)
 - [`test_workflow_translation_resume.py`](../../../tests/interfaces/cli/test_workflow_translation_resume.py), [`test_workflow_route_review.py`](../../../tests/interfaces/cli/test_workflow_route_review.py), [`test_workflow_translation_reporting.py`](../../../tests/interfaces/cli/test_workflow_translation_reporting.py), [`test_workflow_batch_preview.py`](../../../tests/interfaces/cli/test_workflow_batch_preview.py)

@@ -9,7 +9,7 @@ from ayvu.interfaces.cli.app import app
 from ayvu.translation import TranslationReport
 from ayvu.providers.libretranslate.client import TranslatorLanguage
 from ayvu.formats.epub.validation import ValidationResult
-from tests.support.cli_support import FakeCache, _fake_translation, isolated_config, runner
+from tests.support.cli_support import _fake_translation, isolated_config, runner
 
 
 def test_root_command_generates_guided_preview_when_confirmed(isolated_config, tmp_path, monkeypatch):
@@ -77,7 +77,6 @@ def test_root_command_starts_guided_translation(tmp_path, monkeypatch, isolated_
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
@@ -121,7 +120,6 @@ def test_root_command_selects_saved_glossary_for_guided_translation(isolated_con
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: output_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fake_preflight)
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)
@@ -176,7 +174,6 @@ def test_root_command_selects_profile_for_guided_translation(isolated_config, tm
     monkeypatch.setattr("ayvu.interfaces.cli.settings.default_processing_dir", lambda: processing_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.output.default_translated_books_dir", lambda: output_dir)
     monkeypatch.setattr("ayvu.interfaces.cli.run.run_translation_preflight", fake_preflight)
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr("ayvu.composition.builders.translate_project.validate_output", lambda _path, on_progress=None: ValidationResult(ok=True, document_count=1))
     monkeypatch.setattr("ayvu.interfaces.cli.report._offer_markdown_report", lambda *_args, **_kwargs: None)

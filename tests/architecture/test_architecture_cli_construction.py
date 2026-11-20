@@ -35,10 +35,10 @@ def test_cli_transitive_dependencies_cannot_be_laundered_by_an_exemption(tmp_pat
 
 
 def test_cli_cannot_import_concrete_reexport_from_composition(tmp_path):
-    root = make_tree(tmp_path, 'ayvu.cli', 'from .composition.cli import TranslationCache')
-    (root / 'composition' / 'cli.py').write_text('from ..v1.cache import TranslationCache')
+    root = make_tree(tmp_path, 'ayvu.cli', 'from .composition.cli import SQLiteExactCache')
+    (root / 'composition' / 'cli.py').write_text('from ..knowledge.cache.repository import SQLiteExactCache')
     with pytest.raises(BoundaryError, match='concrete re-export'):
-        check_tree(root, TEST_OWNERS, allowed_edges={('ayvu.cli', CLI_ROOT), (CLI_ROOT, 'ayvu.v1.cache')})
+        check_tree(root, TEST_OWNERS, allowed_edges={('ayvu.cli', CLI_ROOT), (CLI_ROOT, 'ayvu.knowledge.cache.repository')})
 
 
 @pytest.mark.parametrize("code", ["services = dict()", "services = {}", "services = []"])

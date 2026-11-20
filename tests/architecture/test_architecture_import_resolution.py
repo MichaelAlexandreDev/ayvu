@@ -37,7 +37,7 @@ def test_equivalent_allowed_imports(code: str, tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(("source", "code"), [
     ("ayvu.formats.epub.io", "from ayvu.application import FormatPort"),
-    ("ayvu.v1.cache", "from ayvu.application import CacheRepositoryPort"),
+    ("ayvu.knowledge.cache.repository", "from ayvu.application import CacheRepositoryPort"),
 ])
 def test_adapters_may_import_application_ports(
     source: str, code: str, tmp_path: Path,

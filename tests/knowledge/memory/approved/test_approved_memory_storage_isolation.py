@@ -2,7 +2,7 @@
 
 from ayvu.knowledge.memory.approved.model import MemoryState
 from ayvu.knowledge.memory.approved.store import MEMORY_MIGRATIONS
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from tests.support.approved_memory_fixtures import PAIR, PROJECT_SCOPE, SCOPES
 
 from tests.knowledge.memory.approved.approved_memory_support import env
@@ -11,7 +11,7 @@ from tests.knowledge.memory.approved.approved_memory_support import env
 def test_operational_cache_legacy_rows_and_governed_store_are_isolated(env):
     cache_path = env.root / 'cache.sqlite'
     key = CacheKey('Café  Hello', PAIR)
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         cache.set(key, 'legacy')
         cache.connection.execute("UPDATE translations SET created_at = '2000-01-01'")
         cache.connection.commit()
@@ -20,22 +20,23 @@ def test_operational_cache_legacy_rows_and_governed_store_are_isolated(env):
     assert repository.list_entries(scopes=SCOPES).revisions == ()
     assert cache_path.read_bytes() == before
     approved = env.approve(env.create())
-    with TranslationCache(cache_path) as cache:
-        cache.delete_entries(before='2001-01-01')
+    with LegacyCacheFile(cache_path) as cache:
+        cache.connection.execute("DELETE FROM translations WHERE created_at < '2001-01-01'")
+        cache.connection.commit()
         assert cache.get(key) is None
     assert env.repo.current(env.source, PAIR, scopes=(PROJECT_SCOPE,)) == approved
     cache_path.unlink()
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         cache.set(key, 'new operational value')
     env.repo.review(env.review(approved, MemoryState.DEPRECATED))
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         assert cache.get(key) == 'new operational value'
         cache_tables = {row[0] for row in cache.connection.execute("SELECT name FROM sqlite_schema WHERE type='table'")}
     assert 'translations' in cache_tables and not any(name.startswith('tm_') for name in cache_tables)
     memory_tables = {row[0] for row in env.raw("SELECT name FROM sqlite_schema WHERE type='table'")}
     assert 'translations' not in memory_tables
     env.database.unlink()
-    with TranslationCache(cache_path) as cache:
+    with LegacyCacheFile(cache_path) as cache:
         assert cache.get(key) == 'new operational value'
 
 

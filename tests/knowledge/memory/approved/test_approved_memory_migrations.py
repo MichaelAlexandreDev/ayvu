@@ -4,7 +4,7 @@ import sqlite3
 
 from ayvu.knowledge.memory.approved.model import MemoryScope, MemoryState, ScopeKind
 from ayvu.knowledge.memory.approved.store import MEMORY_MIGRATIONS, memory_migration_runner, open_approved_memory
-from ayvu.v1.cache import CacheKey, TranslationCache
+from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
 from tests.support.approved_memory_fixtures import MemoryEnvironment, PAIR, PROJECT_SCOPE, SCOPES
 
 
@@ -54,7 +54,7 @@ def test_retrieval_indexes_upgrade_a_released_schema_and_keep_its_tables(tmp_pat
 
 def test_production_initialization_never_promotes_representative_legacy_rows(tmp_path):
     path = tmp_path / 'cache.sqlite'
-    with TranslationCache(path) as cache:
+    with LegacyCacheFile(path) as cache:
         cache.set(CacheKey('same source', PAIR), 'same target')
         cache.set(CacheKey('provider __AYVU_TAG_0__', PAIR), 'provider __AYVU_TAG_0__')
         cache.set(CacheKey('outdated', PAIR), 'outdated target')

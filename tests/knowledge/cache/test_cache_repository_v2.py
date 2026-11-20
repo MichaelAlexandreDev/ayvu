@@ -14,7 +14,7 @@ from ayvu.knowledge.cache.entries import (
 )
 from ayvu.knowledge.cache.repository import SQLiteExactCache
 from tests.support.translation_cache_v2_support import Env, PROJECT, make_plan
-from ayvu.kernel import LanguagePair, TranslationMemoryOptions
+from ayvu.kernel import LanguagePair
 
 from tests.support.cache_repository_v2_support import entry
 
@@ -176,18 +176,14 @@ def test_simultaneous_identical_and_provenance_writes(tmp_path, different_proven
     assert cache.lookup(first.key).value == first.value
 
 
-def test_migrated_legacy_exact_and_fuzzy_are_isolated_from_v2_workers(tmp_path):
+def test_migrated_legacy_rows_are_isolated_from_v2_workers(tmp_path):
     import sqlite3
-    from ayvu.v1.cache import TranslationCache
-    from ayvu.v1.html_translate import _LegacyV1Cache
-    from ayvu.knowledge.memory.fuzzy import TranslationMemory
+    from tests.support.legacy_cache_file import CacheKey, LegacyCacheFile
     path = tmp_path / "cache.sqlite"
     pair = LanguagePair("en", "pt")
-    with TranslationCache(path) as legacy:
-        facade = _LegacyV1Cache(legacy)
-        facade.set("hello", pair, "LEGACY-CANARY")
-        assert facade.get("hello", pair) == "LEGACY-CANARY"
-        assert TranslationMemory(legacy, TranslationMemoryOptions()).lookup("hello", pair).translated == "LEGACY-CANARY"
+    with LegacyCacheFile(path) as legacy:
+        legacy.set(CacheKey("hello", pair), "LEGACY-CANARY")
+        assert legacy.get(CacheKey("hello", pair)) == "LEGACY-CANARY"
     cache = SQLiteExactCache(path)
     item = entry(source="hello")
     assert cache.lookup(item.key).state == CacheLookupState.MISS
@@ -277,16 +273,3 @@ def test_separate_utf8_ceilings_can_be_used_together_without_truncation(tmp_path
 def test_identity_uses_the_normative_entry_limit():
     from ayvu.knowledge.cache.identity import MAX_CANONICAL_PAYLOAD_BYTES
     assert MAX_CANONICAL_PAYLOAD_BYTES == LIMITS.canonical_identity == 64 * 1024
-
-
-def test_legacy_cache_dto_representations_omit_operational_content():
-    from pathlib import Path
-    from ayvu.v1.cache import CacheEntry, CacheExportReport, CacheKey, text_hash
-    source, value = "CANARY-SOURCE", "CANARY-VALUE"
-    key = CacheKey(source, LanguagePair("en", "pt"))
-    legacy = CacheEntry("en", "pt", text_hash(source), source, value, "2026-11-05")
-    exported = CacheExportReport(Path("/CANARY-PATH/private"), 1)
-    assert "CANARY" not in repr((key, legacy, exported))
-    # Only the explicit interchange projection contains sensitive text.
-    assert legacy.to_mapping()["original_text"] == source
-    assert legacy.to_mapping()["translated_text"] == value

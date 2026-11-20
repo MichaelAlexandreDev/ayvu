@@ -6,7 +6,7 @@ from ayvu.translation import TranslationReport
 from ayvu.recovery.checkpoint import ResumeStateStore, TranslationResumeState
 from ayvu.formats.epub.validation import ValidationResult
 from ayvu.kernel import LanguagePair, TranslationOptions
-from tests.support.cli_support import FakeCache, _fake_translation, runner
+from tests.support.cli_support import _fake_translation, runner
 from tests.support.cli_support import isolated_config
 
 
@@ -63,7 +63,6 @@ def _patch_resume_pipeline(monkeypatch, processing_dir: Path, calls: dict[str, o
         "ayvu.interfaces.cli.run.run_translation_preflight",
         lambda **_kwargs: SimpleNamespace(translator=object(), glossary=None, route=None),
     )
-    monkeypatch.setattr("ayvu.composition.cli.TranslationCache", lambda _path: FakeCache())
     _fake_translation(monkeypatch, fake_translate)
     monkeypatch.setattr(
         "ayvu.composition.builders.translate_project.validate_output",

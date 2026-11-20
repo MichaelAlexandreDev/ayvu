@@ -7,7 +7,7 @@ import threading
 import pytest
 
 from ayvu.knowledge.cache import admin as cache_admin, admin_store as cache_admin_store
-from ayvu.v1.cache import TranslationCache
+from tests.support.legacy_cache_file import LegacyCacheFile
 from ayvu.knowledge.cache.admin import CacheRef, FileRef, CacheFilter, PreviewCleanRequest, ExecuteCleanRequest, ImportRequest
 from ayvu.composition.builders.cache_admin import cache_admin_services
 
@@ -109,7 +109,7 @@ def test_a_cache_of_a_real_library_round_trips(tmp_path):
     services = cache_admin_services()
     path = tmp_path / "cache.sqlite"
     count = 110_000
-    with TranslationCache(path):
+    with LegacyCacheFile(path):
         pass
     with sqlite3.connect(path) as connection:
         connection.executemany(

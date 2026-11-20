@@ -46,7 +46,7 @@ def audit(event, args):
             raise AssertionError('user store opened')
 sys.addaudithook(audit)
 from ayvu.composition import cli as root
-for name in ('TranslationCache', 'ProjectJsonRepository', 'ConfigStore',
+for name in ('ProjectJsonRepository', 'ConfigStore',
              'LocalLibraryFilesystem', 'ReaderLauncher'):
     setattr(root, name, deny)
 root.providers.LibreTranslateTranslator = deny

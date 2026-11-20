@@ -17,9 +17,7 @@ def test_composition_refuses_a_present_invalid_label(label):
         rich_provider.selected_model({"libretranslate": label}, "libretranslate")
 
 
-@pytest.mark.parametrize("label,expected,revision", [(None, composition.LegacyTranslationRuntime, 1),
-                                                     ("local-v1", composition.RichTranslationRuntime, 2)])
-def test_production_composition_constructs_only_the_selected_runtime(tmp_path, monkeypatch, label, expected, revision):
+def _selection_case(tmp_path, monkeypatch, label):
     from types import SimpleNamespace
     from ayvu.translation.project_contracts import TranslateObserver, TranslateProjectResult
     opened, commands, preparations = [], [], []
@@ -36,12 +34,26 @@ def test_production_composition_constructs_only_the_selected_runtime(tmp_path, m
     monkeypatch.setattr(composition, "open_translate_project", open_case)
     request = composition.ProjectTranslation(tmp_path, project_id, "a" * 64, tmp_path / "book.epub",
         TranslationOptions(language_pair=PAIR), OutputPlan(tmp_path / "out.epub"), False,
-        lambda: preparations.append("provider"), lambda: preparations.append("v1"),
-        model_label=label, cache_path=tmp_path / "cache.sqlite")
-    result = composition.translate_in_project(request, TranslateObserver())
-    assert type(opened[0]) is expected and commands[0].execution_revision == revision
+        lambda: preparations.append("provider"), model_label=label, cache_path=tmp_path / "cache.sqlite")
+    return request, opened, commands, preparations, TranslateObserver()
+
+
+def test_production_composition_constructs_only_the_rich_runtime(tmp_path, monkeypatch):
+    request, opened, commands, preparations, observer = _selection_case(tmp_path, monkeypatch, "local-v1")
+    result = composition.translate_in_project(request, observer)
+    assert type(opened[0]) is composition.RichTranslationRuntime and commands[0].execution_revision == 2
     assert preparations == [] and result.result.failure.code == "fixture_gate"
-    assert (commands[0].producer is None) == (label is None)
+    assert commands[0].producer is not None
+    assert not composition.v2_cache_path(tmp_path / "cache.sqlite").exists()
+
+
+def test_a_project_translation_without_a_label_constructs_no_runtime(tmp_path, monkeypatch):
+    """Admission refuses unlabeled work first; only the retired v1 runtime ran without a label (REF-18 step 6)."""
+    from ayvu.translation.project_contracts import TranslateCommandError
+    request, opened, commands, preparations, observer = _selection_case(tmp_path, monkeypatch, None)
+    with pytest.raises(TranslateCommandError, match="model_label_required"):
+        composition.translate_in_project(request, observer)
+    assert opened == [] and commands == [] and preparations == []
     assert not composition.v2_cache_path(tmp_path / "cache.sqlite").exists()
 
 

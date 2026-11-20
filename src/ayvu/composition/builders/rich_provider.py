@@ -73,7 +73,7 @@ def selected_model(models: dict[str, str], translator_name: str) -> str | None:
     return label
 
 
-def require_model(models, translator_name, *, continuation=None, legacy_resume=False):
+def require_model(models, translator_name, *, continuation=None):
     """Admit new work only with an identity, before acquiring any resource.
 
     A translator whose identity is discovered (Ollama) is admitted here: its own preflight refuses a
@@ -86,8 +86,6 @@ def require_model(models, translator_name, *, continuation=None, legacy_resume=F
     except TranslatorError as error:
         raise PreflightError("Não foi possível preparar o tradutor.",
                              "Use --translator libretranslate.", detail=str(error)) from None
-    if legacy_resume:
-        raise PreviousRuntimeRetired()  # REF-18 step 6: an old standalone checkpoint no longer runs on v1.
     if continuation is not None:
         if selected_model(models, translator_name) is None:
             raise PreviousRuntimeRetired()  # A continuation without an identity could only be a v1 job's.

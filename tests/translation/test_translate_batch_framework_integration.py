@@ -5,7 +5,8 @@ import json
 import pytest
 
 from ayvu.translation.batch_output import OutputIntent
-from ayvu.v1.cache import TranslationCache
+from ayvu.providers.libretranslate.client import LibreTranslateTranslator
+from tests.support.cli_translate_project_support import Session
 from ayvu.formats.epub.io import detect_epub_language
 from ayvu.projects.service import resolve_project
 from ayvu.projects.store import ProjectJsonRepository, build_project_request
@@ -17,13 +18,16 @@ from tests.support.workflow_characterization_support import _write_epub
 from ayvu.kernel import LanguagePair, OutputPlan, TranslationOptions
 
 
-class Translator:
+class Recording(Session):
+    """An in-process LibreTranslate that records each request's languages and text."""
+
     def __init__(self):
+        super().__init__()
         self.calls = []
 
-    def translate(self, text, source, target):
-        self.calls.append((source, target, text))
-        return f"PT:{text}"
+    def post(self, url, *, json, timeout, allow_redirects=False):
+        self.calls.append((json["source"], json["target"], json["q"]))
+        return super().post(url, json=json, timeout=timeout, allow_redirects=allow_redirects)
 
 
 def test_client_resolves_each_book_lazily_and_executes_production_projects(tmp_path, monkeypatch):
@@ -34,7 +38,9 @@ def test_client_resolves_each_book_lazily_and_executes_production_projects(tmp_p
     original = [path.read_bytes() for path in sources]
     processing, output, reports = tmp_path / "processing", tmp_path / "out", tmp_path / "reports"
     output.mkdir()
-    translator = Translator()
+    session = Recording()
+    translator = LibreTranslateTranslator(retries=0)
+    translator.session = session
     opened, calls, resolved, report_paths, accepted_plans = [], [], [], [], []
     original_open = composition.open_translate_project
 
@@ -61,8 +67,8 @@ def test_client_resolves_each_book_lazily_and_executes_production_projects(tmp_p
             translation = ProjectTranslation(
                 processing, project.project_id, project.source_sha256, source,
                 TranslationOptions(language_pair=LanguagePair(language, "pt")), accepted.output,
-                False, lambda: LegacyResources(translator), lambda: TranslationCache(tmp_path / "cache.sqlite"),
-                operation_id=correlation, accepted_output=accepted,
+                False, lambda: LegacyResources(translator),
+                operation_id=correlation, accepted_output=accepted, model_label="local-model-2026", cache_path=tmp_path / "cache.sqlite",
             )
             run_result = translate_in_project(translation, TranslateObserver(), cancellation=cancellation)
             assert run_result.report is not None
@@ -92,7 +98,7 @@ def test_client_resolves_each_book_lazily_and_executes_production_projects(tmp_p
     manifests = [json.loads(path.read_text()) for path in processing.glob("projects/*/project.json")]
     assert {manifest["source"] for manifest in manifests} == {"en", "fr"}
     assert len({manifest["project_id"] for manifest in manifests}) == 2
-    assert {source for source, _, _ in translator.calls} == {"en", "fr"}
+    assert {source for source, _, _ in session.calls} == {"en", "fr"}
     assert len(report_paths) == 2 and all(path.is_file() for path in report_paths)
     assert all((output / f"{path.stem}-pt.epub").is_file() for path in sources)
     assert [path.read_bytes() for path in sources] == original

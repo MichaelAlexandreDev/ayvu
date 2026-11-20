@@ -72,10 +72,6 @@ def test_private_data_is_never_edited_directly(path):
     assert decision(edit(path, "Write")) == "deny"
 
 
-def test_editing_the_quarantined_v1_runtime_asks_first():
-    assert decision(edit(str(ROOT / "src" / "ayvu" / "v1" / "epub.py"))) == "ask"
-
-
 def test_editing_ordinary_code_passes():
     assert decision(edit(str(ROOT / "src" / "ayvu" / "translation" / "project.py"))) == "allow"
 
@@ -108,11 +104,6 @@ def test_a_file_or_function_over_its_limit_is_reported_after_writing(project):
 def test_a_listed_file_is_held_to_its_ratchet_entry(project):
     assert write(project, "src/ayvu/kernel/listed.py", "x = 1\n" * 440) is None
     assert "its limit is 450" in write(project, "src/ayvu/kernel/listed.py", "x = 1\n" * 460)["additionalContext"]
-
-
-def test_a_v1_import_outside_composition_is_reported(project):
-    assert "only composition may (D7)" in write(project, "src/ayvu/kernel/uses.py", "from ayvu.v1 import cache\n")["additionalContext"]
-    assert write(project, "src/ayvu/composition/uses.py", "from ..v1 import cache\n") is None
 
 
 def test_small_files_and_other_files_say_nothing(project):

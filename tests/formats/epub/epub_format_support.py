@@ -5,9 +5,7 @@ import pytest
 from bs4 import BeautifulSoup
 from lxml import etree
 from ayvu.formats.epub import adapter as epub_format, io as epub_io
-from ayvu.v1 import epub as v1_epub
 from ayvu.artifacts.model import ArtifactStoreError
-from ayvu.v1.cache import TranslationCache
 from ayvu.formats.epub.archive import EpubArchiveError
 from ayvu.formats.epub.adapter import EPUB_REGISTRATION, epub_format_adapter
 from ayvu.formats.contracts import (

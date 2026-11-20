@@ -77,18 +77,17 @@ says otherwise.
 | --- | --- |
 | 1 | `interfaces` (cli, desktop, server) |
 | 2 | `composition` |
-| 3 | `v1` |
-| 4 | `recovery` |
-| 5 | `review` |
-| 6 | `translation` |
-| 7 | `projects` |
-| 8 | `preferences` |
-| 9 | `knowledge`, `providers`, `formats` |
-| 10 | `artifacts` |
-| 11 | `provenance` |
-| 12 | `jobs` |
-| 13 | `content`, `network`, `library`, `application` |
-| 14 | `kernel` |
+| 3 | `recovery` |
+| 4 | `review` |
+| 5 | `translation` |
+| 6 | `projects` |
+| 7 | `preferences` |
+| 8 | `knowledge`, `providers`, `formats` |
+| 9 | `artifacts` |
+| 10 | `provenance` |
+| 11 | `jobs` |
+| 12 | `content`, `network`, `library`, `application` |
+| 13 | `kernel` |
 
 REF-12 (#280) gave `review` a row above `translation`: applying a review reads the translation result,
 and translation never reads review, so the row decides it without an exception.
@@ -165,8 +164,8 @@ imports the values downwards; no layer exception and no group cycle are added.
   Option/argument/preset enforcement and capability-based resume admission belong to the
   follow-up batch E; #285 is scoped to B, C and D. No continuation issue is created here.
 - PR D audits effective provider/input-format IDs against the real content, provider,
-  review and translation builders, including v1 preflight/executor and rich provider
-  acquisition/cleanup. Today's recipes are LibreTranslate, EPUB and the extraction
+  review and translation builders, including the v1 preflight/executor (removed in REF-18 step 6) and rich
+  provider acquisition/cleanup. Today's recipes are LibreTranslate, EPUB and the extraction
   Markdown writer. This audit does not add selection enforcement to existing builders:
   content still constructs its writer unconditionally, and v1/rich keep their existing
   provider paths. Exclusion enforcement and additional recipes belong to batch E.
@@ -175,15 +174,14 @@ imports the values downwards; no layer exception and no group cycle are added.
   The installed `ayvu-desktop` bootstrap still does not call this root; its help and
   diagnostics stay unchanged. A future launcher should select `free` inside composition.
 
-### D7. The v1 runtime in quarantine
-- REF-18 step 4 requires a model label for new translations. `v1/` remains quarantined for existing
-  jobs and old standalone checkpoints until step 6 removes it.
-- Implemented in REF-06 (#274). `v1` is a required layer below `composition`, and a contract keeps the
-  interfaces from importing it. The modules below it that still import v1 do so under ignores owned by the
-  issue that removes each one; their cycles with `v1` are listed below. Each v1 module is public by itself,
-  so `v1/__init__.py` exports nothing: no package API is designed for code that is going away.
-- `v1` may import any module; no module imports `v1`, only `composition`.
-- The owner decided to retire v1. How and when is REF-18, after listing what only v1 does.
+### D7. The v1 runtime, retired
+- Implemented in REF-06 (#274) as a quarantined `v1` layer below `composition`, with a contract that kept the
+  interfaces from importing it. REF-18 retired it: step 4 required a model label for new translations, step 6a
+  refused v1 jobs and old standalone checkpoints on resume, and step 6b (#286) removed `v1/`, its layer and its
+  contract. The tag `v1-runtime-final` marks the last commit that runs it.
+- No module recreates it. Old v1 data is read only by its owners: cache administration in
+  `knowledge/cache/legacy_*`, CSV-v1 review inspection in `review/csv_import.py` and checkpoint reading in
+  `recovery/`, which is what lets old work be listed and refused.
 
 ### D8. No shims
 - Moving a file updates every import in the same PR. No file is left only re-exporting the new place.
@@ -264,7 +262,6 @@ src/ayvu/
                    exchange_codec, exchange_files, csv_export, csv_import;
                    local_files, local_context, local_packages, local_start, local_operations
   recovery/        service, store, checkpoint, checkpoint_scan
-  v1/              translation, epub, html_translate, cache, cache_check
   composition/     cli, desktop, editions (later); builders/ (including checkpoint and translator selection)
   interfaces/      cli/ (app, commands/, render, progress); desktop/; server/ (later)
 ```
@@ -289,9 +286,9 @@ The table of where each flat module was planned to go is in the [refactoring fil
 | formats ↔ translation | Resolved: Earlier HTML dependencies by REF-06/REF-07; R1 of REF-18 (#286) put `BookFacts`/`BookPackage` in `formats/book_facts.py`, so the EPUB reader imports nothing from Translation | REF-06, REF-07, REF-18 R1 |
 | knowledge ↔ translation | `memory_retrieval` (in knowledge) uses `translation_plan` and `translation_protection` | REF-07 and REF-09 (`memory_retrieval` to the pipeline) |
 | artifacts ↔ formats | `artifact_destination` calls `format_local` and `format_service` | REF-08 (a port) |
-| formats ↔ v1 | `epub_io` uses the v1 cache, translator and HTML translation; `validation` uses `extract_visible_text` | REF-10 |
-| knowledge ↔ v1 | Removed by REF-18 R3: Knowledge owns the shared legacy schema, codec and streaming storage; v1 imports the public schema value | REF-09 and REF-18 |
-| translation ↔ v1 | `preflight` builds the v1 translator and opens the v1 cache | REF-11 |
+| formats ↔ v1 | Resolved: `v1/` was removed in REF-18 step 6 | REF-10 and REF-18 |
+| knowledge ↔ v1 | Removed by REF-18 R3: Knowledge owns the shared legacy schema, codec and streaming storage; `v1/` itself was removed in step 6 | REF-09 and REF-18 |
+| translation ↔ v1 | Resolved: `v1/` was removed in REF-18 step 6 | REF-11 and REF-18 |
 
 ## Sequence
 

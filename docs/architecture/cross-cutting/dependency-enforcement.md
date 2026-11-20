@@ -58,7 +58,7 @@ entries fail, so a rename cannot silently discard protection.
 | `composition.cli` | Composition | Single construction boundary selected by the CLI (#158) |
 | `interfaces.cli.contracts` | Application | Structural ports and shared errors, without framework |
 | `preferences.model` | Domain | Preference values and v1 facade conversions |
-| `formats.epub.archive`, `formats.epub.adapter`, `formats.epub.io`, `formats.epub.html_structure`, `v1.html_translate`, `v1.translation`, `validation` | Format adapter | EPUB, EPUB/Quality |
+| `formats.epub.archive`, `formats.epub.adapter`, `formats.epub.io`, `formats.epub.html_structure`, `validation` | Format adapter | EPUB, EPUB/Quality |
 | `translation.engine` | Application | One book through a format adapter and a unit executor |
 | `translation.project` | Application | Project admission, reconciliation and provenance, from its ports |
 | `translation.project_contracts` | Application | Project commands, plans, ports and results |
@@ -170,8 +170,8 @@ cache, glossary and provider adapters. Its edge to `composition.builders.provide
 remains an exact cross-capability composition exception, without a direct path
 from presentation to that module. The #158 number on this exception identifies the
 responsible consolidation, not authorization to duplicate services.
-The coupling of the
-`v1.html_translate` compatibility facade expires in #153, since #145 keeps the v1 cache.
+The
+`v1.html_translate` compatibility facade and its coupling were removed with the v1 runtime in REF-18 step 6.
 EPUB pipeline coupling expires in #144, after #141 separates the
 provider contract from its HTTP adapter. `formats.epub.html_structure` has no such coupling.
 Legacy review projection coupling expires in #158. Fuzzy memory's exact-cache and vendor coupling

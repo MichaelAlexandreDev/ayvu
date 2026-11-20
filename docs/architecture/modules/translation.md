@@ -52,7 +52,7 @@ There are two paths through the same stages:
 
 | Path | Entry | Identity | Durable state |
 | --- | --- | --- | --- |
-| Legacy | `translate_text`, through `LegacyTextPipelineFacade` | None | None beyond the v1 cache |
+| Legacy | `LegacyTextPipelineFacade` | None | None; it has no production caller since the v1 runtime was removed (REF-18 step 6) |
 | Rich | `DocumentTranslator` | Real project, job, document and unit | Artifact, provenance and events |
 
 **Production explicitly selects the rich path since #252.** Add
@@ -60,8 +60,9 @@ There are two paths through the same stages:
 The label accepts `[a-z0-9][a-z0-9_-]{0,47}` and enters identity as
 `declared:<label>`, declared by the user; `unknown` remains ineligible.
 **Changing the server model without changing the label reuses old results.**
-There is no model discovery or new HTTP request. Without a label, `translate_text`
-retains signature, results, messages and v1 key. Unlabeled previews stay on v1; labeled previews and dry runs use the transient routes below.
+There is no model discovery or new HTTP request. Without a label, a translation, preview or dry run is refused
+before it starts (REF-18 step 4), and work started on the retired v1 runtime is refused on resume (step 6).
+Labeled previews and dry runs use the transient routes below.
 See [runtime selection](translation-project.md#explicit-runtime-selection-252).
 
 | Module | Layer | Responsibility |
@@ -76,9 +77,7 @@ See [runtime selection](translation-project.md#explicit-runtime-selection-252).
 | `ayvu.translation.document_provenance` | Application | Document production and replay lineage |
 | `ayvu.translation.document_bindings` | Application | Provider, cache and memory bindings for the current unit and plan |
 | `ayvu.translation.engine` | Application | One book through a format adapter and a unit executor, under the current flow's rules |
-| `ayvu.v1.translation` | Format | The executor over `translate_text` and the v1 cache, and the current report's types |
 | `ayvu.formats.epub.html_structure` | Format | Traversal, durable units and markup-safe reconstruction |
-| `ayvu.v1.html_translate` | Format | The compatibility facade, and `translate_text` adapting the current types to it |
 
 ## Stages
 
@@ -101,28 +100,20 @@ the cache. Cache-only and dry run never call the provider, and cache-only wins i
 Reused text still receives the glossary. The raw text is cached before the glossary changes it.
 Outer whitespace comes back last.
 
-`tests/v1/test_translate_text_characterization.py` states these, and it was written and passing
-against the code before this extraction.
+[The pipeline tests](../../../tests/translation/test_translation_pipeline.py) state these. The v1 characterization
+that first pinned them, written and passing before this extraction, was removed with the v1 runtime (REF-18 step 6).
 
 ## The engine
 
 `TranslationEngine` reads a book through the format adapter, hands each unit to an executor and gives the results
-back to the adapter. It parses no markup and calls no provider. Composition chooses between:
+back to the adapter. It parses no markup and calls no provider. The rich runtime, the only one production runs,
+gives it document work (`TranslationResources.documents`): it stops the document at the first failure, keeps the v2
+cache in a separate sibling file with full identity, and a resume reuses the previous job's proven raw results (#242).
+The units have real identity, because extraction needs a real project.
 
-| Explicit rich runtime | Legacy runtime without label |
-| --- | --- |
-| Stops the document at the first failure | A failed text stays in the source language and the run goes on |
-| V2 cache in a separate sibling file, with full identity | Reuses existing v1 cache |
-| Resume reuses the previous job's proven raw results (#242) | [Resume](recovery.md) re-executes on v1 |
-
-`ayvu.v1.translation` is the named compatibility
-path to the v1 cache, and it adds no provider, model or pipeline identity to it. The units have real identity, because
-extraction needs a real project.
-
-**The current flow is the oracle.** `tests/v1/test_translation_engine_parity.py` runs both over the same books and compares
-the bytes, the order of provider calls, the cache, the report, the progress and the review rows.
-`tests/v1/test_translation_engine_publication.py` and `tests/v1/test_translation_engine_workers.py`
-cover publication and worker behavior.
+The unit-executor path (`TranslationResources.executor` and `pool`) served the v1 runtime, removed in REF-18 step 6; it
+has no production executor now. The use-case tests drive it through a test runtime
+([engine runtime support](../../../tests/support/engine_runtime_support.py)), and the v1 parity tests went with v1.
 [Format compatibility](formats-compatibility.md#differences-settled-by-145) lists the differences that are deliberate.
 `texts_skipped` is left at zero: only the current report object holds it, and nothing shows it.
 
@@ -137,7 +128,7 @@ predecessor project-free flow. Labeled previews and dry runs use `TransientTrans
 
 `_BookRequest` carries the translator name/model mapping and an explicit preview marker.
 `composition.cli.prepare_preview` selects before stores or provider preparation. Only a valid
-label chooses late online preparation; the unlabeled path retains v1 timing and observables.
+label chooses late online preparation; an unlabeled preview is refused before any of it.
 The real session performs authorized discovery and supplies the execution's rate limiter.
 The resulting plan uses the declared producer and observed route/capability fingerprint.
 
@@ -192,12 +183,12 @@ These cache/product differences were accepted on 2026-11-13 (G3 decision row).
 `LegacyTextPipelineFacade` has no document, project or job identity, by design. It creates no
 artifact, provenance record or replay key, and it never derives an ID from text or order.
 
-The v1 cache and memory reach the CLI pipeline only through ports. `_LegacyV1Cache` in
-`ayvu.v1.html_translate` is the named compatibility adapter for that behavior; a rich plan cannot select it.
-The standalone cache has a v2 boundary and repository; CLI runs without a declared model stay on the characterized v1 adapter.
+Its cache and memory are ports. The v1 adapters behind them (`_LegacyV1Cache` and the fuzzy `TranslationMemory`) were
+removed with the v1 runtime in REF-18 step 6; a rich plan never selected them. The standalone cache has a v2 boundary
+and repository.
 [`formats.epub.html_structure`](../decisions/html-structure.md) has neither cache nor glossary.
 
-`MAX_PROTECTED_RECOVERY_CALLS` remains a setting of `ayvu.v1.html_translate`, passed on each call.
+The protected-content recovery limit is the `max_recovery_calls` argument, `DEFAULT_MAX_RECOVERY_CALLS` (64) by default.
 
 ## The resolved plan
 
@@ -299,8 +290,8 @@ In rich, the CLI prepares `<--cache name>.v2.sqlite` before the provider, withou
 changing v1. The first rich use retranslates texts available only in v1. It requires
 `--workers 1` and stops at the first provider failure
 without publishing a partial EPUB. The job remains resumable and completed segments stay in cache.
-The glossary is applied to raw v2 values. Removing the label returns to legacy on new
-runs; resume between different runtimes is refused and names `legacy/v1` and `rich/v2`.
+The glossary is applied to raw v2 values. Removing the label makes new runs refuse to start;
+resume between different runtimes is refused and names `legacy/v1` and `rich/v2`.
 The declaration stays in configuration and operational provenance/identity, outside repr,
 events, logs and checkpoints. A continuation reuses the previous job's proven raw results (#242).
 Migration outside this production selection preserves `translations` as `legacy-v1`, without promoting its rows to exact entries. See
@@ -341,8 +332,7 @@ records only itself.
 ## Enforced contracts
 
 - Stage order and resolved identity: [pipeline](../../../tests/translation/test_translation_pipeline.py),
-  [plan](../../../tests/translation/test_translation_plan.py), and
-  [legacy characterization](../../../tests/v1/test_translate_text_characterization.py).
+  and [plan](../../../tests/translation/test_translation_plan.py).
 - Rich admission, execution and protected content:
   [identity](../../../tests/translation/test_translation_document_identity.py),
   [execution](../../../tests/translation/test_translation_document_execution.py),
@@ -354,9 +344,9 @@ records only itself.
   [fuzzy reuse](../../../tests/translation/test_translation_cache_v2_fuzzy.py).
 - Raw-result validation, replay and lineage: [document replay](../../../tests/translation/test_translation_document_replay.py)
   and [continuations](../../../tests/translation/test_raw_results_resume.py).
-- Engine compatibility: [parity](../../../tests/v1/test_translation_engine_parity.py),
-  [publication](../../../tests/v1/test_translation_engine_publication.py), and
-  [workers](../../../tests/v1/test_translation_engine_workers.py).
+- Engine and use case: [plan gates](../../../tests/translation/test_translate_project_plan_gates.py),
+  [cancellation](../../../tests/translation/test_translate_project_cancellation.py), and
+  [framework ports](../../../tests/translation/test_translate_project_framework_ports.py).
 - Conservative retrieval: [policy](../../../tests/translation/stages/test_memory_retrieval_policy.py),
   [queries](../../../tests/translation/stages/test_memory_retrieval_queries.py), and
   [pipeline](../../../tests/translation/stages/test_memory_retrieval_pipeline.py).
@@ -380,7 +370,7 @@ keeps `_Run._fail` precedence over concurrent failure. Complete durable artifact
 remain resumable independently of unconsumed callbacks; partial documents receive
 no completion credit. Cache-only creates no new raw-results and never replays them.
 
-`rich_workers.py` owns resource composition; `engine.py` keeps the unchanged v1
-parallel pool. High and overrides preserve the effective N only in durable offline
+`rich_workers.py` owns resource composition; `engine.py` keeps the unit-executor
+parallel pool that the v1 runtime used. High and overrides preserve the effective N only in durable offline
 execution in this batch. Online concurrency, shared rate limiting and duplicate-key
 arbitration remain batch 5; governed memory with multiple workers remains refused.

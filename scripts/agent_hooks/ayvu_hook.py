@@ -4,10 +4,9 @@
 Usage: ayvu_hook.py pretool|posttool|session < event.json
 
 - pretool: denies actions that cannot be undone (an `--admin` merge, a forced push to main, destroying
-  books, caches or private data, editing them directly), and asks before discarding local work or
-  editing the quarantined v1 runtime.
-- posttool: after a Python file is written, warns at once about the size limits and v1 imports that the
-  fast gate would reject later. It never blocks.
+  books, caches or private data, editing them directly), and asks before discarding local work.
+- posttool: after a Python file is written, warns at once about the size limits that the fast gate would
+  reject later. It never blocks.
 - session: gives the agent the branch, the worktree state and the checks to run.
 
 The script reads one JSON event on stdin and prints at most one JSON answer. It never fails the agent:
@@ -43,7 +42,6 @@ SENSITIVE_IN_COMMAND = re.compile(
 )
 SENSITIVE_SUFFIXES = (".epub", ".pdf", ".sqlite", ".sqlite3", ".db")
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
-V1_IMPORT = re.compile(r"^\s*(?:from\s+(?:ayvu\.v1\b|\.+v1\b)|import\s+ayvu\.v1\b)", re.MULTILINE)
 
 
 def repo_root() -> Path:
@@ -140,9 +138,6 @@ def path_decision(path: str) -> dict | None:
         return deny("`.ayvu-pessoal/` is the maintainer's private area; edit it only on an explicit request.")
     if name.endswith(SENSITIVE_SUFFIXES) or name == "glossary.json" or "/.cache/" in f"/{lowered}":
         return deny("Books, caches and glossaries are private data and are never edited directly.")
-    if lowered.startswith("src/ayvu/v1/"):
-        return ask("`src/ayvu/v1/` is the quarantined legacy runtime (D7): no new capability goes there. "
-                   "Allow only a fix or a removal the maintainer asked for.")
     return None
 
 
@@ -202,10 +197,6 @@ def posttool(event: dict) -> dict | None:
         allowed = ledger.get("functions", {}).get(f"{rel}::{name}", ratchet.FUNCTION_LIMIT)
         if size > allowed:
             notes.append(f"`{name}` in {rel} has {size} lines; its limit is {allowed} (D10).")
-    # D7: only composition imports v1; the layers contract covers every module below it.
-    if rel.startswith("src/ayvu/") and not rel.startswith(("src/ayvu/v1/", "src/ayvu/composition/")) \
-            and V1_IMPORT.search(text):
-        notes.append(f"{rel} imports the quarantined v1 runtime; only composition may (D7).")
     if not notes:
         return None
     notes.append("Run scripts/check-fast.sh before finishing.")

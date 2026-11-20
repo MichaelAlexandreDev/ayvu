@@ -79,7 +79,7 @@ REF-15 break up by reason to change after they move.
 | `translation_engine.py` | `translation/engine.py` |  |
 | `translation_document.py` | `translation/document.py`, `document_contracts.py`, `raw_results.py`, `document_replay.py`, `document_provenance.py`, `document_bindings.py` | split by document responsibility in REF-15 |
 | `chunking.py` | `translation/chunking.py` |  |
-| `preflight.py` | `translation/preflight.py` | in REF-11 the v1 cache check became `v1/cache_check.py`, passed in by composition as `cache_check` |
+| `preflight.py` | `translation/preflight.py` | in REF-11 the v1 cache check became `v1/cache_check.py`, passed in by composition as `cache_check`; removed in REF-18 step 6 |
 | `resume_reuse.py` | `translation/resume_reuse.py` | added in REF-08, out of `job_recovery.py` |
 | `translate_project.py` | `translation/project.py`, `project_contracts.py`, `project_run.py`, `project_lease.py` | split |
 | `translate_batch.py` | `translation/batch.py` |  |
@@ -94,10 +94,10 @@ REF-15 break up by reason to change after they move.
 | `review_import.py` | `review/csv_import.py` |  |
 | `job_recovery.py` | `recovery/service.py` | resume orchestration, out of jobs. In REF-08 its pure reuse rules went to `resume_reuse.py`, because the translation pipeline uses them and sits below recovery |
 | `job_recovery_store.py` | `recovery/store.py` |  |
-| `legacy_translation.py` | `v1/translation.py` |  |
-| `html_translate.py` | `v1/html_translate.py` |  |
+| `legacy_translation.py` | `v1/translation.py` | removed with the v1 runtime in REF-18 step 6 |
+| `html_translate.py` | `v1/html_translate.py` | removed with the v1 runtime in REF-18 step 6 |
 | `translator.py` | `providers/libretranslate/client.py` | changed in REF-11: it is the LibreTranslate HTTP client, and the rich adapter uses it too, so it is not v1-only |
-| `cache.py` | `v1/cache.py`; schema in `knowledge/cache/legacy_schema.py` | REF-18 R3 extracts the unchanged SQL; the runtime stays in v1 |
+| `cache.py` | `v1/cache.py`; schema in `knowledge/cache/legacy_schema.py` | REF-18 R3 extracts the unchanged SQL; the runtime cache was removed in step 6 |
 | `cache_legacy_format.py` | `knowledge/cache/legacy_format.py` | moved from v1 in REF-18 R3 |
 | `cache_legacy_stream.py` | `knowledge/cache/legacy_stream.py` | moved from v1 in REF-18 R3 |
 | `cache_admin_legacy_store.py` | `knowledge/cache/legacy_admin_store.py` | moved from v1 in REF-18 R3 |

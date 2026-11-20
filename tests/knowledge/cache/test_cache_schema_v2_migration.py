@@ -8,7 +8,7 @@ import threading
 import pytest
 
 from ayvu.knowledge.cache import schema as schema
-from ayvu.v1.cache import text_hash
+from tests.support.legacy_cache_file import text_hash
 
 from tests.knowledge.cache.cache_schema_v2_support import Cancel, assert_v2, contents, make_v1
 from tests.knowledge.cache.cache_schema_v2_support import state
