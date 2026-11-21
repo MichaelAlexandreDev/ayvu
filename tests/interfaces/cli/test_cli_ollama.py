@@ -93,7 +93,7 @@ def test_a_missing_model_is_refused_before_any_job_or_chat(tmp_path, fake_ollama
 
 @pytest.mark.parametrize("more,models,expected", [
     (("--workers", "2"), {"ollama": MODEL}, "Ollama runs with at most 1 worker(s) here."),
-    (("--dry-run",), {"ollama": MODEL}, "not available with Ollama yet"),
+    (("--cache-only",), {"ollama": MODEL}, "not available with Ollama yet"),
     ((), {}, "Ollama needs an installed model"),
     (("--target", "xx"), {"ollama": MODEL}, "The language pair is not declared for Ollama."),
 ])

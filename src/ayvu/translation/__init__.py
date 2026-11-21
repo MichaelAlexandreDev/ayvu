@@ -38,6 +38,7 @@ from .project_contracts import (
 )
 from .report import HtmlTranslationStats, TextTranslationResult, TranslationReport, to_html_stats, to_report
 from .transient import TransientExecution, TransientTranslation
+from .usage import RunMeter, UsageSummary, UsageWriter, count_words
 from .transient_units import TransientUnits
 from .transient_units import TransientProvider
 from .transient_cache import TransientCache
@@ -65,4 +66,5 @@ __all__ = [
     "LocalCachePlanResolver", "LocalCachePlanState", "select_resume_stage",
     "to_html_stats", "to_report",
     "TransientExecution", "TransientTranslation", "TransientUnits", "TransientCache", "TransientProvider",
+    "RunMeter", "UsageSummary", "UsageWriter", "count_words",
 ]

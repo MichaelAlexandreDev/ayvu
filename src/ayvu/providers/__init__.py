@@ -1,4 +1,5 @@
-"""Translation providers: the request and result port, capabilities, discovery, the provider registry, network decisions and what a remote adapter declares. LibreTranslate and the CLI provider session are adapter modules."""
+"""Translation providers: the request and result port, capabilities, discovery, the provider registry, network decisions,
+what a remote adapter declares and what usage costs. LibreTranslate and the CLI provider session are adapter modules."""
 from __future__ import annotations
 
 from .capabilities import (
@@ -9,14 +10,20 @@ from .discovery import DiscoveredLanguage, DiscoveryOutcome, LanguagesResult, SY
 from .errors import ProviderSetupError
 from .network import NetworkClass, ResolvedProviderNetworkDecision, network_refusal
 from .ports import (
-    ContextFeature, ContextItem, ProviderRoute, ProviderStatus, Requirement, TranslationProviderRequest,
-    UnitReference, valid_reference,
+    ContextFeature, ContextItem, DeliveryState, ProviderRoute, ProviderStatus, ProviderUsage, Requirement,
+    TranslationProviderRequest, UnitReference, valid_reference,
+)
+from .prices import (
+    PRICE_TABLE_VERSION, ModelPrice, PriceSource, ResolvedPrice, UsageEstimate, UsageRecord, UsageTotals,
+    cost_micro_usd, micro_usd, price_overrides, resolve_price,
 )
 from .remote import RemoteCredential, RemoteModelAdapter, check_remote_adapter, credential_from_environment
 from .service import TranslationProvider, execute
 
 __all__ = [
-    "Capability", "ContextFeature", "ContextItem", "DiscoveredLanguage", "DiscoveryOutcome",
+    "PRICE_TABLE_VERSION", "ModelPrice", "PriceSource", "ResolvedPrice", "UsageEstimate", "UsageRecord", "UsageTotals",
+    "cost_micro_usd", "micro_usd", "price_overrides", "resolve_price",
+    "Capability", "ContextFeature", "DeliveryState", "ProviderUsage", "ContextItem", "DiscoveredLanguage", "DiscoveryOutcome",
     "LanguagesResult", "LimitSemantics", "LimitUnit", "NegotiationDecision", "NetworkClass",
     "ProviderCapabilitySnapshot", "ProviderRequirements", "ProviderRoute", "ProviderSetupError",
     "ProviderStatus", "RemoteCredential", "RemoteModelAdapter", "Requirement", "ResolvedProviderNetworkDecision", "SYNTHETIC_TEST_TEXT", "SupportState",

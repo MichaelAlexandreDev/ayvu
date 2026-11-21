@@ -41,7 +41,8 @@ answers for developer mode; the guided and common modes ask through `run_support
 
 Every refusal happens before the book is read and before any request is sent:
 
-1. dry runs, previews, cache-only runs and more than one worker are refused (also at selection);
+1. previews, cache-only runs and more than one worker are refused (also at selection); a dry run is an
+   estimate made on this machine that sends nothing and never reaches this preflight ([usage](providers-usage.md));
 2. the network decision must be `remote` and land on a declared host;
 3. the credential is read now, from `CREDENTIAL_ENV`, and kept as an opaque `RemoteCredential`;
 4. the project's consent to the current text version (`remote-egress-v1`) is checked or asked once;

@@ -45,6 +45,13 @@ class _ProviderStopped(Exception):
         super().__init__(failure.code)
 
 
+class UsageRecorder(Protocol):
+    """Where each provider result's usage goes (``translation.usage.RunMeter``). It holds counts, never text."""
+
+    def record(self, *, job_id: str, document_id: str, unit_id: str, request_id: str, text: str,
+               usage: object, delivery: object) -> None: ...
+
+
 class ExactCachePort(Protocol):
     """V2 local repository; identity resolution and cache-only operations must never use transport."""
 

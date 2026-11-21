@@ -235,7 +235,7 @@ rendering and selecting paths remain presentation responsibilities.
 | `AYVU-UC-006` | `_run_preview`, `_prepare_preview` |
 | `AYVU-UC-008` | `extract` |
 | `AYVU-UC-009` | `apply_review`, `_print_review_apply_failure` |
-| `AYVU-UC-004`, `AYVU-UC-006`, `AYVU-UC-009` | `_validate_with_progress`, `_print_validation_warnings`, `_print_report`, `_has_glossary_summary`, `_print_glossary_warnings`, `_resolve_review_output_path`, `_print_review_export_failure`, `_export_review`, `_finish_translation`, `_with_selection`, `_remote_consent` |
+| `AYVU-UC-004`, `AYVU-UC-006`, `AYVU-UC-009` | `_validate_with_progress`, `_print_validation_warnings`, `_print_report`, `_has_glossary_summary`, `_print_glossary_warnings`, `_resolve_review_output_path`, `_print_review_export_failure`, `_export_review`, `_finish_translation`, `_with_selection`, `_remote_consent`, `parse_max_cost` |
 | `AYVU-UC-007` | `_print_interrupted_translation`, `_partial_chapter_value`, `_interrupted_output_message`, `_print_processing_translation_states` |
 | `AYVU-UI-004` | `_run_guided_main_flow` |
 | `AYVU-UC-015` | `_load_or_init_config`, `_load_existing_config_or_default`, `_refuse_invalid_translator_models`, `_init_default_language_config`, `_choose_initial_folder_names`, `_print_feature_folder_paths`, `_save_config` |
@@ -310,3 +310,11 @@ computer (visible text and glossary terms, no file names), the declared hosts an
 the plan and both reports show the hosts and the claim through `composition.cli.remote_egress_notice`.
 `consent revoke` (`AYVU-UC-017`, in the `consent` group `AYVU-UI-005`) calls `composition.cli.revoke_remote_consent`.
 The remote provider contract is `docs/architecture/modules/providers-remote.md`.
+
+## Usage, cost and the cost cap (#380)
+
+The root `--max-cost <USD>` is invocation-scoped and never saved; `options.parse_max_cost`, its callback, turns it
+into micro-dollars and `options._invocation_max_cost` carries it, which `run_support._translate_in_project`
+hands to composition with the book; `run.py` adds the configuration's `prices`. `usage_report.py` renders the
+usage rows and the `## Usage` or `## Usage estimate` Markdown section, and the line `run_messages` prints when a
+job stops at its cap (`cost_budget_reached`). The usage contract is `docs/architecture/modules/providers-usage.md`.

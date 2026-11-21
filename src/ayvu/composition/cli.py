@@ -21,7 +21,7 @@ from ..projects import resolve_project
 from ..projects.store import ProjectJsonRepository, build_project_request, translation_selections
 from ..translation.preflight import run_translation_preflight as _preflight, run_local_translation_preflight as _local_preflight
 from ..translation.preflight import check_book_resources
-from .builders import checkpoint, remote, remote_consent, selection
+from .builders import checkpoint, remote, remote_consent, selection, usage
 from ..translation import ContinuationTicket, TranslateObserver, TranslateProjectResult
 from ..translation import EngineObserver, TranslationReport
 from ..kernel import JobWarning, OutputPlan, TranslationOptions
@@ -57,6 +57,8 @@ class _BookRequest:
     translator_models: dict[str, str] = field(default_factory=dict, repr=False)
     preview: bool = False
     remote_consent: Callable[[object], bool] | None = None  # the owner's answer to a remote egress notice
+    max_cost: int | None = None  # this invocation's cost cap, in micro-dollars (#380)
+    prices: dict = field(default_factory=dict, repr=False)  # prices.<translator>.<model> from the configuration
 
 
 @dataclass(frozen=True, repr=False)
@@ -70,6 +72,7 @@ class _BookOutcome:
     warning: str | None = None
     job_result: TranslateProjectResult | None = None
     notices: tuple[str, ...] = ()
+    usage: object | None = None  # the run's usage summary, also when it stopped at its cost cap
 
 
 def configuration_store() -> ConfigStore:
@@ -189,11 +192,13 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
     require_translation_model(book.translator_models, book.translator_name)
     return _BookOutcome(report=translate_transient.translate(book, hooks,
         rich_provider.selected_model(book.translator_models, book.translator_name),
-        formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path)))
+        formats=translate_project.epub_format_service(), cache_path=translate_project.v2_cache_path(book.cache_path),
+        estimate=lambda glossary: usage.dry_run_estimate(book, glossary)))
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
     require_translation_model(book.translator_models, book.translator_name, continuation=book.continuation)
+    meter = usage.run_meter(book)  # a cap without a known price is refused here, before any request
     # A model translator is prepared now, before its job: the job records a producer naming the model's digest.
     model = rich_provider.prepare_model_translation(book.translator_name, book.prepare, book)
     if model is not None and book.continuation is not None:
@@ -220,7 +225,8 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
             rich_provider.selected_model(book.translator_models, book.translator_name),
             book.cache_path,
             prepare_offline=book.prepare,
-            binding=getattr(model, "binding", None),
+            binding=usage.metered_binding(getattr(model, "binding", None),
+                                          rich_provider.selected_model(book.translator_models, book.translator_name), meter),
         ),
         TranslateObserver(
             EngineObserver(hooks.on_chapter_start, hooks.on_chapter_done, hooks.on_text_processed),
@@ -238,14 +244,16 @@ def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome
     reason = None if result.outcome is None else result.outcome.summary.reason_code
     if run.report is None:
         code = reason if reason == "publication_uncommitted" else (result.failure.code if result.failure else "job_record_failed")
-        return _BookOutcome(failure=code, raised=result.raised, job_result=result, notices=notices)
+        return _BookOutcome(failure=code, raised=result.raised, job_result=result, notices=notices, usage=meter.summary())
     warning = "job_record_failed" if not result.recorded else (reason if reason == "provenance_failed" else None)
+    run.report.usage = meter.summary()
     return _BookOutcome(
         report=run.report,
         validation=result.validation,
         warning=warning,
         job_result=result,
         notices=notices,
+        usage=run.report.usage,
     )
 
 
@@ -277,7 +285,8 @@ def prepare_translation(*, epub_path, options, cache_path, glossary_path, transl
     if modality == "transient_dry_run":
         local = _local_preflight(epub_path=epub_path, glossary_path=glossary_path, language_pair=options.language_pair,
             translator_name=translator_name, url=url, timeout=timeout, retries=retries,
-            requests_per_second=requests_per_second, retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max)
+            requests_per_second=requests_per_second, retry_backoff=retry_backoff, retry_backoff_max=retry_backoff_max,
+            estimate_only=rich_provider.names_model(translator_name))
         prepared = translate_transient.prepare(epub_path=epub_path, options=options, glossary=local.glossary,
             glossary_path=glossary_path, translator_name=translator_name, url=url, processing_dir=processing_dir, profile_name=profile_name)
         on_ready()

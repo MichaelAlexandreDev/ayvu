@@ -7,6 +7,7 @@ model provider (``composition.builders.remote``) is prepared inside its project'
 """
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import replace
 from datetime import datetime
 from typing import Callable
@@ -138,6 +139,12 @@ class LibreTranslateBinding:
     def __init__(self, label: str, clock: Callable[[], datetime]) -> None:
         self.producer = replace(LIBRETRANSLATE_PRODUCER, model=declared_model(label))
         self._clock = clock
+        self.usage = None  # the run's meter; LibreTranslate's records carry characters, zero tokens and zero cost
+
+    def with_usage(self, meter) -> LibreTranslateBinding:
+        bound = copy(self)
+        bound.usage = meter
+        return bound
 
     def __repr__(self) -> str:
         return "LibreTranslateBinding()"

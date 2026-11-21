@@ -51,7 +51,7 @@ def test_an_old_database_is_upgraded_with_a_backup_and_keeps_its_jobs(tmp_path):
     with closing(sqlite3.connect(backup)) as snapshot:
         assert snapshot.execute("PRAGMA user_version").fetchone() == (4,)
     with closing(sqlite3.connect(database)) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone() == (5,)
+        assert connection.execute("PRAGMA user_version").fetchone() == (6,)  # the latest schema (#380)
 
 
 def test_a_database_at_version_four_is_refused_by_the_repository_until_migrated(tmp_path):

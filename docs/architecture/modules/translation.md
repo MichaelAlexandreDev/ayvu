@@ -178,6 +178,9 @@ Configured workers remain unchanged, including high; documents currently run seq
 terminal reports and Markdown explicitly state both the configured count and sequential local analysis.
 These cache/product differences were accepted on 2026-11-13 (G3 decision row).
 
+A model translator's dry run (#380) skips the cache plan, since it needs the model's identity, and hands each
+distinct text's chunks to `on_estimate`, which composition prices ([usage](providers-usage.md)).
+
 ## The legacy facade
 
 `LegacyTextPipelineFacade` has no document, project or job identity, by design. It creates no

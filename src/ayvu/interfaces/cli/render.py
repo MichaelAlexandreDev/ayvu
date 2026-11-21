@@ -48,6 +48,10 @@ _TRANSLATION_FAILURES: dict[str, tuple[str, str]] = {
         "A tradução rich/v2 parou; nenhum EPUB parcial foi publicado.",
         "Veja o código com --mode developer e use ayvu resume após corrigir a falha.",
     ),
+    "cost_budget_reached": (
+        "The cost cap was reached before the next request, which was not sent; no partial EPUB was published.",
+        "Run 'ayvu --max-cost <USD> resume' with a new cap to continue. Finished segments stay in the v2 cache.",
+    ),
     "provider_server_error": (
         "O tradutor falhou durante a tradução rich/v2; nenhum EPUB parcial foi publicado.",
         "Verifique o tradutor e use ayvu resume. Os segmentos concluídos permanecem no cache v2.",

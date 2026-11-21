@@ -32,6 +32,11 @@ def _refuse_invalid_translator_models(snapshot) -> None:
         console.print("Use de 1 a 48 caracteres: letras minúsculas, números, _ ou -, começando por letra ou número.")
         console.print("For translator_models.ollama, use the name of an installed model, such as qwen2.5:7b.")
         raise typer.Exit(code=1)
+    if snapshot.error is not None and snapshot.error.field == "prices":
+        console.print("[red]Invalid price in prices.[/red]")
+        console.print('Use prices.<translator>.<model> = {"input": "0.25", "output": "1.25"}, '
+                      "in US dollars per million tokens; cached_input is optional.")
+        raise typer.Exit(code=1)
 
 
 def _display_optional_path(path: Path | None) -> str:

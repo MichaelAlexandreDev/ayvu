@@ -1,6 +1,7 @@
 """Composition of a remote model provider (#379), in the order that keeps book text on the machine.
 
-1. Refuse what a remote run cannot do here: a dry run, a preview, a cache-only run, several workers.
+1. Refuse what a remote run cannot do here: a preview, a cache-only run, several workers. A dry run is an
+   estimate made on this machine (#380) and never reaches this preflight.
 2. Decide the network: only ``--network-policy remote``, only HTTPS, only the adapter's declared hosts.
 3. Read the credential from the provider's standard environment variable, now, as an opaque reference.
 4. Check the project's consent, asking the owner once through the interface's callback.
@@ -69,9 +70,11 @@ class RemotePreflight:
 
 
 def require_remote_mode(*, dry_run=False, cache_only=False, preview=False) -> None:
+    """A dry run is an estimate made on this machine (#380): selection lets it through without consent, and it
+    never reaches the preflight, which still refuses one as a defence."""
     if dry_run or cache_only or preview:
-        raise PreflightError("Dry runs, previews and cache-only runs are not available with a remote provider.",
-                             "Run a project translation without --dry-run or --cache-only, or use a local translator.")
+        raise PreflightError("Previews and cache-only runs are not available with a remote provider.",
+                             "Run a project translation without --cache-only, or use a local translator.")
 
 
 def _checked_request(adapter: RemoteModelAdapter, *, model, workers, dry_run, cache_only, language_pair,

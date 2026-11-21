@@ -104,6 +104,11 @@ def _classify(error: TranslatorError) -> tuple[JobFailure, DeliveryState]:
     return JobFailure(JobFailureFamily.INTERNAL, "unexpected_error"), DeliveryState.UNKNOWN
 
 
+def libretranslate_usage(characters: int) -> ProviderUsage:
+    """LibreTranslate is not billed by tokens: its usage is the characters it was sent, with zero tokens."""
+    return ProviderUsage(characters_submitted=characters, input_tokens=0, output_tokens=0, cached_input_tokens=0)
+
+
 class LibreTranslateProvider:
     """One translator, used as today. Not a capability claim: see ``_SUPPORTED_FEATURES``."""
 
@@ -174,7 +179,7 @@ class LibreTranslateProvider:
             return failed(JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "empty_result"), DeliveryState.COMPLETED)
         return TranslationProviderResult(
             request.request_id, ProviderStatus.SUCCEEDED, self._producer, DeliveryState.COMPLETED, text=text, route=route,
-            warnings=warnings, usage=ProviderUsage(characters_submitted=len(request.text)))
+            warnings=warnings, usage=libretranslate_usage(len(request.text)))
 
 
 class LibreTranslateProviderFactory:

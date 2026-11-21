@@ -95,7 +95,14 @@ OWNERS = {
     "ayvu.composition.builders.rich_options": Owner("composition", "Translation"),
     # The LLM core performs no I/O: as application code it may not import an HTTP client or a socket.
     **{f"ayvu.providers.llm{part}": Owner("application", "Providers") for part in (
-        "", ".model", ".prompt", ".batching", ".output", ".failures", ".facts", ".settings", ".core")},
+        "", ".model", ".prompt", ".batching", ".output", ".failures", ".facts", ".settings", ".core", ".estimate")},
+    # Usage, cost and the cost cap (#380): the price table, the run's meter, its records and their presentation.
+    "ayvu.providers.prices": Owner("domain", "Providers"),
+    "ayvu.preferences.prices": Owner("domain", "Preferences"),
+    "ayvu.projects.usage": Owner("infrastructure", "Projects"),
+    "ayvu.translation.usage": Owner("application", "Translation"),
+    "ayvu.composition.builders.usage": Owner("composition", "Providers"),
+    "ayvu.interfaces.cli.usage_report": Owner("interface", "CLI"),
     "ayvu.translation.cache_only_execution": Owner("application", "Translation"),
     "ayvu.composition.builders.translate_transient": Owner("composition", "Transient translation"),
     "ayvu.translation.transient": Owner("application", "Transient translation"),

@@ -6,6 +6,8 @@ so tests drive the real core: prompt rendering, batching, parsing and validation
 from __future__ import annotations
 
 import json
+import re
+import threading
 from uuid import UUID
 
 from ayvu.provenance.model import ProducerIdentity
@@ -77,3 +79,36 @@ class FakeModel:
 
     def batches(self) -> list[list[str]]:
         return [[item["id"] for item in segments_of(request)] for request in self.requests]
+
+
+def subword_tokens(text: str) -> int:
+    """A crude subword count: each run of up to four letters or digits, and each punctuation mark, is a token."""
+    return len(re.findall(r"\w{1,4}|[^\w\s]", text))
+
+
+def lengthen(text: str) -> str:
+    """A translation a little longer than its source, as Portuguese is longer than English."""
+    return re.sub(r"(\w+)", lambda match: match.group(1) + "a" * (len(match.group(1)) // 5 + 1), text)
+
+
+class CountingModel:
+    """Answers every segment and reports the subword tokens of what it read and wrote. ``log`` may be shared
+    by the models of several workers; it records every call, with its reported tokens."""
+
+    def __init__(self, log: list | None = None) -> None:
+        self.requests = []
+        self.log = [] if log is None else log
+        self._lock = threading.Lock()
+
+    def complete(self, request):
+        answer_text = json.dumps({"translations": [{"id": item["id"], "text": lengthen(item["text"])}
+                                                   for item in segments_of(request)]}, ensure_ascii=False)
+        response = ModelResponse(FinishReason.STOP, answer_text, input_tokens=subword_tokens(request.system + request.user),
+                                 output_tokens=subword_tokens(answer_text))
+        with self._lock:
+            self.requests.append(request)
+            self.log.append((response.input_tokens, response.output_tokens))
+        return response
+
+    def close(self) -> None:
+        pass

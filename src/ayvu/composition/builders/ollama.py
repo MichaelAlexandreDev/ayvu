@@ -167,6 +167,8 @@ def discover_ollama_models(*, url='http://localhost:11434', timeout=3.0, network
 
 
 def require_supported_mode(*, dry_run=False, cache_only=False, preview=False):
+    """A dry run with Ollama is an estimate made without Ollama (#380): selection lets it through, and it never
+    reaches the preflight, which still refuses one as a defence."""
     if dry_run or cache_only or preview:
-        raise PreflightError("Dry runs, previews and cache-only runs are not available with Ollama yet.",
-                             "Run the translation without --dry-run or --cache-only, or use --translator libretranslate.")
+        raise PreflightError("Previews and cache-only runs are not available with Ollama yet.",
+                             "Run the translation without --cache-only, or use --translator libretranslate.")

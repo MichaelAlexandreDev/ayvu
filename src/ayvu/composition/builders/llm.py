@@ -9,6 +9,7 @@ semantic identity. The pipeline still applies the glossary after translation, as
 from __future__ import annotations
 
 import time
+from copy import copy
 from datetime import datetime
 from typing import Callable
 
@@ -61,6 +62,16 @@ class LlmBinding:
         self.producer = producer
         self._model_factory, self._snapshot, self._clock = model_factory, snapshot, clock
         self._settings, self._sleep = settings, sleep
+        self.usage = None  # the run's meter (``translation.RunMeter``), shared by every worker's provider
+
+    @property
+    def settings(self) -> LlmSettings:
+        return self._settings
+
+    def with_usage(self, meter) -> LlmBinding:
+        bound = copy(self)
+        bound.usage = meter
+        return bound
 
     def __repr__(self) -> str:
         return "LlmBinding()"
@@ -72,4 +83,4 @@ class LlmBinding:
 
     def provider(self, translator, producer: ProducerIdentity, glossary: object) -> LlmTranslationProvider:
         return LlmTranslationProvider(self._model_factory(), producer, settings=self._settings,
-                                      glossary=glossary_hints(glossary), sleep=self._sleep)
+                                      glossary=glossary_hints(glossary), sleep=self._sleep, meter=self.usage)

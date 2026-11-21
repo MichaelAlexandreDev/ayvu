@@ -114,9 +114,11 @@ def test_selection_and_identity_treat_a_registered_remote_provider_as_a_model_tr
     assert rich_provider.names_model("fake_remote") and not rich_provider.discovers_identity("fake_remote")
     chosen = selection.select_translator(AyvuConfig(translator_models={"fake_remote": MODEL}), translator="fake_remote")
     assert (chosen.translator, chosen.model, chosen.url) == ("fake_remote", MODEL, f"https://{HOST}")
-    for flags in ({"dry_run": True}, {"cache_only": True}, {"preview": True}):
+    for flags in ({"cache_only": True}, {"preview": True}):
         with pytest.raises(PreflightError, match="remote provider"):
             selection.select_translator(AyvuConfig(), translator="fake_remote", **flags)
+    # A dry run only estimates on this machine (#380), so selection lets it through.
+    assert selection.select_translator(AyvuConfig(), translator="fake_remote", dry_run=True).translator == "fake_remote"
 
 
 def test_without_a_registered_adapter_nothing_is_remote():

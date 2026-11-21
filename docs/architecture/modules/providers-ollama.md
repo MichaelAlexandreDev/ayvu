@@ -40,7 +40,8 @@ one, and the checks below refuse what it cannot run. An unknown translator keeps
 
 | Situation | Result |
 | --- | --- |
-| `--dry-run`, `--preview` or `--cache-only` | Refused: not available with Ollama yet |
+| `--preview` or `--cache-only` | Refused: not available with Ollama yet |
+| `--dry-run` | An estimate on this machine that never reaches this preflight ([usage](providers-usage.md)) |
 | No `translator_models.ollama` | Refused: names the setting to add |
 | More workers than the configured parallelism (default 1) | Refused before any request |
 | A pair outside the declared languages | Refused before any request |

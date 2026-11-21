@@ -164,13 +164,14 @@ class ModelResponse:
     text: str | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    cached_input_tokens: int | None = None  # read from a prompt cache; not part of ``input_tokens``
 
     def __post_init__(self) -> None:
         if type(self.finish) is not FinishReason or not (self.text is None or isinstance(self.text, str)):
             raise LlmCoreError("invalid_model_response")
         if self.finish is FinishReason.STOP and self.text is None:
             raise LlmCoreError("invalid_model_response")
-        if not _token_count(self.input_tokens) or not _token_count(self.output_tokens):
+        if not all(_token_count(value) for value in (self.input_tokens, self.output_tokens, self.cached_input_tokens)):
             raise LlmCoreError("invalid_model_response")
 
     def __repr__(self) -> str:

@@ -14,6 +14,9 @@ OUTPUT_INVALID = JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "provider_outpu
 OUTPUT_TRUNCATED = JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "provider_output_truncated")
 EMPTY_RESULT = JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "empty_result")
 PLACEHOLDER_MISMATCH = JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "placeholder_mismatch")
+# The run's cost cap left no room for the next call's worst case, so the call was not sent. A job that stops
+# with it is FAILED and can be resumed, with a new cap.
+BUDGET_REACHED = JobFailure(JobFailureFamily.POLICY, "cost_budget_reached")
 
 
 def retry_after_ms(error: ModelCallError) -> int | None:

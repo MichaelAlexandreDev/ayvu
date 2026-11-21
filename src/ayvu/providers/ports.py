@@ -266,14 +266,23 @@ class TranslationProviderRequest:
 
 @dataclass(frozen=True)
 class ProviderUsage:
-    """``None`` states that a value is not known; it never means zero."""
+    """``None`` states that a value is not known; it never means zero.
+
+    Tokens are what the model reported. ``input_tokens`` are billed at the input price and exclude
+    ``cached_input_tokens``, which are billed at the cached-input price; an adapter normalizes its vendor's
+    counts to this meaning. A provider that is not billed by tokens reports zero tokens.
+    """
 
     characters_submitted: int | None = None
     requests: int | None = None
     latency_ms: int | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cached_input_tokens: int | None = None
 
     def __post_init__(self) -> None:
-        for value in (self.characters_submitted, self.requests, self.latency_ms):
+        for value in (self.characters_submitted, self.requests, self.latency_ms, self.input_tokens,
+                      self.output_tokens, self.cached_input_tokens):
             if value is not None and (type(value) is not int or not 0 <= value < 2**63):
                 raise ProviderValidationError("invalid_usage")
 

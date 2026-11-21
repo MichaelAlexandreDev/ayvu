@@ -13,7 +13,9 @@ from typer.main import get_command
 from ayvu.interfaces.cli.app import app
 
 from tests.support.paths import PROJECT_ROOT as ROOT
-from tests.architecture.cli_surface_support import _subcommands, normalize_remote_egress, normalized_cli_contract
+from tests.architecture.cli_surface_support import (
+    _subcommands, normalize_cost_cap, normalize_remote_egress, normalized_cli_contract,
+)
 MATRIX_PATH = ROOT / "docs" / "architecture" / "modules" / "interfaces-cli.md"
 SURFACE_PATH = ROOT / "docs" / "architecture" / "cross-cutting" / "cli-surface.md"  # option boundary and snapshot
 SNAPSHOT_PATTERN = re.compile(
@@ -311,6 +313,7 @@ def test_frozen_post_predecessor_cli_contract_with_explicit_159_and_162_addition
     current = normalized_cli_contract()
     _normalize_ai03_selection(current, baseline['contract'])
     normalize_remote_egress(current)
+    normalize_cost_cap(current)
     commands = [current, *(current['commands'][name] for name in ('languages', 'test-translator', 'translate', 'resume'))]
     for command in commands:
         added = [parameter for parameter in command['parameters'] if parameter['name'] == 'network_policy']
