@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import uuid4
 
-from ..content import TranslationUnit, TextParts, protected_content_is_intact
+from ..content import TranslationUnit, TextParts, protect_special_terms, protected_content_is_intact
 from ..kernel import LanguagePair
 from ..kernel import JobFailure, JobFailureFamily
 from ..providers import ProviderStatus, TranslationProviderRequest, execute
@@ -17,6 +17,7 @@ from ..knowledge.cache import CacheIdentityError, CacheLookupState, CacheMissRea
 from .document_contracts import TranslationExecutionError, _template, _expand
 from .engine import UnitExecution, STATUS_CACHE, STATUS_MISSING
 from .local_cache_plan import LocalCachePlanResolver, LocalCachePlanState
+from .chunking import split_text
 from .pipeline import LinguisticStages, LinguisticSource
 
 
@@ -62,7 +63,7 @@ class TransientUnits:
                  reader: ExactLookup | None = None, resolver: LocalCachePlanResolver | None = None,
                  cache_only: bool = False, chunk_limit: int = 3000, checkpoint=lambda _: None,
                  on_hit=lambda unit, resolution: None, on_resolution=lambda resolution: None,
-                 provider=None, exact_cache=None, map_execution=lambda unit, result: result):
+                 provider=None, exact_cache=None, map_execution=lambda unit, result: result, on_estimate=None):
         self.pair, self.glossary = language_pair, apply_glossary
         self.readable_original = readable_original
         self.reader, self.resolver = reader, resolver
@@ -70,6 +71,9 @@ class TransientUnits:
         self.on_hit = on_hit
         self.on_resolution = on_resolution
         self.provider, self.exact_cache, self.map_execution = provider, exact_cache, map_execution
+        # A dry run's estimate (#380) sees each request the run would send: the chunks the stages would make,
+        # once per text, since a run's own cache serves a text it already translated.
+        self.on_estimate, self._estimated = on_estimate, set()
 
     def execute(self, unit: TranslationUnit, *, readable_original=None) -> UnitExecution:
         template, originals = _template(unit)
@@ -80,6 +84,11 @@ class TransientUnits:
             cache_only=CacheOnlyRequest.resolve_compatible() if self.cache_only else False,
             chunk_limit=self.chunk_limit)
         self.on_resolution(cache.resolution)
+        core = TextParts.from_text(template).core
+        if outcome.source is LinguisticSource.DRY_RUN and self.on_estimate is not None and core not in self._estimated:
+            self._estimated.add(core)
+            for chunk in split_text(protect_special_terms(core).text, limit=self.chunk_limit):
+                self.on_estimate(chunk)
         missing = outcome.source is LinguisticSource.CACHE_ONLY_MISSING
         status = (STATUS_CACHE if outcome.source is LinguisticSource.EXACT_CACHE else
                   STATUS_MISSING if missing else "dry_run" if self.provider is None else "translated")

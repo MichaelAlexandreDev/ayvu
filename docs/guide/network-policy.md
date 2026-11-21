@@ -46,8 +46,9 @@ uv run ayvu --consent-remote translate book.epub --translator <provider> --netwo
 uv run ayvu consent revoke book.epub          # or a project id; the next remote run asks again
 ```
 
-A remote provider translates only inside a project: previews, dry runs, cache-only runs and legacy
-resumes are refused, and it runs with one worker.
+A remote provider translates only inside a project: previews, cache-only runs and legacy resumes are
+refused, and it runs with one worker. A dry run only estimates tokens and cost on this computer, so it
+sends nothing and needs neither consent nor this policy ([usage and cost](usage-and-cost.md)).
 
 The EPUB reader the library opens is **another process, outside the offline guarantee**, and you get an
 explicit notice before it opens. `none` does not contain that reader, and a local server may also have its

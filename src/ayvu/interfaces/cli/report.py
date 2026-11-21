@@ -11,6 +11,7 @@ from ...composition.cli import publish_cli_report, report_destination
 from ...kernel import UserMode
 
 from .render import _print_expected_error, console
+from .usage_report import report_markdown, report_rows
 
 
 def _print_validation_warnings(warnings: list[str]) -> None:
@@ -63,6 +64,8 @@ def _print_report(
             "Forbidden glossary terms found",
             str(report.glossary_usage.total_forbidden_found),
         )
+    for name, value in report_rows(report):
+        table.add_row(name, value)
     console.print(table)
     if report.execution_note:
         console.print(report.execution_note)
@@ -229,6 +232,8 @@ def _render_markdown_report(
                 f"- Forbidden glossary terms found: {report.glossary_usage.total_forbidden_found}",
             ]
         )
+
+    lines.extend(report_markdown(report))
 
     if report.errors:
         lines.extend(["", "## Errors"])

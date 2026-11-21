@@ -125,7 +125,7 @@ def test_the_secret_never_reaches_a_written_file_or_any_output(tmp_path, fake_re
     outputs = [translate(tmp_path, mode="common", stdin="y\nn\n"),  # the question, the plan and the report
                translate(tmp_path, "--consent-remote", more=("--review-output", str(tmp_path / "review.json"))),
                translate(tmp_path, "--consent-remote", "--network-policy", "remote", more=("--dry-run",))]
-    assert [result.exit_code for result in outputs] == [0, 0, 1], [text(result) for result in outputs]
+    assert [result.exit_code for result in outputs] == [0, 0, 0], [text(result) for result in outputs]
     assert wire.requests  # the secret was used, on the wire only
     written = [path for path in tmp_path.rglob("*") if path.is_file()]
     assert any(path.suffix == ".sqlite" for path in written) and (tmp_path / "review.json").exists()
@@ -134,11 +134,13 @@ def test_the_secret_never_reaches_a_written_file_or_any_output(tmp_path, fake_re
     assert all(SECRET not in result.output for result in outputs)
 
 
-def test_remote_dry_run_and_cache_only_are_refused_before_any_request(tmp_path, fake_remote, wire):
+def test_remote_cache_only_is_refused_and_a_dry_run_only_estimates_before_any_request(tmp_path, fake_remote, wire):
     configure(tmp_path)
-    for flags in (("--dry-run",), ("--cache-only",)):
-        result = translate(tmp_path, "--consent-remote", more=flags)
-        assert result.exit_code == 1 and "not available with a remote provider" in text(result), text(result)
+    result = translate(tmp_path, "--consent-remote", more=("--cache-only",))
+    assert result.exit_code == 1 and "not available with a remote provider" in text(result), text(result)
+    # #380: a dry run sends nothing, so it needs neither consent nor the remote policy, and records none.
+    result = translate(tmp_path, more=("--dry-run",))
+    assert result.exit_code == 0 and "approximate" in text(result), text(result)
     assert wire.requests == [] and consents(tmp_path) == []
 
 

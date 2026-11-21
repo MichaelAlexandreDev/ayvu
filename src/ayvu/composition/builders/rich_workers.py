@@ -26,6 +26,7 @@ from ...artifacts import ArtifactService
 from ...artifacts.store import LocalArtifactPayloads, SqliteArtifactRepository
 from ...knowledge.glossary import apply_glossary_with_usage, effective_glossary_reference
 from ...projects.schema import ProjectDatabaseTurns, project_migration_runner
+from ...projects.usage import SqliteProviderUsageRepository
 from ...provenance.store import SqliteProvenanceRepository
 from ...translation import (
     ArbitratedExactCache, CacheOnlyDocumentExecutor, DocumentTranslator, DocumentWork, LocalCachePlanIntent,
@@ -114,9 +115,33 @@ def offline_work(runtime, context):
     return TranslationResources(None, documents=DocumentWork(factory, context, checkpoint=authority.check))
 
 
+def bind_usage(runtime, context):
+    """The run's meter learns its job and the jobs it continues, and records through the run's own runner."""
+    usage = getattr(runtime.binding, "usage", None)
+    if usage is not None:
+        runner = _worker_runner(runtime) if runtime._options.workers > 1 else project_migration_runner()
+        usage.bind(context.job.job_id, context.reusable_jobs,
+                   SqliteProviderUsageRepository(runner, runtime._database, runtime._project_id, clock=runtime._clock))
+    return usage
+
+
+@contextmanager
+def flushing(usage):
+    """A worker's usage records reach the project database when its document ends, however it ends."""
+    try:
+        yield
+    except BaseException:
+        if usage is not None:
+            usage.flush(quiet=True)  # the first failure is the one to report
+        raise
+    if usage is not None:
+        usage.flush()
+
+
 def online_work(runtime, context, plan, provider, artifacts, provenance, memory_policy):
     """Adapt the existing single online worker to the complete document port."""
     options = runtime._options
+    usage = bind_usage(runtime, context)
     retrieval, legacy, policy = None, None, RetrievalPolicy()
     if options.translation_memory is not None:
         policy = memory_policy(options.translation_memory)
@@ -129,20 +154,21 @@ def online_work(runtime, context, plan, provider, artifacts, provenance, memory_
                 apply_threshold=options.translation_memory.apply_threshold)
 
     if options.workers > 1:
-        return _parallel_online(runtime, context, plan)
+        return _parallel_online(runtime, context, plan, usage)
 
     @contextmanager
     def factory(events, check):
         translator = DocumentTranslator(plan, provider,
             lambda text: apply_glossary_with_usage(text, runtime._prepared.glossary), artifacts, provenance, events,
             exact_cache=runtime._cache, approved_memory=retrieval, memory=legacy, retrieval_policy=policy,
-            clock=runtime._clock, translation_context=runtime._translation_context)
-        yield RichDocumentExecutor(translator, context)
+            clock=runtime._clock, translation_context=runtime._translation_context, usage=usage)
+        with flushing(usage):
+            yield RichDocumentExecutor(translator, context)
 
     return TranslationResources(None, documents=DocumentWork(factory, context))
 
 
-def _parallel_online(runtime, context, plan):
+def _parallel_online(runtime, context, plan, usage=None):
     """Workers > 1 run without governed memory, which check_rich_options refuses earlier."""
     factory_of = getattr(runtime._prepared, "translator_factory", None)
     if factory_of is None:
@@ -161,8 +187,8 @@ def _parallel_online(runtime, context, plan):
             translator_of_document = DocumentTranslator(plan, provider,
                 lambda text: apply_glossary_with_usage(text, runtime._prepared.glossary), artifacts,
                 WorkerProvenance(provenance, check), events, exact_cache=cache, clock=runtime._clock,
-                translation_context=runtime._translation_context)
-            with cache.worker(check):
+                translation_context=runtime._translation_context, usage=usage)
+            with cache.worker(check), flushing(usage):
                 yield RichDocumentExecutor(translator_of_document, replace(context, events=events))
         finally:
             provider.close()

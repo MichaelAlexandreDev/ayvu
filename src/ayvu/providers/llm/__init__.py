@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from .batching import estimate_tokens, plan_batches
 from .core import LLM_SAFE_POINTS, LlmTranslationProvider
+from .estimate import OUTPUT_TOKEN_FACTOR, CallEstimate, CostMeter, LlmUsageEstimator, TokenCounter, estimate_call
 from .facts import CORE_FACTS, TRANSPORT_CAPABILITIES, llm_snapshot
 from .model import (
     LLM_CORE_VERSION, BatchPolicy, DecodingSettings, FinishReason, GlossaryHint, GlossaryRule, LlmCoreError,
@@ -17,7 +18,8 @@ from .prompt import DEFAULT_PROMPT, OUTPUT_SCHEMA, PROMPT_STRATEGY, PROMPT_V1, P
 from .settings import PROMPT_REVISION_NAMESPACE, PROMPT_REVISION_OWNER, LlmSemantics, LlmSettings
 
 __all__ = [
-    "BatchPolicy", "CORE_FACTS", "DEFAULT_PROMPT", "DecodingSettings", "FinishReason", "GlossaryHint", "GlossaryRule",
+    "BatchPolicy", "CORE_FACTS", "CallEstimate", "CostMeter", "LlmUsageEstimator", "OUTPUT_TOKEN_FACTOR", "TokenCounter",
+    "estimate_call", "DEFAULT_PROMPT", "DecodingSettings", "FinishReason", "GlossaryHint", "GlossaryRule",
     "LLM_CORE_VERSION", "LLM_SAFE_POINTS", "LlmCoreError", "LlmSemantics", "LlmSettings", "LlmTranslationProvider",
     "ModelCallError", "ModelPort", "ModelRequest", "ModelResponse", "OUTPUT_SCHEMA", "PROMPT_REVISION_NAMESPACE",
     "PROMPT_REVISION_OWNER", "PROMPT_STRATEGY", "PROMPT_V1", "PromptSegment", "PromptTemplate",

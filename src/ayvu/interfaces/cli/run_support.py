@@ -14,7 +14,7 @@ from . import settings
 from ...translation import PreflightError
 from .progress import TranslationProgress
 
-from .options import _invocation_remote_consent
+from .options import _invocation_max_cost, _invocation_remote_consent
 from .render import _print_expected_error, console
 
 
@@ -75,7 +75,8 @@ def _translate_without_project(book: _BookRequest, hooks: _BookHooks, *, validat
 
 
 def _translate_in_project(book: _BookRequest, hooks: _BookHooks) -> _BookOutcome:
-    return _with_selection(book, execute_translate_in_project(replace(book, remote_consent=_remote_consent), hooks))
+    return _with_selection(book, execute_translate_in_project(
+        replace(book, remote_consent=_remote_consent, max_cost=_invocation_max_cost.get()), hooks))
 
 
 def _remote_consent(notice) -> bool:

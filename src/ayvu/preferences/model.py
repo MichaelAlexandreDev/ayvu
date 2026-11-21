@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import Any
 
 from ..provenance import ProvenanceValidationError, declared_model, valid_observed_model_name
+from .prices import PriceRows, check_price_rows, prices_from_mapping, prices_to_mapping
 
 FOLDER_KEYS = ('original', 'translated', 'preview', 'reports', 'processing')
-TOP_KEYS = ('version', 'default_target_language', 'books_dir', 'folders', 'reader_app', 'profiles', 'translator_models')
+TOP_KEYS = ('version', 'default_target_language', 'books_dir', 'folders', 'reader_app', 'profiles', 'translator_models',
+            'prices')
 PROFILE_KEYS = ('target_language', 'glossary', 'style', 'translator', 'model')
 STYLES = frozenset({'neutral', 'technical', 'literary', 'academic'})
 FIELD_NAMES = frozenset({*TOP_KEYS, 'configuration', 'revision', 'profiles.*',
@@ -105,6 +107,7 @@ class GlobalPreferences:
     reader_app: str | None = None
     profiles: tuple[tuple[str, NamedPreferenceProfile], ...] = ()
     translator_models: tuple[tuple[str, str], ...] = ()
+    prices: PriceRows = ()  # price overrides per translator and model (#380), see preferences.prices
 
     def __post_init__(self) -> None:
         if type(self.version) is not int:
@@ -136,6 +139,11 @@ class GlobalPreferences:
         for name, value in self.translator_models:
             if not MODEL_TRANSLATORS[name](value):
                 raise PreferencesError('invalid', 'translator_models')
+        check_price_rows(self.prices, _invalid_prices)
+
+
+def _invalid_prices() -> PreferencesError:
+    return PreferencesError('invalid', 'prices')
 
 
 def is_valid_model_label(label: str) -> bool:
@@ -178,13 +186,14 @@ def preferences_from_mapping(data: object) -> tuple[GlobalPreferences, bool]:
     models = data.get('translator_models', {})
     if not isinstance(models, dict):
         raise PreferencesError('invalid', 'translator_models')
+    prices = prices_from_mapping(data.get('prices'), _invalid_prices)
     result = GlobalPreferences(
         version=data.get('version', 1),
         default_target_language=data.get('default_target_language', 'pt'),
         books_dir=data.get('books_dir', '~/Documentos/Livros'),
         folders=PreferenceFolders(**{key: folders[key] for key in FOLDER_KEYS if key in folders}),
         reader_app=data.get('reader_app'), profiles=tuple(sorted(parsed.items())),
-        translator_models=tuple(models.items()),
+        translator_models=tuple(models.items()), prices=prices,
     )
     return result, unknown
 
@@ -194,6 +203,7 @@ def preferences_to_mapping(value: GlobalPreferences) -> dict[str, object]:
     value.__post_init__()
     return {
         **({'translator_models': dict(value.translator_models)} if value.translator_models else {}),
+        **({'prices': prices_to_mapping(value.prices)} if value.prices else {}),
         'version': value.version, 'default_target_language': value.default_target_language,
         'books_dir': value.books_dir,
         'folders': {key: getattr(value.folders, key) for key in FOLDER_KEYS},
@@ -289,6 +299,7 @@ class AyvuConfig:
     profiles: dict[str, TranslationProfile] = field(default_factory=dict)
     _preferences_revision: str | None = field(default=None, repr=False, compare=False)
     translator_models: dict[str, str] = field(default_factory=dict, repr=False)
+    prices: dict[str, dict[str, dict[str, str]]] = field(default_factory=dict, repr=False)
 
     @classmethod
     def default(cls) -> "AyvuConfig":
@@ -305,6 +316,7 @@ class AyvuConfig:
     def to_dict(self) -> dict[str, Any]:
         return {
             **({"translator_models": dict(self.translator_models)} if self.translator_models else {}),
+            **({"prices": self.prices} if self.prices else {}),
             "version": self.version,
             "default_target_language": self.default_target_language,
             "books_dir": str(self.books_dir),
@@ -351,7 +363,7 @@ def config_to_preferences(config: AyvuConfig) -> GlobalPreferences:
         profiles=tuple((name, NamedPreferenceProfile(
             profile.target_language, str(profile.glossary) if profile.glossary is not None else None,
             profile.style, profile.translator, profile.model)) for name, profile in sorted(config.profiles.items())),
-        translator_models=tuple(config.translator_models.items()),
+        translator_models=tuple(config.translator_models.items()), prices=prices_from_mapping(config.prices, _invalid_prices),
     )
 
 
@@ -361,7 +373,7 @@ def config_from_preferences(value: GlobalPreferences, revision: str | None = Non
         books_dir=Path(value.books_dir), folders=FolderNames(**{
             key: getattr(value.folders, key) for key in FolderNames.__dataclass_fields__}),
         reader_app=value.reader_app,
-        translator_models=dict(value.translator_models),
+        translator_models=dict(value.translator_models), prices=prices_to_mapping(value.prices),
         profiles={name: TranslationProfile(profile.target_language,
                   Path(profile.glossary) if profile.glossary is not None else None, profile.style, profile.translator, profile.model)
                   for name, profile in value.profiles}, _preferences_revision=revision,

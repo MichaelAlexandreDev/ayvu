@@ -71,6 +71,7 @@ The operating contracts of each module.
 | [Providers](modules/providers.md) |
 | [Ollama provider](modules/providers-ollama.md) |
 | [Remote providers and consented egress](modules/providers-remote.md) |
+| [Usage, cost and the cost cap](modules/providers-usage.md) |
 | [Recovery](modules/recovery.md) |
 | [Review exchange and application](modules/review.md) |
 | [Translation context](modules/translation-context.md) |

@@ -243,7 +243,7 @@ imports the values downwards; no layer exception and no group cycle are added.
 src/ayvu/
   kernel/          ids, clock, cancellation, failures, values; sqlite/ (migrations, contracts)
   network/         policy, http
-  preferences/     model, service, store, config_facade
+  preferences/     model, prices, service, store, config_facade
   library/         service, adapters
   provenance/      model, service, store
   content/         model, use_cases, protection
@@ -253,10 +253,10 @@ src/ayvu/
   formats/         contracts, service, local; epub/ (archive, adapter, io, reader, html_structure, validation); markdown/
   knowledge/       cache/ (identity, schema, protocol_names, legacy_schema, legacy_format, legacy_stream, legacy_admin_store, repository, interchange, admin, admin_store, admin_v2_store, admin_v2_queries, admin_v2_files, admin_v2_export, admin_v2_records, admin_v2_import);
                    memory/ (fuzzy; approved/ model, service, store); glossary/ (rules, catalog, catalog_store)
-  providers/       ports, capabilities, discovery, service, network, session;
-                   libretranslate/ (client, adapter); llm/ (model, prompt, batching, output, failures, facts, settings, core)
-  projects/        model, service, store, schema; profiles/ (model, service, store, glossary_store)
-  translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output, report;
+  providers/       ports, capabilities, discovery, service, network, session, prices;
+                   libretranslate/ (client, adapter); llm/ (model, prompt, batching, output, failures, facts, settings, core, estimate)
+  projects/        model, service, store, schema, usage; profiles/ (model, service, store, glossary_store)
+  translation/     ports, plan, pipeline, engine, document, chunking, preflight, project, batch, batch_output, report, usage;
                    stages/ (memory_retrieval); context/ (model, execution, source)
   review/          application, exchange, exchange_model, exchange_parts, exchange_mapping,
                    exchange_codec, exchange_files, csv_export, csv_import;

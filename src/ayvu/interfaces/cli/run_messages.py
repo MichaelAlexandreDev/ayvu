@@ -11,6 +11,7 @@ from ...composition.cli import _BookOutcome, legacy_cache_notice
 from ...kernel import UserMode
 
 from .render import _TRANSLATION_FAILURES, _print_expected_error, console
+from .usage_report import budget_line
 
 
 def _print_legacy_cache_notice(cache_path: Path, *, source: str | None, target: str) -> None:
@@ -54,6 +55,8 @@ def _print_translation_failure(outcome: _BookOutcome, output_path: Path, mode: U
     template = _TRANSLATION_FAILURES.get(code) or _TRANSLATION_FAILURES["unexpected_error"]
     detail = str(outcome.raised) if outcome.raised is not None and str(outcome.raised) else code
     _print_expected_error(template[0], template[1].format(output=output_path), mode, detail=detail)
+    if code == "cost_budget_reached" and outcome.usage is not None:
+        console.print(budget_line(outcome.usage))
 
 
 def _print_review_export_failure(code: str, mode: UserMode) -> None:

@@ -55,6 +55,13 @@ remain presentation concerns.
         "AYVU-UC-005"
       ]
     },
+    "--max-cost": {
+      "kind": "application-policy",
+      "mappings": [
+        "AYVU-UC-004",
+        "AYVU-UC-005"
+      ]
+    },
     "--install-completion": {
       "kind": "presentation-only",
       "mappings": [

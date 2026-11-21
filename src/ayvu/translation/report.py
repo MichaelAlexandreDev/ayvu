@@ -61,6 +61,8 @@ class TranslationReport:
     provider_name: str | None = None
     model_name: str | None = None
     retention_claim: str | None = None  # a remote provider's declared retention, shown with the provider
+    usage: object | None = None  # a project run's usage and cost (``translation.UsageSummary``), #380
+    usage_estimate: object | None = None  # a model translator's dry-run estimate (``providers.UsageEstimate``)
 
     def record_error(self, message: str) -> None:
         self.errors.append(message)

@@ -142,3 +142,10 @@ LibreTranslate when the profile omits a translator. No endpoint, credential or i
 translator is persisted. `translator_models` remains the per-translator model map. Composition selects
 explicit flags, then the matching profile, then this map; switching translators ignores the old
 profile's model. A durable resume reads its original selection from existing provenance.
+
+## Prices (#380)
+
+The optional top-level `prices.<translator>.<model>` holds `input`, `output` and an optional `cached_input`, in US
+dollars per million tokens; `"*"` prices every model. `preferences/prices.py` validates it through
+`providers.price_overrides`, keeps it as sorted string rows and writes it back as strings. An invalid price is
+`invalid:prices`, which the CLI refuses with its own message. See [usage](providers-usage.md).

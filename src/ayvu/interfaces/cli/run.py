@@ -224,7 +224,7 @@ def _run_translation(
         cancellation=cancellation,
         on_project_result=record_job,
         translator_name=translator_name,
-        translator_models=config.translator_models,
+        translator_models=config.translator_models, prices=config.prices,
     )
     try:
         try:

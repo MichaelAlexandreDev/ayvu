@@ -16,6 +16,7 @@ Start with the [README](../README.md) for what Ayvu is and a quick start. This p
 | [Model label, rich runtime and v2 cache](guide/rich-runtime.md) | Declaring the model label, durable jobs, the v2 cache, approved memory and failure behaviour |
 | [Translating with Ollama](guide/ollama.md) | Translating with a local language model: setup, model identity, declared languages, workers, privacy and limits |
 | [Configuration](guide/configuration.md) | The configuration file, its fields, profiles and limits |
+| [Usage, cost and the cost cap](guide/usage-and-cost.md) | Tokens and cost in the reports, `--max-cost`, the dry-run estimate and price overrides |
 | [HTTP network policy](guide/network-policy.md) | `--network-policy none` and `loopback`, and what each one blocks |
 
 A walkthrough of both modes, step by step, is in the

@@ -56,3 +56,11 @@ def normalize_remote_egress(current):
     consent = current['commands'].pop('consent')
     assert list(consent['commands']) == ['revoke']
     assert [item['name'] for item in consent['commands']['revoke']['parameters']] == ['target', 'translator_name', 'help']
+
+
+def normalize_cost_cap(current):
+    """#380 adds the root --max-cost option: an amount in US dollars, never saved, with no default."""
+    added = [parameter for parameter in current['parameters'] if parameter['name'] == 'max_cost']
+    assert [(item['opts'], item['default'], item['is_flag'], item['required']) for item in added] == [
+        (['--max-cost'], None, False, False)]
+    current['parameters'].remove(added[0])

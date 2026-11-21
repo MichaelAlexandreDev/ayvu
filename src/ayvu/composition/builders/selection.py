@@ -40,11 +40,12 @@ def select_translator(config: AyvuConfig, *, translator: str | None = None, mode
     if name not in MODEL_TRANSLATORS:
         # Keep the existing specific unsupported-translator diagnostic before any resource is opened.
         require_model({}, name)
+    # A dry run with a model translator is an estimate that sends nothing (#380), so only these modes are refused.
     if name == 'ollama':
-        require_supported_mode(dry_run=dry_run, cache_only=cache_only, preview=preview)
+        require_supported_mode(cache_only=cache_only, preview=preview)
     remote = remote_adapter(name)
     if remote is not None:
-        require_remote_mode(dry_run=dry_run, cache_only=cache_only, preview=preview)
+        require_remote_mode(cache_only=cache_only, preview=preview)
     profile_model = profile.model if profile and profile_translator in (None, name) else None
     chosen = model if model is not None else profile_model if profile_model is not None else config.translator_models.get(name)
     if chosen is not None and not MODEL_TRANSLATORS[name](chosen):

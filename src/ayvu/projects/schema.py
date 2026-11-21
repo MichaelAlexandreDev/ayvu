@@ -17,6 +17,7 @@ from ..provenance.store import PROVENANCE_SCHEMA_STATEMENTS, SqliteProvenanceRep
 from ..kernel.sqlite import SqliteMigration, SqliteMigrationRunner
 from .consent import REMOTE_CONSENT_SCHEMA_STATEMENTS, RemoteConsentError, SqliteRemoteConsentRepository
 from .turns import ProjectDatabaseTurns, TurnTakingRunner
+from .usage import PROVIDER_USAGE_SCHEMA_STATEMENTS, ProviderUsageError, SqliteProviderUsageRepository
 
 PROJECT_MIGRATIONS = (
     SqliteMigration(1),
@@ -24,6 +25,7 @@ PROJECT_MIGRATIONS = (
     SqliteMigration(3, ARTIFACT_SCHEMA_STATEMENTS),
     SqliteMigration(4, PROVENANCE_SCHEMA_STATEMENTS),
     SqliteMigration(5, REMOTE_CONSENT_SCHEMA_STATEMENTS),
+    SqliteMigration(6, PROVIDER_USAGE_SCHEMA_STATEMENTS),
 )
 
 
@@ -88,3 +90,16 @@ def open_remote_consents(database: Path, backups: Path, project_id: str, **facto
     if not result.ok:
         raise RemoteConsentError(result.error or "io")
     return SqliteRemoteConsentRepository(runner, database, project_id, **factories)
+
+
+def open_provider_usage(database: Path, backups: Path, project_id: str, *, busy_timeout: float = 0.5,
+                        turns: ProjectDatabaseTurns | None = None, **factories) -> SqliteProviderUsageRepository:
+    """Bootstrap or upgrade the database explicitly, then expose the project's provider usage.
+
+    ``factories`` is the optional clock of the repository.
+    """
+    runner = project_migration_runner(busy_timeout=busy_timeout, turns=turns)
+    result = runner.migrate(database, backups)
+    if not result.ok:
+        raise ProviderUsageError(result.error or "io")
+    return SqliteProviderUsageRepository(runner, database, project_id, **factories)

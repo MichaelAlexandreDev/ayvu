@@ -73,14 +73,17 @@ def _authorized_project(prepared):
     return project
 
 
-def translate(book, hooks, label, *, formats, cache_path):
+def translate(book, hooks, label, *, formats, cache_path, estimate=lambda glossary: None):
+    """A dry run, or a preview. ``estimate`` gives a model translator's usage estimate (#380): that dry run reads
+    no cache, since its plan needs the model's identity, so it estimates as if nothing were cached."""
     if getattr(book, "preview", False):
         return _preview(book, hooks, label, formats=formats, cache_path=cache_path)
     prepared = book.prepare()
+    estimator = estimate(prepared.glossary)
     try:
         project = _authorized_project(prepared)
         reader, resolver = None, None
-        if project is not None:
+        if project is not None and estimator is None:
             reader = ReadOnlyExactCache(cache_path)
             intent = LocalCachePlanIntent(book.options.source, book.options.target,
                 replace(LIBRETRANSLATE_PRODUCER, model=declared_model(label)), book.options.chunk_limit,
@@ -88,7 +91,8 @@ def translate(book, hooks, label, *, formats, cache_path):
             resolver = LocalCachePlanResolver(reader, CacheAuthorizationPolicy(project.project_id).resolve(), intent)
         units = TransientUnits(book.options.language_pair,
             lambda text: apply_glossary_with_usage(text, prepared.glossary), review_text_from_template, reader=reader, resolver=resolver,
-            cache_only=book.options.cache_only, chunk_limit=book.options.chunk_limit)
+            cache_only=book.options.cache_only, chunk_limit=book.options.chunk_limit,
+            on_estimate=None if estimator is None else estimator.add)
         service = TransientTranslation(formats, units,
             observer=EngineObserver(hooks.on_chapter_start, hooks.on_chapter_done, hooks.on_text_processed),
             cancellation=book.cancellation)
@@ -101,6 +105,10 @@ def translate(book, hooks, label, *, formats, cache_path):
         report = to_report(result, book.epub_path, book.output_plan.path, package, book.options, prepared.glossary)
         report.execution_note = (f"{book.options.workers} workers configured; sequential local analysis. "
                                  "Only existing matching project evidence can supply exact cache hits; no network or cache warming.")
+        if estimator is not None:
+            report.usage_estimate = estimator.summary()
+            report.execution_note = (f"{book.options.workers} workers configured; sequential local analysis. "
+                                     "Nothing was sent; the estimate assumes no text is cached.")
         return report
     except CacheSchemaError as error:
         if error.code == "cache_busy":

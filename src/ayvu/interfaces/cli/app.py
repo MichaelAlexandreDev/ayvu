@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Optional
 import typer
 from .render import console
-from .options import CONSENT_REMOTE_HELP, NETWORK_POLICY_HELP, _invocation_network_policy, _invocation_remote_consent
+from .options import (CONSENT_REMOTE_HELP, MAX_COST_HELP, NETWORK_POLICY_HELP, _invocation_max_cost, _invocation_network_policy,
+                      _invocation_remote_consent, parse_max_cost)
 from .commands import cache, consent, content, resume, review, translate, translator
 from .commands.resume import _offer_detected_translation_resume, _print_processing_translation_states
 from ...composition.cli import CliSurface, installed_cli_surface, open_job_recovery
@@ -17,6 +18,7 @@ def main(
     ctx: typer.Context,
     network_policy: Optional[NetworkPolicy] = typer.Option(None, "--network-policy", help=NETWORK_POLICY_HELP),
     consent_remote: bool = typer.Option(False, "--consent-remote", help=CONSENT_REMOTE_HELP),
+    max_cost: Optional[str] = typer.Option(None, "--max-cost", metavar="USD", help=MAX_COST_HELP, callback=parse_max_cost),
     mode: Optional[UserMode] = typer.Option(
         None,
         "--mode",
@@ -37,7 +39,7 @@ def main(
         # COMMON mode is only when running 'ayvu' without subcommands or options (except for help)
         # Typer sets invoked_subcommand when a subcommand is used.
         # ctx.params contains options of the callback itself.
-        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k not in {"mode", "network_policy", "consent_remote"}):
+        if ctx.invoked_subcommand is None and not any(v for k, v in ctx.params.items() if k not in {"mode", "network_policy", "consent_remote", "max_cost"}):
             mode = UserMode.COMMON
     surface = ctx.obj
     ctx.ensure_object(dict)
@@ -47,6 +49,8 @@ def main(
     ctx.call_on_close(lambda: _invocation_network_policy.reset(network_token))
     consent_token = _invocation_remote_consent.set(True if consent_remote else False if mode == UserMode.DEVELOPER else None)
     ctx.call_on_close(lambda: _invocation_remote_consent.reset(consent_token))
+    cost_token = _invocation_max_cost.set(max_cost)  # micro-dollars, converted by its option's callback
+    ctx.call_on_close(lambda: _invocation_max_cost.reset(cost_token))
 
     if ctx.invoked_subcommand is not None:
         return

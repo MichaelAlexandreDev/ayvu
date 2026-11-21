@@ -50,6 +50,7 @@ class _ContractProvider:
             policy_ref=plan.policy_ref,
             features=() if self._context is None or self._context.feature is None else (self._context.feature,))
         result = execute(self._translator._provider, request)
+        self._record(request, result)
         for warning in result.warnings:
             self._run.emit(warning)
         if result.status is not ProviderStatus.SUCCEEDED:
@@ -58,6 +59,18 @@ class _ContractProvider:
             # What really ran differs from what was resolved, so a new plan is needed.
             raise _ProviderStopped(JobFailure(JobFailureFamily.PROVIDER_PERMANENT, "plan_invalidated"))
         return result.text
+
+    def _record(self, request: TranslationProviderRequest, result) -> None:
+        usage = self._translator._usage
+        if usage is None:
+            return
+        try:
+            usage.record(job_id=self._run.context.job.job_id, document_id=self._run.document.document_id,
+                         unit_id=self._unit.unit_id, request_id=request.request_id, text=request.text,
+                         usage=result.usage, delivery=result.delivery)
+        except Exception:
+            # The request was made; without its record the job's usage would be wrong, so the job stops.
+            raise _ProviderStopped(JobFailure(JobFailureFamily.RESOURCE, "usage_record_failed")) from None
 
 
 class _PlanBoundCache:

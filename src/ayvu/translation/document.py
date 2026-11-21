@@ -38,8 +38,8 @@ from ..kernel import (
 )
 from .document_contracts import (
     DocumentTranslationResult, ExactCachePort, ExecutionContext, MAX_REUSABLE_JOBS, MemoryPort,
-    TranslationCancelled, TranslationExecutionError, UnitSource, UnitTranslationResult, _ProviderStopped,
-    _expand, _template,
+    TranslationCancelled, TranslationExecutionError, UnitSource, UnitTranslationResult, UsageRecorder,
+    _ProviderStopped, _expand, _template,
 )
 from .raw_results import _artifact_request, _decode_raw, _raw_payload
 from .document_replay import _chain_artifacts, _read_chain_payload, _replay, _replay_from_chain
@@ -65,7 +65,7 @@ class DocumentTranslator:
                  memory: MemoryPort | None = None, approved_memory: MemoryRetrieval | None = None,
                  retrieval_policy: RetrievalPolicy = RetrievalPolicy(), clock: Callable[[], datetime],
                  translation_context: ContextExecution | None = None,
-                 new_id: Callable[[], str] = lambda: str(uuid4())) -> None:
+                 new_id: Callable[[], str] = lambda: str(uuid4()), usage: UsageRecorder | None = None) -> None:
         if type(plan) is not ResolvedTranslationPlan:
             raise TranslationExecutionError(JobFailure(JobFailureFamily.INTERNAL, "invalid_plan"))
         self._plan = plan
@@ -81,6 +81,7 @@ class DocumentTranslator:
         self._clock = clock
         self._new_id = new_id
         self._translation_context = translation_context
+        self._usage = usage  # each provider result is recorded once, by request id (#380)
         self._ancestors: dict[str, dict[str, Artifact]] = {}
 
     def __repr__(self) -> str:

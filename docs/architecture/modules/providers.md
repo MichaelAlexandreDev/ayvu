@@ -341,6 +341,7 @@ of [#375](https://github.com/MichaelAlexandreDev/ayvu/issues/375). `ayvu.provide
 | `facts` | Core capability facts and the snapshot that requires every transport fact from the adapter |
 | `settings` | Run settings and the plain semantic values the v2 fingerprint covers |
 | `core` | `LlmTranslationProvider`: pre-request refusals, calls, per-unit fallback, strict result check |
+| `estimate` | Token estimates, the `TokenCounter` and `CostMeter` ports; usage and cost: [providers-usage](providers-usage.md) |
 
 **Before a call**, with nothing sent: a required feature other than context is `unsupported_required_feature`,
 a pivot route is `route_conflict`, and an observed cancellation is `cancelled_before_request`.
