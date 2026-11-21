@@ -37,7 +37,8 @@ Every new translation with LibreTranslate requires a model label in `translator_
 it through Settings (option 4), option 5, or edit the existing configuration. Guided translation and preview
 also ask in place, save and continue; Enter cancels. See
 [Model label, rich runtime and v2 cache](rich-runtime.md). The `ollama` entry names an installed Ollama
-model instead; see [Translating with Ollama](ollama.md).
+model instead; see [Translating with Ollama](ollama.md). Optional `prices.<translator>.<model>` entries set
+your own prices, in US dollars per million tokens; see [usage, cost and the cost cap](usage-and-cost.md).
 
 ## Translation profiles
 

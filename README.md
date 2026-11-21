@@ -16,6 +16,8 @@ internal file names. The original EPUB is never modified; the translation is wri
   can see what produced each output and resume a failed job safely.
 - **Previews, dry runs and cache-only rebuilds:** translate the first chapters, simulate a run without
   writing an EPUB, or rebuild a book from the cache without calling the translator.
+- **Usage and cost:** reports show tokens, cost and cost per 1,000 words, a dry run estimates them, and
+  `--max-cost` caps a run. See [usage, cost and the cost cap](docs/guide/usage-and-cost.md).
 - **Batches and parallel workers:** translate up to 100 books in one command, with per-book reports,
   and process chapters in parallel while output, progress and checkpoints stay in book order.
 - **Glossaries, profiles and translation memory:** keep technical terms consistent, save per-book
@@ -78,7 +80,8 @@ configuration changes. Plans and reports display both names, without credentials
 | `ayvu` | Opens the guided menu |
 | `ayvu translate book.epub --target pt` | Translates one book, or up to 100 at once |
 | `ayvu --preview book.epub` | Translates the first chapters into a preview EPUB |
-| `ayvu translate book.epub --dry-run` | Simulates the run and reports, without writing an EPUB |
+| `ayvu translate book.epub --dry-run` | Simulates the run and reports, without writing an EPUB; with Ollama or a remote provider it estimates tokens and cost |
+| `ayvu --max-cost 2.50 translate book.epub` | Stops the run before a request would take its cost past the cap; `resume` continues it |
 | `ayvu translate book.epub --cache-only` | Rebuilds the book from the cache, without calling the translator |
 | `ayvu resume` | Resumes an interrupted translation |
 | `ayvu inspect book.epub` | Shows title, authors, language and contents, read-only |

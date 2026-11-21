@@ -86,7 +86,7 @@ uv run ayvu --preview book.epub --translator libretranslate --model local-model
 ```
 
 The same selection applies to every book in a batch. Unknown providers and invalid models stop before
-job or provider work. Ollama dry runs, previews and cache-only runs remain unavailable. Guided translation
+job or provider work. Ollama previews and cache-only runs remain unavailable; an Ollama dry run estimates tokens and cost. Guided translation
 asks for the translator after the EPUB and profile only when there is a choice (an Ollama model in the
 configuration or a profile naming a translator), then asks for a missing model. Settings option 6 lists
 Ollama models or accepts a validated manual name. See [configuration and profiles](configuration.md).
@@ -171,6 +171,9 @@ uv run ayvu translate book.epub \
   --output test.epub \
   --dry-run
 ```
+
+With Ollama or a remote provider, a dry run also estimates tokens and cost without sending anything, and
+`ayvu --max-cost <USD> translate ...` caps a run's cost; see [usage, cost and the cost cap](usage-and-cost.md).
 
 Rebuild from the cache only, without calling the translator (see
 [Cache, resume and cache-only](cache-and-resume.md#cache-only-mode)):

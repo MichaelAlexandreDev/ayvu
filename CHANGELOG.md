@@ -10,6 +10,20 @@ lancadas e secoes versionadas quando uma release for publicada.
 
 ### Alterado
 
+- Uso, custo e teto de custo (#380). Cada requisição ao tradutor é contada uma vez só, mesmo com vários
+  workers e retomadas, numa tabela nova do banco do projeto (`provider_usage`, esquema versão 6, com
+  backup na migração): caracteres, palavras, tokens de entrada, saída e em cache e o custo em USD, sem
+  nenhum texto do livro. Os relatórios do terminal e em Markdown ganham a seção "Usage" com chamadas,
+  tokens, custo, custo por 1.000 palavras e a versão da tabela de preços; na retomada, também o total do
+  job. LibreTranslate mostra caracteres, zero tokens e custo zero; Ollama mostra os tokens que informa, a
+  custo zero. A tabela de preços é datada (`2026-11-20`) e pode ser sobrescrita em
+  `prices.<tradutor>.<modelo>` no `config.json`, em dólares por milhão de tokens. A nova opção raiz
+  `--max-cost <USD>` (`ayvu --max-cost 2.50 translate ...` ou `resume`) para antes da requisição que
+  passaria do teto, contando o pior caso de cada chamada: o job termina como falho, não publica EPUB e
+  pode ser retomado com um teto novo; um modelo sem preço conhecido é recusado com `--max-cost` antes de
+  qualquer envio. O `--dry-run` com Ollama ou com provedor remoto passa a ser aceito: estima tokens e
+  custo, rotulados como aproximados, e o pior caso, sem nenhuma requisição e sem consentimento.
+
 - Saída HTTPS explícita e consentida para provedores remotos de IA (#379). A nova política
   `--network-policy remote` nunca é o padrão: mantém tudo o que `loopback` permite (LibreTranslate e
   Ollama seguem iguais) e acrescenta só HTTPS aos hosts que o adaptador do provedor declara, sem

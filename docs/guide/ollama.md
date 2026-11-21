@@ -85,10 +85,11 @@ the decoding settings are part of the cache identity too.
 ## Privacy and cost
 
 The book's text goes only to the Ollama server at the address you give, on loopback. Ayvu sends no
-credential and Ollama needs none. There is no per-token cost; Ollama reports token counts, which Ayvu
-does not record yet.
+credential and Ollama needs none. There is no per-token cost; the report shows the tokens Ollama reports, at zero cost. See
+[usage, cost and the cost cap](usage-and-cost.md).
 
 ## Not available yet
 
-- `--dry-run`, `--preview` and `--cache-only` with `--translator ollama` are refused with an explanation.
+- `--preview` and `--cache-only` with `--translator ollama` are refused with an explanation. `--dry-run`
+  estimates tokens and cost without contacting Ollama ([usage and cost](usage-and-cost.md)).
 - Remote providers (Anthropic, OpenAI) need an explicit egress policy and are separate issues.
